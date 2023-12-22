@@ -8,4 +8,4 @@ docker build -t ishkul-backend  ./backend
 docker tag ishkul-backend mesbahtanvir/ishkul-backend:latest  # tag ishkul-backend
 docker push mesbahtanvir/ishkul-backend:latest
 
-sudo docker-compose -f ./infra/docker-compose.yml up 
+#sudo docker-compose -f ./infra/docker-compose.yml up 
