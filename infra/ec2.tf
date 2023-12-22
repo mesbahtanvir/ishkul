@@ -12,7 +12,7 @@ resource "aws_instance" "ishkul_ec2" {
     connection {
       type        = "ssh"
       user        = "ubuntu"
-      private_key = file("ishkul.pem")
+      private_key = file(var.key_path)
       host        = self.public_ip
     }
   }
