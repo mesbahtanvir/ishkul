@@ -2,6 +2,11 @@
   text-align: center;
 }
 
+.App {
+  background-color: var(--primary-bg-color);
+  color: var(--text-color);
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;

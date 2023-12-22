@@ -1,9 +1,9 @@
 resource "aws_instance" "ishkul_ec2" {
-  ami             = "ami-05f8c2ee58e71f8e6" # Replace with a valid AMI ID
-  instance_type   = "t4g.small"
-  key_name        = "ishkul"
+  ami           = "ami-05f8c2ee58e71f8e6" # Replace with a valid AMI ID
+  instance_type = "t4g.small"
+  key_name      = "ishkul"
 
-  subnet_id       = aws_subnet.public_1.id
+  subnet_id              = aws_subnet.public_1.id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
 
   provisioner "file" {
