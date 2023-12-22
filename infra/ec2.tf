@@ -12,7 +12,7 @@ resource "aws_instance" "ishkul_ec2" {
     connection {
       type        = "ssh"
       user        = "ubuntu"
-      private_key = file("ishkul.pem")
+      private_key = file(var.key_path)
       host        = self.public_ip
     }
   }
@@ -38,7 +38,7 @@ resource "null_resource" "run_remote_exec" {
     connection {
       type        = "ssh"
       user        = "ubuntu"
-      private_key = file("ishkul.pem")
+      private_key = file(var.key_path)
       host        = aws_instance.ishkul_ec2.public_ip
     }
   }

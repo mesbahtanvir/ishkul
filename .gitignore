@@ -1,4 +1,4 @@
 *.pem
 *.tfvars
 *.terraform
-*infra.zip
+*.tfstate*

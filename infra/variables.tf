@@ -21,3 +21,7 @@ variable "aws_region" {
 variable "github_token" {
   type = string
 }
+
+variable "key_path" {
+  type = string
+}
