@@ -167,3 +167,25 @@ img, video {
   font-size: 1.2em;
   margin-bottom: 10px;
 }
+
+/* Style for the menu container */
+.menu-container {
+  position: relative;
+}
+
+/* Style for the button to toggle the menu */
+.menu-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* Style for the menu items */
+.menu-items {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  width: 100%;
+}

@@ -2,9 +2,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './components/HomePage';
 import AboutPage from './components/AboutPage';
-import QuestionBank from './components/QuestionBank';
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import IshkulHelmet from './components/IshkulTitle';
+import QuestionBank from './components/QuestionBank';
 
 export default function App() {
 
@@ -19,6 +20,7 @@ export default function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Router>
+      <IshkulHelmet />
         <Navbar />
         <Routes>
           <Route path="/" element={<HomePage />} />
