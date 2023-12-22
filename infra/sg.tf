@@ -11,8 +11,8 @@ resource "aws_security_group" "ec2_sg" {
   }
 
   ingress {
-    from_port   = 8000
-    to_port     = 8000
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -34,7 +34,6 @@ resource "aws_security_group_rule" "full_egress_ec2" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
-
 resource "aws_security_group_rule" "ingress_alb_traffic" {
   type              = "ingress"
   from_port         = 80
@@ -46,8 +45,8 @@ resource "aws_security_group_rule" "ingress_alb_traffic" {
 
 resource "aws_security_group_rule" "egress_alb_traffic" {
   type                     = "egress"
-  from_port                = 8000
-  to_port                  = 8000
+  from_port                = 80
+  to_port                  = 80
   protocol                 = "tcp"
   security_group_id        = aws_security_group.alb_sg.id
   source_security_group_id = aws_security_group.ec2_sg.id

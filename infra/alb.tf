@@ -30,10 +30,11 @@ resource "aws_lb_listener" "ishkul_listener" {
 }
 
 resource "aws_lb_target_group" "ishkul_tg" {
-  name     = "ishkul-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
+  name       = "ishkul-tg"
+  port       = 80
+  protocol   = "HTTP"
+  vpc_id     = aws_vpc.main.id
+  slow_start = 0
 
   health_check {
     enabled             = true
@@ -50,9 +51,9 @@ resource "aws_lb_target_group" "ishkul_tg" {
 resource "aws_lb_target_group_attachment" "tg_attachment" {
   target_group_arn = aws_lb_target_group.ishkul_tg.arn
   target_id        = aws_instance.ishkul_ec2.id
+  port             = 80
 }
 
 output "load_balancer_dns" {
   value = aws_lb.ishkul_alb.dns_name
 }
-

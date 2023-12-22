@@ -1,15 +1,19 @@
 import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import HomePage from './components/HomePage';
+import AboutPage from './components/AboutPage';
 
-class App extends React.Component {
-  render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <h1>Ishkul is Coming Soon!</h1>
-        </header>
-      </div>
-    );
-  }
+function App() {
+  return (
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" exact component={HomePage} />
+        <Route path="/about" component={AboutPage} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;
