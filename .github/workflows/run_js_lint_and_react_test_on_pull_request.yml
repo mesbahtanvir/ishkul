@@ -5,7 +5,7 @@ on: [push, pull_request]
 defaults:
   run:
     shell: bash
-    working-directory: ./javascript
+    working-directory: ./web/ishkul-react-app
 
 jobs:
   javascript-lint-and-test:
