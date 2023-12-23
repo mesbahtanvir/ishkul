@@ -1,5 +1,5 @@
 resource "aws_acm_certificate" "ishkul_cert" {
-  domain_name       = "ishkul.org"
+  domain_name       = "*.ishkul.org"
   validation_method = "DNS"
 
   tags = {
