@@ -1,0 +1,56 @@
+.landing-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100vh;
+    background-color: #1a1a1a; /* Dark background color */
+    padding-top: 100px;
+}
+
+.top-art {
+    width: 100%;
+    height: 150px;
+    background-image: url('./../img/ishkul_landing_img.png');
+    background-size: cover;
+    background-position: center;
+    margin-bottom: 50px;
+    position: relative;
+}
+
+.top-art::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    backdrop-filter: blur(1px);
+    background: inherit;
+}
+
+.landing-container h1 {
+    color: #fff; /* Light color for text */
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.notify-button {
+    padding: 10px 20px;
+    background-color: #007bff; /* Adjust for better visibility in dark mode */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.notify-button:hover {
+    background-color: #0056b3; /* Darker shade for hover effect */
+}
