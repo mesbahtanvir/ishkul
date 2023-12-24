@@ -52,7 +52,7 @@ resource "aws_security_group_rule" "egress_alb_traffic" {
   source_security_group_id = aws_security_group.ec2_sg.id
 }
 
-resource "aws_security_group_rule" "ingress_alb_https_traffic" {
+resource "aws_security_group_rule" "ingress_alb_https_web_traffic" {
   type              = "ingress"
   from_port         = 443
   to_port           = 443
@@ -61,10 +61,28 @@ resource "aws_security_group_rule" "ingress_alb_https_traffic" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
-resource "aws_security_group_rule" "egress_alb_https_traffic" {
+resource "aws_security_group_rule" "egress_alb_https_web_traffic" {
   type                     = "egress"
   from_port                = 443
   to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.alb_sg.id
+  source_security_group_id = aws_security_group.ec2_sg.id
+}
+
+resource "aws_security_group_rule" "ingress_alb_https_api_traffic" {
+  type              = "ingress"
+  from_port         = 8080
+  to_port           = 8080
+  protocol          = "tcp"
+  security_group_id = aws_security_group.alb_sg.id
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "egress_alb_https_api_traffic" {
+  type                     = "egress"
+  from_port                = 8080
+  to_port                  = 8080
   protocol                 = "tcp"
   security_group_id        = aws_security_group.alb_sg.id
   source_security_group_id = aws_security_group.ec2_sg.id

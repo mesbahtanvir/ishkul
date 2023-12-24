@@ -18,7 +18,7 @@ resource "aws_lb" "ishkul_alb" {
   ]
 }
 
-resource "aws_lb_listener" "ishkul_https_listener" {
+resource "aws_lb_listener" "ishkul_https_web_listener" {
   load_balancer_arn = aws_lb.ishkul_alb.arn
   port              = 443
   protocol          = "HTTPS"
@@ -27,7 +27,20 @@ resource "aws_lb_listener" "ishkul_https_listener" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.ishkul_tg.arn
+    target_group_arn = aws_lb_target_group.ishkul_web_tg.arn
+  }
+}
+
+resource "aws_lb_listener" "ishkul_https_api_listener" {
+  load_balancer_arn = aws_lb.ishkul_alb.arn
+  port              = 8080
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate.ishkul_cert.arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ishkul_api_tg.arn
   }
 }
 
@@ -46,8 +59,8 @@ resource "aws_lb_listener" "http_redirection" {
   }
 }
 
-resource "aws_lb_target_group" "ishkul_tg" {
-  name       = "ishkul-tg"
+resource "aws_lb_target_group" "ishkul_web_tg" {
+  name       = "ishkul-web-tg"
   port       = 80
   protocol   = "HTTP"
   vpc_id     = aws_vpc.main.id
@@ -65,10 +78,35 @@ resource "aws_lb_target_group" "ishkul_tg" {
   }
 }
 
-resource "aws_lb_target_group_attachment" "tg_attachment" {
-  target_group_arn = aws_lb_target_group.ishkul_tg.arn
+resource "aws_lb_target_group" "ishkul_api_tg" {
+  name       = "ishkul-api-tg"
+  port       = 8080
+  protocol   = "HTTP"
+  vpc_id     = aws_vpc.main.id
+  slow_start = 0
+
+  health_check {
+    enabled             = true
+    port                = 8080
+    interval            = 30
+    path                = "/heatlh"
+    protocol            = "HTTP"
+    matcher             = "200"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_target_group_attachment" "web_tg_attachment" {
+  target_group_arn = aws_lb_target_group.ishkul_web_tg.arn
   target_id        = aws_instance.ishkul_ec2.id
   port             = 80
+}
+
+resource "aws_lb_target_group_attachment" "api_tg_attachment" {
+  target_group_arn = aws_lb_target_group.ishkul_api_tg.arn
+  target_id        = aws_instance.ishkul_ec2.id
+  port             = 8080
 }
 
 output "load_balancer_dns" {
