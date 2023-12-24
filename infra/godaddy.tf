@@ -26,15 +26,14 @@ resource "godaddy_domain_record" "ishkul_org" {
   record {
     type = "CNAME"
     name = "www"
-    data = aws_lb.ishkul_alb.dns_name
+    data = aws_lb.ishkul_web_alb.dns_name
     ttl  = 600
   }
 
   record {
     type = "CNAME"
     name = "api"
-    data = aws_lb.ishkul_alb.dns_name
-    port = 8080
+    data = aws_lb.ishkul_api_alb.dns_name
     ttl  = 600
   }
 

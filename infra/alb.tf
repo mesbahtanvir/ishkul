@@ -1,5 +1,25 @@
-resource "aws_lb" "ishkul_alb" {
-  name               = "ishkul-alb"
+resource "aws_lb" "ishkul_web_alb" {
+  name               = "ishkul-web-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = [aws_subnet.public_1.id, aws_subnet.public_2.id]
+
+  enable_deletion_protection = false
+
+  access_logs {
+    bucket  = aws_s3_bucket.ishkul_lb_logs.bucket
+    prefix  = "log"
+    enabled = true
+  }
+
+  depends_on = [
+    aws_s3_bucket_policy.lb_log_policy,
+  ]
+}
+
+resource "aws_lb" "ishkul_api_alb" {
+  name               = "ishkul-api-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -19,7 +39,7 @@ resource "aws_lb" "ishkul_alb" {
 }
 
 resource "aws_lb_listener" "ishkul_https_web_listener" {
-  load_balancer_arn = aws_lb.ishkul_alb.arn
+  load_balancer_arn = aws_lb.ishkul_web_alb.arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
@@ -32,8 +52,8 @@ resource "aws_lb_listener" "ishkul_https_web_listener" {
 }
 
 resource "aws_lb_listener" "ishkul_https_api_listener" {
-  load_balancer_arn = aws_lb.ishkul_alb.arn
-  port              = 8080
+  load_balancer_arn = aws_lb.ishkul_api_alb.arn
+  port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
   certificate_arn   = aws_acm_certificate.ishkul_cert.arn
@@ -44,8 +64,23 @@ resource "aws_lb_listener" "ishkul_https_api_listener" {
   }
 }
 
-resource "aws_lb_listener" "http_redirection" {
-  load_balancer_arn = aws_lb.ishkul_alb.arn
+resource "aws_lb_listener" "http_web_redirection" {
+  load_balancer_arn = aws_lb.ishkul_web_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = 443
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener" "http_api_redirection" {
+  load_balancer_arn = aws_lb.ishkul_api_alb.arn
   port              = 80
   protocol          = "HTTP"
 
@@ -89,7 +124,7 @@ resource "aws_lb_target_group" "ishkul_api_tg" {
     enabled             = true
     port                = 8080
     interval            = 30
-    path                = "/heatlh"
+    path                = "/health"
     protocol            = "HTTP"
     matcher             = "200"
     healthy_threshold   = 3
@@ -109,6 +144,10 @@ resource "aws_lb_target_group_attachment" "api_tg_attachment" {
   port             = 8080
 }
 
-output "load_balancer_dns" {
-  value = aws_lb.ishkul_alb.dns_name
+output "web_load_balancer_dns" {
+  value = aws_lb.ishkul_web_alb.dns_name
+}
+
+output "api_load_balancer_dns" {
+  value = aws_lb.ishkul_api_alb.dns_name
 }
