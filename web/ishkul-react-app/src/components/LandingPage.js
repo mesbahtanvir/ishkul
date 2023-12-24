@@ -21,8 +21,9 @@ const LandingPage = () => {
 
     return (
         <div className="landing-container">
+            <h1>Advanced Admission Test Preparation Tool</h1>
+            <h3>Empowered by Artificial Intelligence </h3>
             <div className="top-art"></div>
-            <h1>AI Powered Admission Test Preparation Tool</h1>
             <p className="intro-text">
                 Unlock the future of education with our cutting-edge AI tool, tailored to 
                 revolutionize your admission test preparation. Stay ahead of the curve by 
