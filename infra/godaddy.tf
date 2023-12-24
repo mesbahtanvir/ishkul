@@ -9,12 +9,12 @@ provider "godaddy" {
 resource "godaddy_domain_record" "ishkul_org" {
   domain = "ishkul.org"
 
-  #   # record {
-  #   #   type = "A"
-  #   #   name = "@"
-  #   #   data = "Parked"
-  #   #   ttl  = 600
-  #   # }
+  record {
+    type = "A"
+    name = "@"
+    data = "Parked"
+    ttl  = 600
+  }
 
   record {
     type = "CNAME"
