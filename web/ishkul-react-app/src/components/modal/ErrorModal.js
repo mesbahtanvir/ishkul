@@ -1,9 +1,17 @@
-// @flow
-
-import React from 'react';
-import './ErrorModal.css'; // Create this CSS file for styling
+import React, { useEffect } from 'react';
+import './ErrorModal.css';
 
 const ErrorModal = ({ show, onClose }) => {
+    useEffect(() => {
+        if (show) {
+            const timer = setTimeout(() => {
+                onClose();
+            }, 3000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [show, onClose]);
+
     if (!show) {
         return null;
     }

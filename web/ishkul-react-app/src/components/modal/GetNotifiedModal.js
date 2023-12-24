@@ -54,28 +54,24 @@ const Modal = ({ show, onClose, onSuccess, onError}) => {
         <div className="modal-backdrop">
             <div className="modal-content">
                 <div className="modal-header">
-                    <h2>Stay Updated!</h2>
+                    <h2>Latest Updates</h2>
                     <button onClick={onClose} className="close-button">&times;</button>
                 </div>
                 <div className="modal-body">
-                    <div className="modal-body">
-                        <p>Enter your email to get the latest updates:</p>
-                        <input
-                            type="email"
-                            placeholder="Your Email"
-                            value={email}
-                            onChange={handleEmailChange} />
-                        <button
-                            className="submit-button"
-                            onClick={handleSubmit}>Notify Me</button>
-                    </div>
+                    <p>To receive timely information about our newest product features:</p>
+                    <input
+                        type="email"
+                        placeholder="Enter Your Email Address"
+                        value={email}
+                        onChange={handleEmailChange} />
+                    <button
+                        className="submit-button"
+                        onClick={handleSubmit}>Subscribe</button>
                 </div>
             </div>
         </div>
     );
+    
 }
-
-
-
 
 export default Modal;
