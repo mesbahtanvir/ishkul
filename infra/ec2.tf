@@ -32,6 +32,12 @@ resource "null_resource" "run_remote_exec" {
       "sudo snap install docker",
       "sudo docker --version",
       "sudo docker-compose --version",
+
+      "wget -qO- https://www.mongodb.org/static/pgp/server-7.0.asc | sudo tee /etc/apt/trusted.gpg.d/server-7.0.asc",
+      "echo 'deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse' | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list",
+      "sudo apt-get update",
+      "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-mongosh",
+
       "sudo docker-compose pull",
       "sudo docker-compose up -d --build"
     ]

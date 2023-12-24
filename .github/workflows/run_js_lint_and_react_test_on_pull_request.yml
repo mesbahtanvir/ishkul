@@ -30,3 +30,6 @@ jobs:
 
       - name: Run React Tests
         run: npm test
+
+      # - name: Run flow
+      #   run: npm run flow

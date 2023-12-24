@@ -1,6 +1,17 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from model import model
+from db.mongo import Database
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 @app.get("/health")
 async def ping():
@@ -17,3 +28,12 @@ async def read_item(item_id: int, q: str = None):
 @app.get("/question_set/{question_set_id}")
 async def read_question_set(question_set_id: str):
     return {"pdf_url": "https://ssl.du.ac.bd/fontView/images/file/1682568584Sample.pdf"}
+
+@app.post("/notifyme")
+async def NotifyMe(request: model.NotifyMeRequest):
+    # You can now use request.email to access the email address sent in the payload
+    email = request.email
+    print(email)
+    Database.addEmail(email)
+    # Perform your logic here, such as sending an email notification
+

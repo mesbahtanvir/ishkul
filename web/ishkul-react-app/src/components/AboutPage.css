@@ -1,0 +1,39 @@
+/* Base styles - Light Mode */
+.about-container {
+    color: #f0f0f0;
+    /* A light color that contrasts well with the dark background */
+    font-size: 1.1rem;
+    line-height: 1.6;
+    text-align: center;
+    max-width: 600px;
+    /* Limits the width for better readability */
+    margin: 20px auto;
+    /* Vertically spaces out from other elements */
+    padding: 10px;
+    /* Adds some padding around the text */
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent background */
+    border-radius: 8px;
+    /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    /* Adds depth with a subtle shadow */
+
+}
+.history-section {
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.history-section h2 {
+    color: #0088cc;
+    margin-bottom: 10px;
+    font-size: 24px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.history-section p {
+    font-size: 16px;
+    margin-bottom: 15px;
+    text-align: justify;
+}

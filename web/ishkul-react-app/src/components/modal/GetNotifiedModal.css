@@ -1,0 +1,111 @@
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8); /* Darker backdrop */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #333; /* Dark background for the modal */
+    width: 400px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #ddd;
+    font-size: 24px;
+    line-height: 24px; /* Adjust line height for better alignment */
+}
+
+.close-button {
+    border: none;
+    background: none;
+    font-size: 16px; /* Smaller font size */
+    cursor: pointer;
+    color: green; /* Assuming you want a green color */
+    line-height: 24px; /* Match the line height of the title */
+    margin-left: 10px; /* Adjust margin for better positioning */
+}
+
+.modal-body {
+    text-align: center;
+}
+
+.modal-body p {
+    margin-bottom: 20px;
+    color: #bbb; /* Lighter text color for readability */
+}
+
+input[type="email"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #555; /* Darker border for input */
+    background-color: #222; /* Dark background for input */
+    color: #ddd; /* Lighter text color */
+    border-radius: 4px;
+}
+
+.submit-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff; /* Primary button color */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.submit-button:hover {
+    background-color: #0069d9; /* Darker shade for hover effect */
+}
+
+@media (max-width: 600px) {
+    .modal-content {
+        width: 90%; /* Make the modal wider on small screens */
+        padding: 15px; /* Adjust padding for smaller screens */
+    }
+
+    .modal-header h2 {
+        font-size: 20px; /* Smaller font size for the header */
+    }
+
+    .close-button {
+        font-size: 14px; /* Smaller close button */
+    }
+
+    input[type="email"], .submit-button {
+        padding: 8px; /* Smaller padding for input and button */
+    }
+
+    .modal-body p {
+        font-size: 14px; /* Smaller font size for paragraph */
+    }
+}
+
+@media (max-width: 600px) {
+    .success-modal-content {
+        width: 80%;
+    }
+
+    .close-button {
+        width: auto; /* Change this to a fixed width or percentage as needed */
+        max-width: 200px; /* Example max-width to prevent the button from becoming too wide */
+    }
+}

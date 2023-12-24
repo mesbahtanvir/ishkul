@@ -7,6 +7,8 @@ services:
       - "8080:8080"
     networks:
       - ishkul-network
+    depends_on:
+      - mongodb
 
   frontend:
     image: mesbahtanvir/ishkul-react-app:latest
@@ -14,6 +16,18 @@ services:
       - "80:80"
     networks:
       - ishkul-network
+
+  mongodb:
+    image: mongo:6-jammy
+    ports:
+      - '27017:27017'
+    volumes:
+      - dbdata6:/data/db
+    networks:
+      - ishkul-network
+
+volumes:
+  dbdata6:
 
 networks:
   ishkul-network:

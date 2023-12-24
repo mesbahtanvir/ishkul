@@ -1,5 +1,21 @@
 .App {
   text-align: center;
+  background-color: var(--primary-bg-color);
+  color: var(--text-color);
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure the Navbar has no margin or padding that might cause a gap */
+.Navbar {
+  margin: 0;
+  padding: 0;
+}
+
+/* Same for LandingPage, if necessary */
+.LandingPage {
+  margin: 0;
+  padding: 0;
 }
 
 .App {

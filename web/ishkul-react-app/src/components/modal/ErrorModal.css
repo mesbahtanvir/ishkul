@@ -1,0 +1,49 @@
+/* ErrorModal.css */
+
+.error-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75); /* Semi-transparent black background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.error-modal-content {
+    background-color: #333; /* Dark background for the modal */
+    color: red; /* Change text color to red */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.close-button {
+    background-color: #555; /* Darker button background */
+    color: #fff; /* Light text color for the button */
+    border: none;
+    padding: 10px 20px;
+    margin-top: 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.close-button:hover {
+    background-color: #777; /* Slightly lighter on hover for interaction feedback */
+}
+
+@media (max-width: 600px) {
+    .success-modal-content {
+        width: 80%;
+    }
+    .close-button {
+        display: block; /* Change display to block for full width */
+        width: 50%; /* Adjust the width as per requirement */
+        margin: 20px auto 0; /* Auto margin for horizontal centering */
+    }
+}
+

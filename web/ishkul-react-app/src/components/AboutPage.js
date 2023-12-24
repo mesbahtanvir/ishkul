@@ -1,20 +1,22 @@
+// @flow
 import React from 'react';
+import "./AboutPage.css"
 
 const AboutPage = () => {
-  return (
-    <div className="about-container">
-      <h1>About Us</h1>
-      <p>Welcome to our company! We are dedicated to providing the best service possible.</p>
-      
-      {/* Company History Section */}
-      <section className="history-section">
-        <h2>Our History</h2>
-        <p>Founded in 2023, we have been committed to innovation and excellence.</p>
-        {/* You can add more detailed history here */}
-      </section>
+    return (
+        <div className="about-container">
+            <section className="history-section">
+                {/* Company History Section */}
+                <h2>About Us</h2>
+                <p>Welcome to Ishkul! Our commitment is to provide high-quality education accessible to all.</p>
 
-    </div>
-  );
+                <h2>Our History</h2>
+                <p>Established in 2023, our dedication has consistently been towards fostering innovation and achieving excellence.</p>
+                {/* You can add more detailed history here */}
+            </section>
+
+        </div>
+    );
 };
 
 export default AboutPage;

@@ -1,0 +1,41 @@
+.success-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75); /* Darker semi-transparent black background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.success-modal-content {
+    background: #333; /* Dark background for the modal */
+    color: #fff; /* Light text color for readability */
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    max-width: 90%;
+    text-align: center;
+}
+
+.close-button {
+    position: relative; /* Position the button absolutely */
+    top: 0px; /* Position from the top */
+    right: 0px; /* Position from the right */
+    padding: 5px 15px; /* Reduce the size */
+    font-size: 1rem; /* Optionally, reduce the font size */
+    background: #484545; /* Keep the button color for familiarity */
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.close-button:hover {
+    background-color: #743610; /* Slightly lighter on hover for interaction feedback */
+}
