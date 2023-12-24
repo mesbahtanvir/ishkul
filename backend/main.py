@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-
+from model import model
+from db.mongo import Database
 
 app = FastAPI()
 
@@ -29,11 +29,11 @@ async def read_item(item_id: int, q: str = None):
 async def read_question_set(question_set_id: str):
     return {"pdf_url": "https://ssl.du.ac.bd/fontView/images/file/1682568584Sample.pdf"}
 
-class NotifyMeRequest(BaseModel):
-    email: str
 @app.post("/notifyme")
-async def NotifyMe(request: NotifyMeRequest):
+async def NotifyMe(request: model.NotifyMeRequest):
     # You can now use request.email to access the email address sent in the payload
     email = request.email
+    print(email)
+    Database.addEmail(email)
     # Perform your logic here, such as sending an email notification
 
