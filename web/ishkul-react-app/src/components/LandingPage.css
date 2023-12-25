@@ -8,42 +8,12 @@
     padding: 10px 0; /* Zero padding on the sides */
     font-family: 'Arial', sans-serif; /* Modern font */
 }
-.top-art {
-    width: 99vw; /* Full viewport width */
-    height: 300px;
-    background-image: url('./../img/ishkul_landing_img_small.png');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed; /* Parallax effect */
-    position: relative;
-    margin-left: -50px; /* Adjust according to the parent's padding */
-    margin-right: -50px; /* Adjust according to the parent's padding */
-}
-
-.top-art::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    backdrop-filter: blur(1px);
-    background: inherit;
-}
-
 
 .landing-container h1 {
     color: #fff; /* Light color for text */
     font-size: 2rem;
     text-align: center;
     position: relative;
-    z-index: 1;
-}
-
-.landing-container h3 {
-    color: #fff; /* Light color for text */
-    font-size: 0.8rem;
-    margin-bottom: 20px;
     z-index: 1;
 }
 
@@ -79,23 +49,38 @@
     animation: slideUp 3s ease forwards;
 }
 
-@keyframes slideUp {
-    0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
-    10% { opacity: 1; transform: translateX(-50%) translateY(0); }
-    90% { opacity: 1; transform: translateX(-50%) translateY(0); }
-    100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
-}
-
-/* Additional CSS for .intro-text */
-.intro-text {
-    color: #f0f0f0; /* A light color that contrasts well with the dark background */
+/* Base styles - Light Mode */
+.landing-text-box {
+    color: #f0f0f0;
+    /* A light color that contrasts well with the dark background */
     font-size: 1.1rem;
     line-height: 1.6;
     text-align: center;
-    max-width: 600px; /* Limits the width for better readability */
-    margin: 20px auto; /* Vertically spaces out from other elements */
-    padding: 10px; /* Adds some padding around the text */
-    background-color: rgba(0,0,0,0.5); /* Semi-transparent background */
-    border-radius: 8px; /* Rounded corners */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3); /* Adds depth with a subtle shadow */
+    max-width: 600px;
+    /* Limits the width for better readability */
+    margin: 20px auto;
+    /* Vertically spaces out from other elements */
+    padding: 10px;
+    /* Adds some padding around the text */
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent background */
+    border-radius: 8px;
+    /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    /* Adds depth with a subtle shadow */
+
+}
+
+.landing-text-box h3 {
+    color: #0088cc;
+    margin-bottom: 10px;
+    font-size: 24px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.landing-text-box p {
+    font-size: 16px;
+    margin-bottom: 15px;
+    text-align: justify;
 }
