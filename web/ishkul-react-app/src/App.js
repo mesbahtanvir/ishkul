@@ -23,13 +23,13 @@ export default function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Router>
-      <IshkulHelmet />
+        <IshkulHelmet />
         <Navbar />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
       </Router>
-      </ThemeProvider>
+    </ThemeProvider>
   )
 }
