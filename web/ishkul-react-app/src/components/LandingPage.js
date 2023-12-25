@@ -21,23 +21,24 @@ const LandingPage = () => {
 
     return (
         <div className="landing-container">
-            <h1>Advanced Admission Test Preparation Tool</h1>
-            <h3>Empowered by Artificial Intelligence </h3>
-            <div className="top-art"></div>
-            <p className="intro-text">
-                Unlock the future of education with our cutting-edge AI tool, tailored to 
-                revolutionize your admission test preparation. Stay ahead of the curve by 
-                getting access to personalized learning paths, real-time feedback, and 
-                insights that align perfectly with your academic goals. Don't miss out on 
-                transforming the way you learn. Be the first to experience the power of AI 
-                in education.
-            </p>
-            <button className="notify-button" onClick={handleOpenModal}>Get Notified</button>
-            <Modal show={showModal} onClose={handleCloseModal}
-                   onSuccess={() => { setShowSuccessModal(true); setShowModal(false); }}
-                   onError={() => { setShowErrorModal(true); setShowModal(false); }} />
-            <SuccessModal show={showSuccessModal} onClose={() => setShowSuccessModal(false)} />
-            <ErrorModal show={showErrorModal} onClose={() => setShowErrorModal(false)} />
+            <h1>Personalized Test Preparation Tool</h1>
+            <div className="landing-text-box">            
+                <h3>Empowered by Artificial Intelligence </h3>
+                <p className="intro-text">
+                    Unlock the future of education with our cutting-edge AI tool, tailored to 
+                    revolutionize your admission test preparation. Stay ahead of the curve by 
+                    getting access to personalized learning paths, real-time feedback, and 
+                    insights that align perfectly with your academic goals. Don't miss out on 
+                    transforming the way you learn. Be the first to experience the power of AI 
+                    in education.
+                </p>
+                <button className="notify-button" onClick={handleOpenModal}>Get Notified</button>
+                <Modal show={showModal} onClose={handleCloseModal}
+                    onSuccess={() => { setShowSuccessModal(true); setShowModal(false); }}
+                    onError={() => { setShowErrorModal(true); setShowModal(false); }} />
+                <SuccessModal show={showSuccessModal} onClose={() => setShowSuccessModal(false)} />
+                <ErrorModal show={showErrorModal} onClose={() => setShowErrorModal(false)} />
+            </div>
         </div>
     );
 }
