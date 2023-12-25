@@ -7,6 +7,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import IshkulHelmet from './components/IshkulTitle';
 import LandingPage from './components/LandingPage';
+import usePageTracking from './components/utils/PageTracking';
 
 export default function App() {
   // create a darkTheme function to handle dark theme using createTheme
@@ -20,13 +21,22 @@ export default function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Router>
-      <IshkulHelmet />
+        <IshkulHelmet />
         <Navbar />
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/about" element={<AboutPage />} />
-        </Routes>
+        <PageTracker/>
       </Router>
-      </ThemeProvider>
+    </ThemeProvider>
   )
 }
+
+
+const PageTracker = () => {
+  usePageTracking();
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/about" element={<AboutPage />} />
+      {/* other routes */}
+    </Routes>
+  );
+};
