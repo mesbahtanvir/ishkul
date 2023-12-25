@@ -25,3 +25,7 @@ variable "github_token" {
 variable "key_path" {
   type = string
 }
+
+variable "pagerduty_key" {
+  type = string
+}
