@@ -23,7 +23,7 @@ jobs:
         run: npm install
 
       - name: Install Prettier 
-        run: npm install prettier
+        run: npm install --global prettier
 
       - name: Install ESLint
         run: npm install eslint
