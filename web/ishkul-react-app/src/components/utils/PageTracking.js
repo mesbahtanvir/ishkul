@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import ReactGA from 'react-ga';
 
-function PageTracking() {
+function usePageTracking() {
     const location = useLocation();
 
     useEffect(() => {
@@ -11,4 +11,4 @@ function PageTracking() {
     }, [location]);
 }
 
-export default PageTracking;
+export default usePageTracking;
