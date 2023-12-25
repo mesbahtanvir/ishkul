@@ -7,6 +7,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import IshkulHelmet from './components/IshkulTitle';
 import LandingPage from './components/LandingPage';
+import PageTracking from './components/utils/PageTracking';
 
 export default function App() {
   // create a darkTheme function to handle dark theme using createTheme
@@ -15,6 +16,8 @@ export default function App() {
       mode: 'dark',
     },
   });
+
+  PageTracking()
 
   return (
     <ThemeProvider theme={darkTheme}>
