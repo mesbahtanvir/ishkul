@@ -1,5 +1,5 @@
 resource "aws_wafv2_web_acl" "rate_limit_500_per_5_min" {
-  name  = "example-acl"
+  name  = "rate-limit-acl"
   scope = "REGIONAL"
   default_action {
     allow {}

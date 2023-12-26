@@ -85,7 +85,7 @@ resource "aws_lb_listener" "ishkul_https_api_listener" {
 }
 
 resource "aws_lb_listener" "ishkul_https_contributor_web_listener" {
-  load_balancer_arn = aws_lb.ishkul_api_alb.arn
+  load_balancer_arn = aws_lb.ishkul_contributor_web_alb.arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
@@ -93,7 +93,7 @@ resource "aws_lb_listener" "ishkul_https_contributor_web_listener" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.ishkul_api_tg.arn
+    target_group_arn = aws_lb_target_group.ishkul_contributor_web_tg.arn
   }
 }
 
@@ -128,7 +128,7 @@ resource "aws_lb_listener" "http_api_redirection" {
 }
 
 resource "aws_lb_listener" "http_contributor_web_redirection" {
-  load_balancer_arn = aws_lb.ishkul_contributor_web_alb
+  load_balancer_arn = aws_lb.ishkul_contributor_web_alb.arn
   port              = 80
   protocol          = "HTTP"
 
