@@ -1,7 +1,7 @@
 resource "aws_cloudwatch_metric_alarm" "web_http_5xx_alarm" {
   alarm_name          = "web-http-5xx-alarm"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "1"
+  evaluation_periods  = 1
   metric_name         = "HTTPCode_ELB_5XX_Count"
   namespace           = "AWS/ApplicationELB"
   period              = "300"
@@ -10,7 +10,7 @@ resource "aws_cloudwatch_metric_alarm" "web_http_5xx_alarm" {
   alarm_description   = "This metric monitors for HTTP 5XX errors from ALB"
   actions_enabled     = true
   dimensions = {
-    LoadBalancer = aws_lb.ishkul_web_alb.arn
+    LoadBalancer = aws_lb.ishkul_web_alb.arn_suffix
   }
   alarm_actions = [aws_sns_topic.pagerduty_alert.arn]
 }
@@ -18,7 +18,7 @@ resource "aws_cloudwatch_metric_alarm" "web_http_5xx_alarm" {
 resource "aws_cloudwatch_metric_alarm" "api_http_5xx_alarm" {
   alarm_name          = "api-http-5xx-alarm"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "1"
+  evaluation_periods  = 1
   metric_name         = "HTTPCode_ELB_5XX_Count"
   namespace           = "AWS/ApplicationELB"
   period              = "300"
@@ -27,7 +27,7 @@ resource "aws_cloudwatch_metric_alarm" "api_http_5xx_alarm" {
   alarm_description   = "This metric monitors for HTTP 5XX errors from ALB"
   actions_enabled     = true
   dimensions = {
-    LoadBalancer = aws_lb.ishkul_api_alb.arn
+    LoadBalancer = aws_lb.ishkul_api_alb.arn_suffix
   }
   alarm_actions = [aws_sns_topic.pagerduty_alert.arn]
 }
@@ -35,7 +35,7 @@ resource "aws_cloudwatch_metric_alarm" "api_http_5xx_alarm" {
 resource "aws_cloudwatch_metric_alarm" "api_http_4xx_alarm" {
   alarm_name          = "api-http-4xx-alarm"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "1"
+  evaluation_periods  = 1
   metric_name         = "HTTPCode_ELB_4XX_Count" # Updated metric name for 4XX errors
   namespace           = "AWS/ApplicationELB"
   period              = "300"
@@ -44,15 +44,15 @@ resource "aws_cloudwatch_metric_alarm" "api_http_4xx_alarm" {
   alarm_description   = "This metric monitors for HTTP 4XX errors from ALB"
   actions_enabled     = true
   dimensions = {
-    LoadBalancer = aws_lb.ishkul_api_alb.arn
+    LoadBalancer = aws_lb.ishkul_api_alb.arn_suffix
   }
   alarm_actions = [aws_sns_topic.pagerduty_alert.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "web_http_4xx_alarm" {
-  alarm_name          = "api-http-4xx-alarm"
+  alarm_name          = "web-http-4xx-alarm"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "1"
+  evaluation_periods  = 1
   metric_name         = "HTTPCode_ELB_4XX_Count" # Updated metric name for 4XX errors
   namespace           = "AWS/ApplicationELB"
   period              = "300"
@@ -61,16 +61,16 @@ resource "aws_cloudwatch_metric_alarm" "web_http_4xx_alarm" {
   alarm_description   = "This metric monitors for HTTP 4XX errors from ALB"
   actions_enabled     = true
   dimensions = {
-    LoadBalancer = aws_lb.ishkul_web_alb.arn
+    LoadBalancer = aws_lb.ishkul_web_alb.arn_suffix
   }
   alarm_actions = [aws_sns_topic.pagerduty_alert.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "api_high_qps_alarm" {
-  alarm_name          = "high-qps-alarm"
+  alarm_name          = "api-high-qps-alarm"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
-  metric_name         = "RequestsPerSecond"  # Replace with the actual metric name
+  metric_name         = "RequestCount"  
   namespace           = "AWS/ApplicationELB" # Replace with the appropriate namespace
   period              = 60                   # Adjust the period as needed (e.g., 60 seconds)
   statistic           = "SampleCount"
@@ -79,17 +79,17 @@ resource "aws_cloudwatch_metric_alarm" "api_high_qps_alarm" {
   actions_enabled     = true
 
   dimensions = {
-    LoadBalancer = aws_lb.ishkul_api_alb.arn # Replace with the ARN of your ELB or relevant resource
+    LoadBalancer = aws_lb.ishkul_api_alb.arn_suffix # Replace with the ARN of your ELB or relevant resource
   }
 
   alarm_actions = [aws_sns_topic.pagerduty_alert.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "web_high_qps_alarm" {
-  alarm_name          = "high-qps-alarm"
+  alarm_name          = "web-high-qps-alarm"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
-  metric_name         = "RequestsPerSecond"  # Replace with the actual metric name
+  metric_name         = "RequestCount" 
   namespace           = "AWS/ApplicationELB" # Replace with the appropriate namespace
   period              = 60                   # Adjust the period as needed (e.g., 60 seconds)
   statistic           = "SampleCount"
@@ -98,7 +98,7 @@ resource "aws_cloudwatch_metric_alarm" "web_high_qps_alarm" {
   actions_enabled     = true
 
   dimensions = {
-    LoadBalancer = aws_lb.ishkul_web_alb.arn # Replace with the ARN of your ELB or relevant resource
+    LoadBalancer = aws_lb.ishkul_web_alb.arn_suffix # Replace with the ARN of your ELB or relevant resource
   }
 
   alarm_actions = [aws_sns_topic.pagerduty_alert.arn]

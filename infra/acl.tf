@@ -11,6 +11,28 @@ resource "aws_wafv2_web_acl" "rate_limit_500_per_5_min" {
   }
 
   rule {
+    name     = "AllowSpecificIP"
+    priority = 0 // Ensure this has the highest priority
+
+    action {
+      allow {}
+    }
+
+    statement {
+      ip_set_reference_statement {
+        arn = aws_wafv2_ip_set.allowlist_ip_set.arn
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AllowSpecificIP"
+      sampled_requests_enabled   = true
+    }
+  }
+
+
+  rule {
     name     = "RateLimitRule"
     priority = 1
 
@@ -42,3 +64,12 @@ resource "aws_wafv2_web_acl_association" "web_domain_limit" {
   resource_arn = aws_lb.ishkul_web_alb.arn
   web_acl_arn  = aws_wafv2_web_acl.rate_limit_500_per_5_min.arn
 }
+
+
+resource "aws_wafv2_ip_set" "allowlist_ip_set" {
+  name               = "AllowlistIPSet"
+  scope              = "REGIONAL"
+  ip_address_version = "IPV4"
+  addresses          = ["64.231.128.123/32"]
+}
+
