@@ -10,6 +10,7 @@ resource "aws_security_group" "ec2_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Frontend
   ingress {
     from_port   = 80
     to_port     = 80
@@ -17,6 +18,15 @@ resource "aws_security_group" "ec2_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Contributor Frontend
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Backend API
   ingress {
     from_port   = 8080
     to_port     = 8080

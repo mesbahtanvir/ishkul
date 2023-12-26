@@ -29,3 +29,7 @@ variable "key_path" {
 variable "pagerduty_key" {
   type = string
 }
+
+variable "docker_key" {
+  type = string
+}
