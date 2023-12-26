@@ -70,7 +70,7 @@ resource "aws_cloudwatch_metric_alarm" "api_high_qps_alarm" {
   alarm_name          = "api-high-qps-alarm"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
-  metric_name         = "RequestCount"  
+  metric_name         = "RequestCount"
   namespace           = "AWS/ApplicationELB" # Replace with the appropriate namespace
   period              = 60                   # Adjust the period as needed (e.g., 60 seconds)
   statistic           = "SampleCount"
@@ -89,7 +89,7 @@ resource "aws_cloudwatch_metric_alarm" "web_high_qps_alarm" {
   alarm_name          = "web-high-qps-alarm"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
-  metric_name         = "RequestCount" 
+  metric_name         = "RequestCount"
   namespace           = "AWS/ApplicationELB" # Replace with the appropriate namespace
   period              = 60                   # Adjust the period as needed (e.g., 60 seconds)
   statistic           = "SampleCount"
