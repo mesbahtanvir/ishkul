@@ -17,6 +17,13 @@ services:
     networks:
       - ishkul-network
 
+  contributor:
+    image: mesbahtanvir/ishkul-contributor-app:latest
+    ports:
+      - "3000:3000"
+    networks:
+      - ishkul-network
+
   mongodb:
     image: mongo:6-jammy
     ports:
