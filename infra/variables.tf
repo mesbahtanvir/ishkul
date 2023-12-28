@@ -30,6 +30,9 @@ variable "pagerduty_key" {
   type = string
 }
 
+variable "docker_user" {
+  type = string
+}
 variable "docker_key" {
   type = string
 }

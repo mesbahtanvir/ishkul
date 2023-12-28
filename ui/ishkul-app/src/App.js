@@ -1,11 +1,23 @@
-import * as React from "react";
+import PrimarySearchAppBar from "./components/Appbar.js";
+import { AuthProvider } from "./components/AuthContext.js";
+import SignIn from "./components/Signin.js";
+import SignUp from "./components/Signup.js";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import IshkulContributorApp from "./components/contributor/IshkulContributorApp";
 
 function App() {
-  // 2. Wrap NextUIProvider at the root of your app
   return (
-      <IshkulContributorApp />
+    <AuthProvider>
+    <BrowserRouter>
+    <div className="App">
+      <PrimarySearchAppBar />
+      <Routes>
+        <Route path="/sign_in" element={<SignIn />} />
+        <Route path="/sign_up" element={<SignUp />} />
+      </Routes>
+    </div>
+    </BrowserRouter>
+    </AuthProvider>
   );
 }
 
