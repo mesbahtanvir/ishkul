@@ -33,7 +33,21 @@ async def read_question_set(question_set_id: str):
 async def NotifyMe(request: model.NotifyMeRequest):
     # You can now use request.email to access the email address sent in the payload
     email = request.email
-    print(email)
     Database.addEmail(email)
     # Perform your logic here, such as sending an email notification
 
+@app.get("/notifyme")
+async def NotifyMe():
+    # You can now use request.email to access the email address sent in the payload
+    return Database.getEmails()
+    # Perform your logic here, such as sending an email notification
+
+@app.post("/contrib/exam_paper")
+async def ExamPaper(request: model.ExamPaperRequest):
+    Database.addExamPaper(request.resource_url, request.metadata)
+    # Perform your logic here, such as sending an email notification
+
+@app.get("/contrib/exam_paper")
+async def ExamPaper():
+    return Database.getExamPapers()
+    # Perform your logic here, such as sending an email notification

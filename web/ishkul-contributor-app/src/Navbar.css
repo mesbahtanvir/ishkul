@@ -1,0 +1,69 @@
+/* Navbar styles */
+.navbar {
+    background-color: #1f1f1f;
+    color: #e0e0e0;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar a {
+    color: #e0e0e0;
+    text-decoration: none;
+    padding: 0 15px;
+    transition: color 0.3s;
+}
+
+.navbar a:hover,
+.navbar a.active {
+    /* Style for active or hovered link */
+    color: #2979ff;
+    /* Bright color for highlighting */
+    border-bottom: 2px solid #2979ff;
+    /* Underline effect */
+}
+
+nav {
+    text-align: center;
+    /* Center the navigation */
+}
+
+nav ul {
+    list-style: none;
+    /* Remove list styles */
+    padding: 0;
+    /* Remove padding */
+    margin: 0;
+    /* Remove margins */
+    display: inline-flex;
+    /* Display as inline-flex for horizontal layout */
+    justify-content: center;
+    /* Center items horizontally */
+    width: 100%;
+    /* Full width */
+}
+
+nav ul li {
+    margin: 0 10px;
+    /* Spacing between menu items */
+}
+
+nav ul li a {
+    text-decoration: none;
+    /* Remove underline from links */
+    color: black;
+    /* Set link color */
+    padding: 5px 10px;
+    /* Padding for better click area */
+}
+
+nav ul li a.active,
+nav ul li a:hover {
+    background-color: #282a2c;
+    /* Background color for active/hover state */
+    color: white;
+    /* Text color for active/hover state */
+    border-radius: 5px;
+    /* Rounded corners for active/hover state */
+}

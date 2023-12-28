@@ -1,11 +1,19 @@
 import React from 'react';
-import ImageFormLayout from './ImageFormLayout';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Navbar from './Navbar';
+import AddQuestionPaper from './AddQuestionPaper';
+import ReviewQuestionPaper from './ReviewQuestionPaper';
+import './App.css';
 
 function App() {
   return (
-    <div className="App">
-      <ImageFormLayout />
-    </div>
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/add-question-paper" element={<AddQuestionPaper />} />
+        <Route path="/review-question-paper" element={<ReviewQuestionPaper />} />
+      </Routes>
+    </Router>
   );
 }
 
