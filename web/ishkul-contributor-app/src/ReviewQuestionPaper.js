@@ -7,7 +7,7 @@ function ReviewQuestionPaper() {
     const [papersPerPage] = useState(10); // Number of papers per page
 
     useEffect(() => {
-        fetch('https://api.ishkul.org/contri/exam_paper')
+        fetch('https://api.ishkul.org/contrib/exam_paper')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');

@@ -4,7 +4,7 @@ from bson import json_util
 import json
 
 # Assuming you're using an environment variable or a secure method to store the connection string
-connection_string = "mongodb://localhost:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.1"
+connection_string = "mongodb://mongodb:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.1"
 client = pymongo.MongoClient(connection_string, maxPoolSize=50)
 
 class Database:
