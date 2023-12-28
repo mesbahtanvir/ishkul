@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import './GetNotifiedModal.css'; // Updated CSS file
-import GetIshkulBaseURL from '../../../../ishkul-common/utils';
+import GetIshkulBaseURL from 'ishkul-common/utils';
 
 const Modal = ({ show, onClose, onSuccess, onError}) => {
     const [email, setEmail] = useState('');

@@ -5,12 +5,14 @@ import json
 import os
 
 def generate_mongo_connection_string():
-    protocol = os.getenv('MONGODB_PROTOCOL')
-    host = os.getenv('MONGODB_HOST')
-    port = os.getenv('MONGODB_PORT')
-    return f"{protocol}://{host}:{port}/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.1"
+    protocol = os.getenv('MONGODB_SCHEME', "mongodb")
+    host = os.getenv('MONGODB_HOST', "localhost")
+    port = os.getenv('MONGODB_PORT', "27017")
+    connection_str =  f"{protocol}://{host}:{port}/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.1"
+    print(connection_str)
+    return connection_str
 
-client = pymongo.MongoClient(generate_mongo_connection_string, maxPoolSize=50)
+client = pymongo.MongoClient(generate_mongo_connection_string(), maxPoolSize=50)
 
 
 class Database:

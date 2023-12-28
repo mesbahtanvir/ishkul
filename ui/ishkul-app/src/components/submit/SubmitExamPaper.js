@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import GetIshkulBaseURL from 'ishkul-common/utils';
+import Input from "@mui/material/Input"
+import Form from "@mui/material/FormGroup"
+import Button from "@mui/material/Button"
 
-function AddQuestionPaper() {
+function SubmitExamPaper() {
   const [formData, setFormData] = useState({
     resource_url: '',
     institution: '',
@@ -18,7 +22,9 @@ function AddQuestionPaper() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('https://api.ishkul.org/contrib/exam_paper', {
+      const baseUrl = GetIshkulBaseURL();
+      const endpoint = baseUrl + "/contrib/exam_paper"
+      await axios.post(endpoint, {
         resource_url: formData.resource_url,
         metadata: { ...formData }
       });
@@ -29,52 +35,52 @@ function AddQuestionPaper() {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input 
+    <Form onSubmit={handleSubmit}>
+      <Input 
         type="text" 
         name="resource_url" 
         value={formData.resource_url} 
         onChange={handleChange} 
         placeholder="Resource URL" 
       />
-      <input 
+      <Input 
         type="text" 
         name="institution" 
         value={formData.institution} 
         onChange={handleChange} 
         placeholder="Institution" 
       />
-      <input 
+      <Input 
         type="text" 
         name="year" 
         value={formData.year} 
         onChange={handleChange} 
         placeholder="Year" 
       />
-      <input 
+      <Input 
         type="text" 
         name="subject" 
         value={formData.subject} 
         onChange={handleChange} 
         placeholder="Subject" 
       />
-      <input 
+      <Input 
         type="text" 
         name="exam_name" 
         value={formData.exam_name} 
         onChange={handleChange} 
         placeholder="Exam Name" 
       />
-      <input 
+      <Input 
         type="text" 
         name="exam_type" 
         value={formData.exam_type} 
         onChange={handleChange} 
         placeholder="Exam Type" 
       />
-      <button type="submit">Submit</button>
-    </form>
+      <Button type="submit">Submit</Button>
+    </Form>
   );
 }
 
-export default AddQuestionPaper;
+export default SubmitExamPaper;

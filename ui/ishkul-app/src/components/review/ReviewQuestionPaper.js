@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import "./ReviewQuestionPaper.css"
-import GetIshkulBaseURL from '../../ishkul-common/utils';
+import GetIshkulBaseURL from 'ishkul-common/utils';
 
 function ReviewQuestionPaper() {
     const [papers, setPapers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [papersPerPage] = useState(10); // Number of papers per page
     const baseUrl = GetIshkulBaseURL();
-    const endpoint = baseUrl + "contrib/exam_paper"
+    const endpoint = baseUrl + "/contrib/exam_paper"
     useEffect(() => {
         fetch(endpoint)
             .then(response => {
@@ -20,9 +20,9 @@ function ReviewQuestionPaper() {
                 setPapers(data.map(paper => ({ ...paper, isExpanded: false })));
             })
             .catch(error => {
-                console.error('There was a problem with the fetch operation:', error);
+                console.log('There was a problem with the fetch operation:', error);
             });
-    }, []);
+    },);
 
     const toggleExpand = (e, index) => {
         e.stopPropagation(); // Prevent event bubbling
