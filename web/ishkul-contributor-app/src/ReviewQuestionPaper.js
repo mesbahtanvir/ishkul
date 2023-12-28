@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import "./ReviewQuestionPaper.css"
+import GetIshkulBaseURL from '../../ishkul-common/utils';
 
 function ReviewQuestionPaper() {
     const [papers, setPapers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [papersPerPage] = useState(10); // Number of papers per page
-
+    const baseUrl = GetIshkulBaseURL();
+    const endpoint = baseUrl + "contrib/exam_paper"
     useEffect(() => {
-        fetch('https://api.ishkul.org/contrib/exam_paper')
+        fetch(endpoint)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -110,190 +112,6 @@ function ReviewQuestionPaper() {
         </div>
     );
 }
-
-const mockResponse = [
-    {
-        resource_url: "https://example.com/paper1.pdf",
-        metadata: {
-            institution: "University A",
-            year: "2021",
-            subject: "Mathematics",
-            exam_name: "Final Exam",
-            exam_type: "Written"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper2.pdf",
-        metadata: {
-            institution: "University B",
-            year: "2022",
-            subject: "Physics",
-            exam_name: "Midterm Exam",
-            exam_type: "Oral"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper1.pdf",
-        metadata: {
-            institution: "University A",
-            year: "2021",
-            subject: "Mathematics",
-            exam_name: "Final Exam",
-            exam_type: "Written"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper2.pdf",
-        metadata: {
-            institution: "University B",
-            year: "2022",
-            subject: "Physics",
-            exam_name: "Midterm Exam",
-            exam_type: "Oral"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper1.pdf",
-        metadata: {
-            institution: "University A",
-            year: "2021",
-            subject: "Mathematics",
-            exam_name: "Final Exam",
-            exam_type: "Written"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper2.pdf",
-        metadata: {
-            institution: "University B",
-            year: "2022",
-            subject: "Physics",
-            exam_name: "Midterm Exam",
-            exam_type: "Oral"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper1.pdf",
-        metadata: {
-            institution: "University A",
-            year: "2021",
-            subject: "Mathematics",
-            exam_name: "Final Exam",
-            exam_type: "Written"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper2.pdf",
-        metadata: {
-            institution: "University B",
-            year: "2022",
-            subject: "Physics",
-            exam_name: "Midterm Exam",
-            exam_type: "Oral"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper1.pdf",
-        metadata: {
-            institution: "University A",
-            year: "2021",
-            subject: "Mathematics",
-            exam_name: "Final Exam",
-            exam_type: "Written"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper2.pdf",
-        metadata: {
-            institution: "University B",
-            year: "2022",
-            subject: "Physics",
-            exam_name: "Midterm Exam",
-            exam_type: "Oral"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper1.pdf",
-        metadata: {
-            institution: "University A",
-            year: "2021",
-            subject: "Mathematics",
-            exam_name: "Final Exam",
-            exam_type: "Written"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper2.pdf",
-        metadata: {
-            institution: "University B",
-            year: "2022",
-            subject: "Physics",
-            exam_name: "Midterm Exam",
-            exam_type: "Oral"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper1.pdf",
-        metadata: {
-            institution: "University A",
-            year: "2021",
-            subject: "Mathematics",
-            exam_name: "Final Exam",
-            exam_type: "Written"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper2.pdf",
-        metadata: {
-            institution: "University B",
-            year: "2022",
-            subject: "Physics",
-            exam_name: "Midterm Exam",
-            exam_type: "Oral"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper1.pdf",
-        metadata: {
-            institution: "University A",
-            year: "2021",
-            subject: "Mathematics",
-            exam_name: "Final Exam",
-            exam_type: "Written"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper2.pdf",
-        metadata: {
-            institution: "University B",
-            year: "2022",
-            subject: "Physics",
-            exam_name: "Midterm Exam",
-            exam_type: "Oral"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper1.pdf",
-        metadata: {
-            institution: "University A",
-            year: "2021",
-            subject: "Mathematics",
-            exam_name: "Final Exam",
-            exam_type: "Written"
-        }
-    },
-    {
-        resource_url: "https://example.com/paper2.pdf",
-        metadata: {
-            institution: "University B",
-            year: "2022",
-            subject: "Physics",
-            exam_name: "Midterm Exam",
-            exam_type: "Oral"
-        }
-    },
-
-];
 
 export default ReviewQuestionPaper;
 

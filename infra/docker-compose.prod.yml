@@ -5,6 +5,11 @@ services:
     image: mesbahtanvir/ishkul-backend:latest
     ports:
       - "8080:8080"
+    environment:
+      MONGODB_PROTOCOL: "mongodb"
+      MONGODB_HOST: "mongodb"
+      MONGODB_PORT: "27017"
+
     networks:
       - ishkul-network
     depends_on:
@@ -12,6 +17,7 @@ services:
 
   frontend:
     image: mesbahtanvir/ishkul-react-app:latest
+
     ports:
       - "80:80"
     networks:
@@ -19,6 +25,7 @@ services:
 
   contributor:
     image: mesbahtanvir/ishkul-contributor-app:latest
+
     ports:
       - "3000:3000"
     networks:

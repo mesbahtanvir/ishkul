@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import './GetNotifiedModal.css'; // Updated CSS file
+import GetIshkulBaseURL from '../../../../ishkul-common/utils';
 
 const Modal = ({ show, onClose, onSuccess, onError}) => {
     const [email, setEmail] = useState('');
@@ -13,16 +14,7 @@ const Modal = ({ show, onClose, onSuccess, onError}) => {
     };
     const handleSubmit = async (event) => {
         event.preventDefault(); // Prevents the default form submission behavior
-        var apiUrl = process.env.ISHKUL_BACKEND_API_HOST;
-        if (process.env.NODE_ENV === 'development') {
-            apiUrl = "http://0.0.0.0:8080"
-        } else if (process.env.NODE_ENV === 'production') {
-            // Code that will run only in production environment
-            apiUrl = "https://api.ishkul.org"
-        } else {
-            apiUrl = "https://api.ishkul.org"
-        }
-
+        const apiUrl = GetIshkulBaseURL();
         const endpoint = apiUrl + "/notifyme"; // Replace with your actual endpoint URL
         const payload = { email };
 

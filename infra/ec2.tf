@@ -7,8 +7,8 @@ resource "aws_instance" "ishkul_ec2" {
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
 
   provisioner "file" {
-    source      = "./docker-compose.yml"
-    destination = "/home/ubuntu/docker-compose.yml"
+    source      = "./docker-compose.prod.yml"
+    destination = "/home/ubuntu/docker-compose.prod.yml"
     connection {
       type        = "ssh"
       user        = "ubuntu"

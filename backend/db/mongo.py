@@ -2,10 +2,16 @@ import pymongo
 from pymongo.errors import PyMongoError
 from bson import json_util
 import json
+import os
 
-# Assuming you're using an environment variable or a secure method to store the connection string
-connection_string = "mongodb://mongodb:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.1"
-client = pymongo.MongoClient(connection_string, maxPoolSize=50)
+def generate_mongo_connection_string():
+    protocol = os.getenv('MONGODB_PROTOCOL')
+    host = os.getenv('MONGODB_HOST')
+    port = os.getenv('MONGODB_PORT')
+    return f"{protocol}://{host}:{port}/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.1"
+
+client = pymongo.MongoClient(generate_mongo_connection_string, maxPoolSize=50)
+
 
 class Database:
 
