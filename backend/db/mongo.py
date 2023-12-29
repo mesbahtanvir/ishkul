@@ -11,6 +11,7 @@ def generate_mongo_connection_string():
     return f"{protocol}://{host}:{port}/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.1"
 
 class Database:
+    print(generate_mongo_connection_string())
     client = pymongo.MongoClient(generate_mongo_connection_string(), maxPoolSize=50)
     
     @staticmethod

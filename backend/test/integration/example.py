@@ -4,6 +4,7 @@ import string
 import httpx
 import asyncio
 
+BASE_URL = "http://localhost:8080"
 def get_random_string(length=10):
     # Choose from all lowercase and uppercase letters and digits
     characters = string.ascii_letters + string.digits
@@ -12,13 +13,13 @@ def get_random_string(length=10):
 
 async def test_root():
     async with httpx.AsyncClient() as client:
-        response = await client.get("http://localhost:8080/")
+        response = await client.get(BASE_URL)
         assert response.status_code == 200
         assert response.json() == {"message": "Hello, World!"}
 
 async def test_health_check():
     async with httpx.AsyncClient() as client:
-        response = await client.get("http://localhost:8080/health")
+        response = await client.get(f"{BASE_URL}/health")
         assert response.status_code == 200
         assert response.json() == {"status": "healthy"}
 
@@ -32,10 +33,10 @@ async def test_register_user():
         "marketing_optin": True
     }
     async with httpx.AsyncClient() as client:
-        response = await client.post("http://localhost:8080/register", json=user_data)
+        response = await client.post(f"{BASE_URL}/register", json=user_data)
         assert response.status_code == 200
         assert response.json()["status"] == "success"
-        response = await client.post("http://localhost:8080/register", json=user_data)
+        response = await client.post(f"{BASE_URL}/register", json=user_data)
         assert response.status_code != 200
 
 async def test_login():
@@ -49,7 +50,7 @@ async def test_login():
     }
     async with httpx.AsyncClient() as client:
 
-        response = await client.post("http://localhost:8080/register", json=user_data)
+        response = await client.post(f"{BASE_URL}/register", json=user_data)
         assert response.status_code == 200
         assert response.json()["status"] == "success"
 
@@ -57,7 +58,7 @@ async def test_login():
             "email": EmailStr(user_data["email"]),
             "password": "securepassword",
         }
-        response = await client.post("http://localhost:8080/login", json=user_login_data)
+        response = await client.post(f"{BASE_URL}/login", json=user_login_data)
         assert response.status_code == 200
         assert response.json()["email"] == user_data["email"]
         assert response.json()["first_name"] == "John"
@@ -67,7 +68,7 @@ async def test_login():
             "password": "wrong_password",
         }
 
-        response = await client.post("http://localhost:8080/login", json=user_login_data)
+        response = await client.post(f"{BASE_URL}/login", json=user_login_data)
         assert response.status_code != 200
 
 asyncio.run(test_root())
