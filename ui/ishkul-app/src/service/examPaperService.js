@@ -38,3 +38,39 @@ export const getExamPapers = async () => {
     throw new Error("Failed to get exam papers");
   }
 };
+
+export const postRegisterUser = async (
+  firstName,
+  lastName,
+  email,
+  password,
+  marketingOptin
+) => {
+  try {
+    const response = await axios.post("/register", {
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      password: password,
+      marketing_optin: marketingOptin,
+    });
+    if (response.status !== "success") {
+      throw new Error("Failed to register user");
+    }
+    return response.message;
+  } catch {
+    throw new Error("Failed to register user");
+  }
+};
+
+export const postLoginUser = async (email, password) => {
+  try {
+    const response = await axios.post("/login", {
+      email: email,
+      password: password,
+    });
+    return response;
+  } catch {
+    throw new Error("Failed to register user");
+  }
+};

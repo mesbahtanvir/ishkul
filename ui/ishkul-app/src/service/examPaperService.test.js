@@ -3,6 +3,8 @@ import {
   checkHealth,
   postExamPaper,
   getExamPapers,
+  postRegisterUser,
+  postLoginUser,
 } from "./examPaperService";
 import axios from "axios";
 
@@ -60,5 +62,56 @@ describe("examPaperService module", () => {
     const result = await getExamPapers();
     expect(result).toEqual(["paper1", "paper2"]);
     expect(axios.get).toHaveBeenCalledWith("/contrib/exam_paper");
+  });
+
+  it("register should post data using axios and return response", async () => {
+    const firstName = "Joe";
+    const lastName = "Biden";
+    const email = "joe.biden@email.com";
+    const password = "mypass";
+    const marketingOptin = true;
+    axios.post.mockResolvedValueOnce({
+      status: "success",
+      message: "Registration successful",
+    });
+    const result = await postRegisterUser(
+      firstName,
+      lastName,
+      email,
+      password,
+      marketingOptin
+    );
+    expect(result).toEqual("Registration successful");
+    expect(axios.post).toHaveBeenCalledWith("/register", {
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      password: password,
+      marketing_optin: marketingOptin,
+    });
+  });
+
+  it("login should post data using axios and return response", async () => {
+    const firstName = "Joe";
+    const lastName = "Biden";
+    const email = "joe.biden@email.com";
+    const password = "mypass";
+    axios.post.mockResolvedValueOnce({
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      token: password,
+    });
+    const result = await postLoginUser(email, password);
+    expect(result).toEqual({
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      token: password,
+    });
+    expect(axios.post).toHaveBeenCalledWith("/login", {
+      email: email,
+      password: password,
+    });
   });
 });

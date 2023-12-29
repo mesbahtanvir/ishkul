@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useState } from "react";
 import CssBaseline from "@mui/material/CssBaseline";
 import Link from "@mui/material/Link";
 import Grid from "@mui/material/Grid";
@@ -16,16 +17,40 @@ import {
   CopyWriteUnderInput,
   AllowExtraEmailsConfirmation,
 } from "./ProfileComponents";
+import { Snackbar, Alert } from "@mui/material";
+import { postRegisterUser } from "./../service/examPaperService";
 
 export default function SignUp() {
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [checked, setChecked] = useState(false);
+
+  const handleError = (message) => {
+    setIsError(true);
+    setErrorMessage(message);
+  };
+  // Function to close the Snackbar
+  const handleClose = () => {
+    setIsError(false);
+  };
+
   let navigate = useNavigate();
-  const handleSubmit = (event) => {
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    console.log({
-      email: data.get("email"),
-      password: data.get("password"),
-    });
+    try {
+      const data = new FormData(event.currentTarget);
+      await postRegisterUser(
+        data.get("firstName"),
+        data.get("lastName"),
+        data.get("email"),
+        data.get("password"),
+        checked
+      );
+    } catch (error) {
+      handleError("Registration failed. Please try again.");
+      return;
+    }
     navigate("/sign_in");
   };
 
@@ -49,7 +74,7 @@ export default function SignUp() {
               <SignUpPasswordField />
             </Grid>
             <Grid item xs={12}>
-              <AllowExtraEmailsConfirmation />
+              <AllowExtraEmailsConfirmation setChecked={setChecked} />
             </Grid>
           </Grid>
           <SingUpSubmit />
@@ -63,6 +88,11 @@ export default function SignUp() {
         </Box>
       </StyledBox>
       <CopyWriteUnderInput />
+      <Snackbar open={isError} autoHideDuration={6000} onClose={handleClose}>
+        <Alert onClose={handleClose} severity="error">
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

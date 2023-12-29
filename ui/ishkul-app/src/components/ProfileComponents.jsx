@@ -171,10 +171,22 @@ export function SignUpPasswordField() {
   );
 }
 
-export function AllowExtraEmailsConfirmation() {
+export function AllowExtraEmailsConfirmation({ setChecked }) {
+  // Handle change event of the checkbox
+  const handleCheckboxChange = (event) => {
+    setChecked(event.target.checked);
+  };
+
   return (
     <FormControlLabel
-      control={<Checkbox value="allowExtraEmails" color="primary" />}
+      control={
+        <Checkbox
+          value="allowExtraEmails"
+          color="primary"
+          checked={false}
+          onChange={handleCheckboxChange}
+        />
+      }
       label="I want to receive inspiration, marketing promotions and updates via email."
     />
   );
