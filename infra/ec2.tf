@@ -37,7 +37,7 @@ resource "null_resource" "run_remote_exec" {
       "echo 'deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse' | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list",
       "sudo apt-get update",
       "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-mongosh",
-
+      "echo ${var.docker_key} | sudo docker login -u ${var.docker_user} --password-stdin",
       "sudo docker-compose pull",
       "sudo docker-compose up -d --build"
     ]

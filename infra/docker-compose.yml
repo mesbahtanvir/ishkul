@@ -3,6 +3,10 @@ version: '3.8'
 services:
   backend:
     image: mesbahtanvir/ishkul-backend:latest
+    environment:
+      MONGODB_SCHEME: "mongodb"
+      MONGODB_HOST: "mongodb"
+      MONGODB_PORT: "27017"
     ports:
       - "8080:8080"
     networks:
@@ -11,14 +15,14 @@ services:
       - mongodb
 
   frontend:
-    image: mesbahtanvir/ishkul-react-app:latest
+    image: mesbahtanvir/ishkul-web:latest
     ports:
       - "80:80"
     networks:
       - ishkul-network
 
   contributor:
-    image: mesbahtanvir/ishkul-contributor-app:latest
+    image: mesbahtanvir/ishkul-app:latest
     ports:
       - "3000:3000"
     networks:
