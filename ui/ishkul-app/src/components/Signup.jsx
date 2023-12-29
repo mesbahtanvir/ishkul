@@ -1,48 +1,58 @@
-import * as React from 'react';
-import CssBaseline from '@mui/material/CssBaseline';
-import Link from '@mui/material/Link';
-import Grid from '@mui/material/Grid';
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
-import { useNavigate } from 'react-router-dom';
-import { StyledBox, SignUpHeader, SignUpFirstNameField, SignUpLastNameField, SignUpEmailField, SignUpPasswordField, SingUpSubmit, CopyWriteUnderInput, AllowExtraEmailsConfirmation } from './ProfileComponents';
+import * as React from "react";
+import CssBaseline from "@mui/material/CssBaseline";
+import Link from "@mui/material/Link";
+import Grid from "@mui/material/Grid";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import { useNavigate } from "react-router-dom";
+import {
+  StyledBox,
+  SignUpHeader,
+  SignUpFirstNameField,
+  SignUpLastNameField,
+  SignUpEmailField,
+  SignUpPasswordField,
+  SingUpSubmit,
+  CopyWriteUnderInput,
+  AllowExtraEmailsConfirmation,
+} from "./ProfileComponents";
 
 export default function SignUp() {
-  let navigate = useNavigate()
+  let navigate = useNavigate();
   const handleSubmit = (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     console.log({
-      email: data.get('email'),
-      password: data.get('password'),
+      email: data.get("email"),
+      password: data.get("password"),
     });
-    navigate("/sign_in")
+    navigate("/sign_in");
   };
 
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />
       <StyledBox>
-        <SignUpHeader/>
+        <SignUpHeader />
         <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <SignUpFirstNameField/>
+              <SignUpFirstNameField />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <SignUpLastNameField/>
+              <SignUpLastNameField />
             </Grid>
             <Grid item xs={12}>
-              <SignUpEmailField/>
+              <SignUpEmailField />
             </Grid>
             <Grid item xs={12}>
-              <SignUpPasswordField/>
+              <SignUpPasswordField />
             </Grid>
             <Grid item xs={12}>
-              <AllowExtraEmailsConfirmation/>
+              <AllowExtraEmailsConfirmation />
             </Grid>
           </Grid>
-          <SingUpSubmit/>
+          <SingUpSubmit />
           <Grid container justifyContent="flex-end">
             <Grid item>
               <Link href="/sign_in" variant="body2">
@@ -52,7 +62,7 @@ export default function SignUp() {
           </Grid>
         </Box>
       </StyledBox>
-      <CopyWriteUnderInput/>
+      <CopyWriteUnderInput />
     </Container>
   );
 }
