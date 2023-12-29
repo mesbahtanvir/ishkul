@@ -74,7 +74,6 @@ export default function PrimaryAppBar() {
             open={isMenuOpen}
             onClose={handleMenuClose}
         >
-
             {isSignedIn ? <> <MenuItem onClick={handleOnClickSignOut}>Sign Out</MenuItem>
                 <MenuItem onClick={handleMenuClose}>My account</MenuItem> </> :
                 <>
