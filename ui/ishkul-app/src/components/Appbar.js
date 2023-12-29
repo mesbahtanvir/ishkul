@@ -47,6 +47,11 @@ export default function PrimaryAppBar() {
     handleMobileMenuClose();
     navigate("/sign_up");
   };
+  const handleOnClickMyAccount = () => {
+    setAnchorEl(null);
+    handleMobileMenuClose();
+    navigate("/my_account");
+  };
   const handleOnClickSignOut = () => {
     setAnchorEl(null);
     handleMobileMenuClose();
@@ -77,7 +82,7 @@ export default function PrimaryAppBar() {
       {isSignedIn ? (
         <>
           <MenuItem onClick={handleOnClickSignOut}>Sign Out</MenuItem>
-          <MenuItem onClick={handleMenuClose}>My Account</MenuItem>
+          <MenuItem onClick={handleOnClickMyAccount}>My Account</MenuItem>
         </>
       ) : (
         <>
@@ -105,7 +110,7 @@ export default function PrimaryAppBar() {
       open={isMobileMenuOpen}
       onClose={handleMobileMenuClose}
     >
-      {isSignedIn ?? (
+      {isSignedIn && (
         <>
           <MenuItem>
             <IconButton
@@ -172,7 +177,7 @@ export default function PrimaryAppBar() {
           <SearchBar />
           <Box sx={{ flexGrow: 1 }} />
           <Box sx={{ display: { xs: "none", md: "flex" } }}>
-            {isSignedIn ?? (
+            {isSignedIn && (
               <>
                 <IconButton
                   size="large"
