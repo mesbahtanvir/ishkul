@@ -7,3 +7,4 @@ pymongo==4.6.1
 pytest==7.4.3
 python_bcrypt==0.3.2
 asyncio==3.4.3
+email-validator==2.1.0
