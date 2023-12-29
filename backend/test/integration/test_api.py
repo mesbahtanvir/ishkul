@@ -1,7 +1,6 @@
 from pydantic import EmailStr
 import pytest
 import httpx
-from fastapi import FastAPI
 from main import app  # Import your FastAPI instance
 
 import random
