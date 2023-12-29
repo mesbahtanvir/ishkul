@@ -14,14 +14,14 @@ services:
     depends_on:
       - mongodb
 
-  frontend:
+  ishkul-web:
     image: mesbahtanvir/ishkul-web:latest
     ports:
       - "80:80"
     networks:
       - ishkul-network
 
-  contributor:
+  ishkul-app:
     image: mesbahtanvir/ishkul-app:latest
     ports:
       - "3000:3000"

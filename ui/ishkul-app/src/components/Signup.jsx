@@ -1,0 +1,58 @@
+import * as React from 'react';
+import CssBaseline from '@mui/material/CssBaseline';
+import Link from '@mui/material/Link';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import { useNavigate } from 'react-router-dom';
+import { StyledBox, SignUpHeader, SignUpFirstNameField, SignUpLastNameField, SignUpEmailField, SignUpPasswordField, SingUpSubmit, CopyWriteUnderInput, AllowExtraEmailsConfirmation } from './ProfileComponents';
+
+export default function SignUp() {
+  let navigate = useNavigate()
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    console.log({
+      email: data.get('email'),
+      password: data.get('password'),
+    });
+    navigate("/sign_in")
+  };
+
+  return (
+    <Container component="main" maxWidth="xs">
+      <CssBaseline />
+      <StyledBox>
+        <SignUpHeader/>
+        <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <SignUpFirstNameField/>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <SignUpLastNameField/>
+            </Grid>
+            <Grid item xs={12}>
+              <SignUpEmailField/>
+            </Grid>
+            <Grid item xs={12}>
+              <SignUpPasswordField/>
+            </Grid>
+            <Grid item xs={12}>
+              <AllowExtraEmailsConfirmation/>
+            </Grid>
+          </Grid>
+          <SingUpSubmit/>
+          <Grid container justifyContent="flex-end">
+            <Grid item>
+              <Link href="/sign_in" variant="body2">
+                Already have an account? Sign in
+              </Link>
+            </Grid>
+          </Grid>
+        </Box>
+      </StyledBox>
+      <CopyWriteUnderInput/>
+    </Container>
+  );
+}
