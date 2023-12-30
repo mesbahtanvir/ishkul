@@ -7,7 +7,8 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import IshkulHelmet from "./components/IshkulTitle";
 import LandingPage from "./components/LandingPage";
-import usePageTracking from "./components/PageTracking";
+import ReactGA from "react-ga";
+import { useEffect } from "react";
 
 export default function App() {
   // create a darkTheme function to handle dark theme using createTheme
@@ -30,7 +31,13 @@ export default function App() {
 }
 
 const PageTracker = () => {
-  usePageTracking();
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "test") {
+      ReactGA.initialize("G-E1NGLSXMG9");
+      ReactGA.pageview(window.location.pathname + window.location.search);
+    }
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
