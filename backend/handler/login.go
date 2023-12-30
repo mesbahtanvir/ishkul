@@ -39,7 +39,7 @@ func HandleLogin(ctx context.Context, db *db.UserDatabase, req LoginRequest) (Lo
 	}
 	user, err := db.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return LoginResponse{}, &ResourceAlreadyExists{Msg: "User does not exists"}
+		return LoginResponse{}, &ResourceDoesNotExist{Msg: "User does not exists"}
 	}
 	if err != nil {
 		return LoginResponse{}, err

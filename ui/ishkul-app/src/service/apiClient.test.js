@@ -1,11 +1,4 @@
-import {
-  getRoot,
-  checkHealth,
-  postExamPaper,
-  getExamPapers,
-  postRegisterUser,
-  postLoginUser,
-} from "./apiClient";
+import { checkHealth, postRegisterUser, postLoginUser } from "./apiClient";
 import axios from "axios";
 
 jest.mock("axios");
@@ -33,8 +26,10 @@ describe("apiClient module", () => {
     const password = "mypass";
     const marketingOptin = true;
     axios.post.mockResolvedValueOnce({
-      status: "success",
-      message: "Registration successful",
+      status: 201,
+      data: {
+        message: "Registration successful",
+      },
     });
     const result = await postRegisterUser(
       firstName,
@@ -43,7 +38,7 @@ describe("apiClient module", () => {
       password,
       marketingOptin
     );
-    expect(result).toEqual("Registration successful");
+    expect(result).toEqual({ message: "Registration successful" });
     expect(axios.post).toHaveBeenCalledWith("https://api.ishkul.org/register", {
       first_name: firstName,
       last_name: lastName,
@@ -58,18 +53,22 @@ describe("apiClient module", () => {
     const lastName = "Biden";
     const email = "joe.biden@email.com";
     const password = "mypass";
+    const token = "mytok";
     axios.post.mockResolvedValueOnce({
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      token: password,
+      status: 200,
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        token: token,
+      },
     });
     const result = await postLoginUser(email, password);
     expect(result).toEqual({
       first_name: firstName,
       last_name: lastName,
       email: email,
-      token: password,
+      token: token,
     });
     expect(axios.post).toHaveBeenCalledWith("https://api.ishkul.org/login", {
       email: email,

@@ -48,7 +48,7 @@ export default function SignUp() {
         checked
       );
     } catch (error) {
-      handleError("Registration failed. Please try again.");
+      handleError(error.toString());
       return;
     }
     navigate("/sign_in");
