@@ -1,23 +1,22 @@
-import * as React from "react";
-import { useState } from "react";
-import CssBaseline from "@mui/material/CssBaseline";
+import { Alert, Snackbar } from "@mui/material";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
-import { useAuth } from "./AuthContext";
+import CssBaseline from "@mui/material/CssBaseline";
+import * as React from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Snackbar, Alert } from "@mui/material";
-
-import {
-  StyledBox,
-  SignInHeader,
-  SignInEmailField,
-  SignInPasswordField,
-  RememberMe,
-  SignInSubmitButton,
-  PasswordForgetGrid,
-  CopyWriteUnderInput,
-} from "./ProfileComponents";
 import { postLoginUser } from "../service/apiClient";
+import { useAuth } from "./AuthContext";
+import {
+  CopyWriteUnderInput,
+  PasswordForgetGrid,
+  RememberMe,
+  SignInEmailField,
+  SignInHeader,
+  SignInPasswordField,
+  SignInSubmitButton,
+  StyledBox,
+} from "./ProfileComponents";
 
 export default function SignIn({ appTheme }) {
   const { storeSignedInData } = useAuth();

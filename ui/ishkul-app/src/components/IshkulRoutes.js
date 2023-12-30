@@ -1,7 +1,7 @@
-import SignIn from "./Signin.jsx";
-import SignUp from "./Signup.jsx";
-import Profile from "./Profile.jsx";
-import MyAccount from "./MyAccount.jsx";
+import SignIn from "./Signin.js";
+import SignUp from "./Signup.js";
+import Profile from "./Profile.js";
+import MyAccount from "./MyAccount.js";
 import { Routes, Route } from "react-router-dom";
 import AccountRecover from "./AccountRecover.jsx";
 import Resources from "./Resources.js";
