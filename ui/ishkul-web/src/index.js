@@ -14,5 +14,5 @@ ReactGA.pageview(window.location.pathname + window.location.search);
 root.render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );
