@@ -17,7 +17,7 @@ import {
   PasswordForgetGrid,
   CopyWriteUnderInput,
 } from "./ProfileComponents";
-import { postLoginUser } from "./../service/examPaperService";
+import { postLoginUser } from "../service/apiClient";
 
 export default function SignIn({ appTheme }) {
   const { storeSignedInData } = useAuth();
@@ -46,7 +46,7 @@ export default function SignIn({ appTheme }) {
         resp.token
       );
     } catch (error) {
-      handleError("Login failed. Please try again.");
+      handleError(error.message);
       console.log(error);
       return;
     }

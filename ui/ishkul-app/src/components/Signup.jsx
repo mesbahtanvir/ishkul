@@ -18,7 +18,7 @@ import {
   AllowExtraEmailsConfirmation,
 } from "./ProfileComponents";
 import { Snackbar, Alert } from "@mui/material";
-import { postRegisterUser } from "./../service/examPaperService";
+import { postRegisterUser } from "../service/apiClient";
 
 export default function SignUp() {
   const [isError, setIsError] = useState(false);
@@ -48,7 +48,7 @@ export default function SignUp() {
         checked
       );
     } catch (error) {
-      handleError("Registration failed. Please try again.");
+      handleError(error.message);
       return;
     }
     navigate("/sign_in");
