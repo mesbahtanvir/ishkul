@@ -18,7 +18,7 @@ import {
   AllowExtraEmailsConfirmation,
 } from "./ProfileComponents";
 import { Snackbar, Alert } from "@mui/material";
-import { postRegisterUser } from "./../service/examPaperService";
+import { postRegisterUser } from "../service/apiClient";
 
 export default function SignUp() {
   const [isError, setIsError] = useState(false);

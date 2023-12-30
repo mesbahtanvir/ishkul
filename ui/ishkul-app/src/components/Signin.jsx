@@ -17,7 +17,7 @@ import {
   PasswordForgetGrid,
   CopyWriteUnderInput,
 } from "./ProfileComponents";
-import { postLoginUser } from "./../service/examPaperService";
+import { postLoginUser } from "../service/apiClient";
 
 export default function SignIn({ appTheme }) {
   const { storeSignedInData } = useAuth();
