@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const checkHealth = async () => {
   try {
-    const response = await axios.get("/health");
+    const response = await axios.get("https://api.ishkul.org/health");
     return response.data;
   } catch (error) {
     throw new Error("Failed to check health");
@@ -17,7 +17,7 @@ export const postRegisterUser = async (
   marketingOptin
 ) => {
   try {
-    const response = await axios.post("/register", {
+    const response = await axios.post("https://api.ishkul.org/register", {
       first_name: firstName,
       last_name: lastName,
       email: email,
@@ -35,7 +35,7 @@ export const postRegisterUser = async (
 
 export const postLoginUser = async (email, password) => {
   try {
-    const response = await axios.post("/login", {
+    const response = await axios.post("https://api.ishkul.org/login", {
       email: email,
       password: password,
     });

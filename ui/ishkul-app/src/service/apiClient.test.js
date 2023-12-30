@@ -23,7 +23,7 @@ describe("apiClient module", () => {
     axios.get.mockResolvedValueOnce({ data: { healthy: "ok" } });
     const result = await checkHealth();
     expect(result).toEqual({ healthy: "ok" });
-    expect(axios.get).toHaveBeenCalledWith("/health");
+    expect(axios.get).toHaveBeenCalledWith("https://api.ishkul.org/health");
   });
 
   it("register should post data using axios and return response", async () => {
@@ -44,7 +44,7 @@ describe("apiClient module", () => {
       marketingOptin
     );
     expect(result).toEqual("Registration successful");
-    expect(axios.post).toHaveBeenCalledWith("/register", {
+    expect(axios.post).toHaveBeenCalledWith("https://api.ishkul.org/register", {
       first_name: firstName,
       last_name: lastName,
       email: email,
@@ -71,7 +71,7 @@ describe("apiClient module", () => {
       email: email,
       token: password,
     });
-    expect(axios.post).toHaveBeenCalledWith("/login", {
+    expect(axios.post).toHaveBeenCalledWith("https://api.ishkul.org/login", {
       email: email,
       password: password,
     });
