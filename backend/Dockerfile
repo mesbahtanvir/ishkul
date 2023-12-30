@@ -1,19 +1,33 @@
-# Use an official Python runtime as a parent image
-FROM python:3.11.6
+# Start by building the application.
+# Use the official Golang image to create a build artifact.
+# This is called a multi-stage build. This stage is named as builder.
+FROM golang:1.18 AS builder
 
-# Set the working directory in the container
-WORKDIR /usr/src/app
+# Set the working directory inside the container.
+WORKDIR /app
 
-# Copy the dependencies file to the working directory
-COPY requirements.txt .
+# Copy go.mod and go.sum to download all dependencies.
+COPY go.mod go.sum ./
+RUN go mod download
 
-RUN pip install --upgrade pip
-
-# Install any dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the content of the local src directory to the working directory
+# Copy the source code into the container.
 COPY . .
 
-# Command to run on container start
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Build the application.
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/service/main.go
+
+# Use a Docker multi-stage build to create a lean production image.
+# Start from the alpine:latest image for a small footprint.
+FROM alpine:latest  
+
+# Set the working directory to /root/.
+WORKDIR /root/
+
+# Copy the pre-built binary file from the previous stage.
+COPY --from=builder /app/main .
+
+# Expose port 8080 to the outside world.
+EXPOSE 8080
+
+# Command to run the executable.
+CMD ["./main"]
