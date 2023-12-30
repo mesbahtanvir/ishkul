@@ -46,7 +46,7 @@ export default function SignIn({ appTheme }) {
         resp.token
       );
     } catch (error) {
-      handleError("Login failed. Please try again.");
+      handleError(error.toString());
       console.log(error);
       return;
     }

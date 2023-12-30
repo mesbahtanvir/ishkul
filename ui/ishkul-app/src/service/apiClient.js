@@ -24,19 +24,15 @@ export const postRegisterUser = async (
       password: password,
       marketing_optin: marketingOptin,
     });
-
-    if (response.status === 409) {
-      throw new Error("User already exists");
-    }
-    if (response.status === 500) {
-      throw new Error("Internal server error");
-    }
-    if (response.status !== 201 && response.status !== 200) {
-      throw new Error("Unknown error occured");
-    }
     return response.data;
   } catch (error) {
-    throw new Error("Failed to register user: " + error.message);
+    if (error.response?.status === 409) {
+      throw new Error("Failed to register user: User already exists");
+    }
+    if (error.response?.status === 500) {
+      throw new Error("Failed to register user: Internal server error");
+    }
+    throw new Error("Failed to register user: Unknown error occured");
   }
 };
 
@@ -46,21 +42,17 @@ export const postLoginUser = async (email, password) => {
       email: email,
       password: password,
     });
-    // Check if the response status is 201
-    if (response.status === 404) {
-      throw new Error("User not found");
-    }
-    if (response.status === 400) {
-      throw new Error("User & Email mismatch");
-    }
-    if (response.status === 500) {
-      throw new Error("Internal server error");
-    }
-    if (response.status !== 200) {
-      throw new Error("Unknown error occured");
-    }
     return response.data;
   } catch (error) {
-    throw new Error("Failed to login user: " + error.message);
+    if (error.response?.status === 404) {
+      throw new Error("Faile to login user: User not found");
+    }
+    if (error.response?.status === 400) {
+      throw new Error("Faile to login user: User & Email mismatch");
+    }
+    if (error.response?.statuss === 500) {
+      throw new Error("Failed to login user: Internal server error");
+    }
+    throw new Error("Failed to login user: Unknown error occured");
   }
 };
