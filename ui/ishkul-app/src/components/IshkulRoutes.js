@@ -3,7 +3,7 @@ import SignUp from "./Signup.js";
 import Profile from "./Profile.js";
 import MyAccount from "./MyAccount.js";
 import { Routes, Route } from "react-router-dom";
-import AccountRecover from "./AccountRecover.jsx";
+import AccountRecover from "./AccountRecover.js";
 import Resources from "./Resources.js";
 import Practice from "./Practice.js";
 import Contribute from "./Contribute.js";

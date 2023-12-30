@@ -5,42 +5,16 @@ import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import Box from "@mui/material/Box";
 import { ListItemButton } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
+import PsychologyIcon from "@mui/icons-material/Psychology";
 
 export default function MenuBar() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  let navigate = useNavigate();
-  const list = () => (
-    <div
-      role="presentation"
-      onClick={toggleDrawer(false)}
-      onKeyDown={toggleDrawer(false)}
-    >
-      <List>
-        {["Resources", "Practice", "Contribute"].map((text, index) => (
-          <ListItem
-            key={text}
-            disablePadding
-            sx={{
-              "&:hover": {
-                backgroundColor: "#f5f5f5", // Change this color for hover effect
-              },
-            }}
-          >
-            <ListItemButton onClick={() => handleListItemClick(text)}>
-              <ListItemText primary={text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </div>
-  );
-
-  const handleListItemClick = (text) => {
-    navigate("./" + text.toLowerCase());
-  };
-
   const toggleDrawer = (open) => (event) => {
     if (
       event.type === "keydown" &&
@@ -50,6 +24,45 @@ export default function MenuBar() {
     }
     setIsDrawerOpen(open);
   };
+
+  let navigate = useNavigate();
+
+  function Icons(text) {
+    if (text === "Contribute") {
+      return <CloudUploadIcon />;
+    }
+    if (text === "Resources") {
+      return <LibraryBooksIcon />;
+    }
+    if (text === "Practice") {
+      return <PsychologyIcon />;
+    }
+  }
+
+  const list = () => (
+    <Box
+      role="presentation"
+      sx={{ width: "left" === "top" || "left" === "bottom" ? "auto" : 250 }}
+      onClick={toggleDrawer(false)}
+      onKeyDown={toggleDrawer(false)}
+    >
+      <List>
+        {["Resources", "Practice", "Contribute"].map((text, index) => (
+          <ListItem key={text} disablePadding>
+            <ListItemButton onClick={() => handleListItemClick(text)}>
+              <ListItemIcon> {Icons(text)} </ListItemIcon>
+              <ListItemText primary={text} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  );
+
+  const handleListItemClick = (text) => {
+    navigate("./" + text.toLowerCase());
+  };
+
   return (
     <>
       <IconButton

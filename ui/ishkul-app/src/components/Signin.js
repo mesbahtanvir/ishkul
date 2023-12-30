@@ -39,17 +39,17 @@ export default function SignIn({ appTheme }) {
     try {
       const resp = await postLoginUser(data.get("email"), data.get("password"));
       storeSignedInData(
-        resp.first_name,
-        resp.last_name,
-        resp.email,
-        resp.token
+        resp.data.first_name,
+        resp.data.last_name,
+        resp.data.email,
+        resp.data.token
       );
     } catch (error) {
       handleError(error.message);
       console.log(error);
       return;
     }
-    navigate("/");
+    navigate("/my_account");
   };
 
   return (
