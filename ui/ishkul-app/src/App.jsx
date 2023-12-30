@@ -1,21 +1,20 @@
 import PrimaryAppBar from "./components/Appbar.js";
 import { AuthProvider } from "./components/AuthContext.js";
 import IshkulRoutes from "./components/IshkulRoutes.jsx";
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 
-const defaultTheme = createTheme()
+const defaultTheme = createTheme();
 
 function App() {
   return (
     <AuthProvider>
-    <ThemeProvider theme={defaultTheme}>
+      <ThemeProvider theme={defaultTheme}>
         <div className="App">
           <PrimaryAppBar theme={defaultTheme} />
           <IshkulRoutes />
         </div>
       </ThemeProvider>
     </AuthProvider>
-
   );
 }
 

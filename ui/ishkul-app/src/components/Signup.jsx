@@ -1,48 +1,83 @@
-import * as React from 'react';
-import CssBaseline from '@mui/material/CssBaseline';
-import Link from '@mui/material/Link';
-import Grid from '@mui/material/Grid';
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
-import { useNavigate } from 'react-router-dom';
-import { StyledBox, SignUpHeader, SignUpFirstNameField, SignUpLastNameField, SignUpEmailField, SignUpPasswordField, SingUpSubmit, CopyWriteUnderInput, AllowExtraEmailsConfirmation } from './ProfileComponents';
+import * as React from "react";
+import { useState } from "react";
+import CssBaseline from "@mui/material/CssBaseline";
+import Link from "@mui/material/Link";
+import Grid from "@mui/material/Grid";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import { useNavigate } from "react-router-dom";
+import {
+  StyledBox,
+  SignUpHeader,
+  SignUpFirstNameField,
+  SignUpLastNameField,
+  SignUpEmailField,
+  SignUpPasswordField,
+  SingUpSubmit,
+  CopyWriteUnderInput,
+  AllowExtraEmailsConfirmation,
+} from "./ProfileComponents";
+import { Snackbar, Alert } from "@mui/material";
+import { postRegisterUser } from "./../service/examPaperService";
 
 export default function SignUp() {
-  let navigate = useNavigate()
-  const handleSubmit = (event) => {
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [checked, setChecked] = useState(false);
+
+  const handleError = (message) => {
+    setIsError(true);
+    setErrorMessage(message);
+  };
+  // Function to close the Snackbar
+  const handleClose = () => {
+    setIsError(false);
+  };
+
+  let navigate = useNavigate();
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    console.log({
-      email: data.get('email'),
-      password: data.get('password'),
-    });
-    navigate("/sign_in")
+    try {
+      const data = new FormData(event.currentTarget);
+      await postRegisterUser(
+        data.get("firstName"),
+        data.get("lastName"),
+        data.get("email"),
+        data.get("password"),
+        checked
+      );
+    } catch (error) {
+      handleError("Registration failed. Please try again.");
+      return;
+    }
+    navigate("/sign_in");
   };
 
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />
       <StyledBox>
-        <SignUpHeader/>
+        <SignUpHeader />
         <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <SignUpFirstNameField/>
+              <SignUpFirstNameField />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <SignUpLastNameField/>
+              <SignUpLastNameField />
             </Grid>
             <Grid item xs={12}>
-              <SignUpEmailField/>
+              <SignUpEmailField />
             </Grid>
             <Grid item xs={12}>
-              <SignUpPasswordField/>
+              <SignUpPasswordField />
             </Grid>
             <Grid item xs={12}>
-              <AllowExtraEmailsConfirmation/>
+              <AllowExtraEmailsConfirmation setChecked={setChecked} />
             </Grid>
           </Grid>
-          <SingUpSubmit/>
+          <SingUpSubmit />
           <Grid container justifyContent="flex-end">
             <Grid item>
               <Link href="/sign_in" variant="body2">
@@ -52,7 +87,12 @@ export default function SignUp() {
           </Grid>
         </Box>
       </StyledBox>
-      <CopyWriteUnderInput/>
+      <CopyWriteUnderInput />
+      <Snackbar open={isError} autoHideDuration={6000} onClose={handleClose}>
+        <Alert onClose={handleClose} severity="error">
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

@@ -1,11 +1,13 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11.6-slim-bullseye
+FROM python:3.11.6
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
 # Copy the dependencies file to the working directory
 COPY requirements.txt .
+
+RUN pip install --upgrade pip
 
 # Install any dependencies
 RUN pip install --no-cache-dir -r requirements.txt

@@ -1,5 +1,3 @@
-function AccountRecover() {
-
-}
+function AccountRecover() {}
 
 export default AccountRecover;

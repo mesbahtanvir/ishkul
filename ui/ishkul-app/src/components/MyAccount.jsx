@@ -1,4 +1,4 @@
-function MyAccount(){
-    return <div></div>
+function MyAccount() {
+  return <div></div>;
 }
 export default MyAccount;
