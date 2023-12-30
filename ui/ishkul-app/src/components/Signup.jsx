@@ -48,7 +48,7 @@ export default function SignUp() {
         checked
       );
     } catch (error) {
-      handleError(error.toString());
+      handleError(error.message);
       return;
     }
     navigate("/sign_in");

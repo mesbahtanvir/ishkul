@@ -29,6 +29,9 @@ export const postRegisterUser = async (
     if (error.response?.status === 409) {
       throw new Error("Failed to register user: User already exists");
     }
+    if (error.response?.status === 400) {
+      throw new Error("Failed to register user: Invalid email or password");
+    }
     if (error.response?.status === 500) {
       throw new Error("Failed to register user: Internal server error");
     }
@@ -45,10 +48,10 @@ export const postLoginUser = async (email, password) => {
     return response.data;
   } catch (error) {
     if (error.response?.status === 404) {
-      throw new Error("Faile to login user: User not found");
+      throw new Error("Failed to login user: User not found");
     }
     if (error.response?.status === 400) {
-      throw new Error("Faile to login user: User & Email mismatch");
+      throw new Error("Failed to login user: User & Email mismatch");
     }
     if (error.response?.statuss === 500) {
       throw new Error("Failed to login user: Internal server error");

@@ -46,7 +46,7 @@ export default function SignIn({ appTheme }) {
         resp.token
       );
     } catch (error) {
-      handleError(error.toString());
+      handleError(error.message);
       console.log(error);
       return;
     }
