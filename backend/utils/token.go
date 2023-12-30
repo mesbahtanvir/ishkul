@@ -14,7 +14,7 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-// GetJWTToken generates a JWT token for the given email.
+// EncodeJWTToken generates a JWT token for the given email.
 func EncodeJWTToken(email string) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour) // Token expiration set to 1 day
 	claims := &Claims{

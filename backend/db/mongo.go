@@ -24,7 +24,7 @@ type UserDatabase struct {
 func MustNewMongoUserDatabase() *UserDatabase {
 	uri := fmt.Sprintf("%s://%s:%s/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.1",
 		utils.GetEnvOrDefault("MONGODB_SCHEME", "mongodb"),
-		utils.GetEnvOrDefault("MONGODB_HOST", "localhost"),
+		utils.GetEnvOrDefault("MONGODB_HOST", "mongodb"),
 		utils.GetEnvOrDefault("MONGODB_PORT", "27017"),
 	)
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
