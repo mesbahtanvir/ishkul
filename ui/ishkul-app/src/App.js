@@ -1,6 +1,6 @@
 import PrimaryAppBar from "./components/Appbar.js";
 import { AuthProvider } from "./components/AuthContext.js";
-import IshkulRoutes from "./components/IshkulRoutes.jsx";
+import IshkulRoutes from "./components/IshkulRoutes.js";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 const defaultTheme = createTheme();

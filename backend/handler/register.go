@@ -7,7 +7,6 @@ import (
 	"net/mail"
 
 	"go.mongodb.org/mongo-driver/mongo"
-	"ishkul.org/backend/db"
 	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
 )
@@ -38,17 +37,17 @@ func (r RegisterRequest) Validate() error {
 
 type RegisterResponse struct{}
 
-func HandleRegister(c context.Context, db *db.UserDatabase, req RegisterRequest) (resp RegisterResponse, err error) {
+func HandleRegister(ctx context.Context, db UserDatabase, req RegisterRequest) (resp RegisterResponse, err error) {
 	if err := req.Validate(); err != nil {
 		return RegisterResponse{}, err
 	}
-	if _, err := db.FindUserByEmail(c, req.Email); !errors.Is(err, mongo.ErrNoDocuments) {
+	if _, err := db.FindUserByEmail(ctx, req.Email); !errors.Is(err, mongo.ErrNoDocuments) {
 		return RegisterResponse{}, &ResourceAlreadyExists{Msg: "A user with this email already exists"}
 	}
 
 	hash, err := utils.HashPassword(req.Password)
 	if err != nil {
-		return RegisterResponse{}, errors.New("Internal Server Error")
+		return RegisterResponse{}, errors.New("internal server error")
 	}
 
 	user := model.User{
@@ -59,7 +58,7 @@ func HandleRegister(c context.Context, db *db.UserDatabase, req RegisterRequest)
 		AllowExtraEmails: req.AllowExtraEmails,
 	}
 
-	if err := db.AddUser(c, user); err != nil {
+	if err := db.AddUser(ctx, user); err != nil {
 		return RegisterResponse{}, err
 	}
 

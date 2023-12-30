@@ -3,11 +3,10 @@ package handler
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
-	"ishkul.org/backend/db"
+	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
 )
 
@@ -21,7 +20,7 @@ func (r LoginRequest) Validate() error {
 	// the same check we do during register endpoint call.
 	// ParseAddress may evolve and have breaking changes;
 	if r.Email == "" {
-		return &HandlerBadParamError{Msg: fmt.Sprintf("Must provide a valid email address")}
+		return &HandlerBadParamError{Msg: "Must provide a valid email address"}
 	}
 	if r.Password == "" {
 		return &HandlerBadParamError{"Must provide password"}
@@ -30,10 +29,18 @@ func (r LoginRequest) Validate() error {
 }
 
 type LoginResponse struct {
-	Token string `json:"token"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
+	Token     string `json:"token"`
 }
 
-func HandleLogin(ctx context.Context, db *db.UserDatabase, req LoginRequest) (LoginResponse, error) {
+type UserDatabase interface {
+	AddUser(ctx context.Context, user model.User) error
+	FindUserByEmail(ctx context.Context, email string) (model.User, error)
+}
+
+func HandleLogin(ctx context.Context, db UserDatabase, req LoginRequest) (LoginResponse, error) {
 	if err := req.Validate(); err != nil {
 		return LoginResponse{}, err
 	}
@@ -51,5 +58,10 @@ func HandleLogin(ctx context.Context, db *db.UserDatabase, req LoginRequest) (Lo
 	if err != nil {
 		return LoginResponse{}, err
 	}
-	return LoginResponse{Token: token}, nil
+	return LoginResponse{
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Token:     token,
+	}, nil
 }
