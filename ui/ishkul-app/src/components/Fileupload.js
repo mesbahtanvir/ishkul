@@ -5,6 +5,8 @@ import Button from "@mui/material/Button";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import Chip from "@mui/material/Chip";
 import { Typography } from "@mui/material";
+import { Snackbar } from "@mui/material";
+import Alert from "./Alert";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -20,12 +22,22 @@ const VisuallyHiddenInput = styled("input")({
 
 export default function InputFileUpload() {
   const [fileName, setFileName] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       setFileName(file.name);
     }
+
+    setIsOpen(true);
+    setMessage("Comming Soon");
+  };
+
+  // Function to close the Snackbar
+  const handleClose = () => {
+    setIsOpen(false);
   };
 
   return (
@@ -56,6 +68,11 @@ export default function InputFileUpload() {
           />
         </Typography>
       )}
+      <Snackbar open={isOpen} autoHideDuration={6000} onClose={handleClose}>
+        <Alert onClose={handleClose} severity="info" sx={{ width: "100%" }}>
+          {message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

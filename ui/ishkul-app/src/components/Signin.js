@@ -1,4 +1,4 @@
-import { Alert, Snackbar } from "@mui/material";
+import { Snackbar } from "@mui/material";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -17,6 +17,7 @@ import {
   SignInSubmitButton,
   StyledBox,
 } from "./ProfileComponents";
+import Alert from "./Alert";
 
 export default function SignIn({ appTheme }) {
   const { storeSignedInData } = useAuth();
@@ -67,7 +68,7 @@ export default function SignIn({ appTheme }) {
       </StyledBox>
       <CopyWriteUnderInput />
       <Snackbar open={isError} autoHideDuration={6000} onClose={handleClose}>
-        <Alert onClose={handleClose} severity="error">
+        <Alert onClose={handleClose} severity="error" sx={{ width: "100%" }}>
           {errorMessage}
         </Alert>
       </Snackbar>
