@@ -13,9 +13,18 @@ import SearchBar from "./SearchBar";
 import MenuBar from "./MenuBar";
 import IshkulTypography from "./IshkulTypography";
 import { WebNotification } from "./Notification";
+import LoginIcon from "@mui/icons-material/Login";
+import LogoutIcon from "@mui/icons-material/Logout";
+import AccountBoxIcon from "@mui/icons-material/AccountBox";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import InputIcon from "@mui/icons-material/Input";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import { useTheme } from "./ThemeContext";
 
 export default function PrimaryAppBar() {
   const { isSignedIn, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   console.log(isSignedIn);
   let navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -46,20 +55,57 @@ export default function PrimaryAppBar() {
     navigate("/");
   };
 
+  const handleThemeOnClick = () => {
+    toggleTheme();
+  };
+  function ThemeModeButton() {
+    return (
+      <IconButton
+        size="large"
+        aria-label="theme"
+        color="inherit"
+        onClick={handleThemeOnClick} // Attach the onClick handler
+      >
+        {theme === "light" ? <DarkModeIcon /> : <LightModeIcon />}
+      </IconButton>
+    );
+  }
+
   const menuId = "primary-search-account-menu";
   function MenuItems({ userSignedIn }) {
     if (userSignedIn) {
       return (
         <>
-          <MenuItem onClick={handleOnClickSignOut}>Sign Out</MenuItem>
-          <MenuItem onClick={handleOnClickMyAccount}>My Account</MenuItem>
+          <MenuItem onClick={handleOnClickSignOut}>
+            {" "}
+            <ListItemIcon>
+              <LogoutIcon />
+            </ListItemIcon>
+            Logout
+          </MenuItem>
+          <MenuItem onClick={handleOnClickMyAccount}>
+            <ListItemIcon>
+              <AccountBoxIcon />
+            </ListItemIcon>
+            Account
+          </MenuItem>
         </>
       );
     }
     return (
       <>
-        <MenuItem onClick={handleOnClickSignIn}>Sign In</MenuItem>
-        <MenuItem onClick={handleOnClickSignUp}>Register</MenuItem>
+        <MenuItem onClick={handleOnClickSignIn}>
+          <ListItemIcon>
+            <LoginIcon />
+          </ListItemIcon>
+          Login
+        </MenuItem>
+        <MenuItem onClick={handleOnClickSignUp}>
+          <ListItemIcon>
+            <InputIcon />
+          </ListItemIcon>
+          Register
+        </MenuItem>
       </>
     );
   }
@@ -92,6 +138,7 @@ export default function PrimaryAppBar() {
           <IshkulTypography />
           <SearchBar />
           <Box sx={{ flexGrow: 1 }} />
+          <ThemeModeButton />
           <Box sx={{ display: { xs: "none", md: "flex" } }}>
             <WebNotification />
             <IconButton

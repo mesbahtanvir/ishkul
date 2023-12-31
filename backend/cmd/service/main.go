@@ -19,92 +19,92 @@ func main() {
 	r.Use(cors.Default())
 
 	// Health Check Endpoint
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "healthy", "timestamp": time.Now().UnixNano()})
+	r.GET("/health", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"status": "healthy", "timestamp": time.Now().UnixNano()})
 	})
 
 	// Register Endpoint
-	r.POST("/register", func(c *gin.Context) {
+	r.POST("/register", func(ctx *gin.Context) {
 		var req handler.RegisterRequest
-		if err := c.BindJSON(&req); err != nil {
+		if err := ctx.BindJSON(&req); err != nil {
 			// handle error, e.g., return a bad request response
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		resp, err := handler.HandleRegister(c, userDatabase, req)
+		resp, err := handler.HandleRegister(ctx, userDatabase, req)
 		if err != nil {
-			c.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusCreated, gin.H{"data": resp})
+		ctx.JSON(http.StatusCreated, gin.H{"data": resp})
 	})
 
 	// Login Endpoint
-	r.POST("/login", func(c *gin.Context) {
+	r.POST("/login", func(ctx *gin.Context) {
 		// Your logic here
 		var req handler.LoginRequest
-		if err := c.BindJSON(&req); err != nil {
+		if err := ctx.BindJSON(&req); err != nil {
 			// handle error, e.g., return a bad request response
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		resp, err := handler.HandleLogin(c, userDatabase, req)
+		resp, err := handler.HandleLogin(ctx, userDatabase, req)
 		if err != nil {
-			c.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"data": resp})
+		ctx.JSON(http.StatusOK, gin.H{"data": resp})
 	})
 
 	// Account Recover Endpoint
-	r.POST("/account_recover", func(c *gin.Context) {
+	r.POST("/account_recover", func(ctx *gin.Context) {
 		// Your logic here
 		var req handler.AccountRecoverRequest
-		if err := c.BindJSON(&req); err != nil {
+		if err := ctx.BindJSON(&req); err != nil {
 			// handle error, e.g., return a bad request response
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		resp, err := handler.HandleAccountRecover(c, storage, userDatabase, req)
+		resp, err := handler.HandleAccountRecover(ctx, storage, userDatabase, req)
 		if err != nil {
-			c.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"data": resp})
+		ctx.JSON(http.StatusOK, gin.H{"data": resp})
 	})
 
 	// Account Recover Endpoint
-	r.POST("/verify_account_ownership", func(c *gin.Context) {
+	r.POST("/verify_account_ownership", func(ctx *gin.Context) {
 		// Your logic here
 		var req handler.ValidateAccountRecoverRequest
-		if err := c.BindJSON(&req); err != nil {
+		if err := ctx.BindJSON(&req); err != nil {
 			// handle error, e.g., return a bad request response
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		resp, err := handler.HandleValidateAccountRecover(c, storage, userDatabase, req)
+		resp, err := handler.HandleValidateAccountRecover(ctx, storage, userDatabase, req)
 		if err != nil {
-			c.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"data": resp})
+		ctx.JSON(http.StatusOK, gin.H{"data": resp})
 	})
 
 	// Account Recover Endpoint
-	r.POST("/change_password", func(c *gin.Context) {
+	r.POST("/change_password", func(ctx *gin.Context) {
 		// Your logic here
-		var req handler.ValidateAccountRecoverRequest
-		if err := c.BindJSON(&req); err != nil {
+		var req handler.ChangePasswordRequest
+		if err := ctx.BindJSON(&req); err != nil {
 			// handle error, e.g., return a bad request response
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		resp, err := handler.HandleValidateAccountRecover(c, storage, userDatabase, req)
+		resp, err := handler.HandleChangePassword(ctx, userDatabase, req)
 		if err != nil {
-			c.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"data": resp})
+		ctx.JSON(http.StatusOK, gin.H{"data": resp})
 	})
 
 	// Start the server
