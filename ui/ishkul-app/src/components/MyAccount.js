@@ -3,6 +3,7 @@ import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import { SubmitChangePassword } from "./ProfileComponents";
+import CssBaseline from "@mui/material/CssBaseline";
 
 const ProfilePage = () => {
   const { firstName, lastName, email } = useAuth();
@@ -13,7 +14,9 @@ const ProfilePage = () => {
   }
 
   return (
-    <Container maxWidth="sm">
+    <Container component="main" maxWidth="xs">
+      <CssBaseline />
+
       <Paper style={{ padding: "20px", marginTop: "20px" }}>
         <Avatar style={{ width: "100px", height: "100px", margin: "auto" }} />
         <Typography variant="h5" align="center">
