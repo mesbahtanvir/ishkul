@@ -34,11 +34,12 @@ export default function ChangePassword() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    if (loggedInToken === "") {
+      handleError("Please Sign in First");
+      return;
+    }
     try {
-      const data = new FormData(event.currentTarget);
-      console.log(data.get("email"));
-      console.log(loggedInToken);
-      console.log(data.get("password"));
       const resp = await postChangePassword(
         data.get("email"),
         loggedInToken,
