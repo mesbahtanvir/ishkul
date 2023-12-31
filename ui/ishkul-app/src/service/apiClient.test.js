@@ -1,4 +1,9 @@
-import { checkHealth, postRegisterUser, postLoginUser } from "./apiClient";
+import {
+  checkHealth,
+  postRegisterUser,
+  postLoginUser,
+  postRecoverAccount,
+} from "./apiClient";
 import axios from "axios";
 
 jest.mock("axios");
@@ -74,5 +79,21 @@ describe("apiClient module", () => {
       email: email,
       password: password,
     });
+  });
+
+  it("account_recover should post data using axios and return response", async () => {
+    const email = "joe.biden@email.com";
+    axios.post.mockResolvedValueOnce({
+      status: 200,
+      data: {},
+    });
+    const result = await postRecoverAccount(email);
+    expect(result).toEqual({});
+    expect(axios.post).toHaveBeenCalledWith(
+      "https://api.ishkul.org/account_recover",
+      {
+        email: email,
+      }
+    );
   });
 });

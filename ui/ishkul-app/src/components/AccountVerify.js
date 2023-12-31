@@ -4,21 +4,24 @@ import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
 import * as React from "react";
 import { useState } from "react";
+import { useAuth } from "./AuthContext";
 import {
   CopyWriteUnderInput,
   SignInEmailField,
-  AccountRecoverHeader,
-  SendVerificationCode,
   StyledBox,
+  CodeField,
+  SubmitVerificationCode,
+  AccountVerifyHeader,
 } from "./ProfileComponents";
 import { useNavigate } from "react-router-dom";
 
-import { postRecoverAccount } from "../service/apiClient";
+import { postVerifyAccount } from "../service/apiClient";
 import Alert from "./Alert";
 
-export default function AccountRecover() {
+export default function AccountVerify() {
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const { storeSignedInData } = useAuth();
   let navigate = useNavigate();
 
   const handleError = (message) => {
@@ -34,22 +37,29 @@ export default function AccountRecover() {
     event.preventDefault();
     try {
       const data = new FormData(event.currentTarget);
-      await postRecoverAccount(data.get("email"));
+      const resp = await postVerifyAccount(data.get("email"), data.get("code"));
+      storeSignedInData(
+        resp.data.first_name,
+        resp.data.last_name,
+        resp.data.email,
+        resp.data.token
+      );
     } catch (error) {
       handleError(error.message);
       return;
     }
-    navigate("/account_verify");
+    navigate("/my_account");
   };
 
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />
       <StyledBox>
-        <AccountRecoverHeader />
+        <AccountVerifyHeader />
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <SignInEmailField />
-          <SendVerificationCode />
+          <CodeField />
+          <SubmitVerificationCode />
         </Box>
       </StyledBox>
       <CopyWriteUnderInput />

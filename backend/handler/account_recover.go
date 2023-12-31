@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"ishkul.org/backend/utils"
@@ -36,6 +37,7 @@ func HandleAccountRecover(ctx context.Context, storage AccountRecoverStorage, db
 	}
 	recovery_code := utils.GenerateRandomVerificationCode()
 	// TODO Send the code to ther user
+	fmt.Printf("email: %s, recovery code: %s", user.Email, recovery_code)
 
 	err = storage.StoreAccountRecoveryKey(ctx, user.Email, recovery_code)
 	if err != nil {

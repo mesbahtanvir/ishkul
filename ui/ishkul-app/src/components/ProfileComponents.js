@@ -71,6 +71,32 @@ export function AccountRecoverHeader() {
   );
 }
 
+export function AccountVerifyHeader() {
+  return (
+    <>
+      <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
+        <LockOutlinedIcon />
+      </Avatar>
+      <Typography component="h1" variant="h5">
+        Verify Account
+      </Typography>
+    </>
+  );
+}
+
+export function ChangePasswordHeader() {
+  return (
+    <>
+      <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
+        <LockOutlinedIcon />
+      </Avatar>
+      <Typography component="h1" variant="h5">
+        Update Your Password
+      </Typography>
+    </>
+  );
+}
+
 export function SignInEmailField() {
   return (
     <TextField
@@ -101,6 +127,21 @@ export function SignInPasswordField() {
   );
 }
 
+export function CodeField() {
+  return (
+    <TextField
+      margin="normal"
+      required
+      fullWidth
+      name="code"
+      label="code"
+      type="code"
+      id="code"
+      autoComplete="verification-code"
+    />
+  );
+}
+
 export function RememberMe() {
   return (
     <FormControlLabel
@@ -122,6 +163,22 @@ export function SendVerificationCode() {
   return (
     <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
       Send Verification Code
+    </Button>
+  );
+}
+
+export function SubmitChangePassword() {
+  return (
+    <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
+      Change Password
+    </Button>
+  );
+}
+
+export function SubmitVerificationCode() {
+  return (
+    <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
+      Submit Verification Code
     </Button>
   );
 }
