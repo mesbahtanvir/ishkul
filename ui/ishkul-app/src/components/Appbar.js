@@ -12,55 +12,57 @@ import { useAuth } from "./AuthContext";
 import SearchBar from "./SearchBar";
 import MenuBar from "./MenuBar";
 import IshkulTypography from "./IshkulTypography";
-import { MobileNotification, WebNotification } from "./Notification";
+import { WebNotification } from "./Notification";
 
 export default function PrimaryAppBar() {
   const { isSignedIn, signOut } = useAuth();
   console.log(isSignedIn);
   let navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
-  const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = React.useState(null);
   const isMenuOpen = Boolean(anchorEl);
-  const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
 
-  const handleMobileMenuClose = () => {
-    setMobileMoreAnchorEl(null);
-  };
-
   const handleMenuClose = () => {
     setAnchorEl(null);
-    handleMobileMenuClose();
   };
   const handleOnClickSignIn = () => {
     setAnchorEl(null);
-    handleMobileMenuClose();
     navigate("/sign_in");
   };
   const handleOnClickSignUp = () => {
     setAnchorEl(null);
-    handleMobileMenuClose();
     navigate("/sign_up");
   };
   const handleOnClickMyAccount = () => {
     setAnchorEl(null);
-    handleMobileMenuClose();
     navigate("/my_account");
   };
   const handleOnClickSignOut = () => {
     setAnchorEl(null);
-    handleMobileMenuClose();
     signOut();
-  };
-
-  const handleMobileMenuOpen = (event) => {
-    setMobileMoreAnchorEl(event.currentTarget);
+    navigate("/");
   };
 
   const menuId = "primary-search-account-menu";
+  function MenuItems({ userSignedIn }) {
+    if (userSignedIn) {
+      return (
+        <>
+          <MenuItem onClick={handleOnClickSignOut}>Sign Out</MenuItem>
+          <MenuItem onClick={handleOnClickMyAccount}>My Account</MenuItem>
+        </>
+      );
+    }
+    return (
+      <>
+        <MenuItem onClick={handleOnClickSignIn}>Sign In</MenuItem>
+        <MenuItem onClick={handleOnClickSignUp}>Register</MenuItem>
+      </>
+    );
+  }
   const renderMenu = (
     <Menu
       anchorEl={anchorEl}
@@ -77,52 +79,10 @@ export default function PrimaryAppBar() {
       open={isMenuOpen}
       onClose={handleMenuClose}
     >
-      {isSignedIn ? (
-        <>
-          <MenuItem onClick={handleOnClickSignOut}>Sign Out</MenuItem>
-          <MenuItem onClick={handleOnClickMyAccount}>My Account</MenuItem>
-        </>
-      ) : (
-        <>
-          <MenuItem onClick={handleOnClickSignIn}>Sign In</MenuItem>
-          <MenuItem onClick={handleOnClickSignUp}>Register</MenuItem>
-        </>
-      )}
+      <MenuItems userSignedIn={isSignedIn} />
     </Menu>
   );
-
   const mobileMenuId = "primary-search-account-menu-mobile";
-  const renderMobileMenu = (
-    <Menu
-      anchorEl={mobileMoreAnchorEl}
-      anchorOrigin={{
-        vertical: "top",
-        horizontal: "right",
-      }}
-      id={mobileMenuId}
-      keepMounted
-      transformOrigin={{
-        vertical: "top",
-        horizontal: "right",
-      }}
-      open={isMobileMenuOpen}
-      onClose={handleMobileMenuClose}
-    >
-      <MobileNotification />
-      <MenuItem onClick={handleProfileMenuOpen}>
-        <IconButton
-          size="large"
-          aria-label="account of current user"
-          aria-controls="primary-search-account-menu"
-          aria-haspopup="true"
-          color="inherit"
-        >
-          <AccountCircle />
-        </IconButton>
-        <p>Profile</p>
-      </MenuItem>
-    </Menu>
-  );
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -152,7 +112,7 @@ export default function PrimaryAppBar() {
               aria-label="show more"
               aria-controls={mobileMenuId}
               aria-haspopup="true"
-              onClick={handleMobileMenuOpen}
+              onClick={handleProfileMenuOpen}
               color="inherit"
             >
               <MoreIcon />
@@ -160,7 +120,6 @@ export default function PrimaryAppBar() {
           </Box>
         </Toolbar>
       </AppBar>
-      {renderMobileMenu}
       {renderMenu}
     </Box>
   );
