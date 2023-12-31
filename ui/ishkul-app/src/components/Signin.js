@@ -9,7 +9,7 @@ import { postLoginUser } from "../service/apiClient";
 import { useAuth } from "./AuthContext";
 import {
   CopyWriteUnderInput,
-  PasswordForgetGrid,
+  ForgotAndSingupBox,
   RememberMe,
   SignInEmailField,
   SignInHeader,
@@ -63,7 +63,7 @@ export default function SignIn({ appTheme }) {
           <SignInPasswordField />
           <RememberMe />
           <SignInSubmitButton />
-          <PasswordForgetGrid />
+          <ForgotAndSingupBox />
         </Box>
       </StyledBox>
       <CopyWriteUnderInput />

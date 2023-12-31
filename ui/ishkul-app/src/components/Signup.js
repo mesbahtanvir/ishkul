@@ -19,6 +19,7 @@ import {
 } from "./ProfileComponents";
 import { Snackbar, Alert } from "@mui/material";
 import { postRegisterUser } from "../service/apiClient";
+import { styled } from "@mui/material/styles";
 
 export default function SignUp() {
   const [isError, setIsError] = useState(false);
@@ -54,6 +55,24 @@ export default function SignUp() {
     navigate("/sign_in");
   };
 
+  const StyledLink = styled(Link)(({ theme }) => ({
+    textDecoration: "none",
+    color: theme.palette.primary.main, // Customize as needed
+    "&:hover": {
+      textDecoration: "underline",
+      color: theme.palette.secondary.main, // Customize as needed
+      transition: "color 0.3s",
+    },
+    // Additional styling here
+  }));
+
+  const alreadyAccountSignIn = (
+    <Grid item>
+      <StyledLink href="/sign_in" variant="body2">
+        Already have an account? Sign in
+      </StyledLink>
+    </Grid>
+  );
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />
@@ -79,11 +98,7 @@ export default function SignUp() {
           </Grid>
           <SingUpSubmit />
           <Grid container justifyContent="flex-end">
-            <Grid item>
-              <Link href="/sign_in" variant="body2">
-                Already have an account? Sign in
-              </Link>
-            </Grid>
+            {alreadyAccountSignIn}
           </Grid>
         </Box>
       </StyledBox>

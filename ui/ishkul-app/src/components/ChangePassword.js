@@ -10,7 +10,7 @@ import {
   SignUpPasswordField,
   ChangePasswordHeader,
   SubmitChangePassword,
-  SignUpEmailField,
+  MayBePrefieldEmailBox,
 } from "./ProfileComponents";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
@@ -18,7 +18,7 @@ import { postChangePassword } from "../service/apiClient";
 import Alert from "./Alert";
 
 export default function ChangePassword() {
-  const { loggedInToken, storeSignedInData } = useAuth();
+  const { email, loggedInToken, storeSignedInData } = useAuth();
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   let navigate = useNavigate();
@@ -36,12 +36,12 @@ export default function ChangePassword() {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     if (loggedInToken === "") {
-      handleError("Please Sign in First");
+      handleError("Please sign in first");
       return;
     }
     try {
       const resp = await postChangePassword(
-        data.get("email"),
+        email ?? data.get("email"),
         loggedInToken,
         data.get("password")
       );
@@ -51,11 +51,11 @@ export default function ChangePassword() {
         resp.data.email,
         resp.data.token
       );
+      navigate("/my_account");
     } catch (error) {
       handleError(error.message);
       return;
     }
-    navigate("/my_account");
   };
 
   return (
@@ -64,7 +64,7 @@ export default function ChangePassword() {
       <StyledBox>
         <ChangePasswordHeader />
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-          <SignUpEmailField />
+          <MayBePrefieldEmailBox email={email} />
           <SignUpPasswordField />
           <SubmitChangePassword />
         </Box>
