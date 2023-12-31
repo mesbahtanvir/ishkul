@@ -19,10 +19,10 @@ type ValidateAccountRecoverResponse struct {
 
 func (r ValidateAccountRecoverRequest) Validate() error {
 	if r.Email == "" {
-		return &HandlerBadParamError{Msg: "Must provide email address"}
+		return &ErrHandlerBadParam{Msg: "Must provide email address"}
 	}
 	if r.Code == "" {
-		return &HandlerBadParamError{Msg: "Must provide a code"}
+		return &ErrHandlerBadParam{Msg: "Must provide a code"}
 	}
 	return nil
 }
@@ -33,14 +33,14 @@ func HandleValidateAccountRecover(ctx context.Context, storage AccountRecoverSto
 	}
 	user, err := db.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return ValidateAccountRecoverResponse{}, &ResourceDoesNotExist{Msg: "User does not exist this email"}
+		return ValidateAccountRecoverResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exist this email"}
 	}
 	expected_code, err := storage.RetriveAccountRecoveryKey(ctx, user.Email)
 	if err != nil {
 		return ValidateAccountRecoverResponse{}, err
 	}
 	if expected_code != req.Code {
-		return ValidateAccountRecoverResponse{}, &HandlerBadParamError{"Invalid code provided"}
+		return ValidateAccountRecoverResponse{}, &ErrHandlerBadParam{"Invalid code provided"}
 	}
 
 	token, err := utils.EncodeJWTToken(user.Email)

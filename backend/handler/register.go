@@ -21,16 +21,16 @@ type RegisterRequest struct {
 
 func (r RegisterRequest) Validate() error {
 	if r.FirstName == "" {
-		return &HandlerBadParamError{Msg: "Must provide first name"}
+		return &ErrHandlerBadParam{Msg: "Must provide first name"}
 	}
 	if r.LastName == "" {
-		return &HandlerBadParamError{Msg: "Must provide last name"}
+		return &ErrHandlerBadParam{Msg: "Must provide last name"}
 	}
 	if _, err := mail.ParseAddress(r.Email); err != nil {
-		return &HandlerBadParamError{Msg: fmt.Sprintf("Must provide a valid email address. %s", err.Error())}
+		return &ErrHandlerBadParam{Msg: fmt.Sprintf("Must provide a valid email address. %s", err.Error())}
 	}
 	if r.Password == "" {
-		return &HandlerBadParamError{"Must provide password"}
+		return &ErrHandlerBadParam{"Must provide password"}
 	}
 	return nil
 }
@@ -42,14 +42,13 @@ func HandleRegister(ctx context.Context, db UserDatabase, req RegisterRequest) (
 		return RegisterResponse{}, err
 	}
 	if _, err := db.FindUserByEmail(ctx, req.Email); !errors.Is(err, mongo.ErrNoDocuments) {
-		return RegisterResponse{}, &ResourceAlreadyExists{Msg: "A user with this email already exists"}
+		return RegisterResponse{}, &ErrResourceAlreadyExists{Msg: "A user with this email already exists"}
 	}
 
 	hash, err := utils.HashPassword(req.Password)
 	if err != nil {
 		return RegisterResponse{}, errors.New("internal server error")
 	}
-
 	user := model.User{
 		FirstName:        req.FirstName,
 		LastName:         req.LastName,

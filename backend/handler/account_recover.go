@@ -21,7 +21,7 @@ type AccountRecoverStorage interface {
 
 func (r AccountRecoverRequest) Validate() error {
 	if r.Email == "" {
-		return &HandlerBadParamError{Msg: "Must provide email address"}
+		return &ErrHandlerBadParam{Msg: "Must provide email address"}
 	}
 	return nil
 }
@@ -32,7 +32,7 @@ func HandleAccountRecover(ctx context.Context, storage AccountRecoverStorage, db
 	}
 	user, err := db.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return AccountRecoverResponse{}, &ResourceDoesNotExist{Msg: "User does not exist this email"}
+		return AccountRecoverResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exist this email"}
 	}
 	recovery_code := utils.GenerateRandomVerificationCode()
 	// TODO Send the code to ther user

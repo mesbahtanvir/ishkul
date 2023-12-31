@@ -54,6 +54,15 @@ func ValidateToken(tokenString string) (string, bool) {
 	return claims.Email, true
 }
 
+// ValidateToken validates the JWT token and returns the email from the claims.
+func ValidateUserToken(email string, tokenString string) bool {
+	claims, err := DecodeJWT(tokenString)
+	if err != nil {
+		return false
+	}
+	return claims.Email == email
+}
+
 // HashPassword takes a plain text password and returns a hashed version.
 func HashPassword(password string) (string, error) {
 	// Generate a hashed version of the password

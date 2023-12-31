@@ -63,3 +63,17 @@ func (mr *MockUserDatabaseMockRecorder) FindUserByEmail(ctx, email interface{}) 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserByEmail", reflect.TypeOf((*MockUserDatabase)(nil).FindUserByEmail), ctx, email)
 }
+
+// UpdateUser mocks base method.
+func (m *MockUserDatabase) UpdateUser(ctx context.Context, user model.User) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUser", ctx, user)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateUser indicates an expected call of UpdateUser.
+func (mr *MockUserDatabaseMockRecorder) UpdateUser(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserDatabase)(nil).UpdateUser), ctx, user)
+}

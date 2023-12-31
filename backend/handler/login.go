@@ -20,10 +20,10 @@ func (r LoginRequest) Validate() error {
 	// the same check we do during register endpoint call.
 	// ParseAddress may evolve and have breaking changes;
 	if r.Email == "" {
-		return &HandlerBadParamError{Msg: "Must provide a valid email address"}
+		return &ErrHandlerBadParam{Msg: "Must provide a valid email address"}
 	}
 	if r.Password == "" {
-		return &HandlerBadParamError{"Must provide password"}
+		return &ErrHandlerBadParam{"Must provide password"}
 	}
 	return nil
 }
@@ -38,6 +38,7 @@ type LoginResponse struct {
 type UserDatabase interface {
 	AddUser(ctx context.Context, user model.User) error
 	FindUserByEmail(ctx context.Context, email string) (model.User, error)
+	UpdateUser(ctx context.Context, user model.User) error
 }
 
 func HandleLogin(ctx context.Context, db UserDatabase, req LoginRequest) (LoginResponse, error) {
@@ -46,13 +47,13 @@ func HandleLogin(ctx context.Context, db UserDatabase, req LoginRequest) (LoginR
 	}
 	user, err := db.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return LoginResponse{}, &ResourceDoesNotExist{Msg: "User does not exists"}
+		return LoginResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exists"}
 	}
 	if err != nil {
 		return LoginResponse{}, err
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		return LoginResponse{}, &HandlerBadParamError{Msg: "Password and email mismatched"}
+		return LoginResponse{}, &ErrHandlerBadParam{Msg: "Password and email mismatched"}
 	}
 	token, err := utils.EncodeJWTToken(user.Email)
 	if err != nil {
