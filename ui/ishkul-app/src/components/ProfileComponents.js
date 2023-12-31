@@ -58,6 +58,19 @@ export function SignInHeader() {
   );
 }
 
+export function AccountRecoverHeader() {
+  return (
+    <>
+      <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
+        <LockOutlinedIcon />
+      </Avatar>
+      <Typography component="h1" variant="h5">
+        Recover Account
+      </Typography>
+    </>
+  );
+}
+
 export function SignInEmailField() {
   return (
     <TextField
@@ -101,6 +114,14 @@ export function SignInSubmitButton() {
   return (
     <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
       Sign In
+    </Button>
+  );
+}
+
+export function SendVerificationCode() {
+  return (
+    <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
+      Send Verification Code
     </Button>
   );
 }

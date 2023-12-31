@@ -1,4 +1,4 @@
-import { Alert, Snackbar } from "@mui/material";
+import { Snackbar } from "@mui/material";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -17,6 +17,7 @@ import {
   SignInSubmitButton,
   StyledBox,
 } from "./ProfileComponents";
+import Alert from "./Alert";
 
 export default function SignIn({ appTheme }) {
   const { storeSignedInData } = useAuth();
@@ -39,17 +40,17 @@ export default function SignIn({ appTheme }) {
     try {
       const resp = await postLoginUser(data.get("email"), data.get("password"));
       storeSignedInData(
-        resp.first_name,
-        resp.last_name,
-        resp.email,
-        resp.token
+        resp.data.first_name,
+        resp.data.last_name,
+        resp.data.email,
+        resp.data.token
       );
     } catch (error) {
       handleError(error.message);
       console.log(error);
       return;
     }
-    navigate("/");
+    navigate("/my_account");
   };
 
   return (
@@ -67,7 +68,7 @@ export default function SignIn({ appTheme }) {
       </StyledBox>
       <CopyWriteUnderInput />
       <Snackbar open={isError} autoHideDuration={6000} onClose={handleClose}>
-        <Alert onClose={handleClose} severity="error">
+        <Alert onClose={handleClose} severity="error" sx={{ width: "100%" }}>
           {errorMessage}
         </Alert>
       </Snackbar>

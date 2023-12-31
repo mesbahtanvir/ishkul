@@ -5,43 +5,57 @@ import (
 	"net/http"
 )
 
-type HandlerBadParamError struct {
+type ErrHandlerBadParam struct {
 	Msg string
 }
 
-type ResourceAlreadyExists struct {
-	Msg string
-}
-
-type ResourceDoesNotExist struct {
-	Msg string
-}
-
-func (e *HandlerBadParamError) Error() string {
+func (e *ErrHandlerBadParam) Error() string {
 	return e.Msg
 }
-func (e *ResourceAlreadyExists) Error() string {
+
+type ErrResourceAlreadyExists struct {
+	Msg string
+}
+
+func (e *ErrResourceAlreadyExists) Error() string {
 	return e.Msg
 }
-func (e *ResourceDoesNotExist) Error() string {
+
+type ErrResourceDoesNotExist struct {
+	Msg string
+}
+
+func (e *ErrResourceDoesNotExist) Error() string {
+	return e.Msg
+}
+
+type ErrAuthenticationFailure struct {
+	Msg string
+}
+
+func (e *ErrAuthenticationFailure) Error() string {
 	return e.Msg
 }
 
 func ErrorHTTPCode(err error) int {
-
-	var badParamErr *HandlerBadParamError
+	var badParamErr *ErrHandlerBadParam
 	if errors.As(err, &badParamErr) {
 		return http.StatusBadRequest
 	}
 
-	var existsErr *ResourceAlreadyExists
+	var existsErr *ErrResourceAlreadyExists
 	if errors.As(err, &existsErr) {
 		return http.StatusConflict
 	}
 
-	var notFoundErr *ResourceDoesNotExist
+	var notFoundErr *ErrResourceDoesNotExist
 	if errors.As(err, &notFoundErr) {
 		return http.StatusNotFound
+	}
+
+	var errAuth *ErrAuthenticationFailure
+	if errors.As(err, &errAuth) {
+		return http.StatusForbidden
 	}
 
 	return http.StatusBadRequest

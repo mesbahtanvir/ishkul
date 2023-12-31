@@ -4,6 +4,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,6 +16,7 @@ import (
 type MongoCollectionInterface interface {
 	InsertOne(ctx context.Context, document interface{}, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error)
 	FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult
+	UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 }
 
 type UserDatabase struct {
@@ -33,11 +35,31 @@ func MustNewMongoUserDatabase() *UserDatabase {
 	}
 	users_coll := client.Database("prod").Collection("users")
 
+	model := mongo.IndexModel{
+		Keys: bson.M{
+			"email": 1, // specify 1 for ascending order
+		},
+		Options: options.Index().SetUnique(true),
+	}
+
+	// Create one index
+	_, err = users_coll.Indexes().CreateOne(context.Background(), model)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return &UserDatabase{collection: users_coll}
 }
 
 func (db *UserDatabase) AddUser(ctx context.Context, user model.User) error {
 	_, err := db.collection.InsertOne(ctx, user)
+	return err
+}
+
+func (db *UserDatabase) UpdateUser(ctx context.Context, user model.User) error {
+	filter := bson.D{{Key: "email", Value: user.Email}}
+	update := bson.D{{Key: "$set", Value: user}}
+	_, err := db.collection.UpdateOne(ctx, filter, update)
 	return err
 }
 

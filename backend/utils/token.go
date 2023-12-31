@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -52,6 +54,15 @@ func ValidateToken(tokenString string) (string, bool) {
 	return claims.Email, true
 }
 
+// ValidateToken validates the JWT token and returns the email from the claims.
+func ValidateUserToken(email string, tokenString string) bool {
+	claims, err := DecodeJWT(tokenString)
+	if err != nil {
+		return false
+	}
+	return claims.Email == email
+}
+
 // HashPassword takes a plain text password and returns a hashed version.
 func HashPassword(password string) (string, error) {
 	// Generate a hashed version of the password
@@ -63,4 +74,10 @@ func HashPassword(password string) (string, error) {
 	}
 	// Return the hashed password as a string
 	return string(hashedPassword), nil
+}
+
+func GenerateRandomVerificationCode() string {
+	srand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	code := srand.Intn(1000000)      // generates a number in [0, 1000000)
+	return fmt.Sprintf("%06d", code) // formats the number as a 6-digit code
 }
