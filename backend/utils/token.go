@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -63,4 +65,10 @@ func HashPassword(password string) (string, error) {
 	}
 	// Return the hashed password as a string
 	return string(hashedPassword), nil
+}
+
+func GenerateRandomVerificationCode() string {
+	srand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	code := srand.Intn(1000000)      // generates a number in [0, 1000000)
+	return fmt.Sprintf("%06d", code) // formats the number as a 6-digit code
 }

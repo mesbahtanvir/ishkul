@@ -55,6 +55,23 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"data": resp})
 	})
 
+	// Account Recover Endpoint
+	r.POST("/login", func(c *gin.Context) {
+		// Your logic here
+		var req handler.AccountRecoverRequest
+		if err := c.BindJSON(&req); err != nil {
+			// handle error, e.g., return a bad request response
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		resp, err := handler.HandleAccountRecover(c, db, req)
+		if err != nil {
+			c.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"data": resp})
+	})
+
 	// Start the server
 	r.Run()
 }
