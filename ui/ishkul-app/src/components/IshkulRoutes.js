@@ -10,6 +10,10 @@ import Contribute from "./Contribute.js";
 import AccountVerify from "./AccountVerify.js";
 import ChangePassword from "./ChangePassword.js";
 import HomePage from "./Homepage.js";
+import ReactGA from "react-ga";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+
 function IshkulRoutes() {
   return (
     <Routes>
@@ -32,4 +36,19 @@ function IshkulRoutes() {
   );
 }
 
-export default IshkulRoutes;
+function IshkulRouterWithTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "test") {
+      ReactGA.initialize("G-E1NGLSXMG9");
+      // Track page views
+      const currentPage = location.pathname + location.search;
+      ReactGA.pageview(currentPage);
+    }
+  });
+
+  return <IshkulRoutes />;
+}
+
+export default IshkulRouterWithTracker;
