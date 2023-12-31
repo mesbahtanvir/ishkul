@@ -48,7 +48,7 @@ export default function AccountVerify() {
       handleError(error.message);
       return;
     }
-    navigate("/my_account");
+    navigate("/change_password");
   };
 
   return (
