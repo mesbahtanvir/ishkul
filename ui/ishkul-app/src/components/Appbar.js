@@ -13,6 +13,11 @@ import SearchBar from "./SearchBar";
 import MenuBar from "./MenuBar";
 import IshkulTypography from "./IshkulTypography";
 import { WebNotification } from "./Notification";
+import LoginIcon from "@mui/icons-material/Login";
+import LogoutIcon from "@mui/icons-material/Logout";
+import AccountBoxIcon from "@mui/icons-material/AccountBox";
+
+import ListItemIcon from "@mui/material/ListItemIcon";
 
 export default function PrimaryAppBar() {
   const { isSignedIn, signOut } = useAuth();
@@ -51,14 +56,30 @@ export default function PrimaryAppBar() {
     if (userSignedIn) {
       return (
         <>
-          <MenuItem onClick={handleOnClickSignOut}>Sign Out</MenuItem>
-          <MenuItem onClick={handleOnClickMyAccount}>My Account</MenuItem>
+          <MenuItem onClick={handleOnClickSignOut}>
+            {" "}
+            <ListItemIcon>
+              <LogoutIcon />
+            </ListItemIcon>
+            Sign Out
+          </MenuItem>
+          <MenuItem onClick={handleOnClickMyAccount}>
+            <ListItemIcon>
+              <AccountBoxIcon />
+            </ListItemIcon>
+            Account
+          </MenuItem>
         </>
       );
     }
     return (
       <>
-        <MenuItem onClick={handleOnClickSignIn}>Sign In</MenuItem>
+        <MenuItem onClick={handleOnClickSignIn}>
+          <ListItemIcon>
+            <LoginIcon />
+          </ListItemIcon>
+          Sign In
+        </MenuItem>
         <MenuItem onClick={handleOnClickSignUp}>Register</MenuItem>
       </>
     );
