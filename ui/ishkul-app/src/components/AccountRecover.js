@@ -11,15 +11,17 @@ import {
   SendVerificationCode,
   StyledBox,
 } from "./ProfileComponents";
-import { useNavigate } from "react-router-dom";
+import AccountVerify from "./AccountVerify";
 
 import { postRecoverAccount } from "../service/apiClient";
 import Alert from "./Alert";
 
 export default function AccountRecover() {
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [email, setEmail] = useState("");
+
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  let navigate = useNavigate();
 
   const handleError = (message) => {
     setIsError(true);
@@ -34,13 +36,18 @@ export default function AccountRecover() {
     event.preventDefault();
     try {
       const data = new FormData(event.currentTarget);
+      setEmail(data.get("email"));
       await postRecoverAccount(data.get("email"));
+      setIsSubmitted(true);
     } catch (error) {
       handleError(error.message);
       return;
     }
-    navigate("/account_verify");
   };
+
+  if (isSubmitted) {
+    return <AccountVerify email={email} />; // Render the AccountVerify component
+  }
 
   return (
     <Container component="main" maxWidth="xs">

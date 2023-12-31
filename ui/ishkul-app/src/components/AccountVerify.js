@@ -1,4 +1,4 @@
-import { Snackbar } from "@mui/material";
+import { Snackbar, Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -7,18 +7,17 @@ import { useState } from "react";
 import { useAuth } from "./AuthContext";
 import {
   CopyWriteUnderInput,
-  SignInEmailField,
   StyledBox,
   CodeField,
   SubmitVerificationCode,
   AccountVerifyHeader,
+  MayBePrefieldEmailBox,
 } from "./ProfileComponents";
-import { useNavigate } from "react-router-dom";
-
 import { postVerifyAccount } from "../service/apiClient";
 import Alert from "./Alert";
+import { useNavigate } from "react-router-dom";
 
-export default function AccountVerify() {
+export default function AccountVerify({ email }) {
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const { storeSignedInData } = useAuth();
@@ -37,18 +36,29 @@ export default function AccountVerify() {
     event.preventDefault();
     try {
       const data = new FormData(event.currentTarget);
-      const resp = await postVerifyAccount(data.get("email"), data.get("code"));
+      const submit_email = email ?? data.get("email");
+      const resp = await postVerifyAccount(submit_email, data.get("code"));
       storeSignedInData(
         resp.data.first_name,
         resp.data.last_name,
         resp.data.email,
         resp.data.token
       );
+      navigate("/change_password");
     } catch (error) {
       handleError(error.message);
       return;
     }
-    navigate("/change_password");
+  };
+
+  const InfoSection = () => {
+    var text = "";
+    if (typeof email !== "undefined" && email !== "") {
+      text = "A code has been sent your email: " + email;
+    } else {
+      text = "Enter your email and verification code";
+    }
+    return <Typography variant="caption">{text}</Typography>;
   };
 
   return (
@@ -56,8 +66,9 @@ export default function AccountVerify() {
       <CssBaseline />
       <StyledBox>
         <AccountVerifyHeader />
+        <InfoSection />
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-          <SignInEmailField />
+          <MayBePrefieldEmailBox email={email} />
           <CodeField />
           <SubmitVerificationCode />
         </Box>

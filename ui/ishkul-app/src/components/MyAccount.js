@@ -1,9 +1,9 @@
 import { Container, Paper, Avatar, Typography } from "@mui/material";
 import { useAuth } from "./AuthContext";
-import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import { SubmitChangePassword } from "./ProfileComponents";
 import CssBaseline from "@mui/material/CssBaseline";
+import { useNavigate } from "react-router-dom";
 
 const ProfilePage = () => {
   const { firstName, lastName, email } = useAuth();
@@ -12,7 +12,6 @@ const ProfilePage = () => {
   function handleOnSubmit() {
     navigate("/change_password");
   }
-
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />

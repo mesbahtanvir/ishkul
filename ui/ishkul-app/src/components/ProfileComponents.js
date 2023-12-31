@@ -10,6 +10,9 @@ import Grid from "@mui/material/Grid";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Typography from "@mui/material/Typography";
 import Copyright from "./Copyright";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { styled } from "@mui/material/styles";
 
 export function StyledBox({ children, ...props }) {
   return (
@@ -28,16 +31,28 @@ export function StyledBox({ children, ...props }) {
   );
 }
 
-export function PasswordForgetGrid() {
+export function ForgotAndSingupBox() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const linkStyle = {
+    textDecoration: "none",
+    color: theme.palette.primary.main,
+    "&:hover": {
+      textDecoration: "underline",
+      color: theme.palette.secondary.main,
+    },
+  };
+
   return (
-    <Grid container>
-      <Grid item xs>
-        <Link href="/account_recover" variant="body2">
+    <Grid container spacing={isMobile ? 1 : 2} justifyContent="space-between">
+      <Grid item>
+        <Link href="/account_recover" style={linkStyle} variant="body2">
           Forgot password?
         </Link>
       </Grid>
       <Grid item>
-        <Link href="/sign_up" variant="body2">
+        <Link href="/sign_up" style={linkStyle} variant="body2">
           {"Don't have an account? Sign Up"}
         </Link>
       </Grid>
@@ -45,15 +60,26 @@ export function PasswordForgetGrid() {
   );
 }
 
+const StyledAvatar = styled(Avatar)(({ theme }) => ({
+  margin: theme.spacing(1),
+  backgroundColor: theme.palette.secondary.main,
+  // Add any additional styling here
+}));
+
+const StyledTypography = styled(Typography)(({ theme }) => ({
+  // Custom typography styles here
+}));
+
 export function SignInHeader() {
   return (
     <>
-      <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
+      <StyledAvatar>
         <LockOutlinedIcon />
-      </Avatar>
-      <Typography component="h1" variant="h5">
+      </StyledAvatar>
+      <StyledTypography component="h1" variant="h5">
         Sign in
-      </Typography>
+      </StyledTypography>
+      {/* Optional: Additional elements or styling */}
     </>
   );
 }
@@ -104,10 +130,29 @@ export function SignInEmailField() {
       required
       fullWidth
       id="email"
-      label="Email Address"
+      label="Email"
       name="email"
       autoComplete="email"
       autoFocus
+    />
+  );
+}
+
+export function MayBePrefieldEmailBox({ email }) {
+  const isDisabled = email && email.trim() !== "";
+
+  return (
+    <TextField
+      margin="normal"
+      required
+      fullWidth
+      id="email"
+      label="Email"
+      name="email"
+      autoComplete="email"
+      autoFocus
+      value={email || ""} // Prefill the email, if provided
+      disabled={isDisabled} // Disable editing if an email is present
     />
   );
 }
@@ -134,7 +179,7 @@ export function CodeField() {
       required
       fullWidth
       name="code"
-      label="code"
+      label="Code"
       type="code"
       id="code"
       autoComplete="verification-code"
@@ -228,7 +273,7 @@ export function SignUpEmailField() {
       required
       fullWidth
       id="email"
-      label="Email Address"
+      label="Email"
       name="email"
       autoComplete="email"
     />
