@@ -9,6 +9,7 @@ import IshkulHelmet from "./components/IshkulTitle";
 import LandingPage from "./components/LandingPage";
 import ReactGA from "react-ga";
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 export default function App() {
   // create a darkTheme function to handle dark theme using createTheme
@@ -31,12 +32,17 @@ export default function App() {
 }
 
 const PageTracker = () => {
+  const location = useLocation();
+
   useEffect(() => {
     if (process.env.NODE_ENV !== "test") {
       ReactGA.initialize("G-E1NGLSXMG9");
-      ReactGA.pageview(window.location.pathname + window.location.search);
+
+      // Track page views
+      const currentPage = location.pathname + location.search;
+      ReactGA.pageview(currentPage);
     }
-  }, []);
+  });
 
   return (
     <Routes>

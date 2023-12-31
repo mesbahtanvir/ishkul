@@ -1,4 +1,5 @@
 import ComingSoon from "./ComingSoon";
-export default function Resources() {
+
+export default function HomePage() {
   return <ComingSoon />;
 }

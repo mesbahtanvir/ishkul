@@ -12,12 +12,23 @@ import { useNavigate } from "react-router-dom";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
 import PsychologyIcon from "@mui/icons-material/Psychology";
+import HomeIcon from "@mui/icons-material/Home";
+
+const menuItems = [
+  { text: "Home", icon: <HomeIcon /> },
+  { text: "Resources", icon: <LibraryBooksIcon /> },
+  { text: "Practice", icon: <PsychologyIcon /> },
+  { text: "Contribute", icon: <CloudUploadIcon /> },
+];
 
 export default function MenuBar() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activePage, setActivePage] = useState("");
+  const navigate = useNavigate();
+
   const toggleDrawer = (open) => (event) => {
     if (
-      event.type === "keydown" &&
+      event?.type === "keydown" &&
       (event.key === "Tab" || event.key === "Shift")
     ) {
       return;
@@ -25,43 +36,35 @@ export default function MenuBar() {
     setIsDrawerOpen(open);
   };
 
-  let navigate = useNavigate();
+  const handleNavigation = (text) => {
+    setActivePage(text);
+    navigate(`./${text.toLowerCase()}`);
+  };
 
-  function Icons(text) {
-    if (text === "Contribute") {
-      return <CloudUploadIcon />;
-    }
-    if (text === "Resources") {
-      return <LibraryBooksIcon />;
-    }
-    if (text === "Practice") {
-      return <PsychologyIcon />;
-    }
-  }
+  const isPageActive = (text) => activePage === text;
 
-  const list = () => (
+  const DrawerContent = () => (
     <Box
       role="presentation"
-      sx={{ width: "left" === "top" || "left" === "bottom" ? "auto" : 250 }}
+      sx={{ width: 250 }}
       onClick={toggleDrawer(false)}
       onKeyDown={toggleDrawer(false)}
     >
       <List>
-        {["Resources", "Practice", "Contribute"].map((text, index) => (
-          <ListItem key={text} disablePadding>
-            <ListItemButton onClick={() => handleListItemClick(text)}>
-              <ListItemIcon> {Icons(text)} </ListItemIcon>
-              <ListItemText primary={text} />
+        {menuItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              onClick={() => handleNavigation(item.text)}
+              selected={isPageActive(item.text)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
     </Box>
   );
-
-  const handleListItemClick = (text) => {
-    navigate("./" + text.toLowerCase());
-  };
 
   return (
     <>
@@ -80,7 +83,7 @@ export default function MenuBar() {
         open={isDrawerOpen}
         onClose={toggleDrawer(false)}
       >
-        {list()}
+        <DrawerContent />
       </SwipeableDrawer>
     </>
   );

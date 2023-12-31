@@ -1,6 +1,6 @@
 import PrimaryAppBar from "./components/Appbar.js";
 import { AuthProvider } from "./components/AuthContext.js";
-import IshkulRoutes from "./components/IshkulRoutes.js";
+import IshkulRouterWithTracker from "./components/IshkulRoutes.js";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import ThemeContextProvider, { useTheme } from "./components/ThemeContext.js";
 
@@ -22,7 +22,7 @@ function AppWithTheme() {
     <ThemeProvider theme={theme === "light" ? lightTheme : darkTheme}>
       <div className="App">
         <PrimaryAppBar theme={theme === "light" ? lightTheme : darkTheme} />
-        <IshkulRoutes />
+        <IshkulRouterWithTracker />
       </div>
     </ThemeProvider>
   );
