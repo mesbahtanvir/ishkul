@@ -1,8 +1,16 @@
-import { Container, Paper, Avatar, Typography, Button } from "@mui/material";
+import { Container, Paper, Avatar, Typography } from "@mui/material";
 import { useAuth } from "./AuthContext";
+import { useNavigate } from "react-router-dom";
+import Box from "@mui/material/Box";
+import { SubmitChangePassword } from "./ProfileComponents";
 
 const ProfilePage = () => {
   const { firstName, lastName, email } = useAuth();
+  let navigate = useNavigate();
+
+  function handleOnSubmit() {
+    navigate("/change_password");
+  }
 
   return (
     <Container maxWidth="sm">
@@ -15,9 +23,14 @@ const ProfilePage = () => {
           {email}
         </Typography>
         <div style={{ textAlign: "center", marginTop: "20px" }}>
-          <Button variant="contained" color="primary">
-            Edit Profile
-          </Button>
+          <Box
+            component="form"
+            onSubmit={handleOnSubmit}
+            noValidate
+            sx={{ mt: 1 }}
+          >
+            <SubmitChangePassword />
+          </Box>
         </div>
       </Paper>
     </Container>

@@ -59,3 +59,69 @@ export const postLoginUser = async (email, password) => {
     throw new Error("Failed to login user: Unknown error occured");
   }
 };
+
+export const postRecoverAccount = async (email) => {
+  try {
+    const response = await axios.post(
+      "https://api.ishkul.org/account_recover",
+      {
+        email: email,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      throw new Error("Failed to recover: User not found");
+    }
+    if (error.response?.statuss === 500) {
+      throw new Error("Failed to recover: Internal server error");
+    }
+    throw new Error("Failed to recover: Unknown error occured");
+  }
+};
+
+export const postVerifyAccount = async (email, code) => {
+  try {
+    const response = await axios.post(
+      "https://api.ishkul.org/verify_account_ownership",
+      {
+        email: email,
+        code: code,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      throw new Error("Failed to verify: User or code not found");
+    }
+    if (error.response?.statuss === 500) {
+      throw new Error("Failed to verify: Internal server error");
+    }
+    throw new Error("Failed to verify: Unknown error occured");
+  }
+};
+
+export const postChangePassword = async (email, token, password) => {
+  try {
+    const response = await axios.post(
+      "https://api.ishkul.org/change_password",
+      {
+        email: email,
+        token: token,
+        password: password,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      throw new Error("Failed to change: User not found");
+    }
+    if (error.response?.status === 403) {
+      throw new Error("Failed to change: Not permitted");
+    }
+    if (error.response?.statuss === 500) {
+      throw new Error("Failed to change: Internal server error");
+    }
+    throw new Error("Failed to change: Unknown error occured");
+  }
+};

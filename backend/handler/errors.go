@@ -3,6 +3,8 @@ package handler
 import (
 	"errors"
 	"net/http"
+
+	"ishkul.org/backend/db"
 )
 
 type ErrHandlerBadParam struct {
@@ -58,5 +60,5 @@ func ErrorHTTPCode(err error) int {
 		return http.StatusForbidden
 	}
 
-	return http.StatusBadRequest
+	return db.ErrorHTTPCode(err)
 }

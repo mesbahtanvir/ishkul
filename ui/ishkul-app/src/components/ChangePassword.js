@@ -6,17 +6,19 @@ import * as React from "react";
 import { useState } from "react";
 import {
   CopyWriteUnderInput,
-  SignInEmailField,
-  AccountRecoverHeader,
-  SendVerificationCode,
   StyledBox,
+  SignUpPasswordField,
+  ChangePasswordHeader,
+  SubmitChangePassword,
+  SignUpEmailField,
 } from "./ProfileComponents";
 import { useNavigate } from "react-router-dom";
-
-import { postRecoverAccount } from "../service/apiClient";
+import { useAuth } from "./AuthContext";
+import { postChangePassword } from "../service/apiClient";
 import Alert from "./Alert";
 
-export default function AccountRecover() {
+export default function ChangePassword() {
+  const { loggedInToken, storeSignedInData } = useAuth();
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   let navigate = useNavigate();
@@ -34,22 +36,36 @@ export default function AccountRecover() {
     event.preventDefault();
     try {
       const data = new FormData(event.currentTarget);
-      await postRecoverAccount(data.get("email"));
+      console.log(data.get("email"));
+      console.log(loggedInToken);
+      console.log(data.get("password"));
+      const resp = await postChangePassword(
+        data.get("email"),
+        loggedInToken,
+        data.get("password")
+      );
+      storeSignedInData(
+        resp.data.first_name,
+        resp.data.last_name,
+        resp.data.email,
+        resp.data.token
+      );
     } catch (error) {
       handleError(error.message);
       return;
     }
-    navigate("/account_verify");
+    navigate("/my_account");
   };
 
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />
       <StyledBox>
-        <AccountRecoverHeader />
+        <ChangePasswordHeader />
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-          <SignInEmailField />
-          <SendVerificationCode />
+          <SignUpEmailField />
+          <SignUpPasswordField />
+          <SubmitChangePassword />
         </Box>
       </StyledBox>
       <CopyWriteUnderInput />
