@@ -32,7 +32,7 @@ export default function InputFileUpload() {
     }
 
     setIsOpen(true);
-    setMessage("Comming Soon");
+    setMessage("Stay Tuned! Coming Soon");
   };
 
   // Function to close the Snackbar
