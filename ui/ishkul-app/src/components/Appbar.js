@@ -16,11 +16,15 @@ import { WebNotification } from "./Notification";
 import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
-
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import InputIcon from "@mui/icons-material/Input";
 import ListItemIcon from "@mui/material/ListItemIcon";
+import { useTheme } from "./ThemeContext";
 
 export default function PrimaryAppBar() {
   const { isSignedIn, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   console.log(isSignedIn);
   let navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -51,6 +55,22 @@ export default function PrimaryAppBar() {
     navigate("/");
   };
 
+  const handleThemeOnClick = () => {
+    toggleTheme();
+  };
+  function ThemeModeButton() {
+    return (
+      <IconButton
+        size="large"
+        aria-label="theme"
+        color="inherit"
+        onClick={handleThemeOnClick} // Attach the onClick handler
+      >
+        {theme === "light" ? <DarkModeIcon /> : <LightModeIcon />}
+      </IconButton>
+    );
+  }
+
   const menuId = "primary-search-account-menu";
   function MenuItems({ userSignedIn }) {
     if (userSignedIn) {
@@ -61,7 +81,7 @@ export default function PrimaryAppBar() {
             <ListItemIcon>
               <LogoutIcon />
             </ListItemIcon>
-            Sign Out
+            Logout
           </MenuItem>
           <MenuItem onClick={handleOnClickMyAccount}>
             <ListItemIcon>
@@ -78,9 +98,14 @@ export default function PrimaryAppBar() {
           <ListItemIcon>
             <LoginIcon />
           </ListItemIcon>
-          Sign In
+          Login
         </MenuItem>
-        <MenuItem onClick={handleOnClickSignUp}>Register</MenuItem>
+        <MenuItem onClick={handleOnClickSignUp}>
+          <ListItemIcon>
+            <InputIcon />
+          </ListItemIcon>
+          Register
+        </MenuItem>
       </>
     );
   }
@@ -113,6 +138,7 @@ export default function PrimaryAppBar() {
           <IshkulTypography />
           <SearchBar />
           <Box sx={{ flexGrow: 1 }} />
+          <ThemeModeButton />
           <Box sx={{ display: { xs: "none", md: "flex" } }}>
             <WebNotification />
             <IconButton
