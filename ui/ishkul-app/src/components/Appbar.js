@@ -9,7 +9,6 @@ import AccountCircle from "@mui/icons-material/AccountCircle";
 import MoreIcon from "@mui/icons-material/MoreVert";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import SearchBar from "./SearchBar";
 import MenuBar from "./MenuBar";
 import IshkulTypography from "./IshkulTypography";
 import { WebNotification } from "./Notification";
@@ -136,7 +135,6 @@ export default function PrimaryAppBar() {
         <Toolbar>
           <MenuBar />
           <IshkulTypography />
-          <SearchBar />
           <Box sx={{ flexGrow: 1 }} />
           <ThemeModeButton />
           <Box sx={{ display: { xs: "none", md: "flex" } }}>
