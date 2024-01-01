@@ -8,18 +8,20 @@ import (
 
 func TestGetJWTToken(t *testing.T) {
 	testCases := []struct {
-		name        string
-		email       string
-		expectError bool
+		name          string
+		email         string
+		emailVerified bool
+		expectError   bool
 	}{
-		{"Valid Email", "test@example.com", false},
-		{"Empty Email", "", false},
-		// Add more test cases as necessary
+		{"Valid Email, Not Verified", "test@example.com", false, false},
+		{"Empty Email, Not Verified", "", false, false},
+		{"Valid Email, Verified", "test@example.com", true, false},
+		{"Empty Email, Verified", "", true, false},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			token, err := EncodeJWTToken(tc.email)
+			token, err := EncodeJWTToken(tc.email, tc.emailVerified)
 			if tc.expectError {
 				assert.Error(t, err)
 			} else {
@@ -31,7 +33,7 @@ func TestGetJWTToken(t *testing.T) {
 }
 
 func TestDecodeJWT(t *testing.T) {
-	token, _ := EncodeJWTToken("test@example.com")
+	token, _ := EncodeJWTToken("test@example.com", false)
 
 	testCases := []struct {
 		name        string
@@ -56,7 +58,7 @@ func TestDecodeJWT(t *testing.T) {
 }
 
 func TestValidateToken(t *testing.T) {
-	validToken, _ := EncodeJWTToken("test@example.com")
+	validToken, _ := EncodeJWTToken("test@example.com", false)
 
 	testCases := []struct {
 		name    string
@@ -65,12 +67,11 @@ func TestValidateToken(t *testing.T) {
 	}{
 		{"Valid Token", validToken, true},
 		{"Invalid Token", "invalidToken", false},
-		// Add more test cases as necessary
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, valid := ValidateToken(tc.token)
+			_, _, valid := ValidateToken(tc.token)
 			assert.Equal(t, tc.isValid, valid)
 		})
 	}

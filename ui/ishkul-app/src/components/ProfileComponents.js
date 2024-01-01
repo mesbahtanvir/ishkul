@@ -13,6 +13,7 @@ import Copyright from "./Copyright";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { styled } from "@mui/material/styles";
+import { useAuth } from "./AuthContext";
 
 export function StyledBox({ children, ...props }) {
   return (
@@ -91,7 +92,7 @@ export function AccountRecoverHeader() {
         <LockOutlinedIcon />
       </Avatar>
       <Typography component="h1" variant="h5">
-        Recover Account
+        Recover Your Account
       </Typography>
     </>
   );
@@ -104,7 +105,7 @@ export function AccountVerifyHeader() {
         <LockOutlinedIcon />
       </Avatar>
       <Typography component="h1" variant="h5">
-        Verify Account
+        Verify Your Account
       </Typography>
     </>
   );
@@ -214,10 +215,45 @@ export function SendVerificationCode() {
 
 export function SubmitChangePassword() {
   return (
-    <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-      Change Password
-    </Button>
+    <>
+      <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
+        Change Password
+      </Button>
+    </>
   );
+}
+
+export function VerifyYourEmail() {
+  return (
+    <>
+      <Typography variant="caption" align="center">
+        To unlock features verify your email now!
+      </Typography>
+      <Button
+        type="submit"
+        fullWidth
+        variant="contained"
+        sx={{
+          mt: 3,
+          mb: 2,
+          backgroundColor: "#FFCDD2", // Light red color
+          "&:hover": {
+            backgroundColor: "#EF5350", // Darker red color on hover
+          },
+        }}
+      >
+        Verify Your Email
+      </Button>
+    </>
+  );
+}
+
+export function ProfileChangePasswordOrVerifyEmailFooter() {
+  const { emailVerified } = useAuth();
+  if (emailVerified) {
+    return <SubmitChangePassword />;
+  }
+  return <VerifyYourEmail />;
 }
 
 export function SubmitVerificationCode() {

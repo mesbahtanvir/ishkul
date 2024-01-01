@@ -13,7 +13,7 @@ import {
 } from "./ProfileComponents";
 import AccountVerify from "./AccountVerify";
 
-import { postRecoverAccount } from "../service/apiClient";
+import { postSendVerificationCode } from "../service/apiClient";
 import Alert from "./Alert";
 
 export default function AccountRecover() {
@@ -37,7 +37,7 @@ export default function AccountRecover() {
     try {
       const data = new FormData(event.currentTarget);
       setEmail(data.get("email"));
-      await postRecoverAccount(data.get("email"));
+      await postSendVerificationCode(data.get("email"));
       setIsSubmitted(true);
     } catch (error) {
       handleError(error.message);

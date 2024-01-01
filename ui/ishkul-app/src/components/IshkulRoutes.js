@@ -13,6 +13,7 @@ import HomePage from "./Homepage.js";
 import ReactGA from "react-ga";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import ValidateEmail from "./ValidateEmail";
 
 function IshkulRoutes() {
   return (
@@ -32,6 +33,7 @@ function IshkulRoutes() {
       <Route path="/account_recover" element={<AccountRecover />} />
       <Route path="/account_verify" element={<AccountVerify />} />
       <Route path="/change_password" element={<ChangePassword />} />
+      <Route path="/validate_email" element={<ValidateEmail />} />
     </Routes>
   );
 }

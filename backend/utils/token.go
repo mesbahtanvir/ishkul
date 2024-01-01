@@ -12,15 +12,17 @@ import (
 var secretKey = []byte("super-secret-backend-key")
 
 type Claims struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
+	Verified bool   `json:"verified"`
 	jwt.StandardClaims
 }
 
 // EncodeJWTToken generates a JWT token for the given email.
-func EncodeJWTToken(email string) (string, error) {
+func EncodeJWTToken(email string, verified bool) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour) // Token expiration set to 1 day
 	claims := &Claims{
-		Email: email,
+		Email:    email,
+		Verified: verified,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -46,12 +48,12 @@ func DecodeJWT(tokenString string) (*Claims, error) {
 }
 
 // ValidateToken validates the JWT token and returns the email from the claims.
-func ValidateToken(tokenString string) (string, bool) {
+func ValidateToken(tokenString string) (email string, verified bool, validated bool) {
 	claims, err := DecodeJWT(tokenString)
 	if err != nil {
-		return "", false
+		return "", false, false
 	}
-	return claims.Email, true
+	return claims.Email, claims.Verified, true
 }
 
 // ValidateToken validates the JWT token and returns the email from the claims.
@@ -61,6 +63,14 @@ func ValidateUserToken(email string, tokenString string) bool {
 		return false
 	}
 	return claims.Email == email
+}
+
+func ValidateVerifiedUserToken(email string, tokenString string) bool {
+	claims, err := DecodeJWT(tokenString)
+	if err != nil {
+		return false
+	}
+	return claims.Email == email && claims.Verified
 }
 
 // HashPassword takes a plain text password and returns a hashed version.

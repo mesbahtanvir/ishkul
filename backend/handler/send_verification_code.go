@@ -9,31 +9,32 @@ import (
 	"ishkul.org/backend/utils"
 )
 
-type AccountRecoverRequest struct {
+type SendVerificationCodeRequest struct {
 	Email string `json:"email"`
 }
 
-type AccountRecoverResponse struct{}
+type SendVerificationCodeResponse struct{}
 
-type AccountRecoverStorage interface {
+type AccountStorage interface {
 	StoreAccountRecoveryKey(ctx context.Context, userID string, code string) error
 	RetriveAccountRecoveryKey(ctx context.Context, userID string) (string, error)
+	RemoveAccountRecoveryKey(ctx context.Context, userID string) error
 }
 
-func (r AccountRecoverRequest) Validate() error {
+func (r SendVerificationCodeRequest) Validate() error {
 	if r.Email == "" {
 		return &ErrHandlerBadParam{Msg: "Must provide email address"}
 	}
 	return nil
 }
 
-func HandleAccountRecover(ctx context.Context, storage AccountRecoverStorage, db UserDatabase, req AccountRecoverRequest) (AccountRecoverResponse, error) {
+func HandleSendVerificationCode(ctx context.Context, storage AccountStorage, db UserDatabase, req SendVerificationCodeRequest) (SendVerificationCodeResponse, error) {
 	if err := req.Validate(); err != nil {
-		return AccountRecoverResponse{}, err
+		return SendVerificationCodeResponse{}, err
 	}
 	user, err := db.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return AccountRecoverResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exist this email"}
+		return SendVerificationCodeResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exist this email"}
 	}
 	recovery_code := utils.GenerateRandomVerificationCode()
 	// TODO Send the code to ther user
@@ -41,7 +42,7 @@ func HandleAccountRecover(ctx context.Context, storage AccountRecoverStorage, db
 
 	err = storage.StoreAccountRecoveryKey(ctx, user.Email, recovery_code)
 	if err != nil {
-		return AccountRecoverResponse{}, err
+		return SendVerificationCodeResponse{}, err
 	}
-	return AccountRecoverResponse{}, nil
+	return SendVerificationCodeResponse{}, nil
 }

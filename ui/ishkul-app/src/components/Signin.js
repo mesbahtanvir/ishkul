@@ -19,7 +19,7 @@ import {
 } from "./ProfileComponents";
 import Alert from "./Alert";
 
-export default function SignIn({ appTheme }) {
+export default function SignIn() {
   const { storeSignedInData } = useAuth();
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -43,6 +43,7 @@ export default function SignIn({ appTheme }) {
         resp.data.first_name,
         resp.data.last_name,
         resp.data.email,
+        resp.data.email_verified,
         resp.data.token
       );
     } catch (error) {

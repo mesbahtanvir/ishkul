@@ -29,10 +29,11 @@ func (r LoginRequest) Validate() error {
 }
 
 type LoginResponse struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
-	Token     string `json:"token"`
+	FirstName     string `json:"first_name"`
+	LastName      string `json:"last_name"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Token         string `json:"token"`
 }
 
 type UserDatabase interface {
@@ -55,14 +56,15 @@ func HandleLogin(ctx context.Context, db UserDatabase, req LoginRequest) (LoginR
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		return LoginResponse{}, &ErrHandlerBadParam{Msg: "Password and email mismatched"}
 	}
-	token, err := utils.EncodeJWTToken(user.Email)
+	token, err := utils.EncodeJWTToken(user.Email, user.EmailVerified)
 	if err != nil {
 		return LoginResponse{}, err
 	}
 	return LoginResponse{
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-		Token:     token,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		Email:         user.Email,
+		EmailVerified: user.EmailVerified,
+		Token:         token,
 	}, nil
 }

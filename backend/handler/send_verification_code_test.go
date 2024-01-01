@@ -1,4 +1,4 @@
-//go:generate mockgen -source=account_verify_ownership.go -destination=mock/account_verify_ownership.go -package=mock
+//go:generate mockgen -source=send_verification_code.go -destination=mock/send_verification_code.go -package=mock
 
 package handler
 
@@ -64,9 +64,9 @@ func TestHandleAccountRecover(t *testing.T) {
 
 	type args struct {
 		ctx     context.Context
-		storage AccountRecoverStorage
+		storage AccountStorage
 		db      UserDatabase
-		req     AccountRecoverRequest
+		req     SendVerificationCodeRequest
 	}
 
 	var (
@@ -76,7 +76,7 @@ func TestHandleAccountRecover(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    AccountRecoverResponse
+		want    SendVerificationCodeResponse
 		wantErr bool
 	}{
 		{
@@ -87,11 +87,11 @@ func TestHandleAccountRecover(t *testing.T) {
 					mockedDB := mock.NewMockUserDatabase(ctrl)
 					return mockedDB
 				}(),
-				req: AccountRecoverRequest{
+				req: SendVerificationCodeRequest{
 					Email: "",
 				},
 			},
-			want:    AccountRecoverResponse{},
+			want:    SendVerificationCodeResponse{},
 			wantErr: true,
 		},
 		{
@@ -108,19 +108,19 @@ func TestHandleAccountRecover(t *testing.T) {
 					)
 					return mockedDB
 				}(),
-				req: AccountRecoverRequest{
+				req: SendVerificationCodeRequest{
 					Email: "mesbah@tanvir.com",
 				},
 			},
-			want:    AccountRecoverResponse{},
+			want:    SendVerificationCodeResponse{},
 			wantErr: true,
 		},
 		{
 			name: "When error from storage Then return error",
 			args: args{
 				ctx: ctx,
-				storage: func() AccountRecoverStorage {
-					mockedStorage := mock.NewMockAccountRecoverStorage(ctrl)
+				storage: func() AccountStorage {
+					mockedStorage := mock.NewMockAccountStorage(ctrl)
 					mockedStorage.EXPECT().StoreAccountRecoveryKey(ctx, "mesbah@tanvir.com", gomock.Any()).Return(&db.ErrKeyNotFound{})
 					return mockedStorage
 				}(),
@@ -134,19 +134,19 @@ func TestHandleAccountRecover(t *testing.T) {
 					)
 					return mockedDB
 				}(),
-				req: AccountRecoverRequest{
+				req: SendVerificationCodeRequest{
 					Email: "mesbah@tanvir.com",
 				},
 			},
-			want:    AccountRecoverResponse{},
+			want:    SendVerificationCodeResponse{},
 			wantErr: true,
 		},
 		{
 			name: "When key matched Then return token",
 			args: args{
 				ctx: ctx,
-				storage: func() AccountRecoverStorage {
-					mockedStorage := mock.NewMockAccountRecoverStorage(ctrl)
+				storage: func() AccountStorage {
+					mockedStorage := mock.NewMockAccountStorage(ctrl)
 					gomock.InOrder(
 						mockedStorage.EXPECT().
 							StoreAccountRecoveryKey(ctx, "mesbah@tanvir.com", gomock.Any()).
@@ -165,17 +165,17 @@ func TestHandleAccountRecover(t *testing.T) {
 					)
 					return mockedDB
 				}(),
-				req: AccountRecoverRequest{
+				req: SendVerificationCodeRequest{
 					Email: "mesbah@tanvir.com",
 				},
 			},
-			want:    AccountRecoverResponse{},
+			want:    SendVerificationCodeResponse{},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := HandleAccountRecover(tt.args.ctx, tt.args.storage, tt.args.db, tt.args.req)
+			got, err := HandleSendVerificationCode(tt.args.ctx, tt.args.storage, tt.args.db, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HandleAccountRecover() error = %v, wantErr %v", err, tt.wantErr)
 				return

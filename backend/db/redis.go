@@ -49,3 +49,17 @@ func (g *GlobalStorage) RetriveAccountRecoveryKey(ctx context.Context, userID st
 	}
 	return code, nil
 }
+
+func (g *GlobalStorage) RemoveAccountRecoveryKey(ctx context.Context, userID string) error {
+	res, err := g.client.Del(ctx, KEY_PREFIX+userID).Result()
+	if errors.Is(err, redis.Nil) {
+		fmt.Println("A key suppose to ge deleted but it did not")
+	}
+	if err != nil {
+		fmt.Printf("Redis error occured %e\n", err)
+	}
+	if res > 1 {
+		fmt.Printf("Only one key suppose to get deleted but deleted: %d\n", res)
+	}
+	return nil
+}

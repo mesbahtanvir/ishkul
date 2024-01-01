@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/mongo"
-	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
 )
 
@@ -36,26 +35,21 @@ func HandleChangePassword(ctx context.Context, db UserDatabase, req ChangePasswo
 	if err := req.Validate(); err != nil {
 		return ChangePasswordResponse{}, err
 	}
-	if !utils.ValidateUserToken(req.Email, req.Token) {
-		return ChangePasswordResponse{}, &ErrAuthenticationFailure{"invalid token or email"}
+	if !utils.ValidateVerifiedUserToken(req.Email, req.Token) {
+		return ChangePasswordResponse{}, &ErrAuthenticationFailure{"Invalid Credentials or email not verified"}
 	}
 	user, err := db.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return ChangePasswordResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exist this email"}
+		return ChangePasswordResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exist with this email"}
 	}
 	hash, err := utils.HashPassword(req.NewPassword)
 	if err != nil {
 		return ChangePasswordResponse{}, errors.New("internal server error")
 	}
-	user = model.User{
-		FirstName:        user.FirstName,
-		LastName:         user.LastName,
-		Email:            user.Email,
-		PasswordHash:     hash,
-		AllowExtraEmails: user.AllowExtraEmails,
-	}
 
-	token, err := utils.EncodeJWTToken(user.Email)
+	user.PasswordHash = hash
+
+	token, err := utils.EncodeJWTToken(user.Email, user.EmailVerified)
 	if err != nil {
 		return ChangePasswordResponse{}, err
 	}
@@ -68,5 +62,6 @@ func HandleChangePassword(ctx context.Context, db UserDatabase, req ChangePasswo
 	resp.LastName = user.LastName
 	resp.Email = user.Email
 	resp.Token = token
+	resp.EmailVerified = user.EmailVerified
 	return resp, nil
 }
