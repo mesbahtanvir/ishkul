@@ -2,7 +2,9 @@ import {
   checkHealth,
   postRegisterUser,
   postLoginUser,
-  postRecoverAccount,
+  postSendVerificationCode,
+  postVerifyAccount,
+  postChangePassword,
 } from "./apiClient";
 import axios from "axios";
 
@@ -81,16 +83,48 @@ describe("apiClient module", () => {
     });
   });
 
+  it("postSendVerificationCode should post data using axios and return response", async () => {
+    const email = "joe.biden@email.com";
+    axios.post.mockResolvedValueOnce({
+      status: 200,
+      data: {},
+    });
+    const result = await postSendVerificationCode(email);
+    expect(result).toEqual({});
+    expect(axios.post).toHaveBeenCalledWith(
+      "https://api.ishkul.org/send_verification_code",
+      {
+        email: email,
+      }
+    );
+  });
+
+  it("postVerifyAccount should post data using axios and return response", async () => {
+    const email = "joe.biden@email.com";
+    axios.post.mockResolvedValueOnce({
+      status: 200,
+      data: {},
+    });
+    const result = await postVerifyAccount(email);
+    expect(result).toEqual({});
+    expect(axios.post).toHaveBeenCalledWith(
+      "https://api.ishkul.org/verify_account",
+      {
+        email: email,
+      }
+    );
+  });
+
   it("account_recover should post data using axios and return response", async () => {
     const email = "joe.biden@email.com";
     axios.post.mockResolvedValueOnce({
       status: 200,
       data: {},
     });
-    const result = await postRecoverAccount(email);
+    const result = await postChangePassword(email);
     expect(result).toEqual({});
     expect(axios.post).toHaveBeenCalledWith(
-      "https://api.ishkul.org/account_recover",
+      "https://api.ishkul.org/change_password",
       {
         email: email,
       }
