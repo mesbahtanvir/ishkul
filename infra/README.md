@@ -23,21 +23,21 @@ ishkul org domain has been created with GoDaddy, we need to setup dns propery to
 
    ```
    ishkul_org_verification = {
-   "aws._domainkey.boksqal7p73nmwa3gbfebiajt3emkprq" = {
-       "cname" = "CNAME"
-       "name" = "aws._domainkey.boksqal7p73nmwa3gbfebiajt3emkprq"
-       "value" = "boksqal7p73nmwa3gbfebiajt3emkprq"
-   }
-   "aws._domainkey.kz5ooqk6ttmh6m6jzrhyx2jjydxkiksb" = {
-       "cname" = "CNAME"
-       "name" = "aws._domainkey.kz5ooqk6ttmh6m6jzrhyx2jjydxkiksb"
-       "value" = "kz5ooqk6ttmh6m6jzrhyx2jjydxkiksb"
-   }
-   "aws._domainkey.orpj4lazpvbjkn6taov6tct5gnjcaukr" = {
-       "cname" = "CNAME"
-       "name" = "aws._domainkey.orpj4lazpvbjkn6taov6tct5gnjcaukr"
-       "value" = "orpj4lazpvbjkn6taov6tct5gnjcaukr"
-   }
+        "aws._domainkey.boksqal7p73nmwa3gbfebiajt3emkprq" = {
+            "cname" = "CNAME"
+            "name" = "aws._domainkey.boksqal7p73nmwa3gbfebiajt3emkprq"
+            "value" = "boksqal7p73nmwa3gbfebiajt3emkprq"
+        }
+        "aws._domainkey.kz5ooqk6ttmh6m6jzrhyx2jjydxkiksb" = {
+            "cname" = "CNAME"
+            "name" = "aws._domainkey.kz5ooqk6ttmh6m6jzrhyx2jjydxkiksb"
+            "value" = "kz5ooqk6ttmh6m6jzrhyx2jjydxkiksb"
+        }
+        "aws._domainkey.orpj4lazpvbjkn6taov6tct5gnjcaukr" = {
+            "cname" = "CNAME"
+            "name" = "aws._domainkey.orpj4lazpvbjkn6taov6tct5gnjcaukr"
+            "value" = "orpj4lazpvbjkn6taov6tct5gnjcaukr"
+        }
    }
    ```
 
