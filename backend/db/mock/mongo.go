@@ -36,6 +36,26 @@ func (m *MockMongoCollectionInterface) EXPECT() *MockMongoCollectionInterfaceMoc
 	return m.recorder
 }
 
+// Find mocks base method.
+func (m *MockMongoCollectionInterface) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, filter}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Find", varargs...)
+	ret0, _ := ret[0].(*mongo.Cursor)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Find indicates an expected call of Find.
+func (mr *MockMongoCollectionInterfaceMockRecorder) Find(ctx, filter interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, filter}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Find", reflect.TypeOf((*MockMongoCollectionInterface)(nil).Find), varargs...)
+}
+
 // FindOne mocks base method.
 func (m *MockMongoCollectionInterface) FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult {
 	m.ctrl.T.Helper()
@@ -53,6 +73,26 @@ func (mr *MockMongoCollectionInterfaceMockRecorder) FindOne(ctx, filter interfac
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, filter}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOne", reflect.TypeOf((*MockMongoCollectionInterface)(nil).FindOne), varargs...)
+}
+
+// InsertMany mocks base method.
+func (m *MockMongoCollectionInterface) InsertMany(ctx context.Context, documents []interface{}, opts ...*options.InsertManyOptions) (*mongo.InsertManyResult, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, documents}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "InsertMany", varargs...)
+	ret0, _ := ret[0].(*mongo.InsertManyResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InsertMany indicates an expected call of InsertMany.
+func (mr *MockMongoCollectionInterfaceMockRecorder) InsertMany(ctx, documents interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, documents}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertMany", reflect.TypeOf((*MockMongoCollectionInterface)(nil).InsertMany), varargs...)
 }
 
 // InsertOne mocks base method.

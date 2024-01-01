@@ -7,15 +7,31 @@ import (
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
 )
 
+func NewMustMongoClient() *mongo.Client {
+	uri := fmt.Sprintf("%s://%s:%s/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.1",
+		utils.GetEnvOrDefault("MONGODB_SCHEME", "mongodb"),
+		utils.GetEnvOrDefault("MONGODB_HOST", "mongodb"),
+		utils.GetEnvOrDefault("MONGODB_PORT", "27017"),
+	)
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return client
+}
+
 type MongoCollectionInterface interface {
 	InsertOne(ctx context.Context, document interface{}, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error)
+	InsertMany(ctx context.Context, documents []interface{}, opts ...*options.InsertManyOptions) (*mongo.InsertManyResult, error)
 	FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult
+	Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error)
 	UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 }
 
@@ -24,17 +40,8 @@ type UserDatabase struct {
 }
 
 func MustNewMongoUserDatabase() *UserDatabase {
-	uri := fmt.Sprintf("%s://%s:%s/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.1",
-		utils.GetEnvOrDefault("MONGODB_SCHEME", "mongodb"),
-		utils.GetEnvOrDefault("MONGODB_HOST", "mongodb"),
-		utils.GetEnvOrDefault("MONGODB_PORT", "27017"),
-	)
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
-	if err != nil {
-		panic(err)
-	}
-	users_coll := client.Database("prod").Collection("users")
-
+	client := NewMustMongoClient()
+	user_collection := client.Database("prod").Collection("users")
 	model := mongo.IndexModel{
 		Keys: bson.M{
 			"email": 1, // specify 1 for ascending order
@@ -43,12 +50,11 @@ func MustNewMongoUserDatabase() *UserDatabase {
 	}
 
 	// Create one index
-	_, err = users_coll.Indexes().CreateOne(context.Background(), model)
+	_, err := user_collection.Indexes().CreateOne(context.Background(), model)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	return &UserDatabase{collection: users_coll}
+	return &UserDatabase{collection: user_collection}
 }
 
 func (db *UserDatabase) AddUser(ctx context.Context, user model.User) error {
@@ -71,4 +77,61 @@ func (db *UserDatabase) FindUserByEmail(ctx context.Context, email string) (mode
 		return user, err
 	}
 	return user, nil
+}
+
+type DocumentDatabase struct {
+	collection MongoCollectionInterface
+}
+
+func MustNewMongoDocumentDatabase() *DocumentDatabase {
+	client := NewMustMongoClient()
+	doc_collection := client.Database("prod").Collection("documents")
+	model := mongo.IndexModel{
+		Keys: bson.M{
+			"institute": 1, // specify 1 for ascending order
+		},
+	}
+
+	// Create one index
+	_, err := doc_collection.Indexes().CreateOne(context.Background(), model)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &DocumentDatabase{collection: doc_collection}
+}
+
+func (db *DocumentDatabase) AddDocument(ctx context.Context, documents []model.Document) error {
+	iDocuments := make([]interface{}, len(documents))
+	// Copy elements from the original array to the new slice
+	for i, v := range documents {
+		iDocuments[i] = v
+	}
+	_, err := db.collection.InsertMany(ctx, iDocuments)
+	return err
+}
+
+func (db *DocumentDatabase) SearchDocument(ctx context.Context, document model.Document) ([]model.Document, error) {
+	var filters []bson.E
+	if !document.ID.IsZero() {
+		filters = append(filters, bson.E{Key: "_id", Value: document.ID})
+	}
+	cursor, err := db.collection.Find(ctx, filters)
+	if err != nil {
+		return nil, err
+	}
+	var documents []model.Document
+	if err := cursor.All(ctx, documents); err != nil {
+		return nil, err
+	}
+	return documents, nil
+}
+
+func (db *DocumentDatabase) FindDocumentByID(ctx context.Context, id primitive.ObjectID) (model.Document, error) {
+	filter := bson.D{{Key: "_id", Value: id}}
+	var result model.Document
+	err := db.collection.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		return model.Document{}, err
+	}
+	return result, nil
 }

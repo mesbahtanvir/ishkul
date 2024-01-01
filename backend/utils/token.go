@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -71,6 +72,18 @@ func ValidateVerifiedUserToken(email string, tokenString string) bool {
 		return false
 	}
 	return claims.Email == email && claims.Verified
+}
+
+// TODO refactor rename
+func VerifiedUserToken(tokenString string) error {
+	claims, err := DecodeJWT(tokenString)
+	if err != nil {
+		return errors.New("Invalid token provided")
+	}
+	if !claims.Verified {
+		return errors.New("User account is not verified")
+	}
+	return nil
 }
 
 // HashPassword takes a plain text password and returns a hashed version.
