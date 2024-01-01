@@ -163,7 +163,7 @@ describe("apiClient module", () => {
     expect(axios.get).toHaveBeenCalledWith("https://api.ishkul.org/documents", {
       email: email,
       token: token,
-      filter: filter,
+      query: filter,
     });
   });
 

@@ -145,12 +145,12 @@ export const postDocuments = async (email, token, documents) => {
   }
 };
 
-export const getDocuments = async (email, token, query) => {
+export const getDocuments = async (email, token, filter) => {
   try {
     const response = await axios.get("https://api.ishkul.org/documents", {
       email: email,
       token: token,
-      query: query,
+      query: filter,
     });
     return response.data;
   } catch (error) {
