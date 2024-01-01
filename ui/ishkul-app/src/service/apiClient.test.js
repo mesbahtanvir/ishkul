@@ -5,6 +5,9 @@ import {
   postSendVerificationCode,
   postVerifyAccount,
   postChangePassword,
+  postDocuments,
+  getDocuments,
+  getDocument,
 } from "./apiClient";
 import axios from "axios";
 
@@ -129,5 +132,55 @@ describe("apiClient module", () => {
         email: email,
       }
     );
+  });
+
+  it("post documents should post data using axios and return response", async () => {
+    const email = "joe.biden@email.com";
+    axios.post.mockResolvedValueOnce({
+      status: 200,
+      data: {},
+    });
+    const result = await postDocuments(email);
+    expect(result).toEqual({});
+    expect(axios.post).toHaveBeenCalledWith(
+      "https://api.ishkul.org/documents",
+      {
+        email: email,
+      }
+    );
+  });
+
+  it("get documents should post data using axios and return response", async () => {
+    const email = "joe.biden@email.com";
+    const token = "token";
+    const filter = "filter";
+    axios.get.mockResolvedValueOnce({
+      status: 200,
+      data: {},
+    });
+    const result = await getDocuments(email, token, filter);
+    expect(result).toEqual({});
+    expect(axios.get).toHaveBeenCalledWith("https://api.ishkul.org/documents", {
+      email: email,
+      token: token,
+      query: filter,
+    });
+  });
+
+  it("get document should post data using axios and return response", async () => {
+    const email = "joe.biden@email.com";
+    const token = "token";
+    const id = "id";
+    axios.get.mockResolvedValueOnce({
+      status: 200,
+      data: {},
+    });
+    const result = await getDocument(email, token, id);
+    expect(result).toEqual({});
+    expect(axios.get).toHaveBeenCalledWith("https://api.ishkul.org/document", {
+      email: email,
+      token: token,
+      id: id,
+    });
   });
 });

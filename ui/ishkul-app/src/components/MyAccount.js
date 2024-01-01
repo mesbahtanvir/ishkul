@@ -17,6 +17,7 @@ const ProfilePage = () => {
       navigate("/change_password");
       return;
     }
+    // TODO handle error
     postSendVerificationCode(email);
     navigate("/validate_email");
   }
