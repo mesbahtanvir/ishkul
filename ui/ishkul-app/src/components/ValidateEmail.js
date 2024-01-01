@@ -1,26 +1,26 @@
-import { Snackbar } from "@mui/material";
+import { Snackbar, Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
 import * as React from "react";
 import { useState } from "react";
+import { useAuth } from "./AuthContext";
 import {
   CopyWriteUnderInput,
   StyledBox,
-  SignUpPasswordField,
-  ChangePasswordHeader,
-  SubmitChangePassword,
+  CodeField,
+  SubmitVerificationCode,
+  AccountVerifyHeader,
   MayBePrefieldEmailBox,
 } from "./ProfileComponents";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "./AuthContext";
-import { postChangePassword } from "../service/apiClient";
+import { postVerifyAccount } from "../service/apiClient";
 import Alert from "./Alert";
+import { useNavigate } from "react-router-dom";
 
-export default function ChangePassword() {
-  const { email, loggedInToken, storeSignedInData } = useAuth();
+export default function ValidateEmail() {
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const { email, storeSignedInData } = useAuth();
   let navigate = useNavigate();
 
   const handleError = (message) => {
@@ -34,17 +34,10 @@ export default function ChangePassword() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    if (loggedInToken === "") {
-      handleError("Please sign in first");
-      return;
-    }
     try {
-      const resp = await postChangePassword(
-        email ?? data.get("email"),
-        loggedInToken,
-        data.get("password")
-      );
+      const data = new FormData(event.currentTarget);
+      const submit_email = email ?? data.get("email");
+      const resp = await postVerifyAccount(submit_email, data.get("code"));
       storeSignedInData(
         resp.data.first_name,
         resp.data.last_name,
@@ -59,15 +52,26 @@ export default function ChangePassword() {
     }
   };
 
+  const InfoSection = () => {
+    var text = "";
+    if (typeof email !== "undefined" && email !== "") {
+      text = "A code has been sent to your email: " + email;
+    } else {
+      text = "Enter your email and verification code";
+    }
+    return <Typography variant="caption">{text}</Typography>;
+  };
+
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />
       <StyledBox>
-        <ChangePasswordHeader />
+        <AccountVerifyHeader />
+        <InfoSection />
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <MayBePrefieldEmailBox email={email} />
-          <SignUpPasswordField />
-          <SubmitChangePassword />
+          <CodeField />
+          <SubmitVerificationCode />
         </Box>
       </StyledBox>
       <CopyWriteUnderInput />

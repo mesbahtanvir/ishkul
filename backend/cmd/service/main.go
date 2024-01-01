@@ -57,15 +57,15 @@ func main() {
 	})
 
 	// Account Recover Endpoint
-	r.POST("/account_recover", func(ctx *gin.Context) {
+	r.POST("/send_verification_code", func(ctx *gin.Context) {
 		// Your logic here
-		var req handler.AccountRecoverRequest
+		var req handler.SendVerificationCodeRequest
 		if err := ctx.BindJSON(&req); err != nil {
 			// handle error, e.g., return a bad request response
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		resp, err := handler.HandleAccountRecover(ctx, storage, userDatabase, req)
+		resp, err := handler.HandleSendVerificationCode(ctx, storage, userDatabase, req)
 		if err != nil {
 			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			return
@@ -74,15 +74,15 @@ func main() {
 	})
 
 	// Account Recover Endpoint
-	r.POST("/verify_account_ownership", func(ctx *gin.Context) {
+	r.POST("/verify_account", func(ctx *gin.Context) {
 		// Your logic here
-		var req handler.ValidateAccountRecoverRequest
+		var req handler.VerifyAccountRequest
 		if err := ctx.BindJSON(&req); err != nil {
 			// handle error, e.g., return a bad request response
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		resp, err := handler.HandleValidateAccountRecover(ctx, storage, userDatabase, req)
+		resp, err := handler.HandleVerifyAccount(ctx, storage, userDatabase, req)
 		if err != nil {
 			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			return

@@ -42,6 +42,7 @@ export default function AccountVerify({ email }) {
         resp.data.first_name,
         resp.data.last_name,
         resp.data.email,
+        resp.data.email_verified,
         resp.data.token
       );
       navigate("/change_password");

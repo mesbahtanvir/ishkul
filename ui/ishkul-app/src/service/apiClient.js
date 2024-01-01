@@ -60,10 +60,10 @@ export const postLoginUser = async (email, password) => {
   }
 };
 
-export const postRecoverAccount = async (email) => {
+export const postSendVerificationCode = async (email) => {
   try {
     const response = await axios.post(
-      "https://api.ishkul.org/account_recover",
+      "https://api.ishkul.org/send_verification_code",
       {
         email: email,
       }
@@ -82,13 +82,10 @@ export const postRecoverAccount = async (email) => {
 
 export const postVerifyAccount = async (email, code) => {
   try {
-    const response = await axios.post(
-      "https://api.ishkul.org/verify_account_ownership",
-      {
-        email: email,
-        code: code,
-      }
-    );
+    const response = await axios.post("https://api.ishkul.org/verify_account", {
+      email: email,
+      code: code,
+    });
     return response.data;
   } catch (error) {
     if (error.response?.status === 404) {

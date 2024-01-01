@@ -70,11 +70,13 @@ func TestHandleChangePassword(t *testing.T) {
 	}
 
 	var (
-		ctx            = context.Background()
-		password       = "password"
-		valid_token, _ = utils.EncodeJWTToken("mesbah@tanvir.com")
-		invalid_token  = "2342345"
-		new_passowrd   = "123"
+		ctx                       = context.Background()
+		password                  = "password"
+		valid_unverified_token, _ = utils.EncodeJWTToken("mesbah@tanvir.com", false)
+		valid_verified_token, _   = utils.EncodeJWTToken("mesbah@tanvir.com", true)
+
+		invalid_token = "2342345"
+		new_passowrd  = "123"
 	)
 
 	tests := []struct {
@@ -118,6 +120,23 @@ func TestHandleChangePassword(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "When user unverified Then return Error",
+			args: args{
+				ctx: ctx,
+				db: func() UserDatabase {
+					mockedDB := mock.NewMockUserDatabase(ctrl)
+					return mockedDB
+				}(),
+				req: ChangePasswordRequest{
+					Email:       "mesbah@tanvir.com",
+					Token:       valid_unverified_token,
+					NewPassword: new_passowrd,
+				},
+			},
+			want:    ChangePasswordResponse{},
+			wantErr: true,
+		},
+		{
 			name: "When error from database Then return Error",
 			args: args{
 				ctx: ctx,
@@ -133,7 +152,7 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					Token:       valid_token,
+					Token:       valid_verified_token,
 					NewPassword: new_passowrd,
 				},
 			},
@@ -161,7 +180,7 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					Token:       valid_token,
+					Token:       valid_verified_token,
 					NewPassword: password,
 				},
 			},
@@ -188,7 +207,7 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					Token:       valid_token,
+					Token:       valid_verified_token,
 					NewPassword: password,
 				},
 			},

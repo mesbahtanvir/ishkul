@@ -12,16 +12,28 @@ export function AuthProvider({ children }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailVerified, setEmailverified] = useState("");
 
-  const storeSignedInData = (firstName, lastName, email, token) => {
+  const storeSignedInData = (
+    firstName,
+    lastName,
+    email,
+    isEmailVerified,
+    token
+  ) => {
     setFirstName(firstName);
     setLastName(lastName);
     setEmail(email);
+    setEmailverified(isEmailVerified);
     setLoggedInToken(token);
     setIsSignedIn(true);
   };
 
   const signOut = () => {
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setEmailverified(false);
     setLoggedInToken("");
     setIsSignedIn(false);
   };
@@ -34,6 +46,7 @@ export function AuthProvider({ children }) {
         firstName,
         lastName,
         email,
+        emailVerified,
         storeSignedInData,
         signOut,
       }}
