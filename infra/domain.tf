@@ -1,6 +1,6 @@
 
 resource "aws_ses_domain_identity" "ishkul_org" {
-  domain = "ishkul.org"  # Replace with your domain name
+  domain = "ishkul.org" # Replace with your domain name
 }
 
 resource "aws_ses_domain_dkim" "ishkul_org_dkim" {
@@ -8,7 +8,7 @@ resource "aws_ses_domain_dkim" "ishkul_org_dkim" {
 }
 
 resource "aws_route53_zone" "ishkul_org_" {
-  name = "ishkul.org."  # Replace with your domain name
+  name = "ishkul.org." # Replace with your domain name
 }
 
 resource "aws_route53_record" "ishkul_org_verification" {
@@ -31,9 +31,9 @@ resource "aws_route53_record" "ishkul_org_dkim" {
 
 output "ishkul_org_verification" {
   value = { for dkim_record in aws_route53_record.ishkul_org_dkim : dkim_record.name => {
-      cname  = dkim_record.type
-      name   = dkim_record.name
-      value  = join("", dkim_record.records)
+    cname = dkim_record.type
+    name  = dkim_record.name
+    value = join("", dkim_record.records)
     }
   }
 }
