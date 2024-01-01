@@ -86,14 +86,13 @@ type DocumentDatabase struct {
 func MustNewMongoDocumentDatabase() *DocumentDatabase {
 	client := NewMustMongoClient()
 	doc_collection := client.Database("prod").Collection("documents")
-	model := mongo.IndexModel{
-		Keys: bson.M{
-			"institute": 1, // specify 1 for ascending order
-		},
+	indexModel := mongo.IndexModel{Keys: bson.D{{Key: "tags", Value: 1}}}
+	name, err := doc_collection.Indexes().CreateOne(context.TODO(), indexModel)
+	if err != nil {
+		panic(err)
 	}
+	fmt.Println("mongo document index created:", name)
 
-	// Create one index
-	_, err := doc_collection.Indexes().CreateOne(context.Background(), model)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -110,12 +109,12 @@ func (db *DocumentDatabase) AddDocument(ctx context.Context, documents []model.D
 	return err
 }
 
-func (db *DocumentDatabase) SearchDocument(ctx context.Context, document model.Document) ([]model.Document, error) {
-	var filters []bson.E
-	if !document.ID.IsZero() {
-		filters = append(filters, bson.E{Key: "_id", Value: document.ID})
-	}
-	cursor, err := db.collection.Find(ctx, filters)
+func (db *DocumentDatabase) SearchDocument(ctx context.Context, query string) ([]model.Document, error) {
+	filter := bson.D{{Key: "$text", Value: bson.D{{Key: "$search", Value: query}}}}
+	limit := int64(100) // for example, to limit the results to 10 documents
+	findOptions := options.Find()
+	findOptions.SetLimit(limit)
+	cursor, err := db.collection.Find(ctx, filter, findOptions)
 	if err != nil {
 		return nil, err
 	}

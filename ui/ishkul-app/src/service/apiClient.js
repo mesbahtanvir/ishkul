@@ -122,3 +122,69 @@ export const postChangePassword = async (email, token, password) => {
     throw new Error("Failed to change: Unknown error occured");
   }
 };
+
+export const postDocuments = async (email, token, documents) => {
+  try {
+    const response = await axios.post("https://api.ishkul.org/documents", {
+      email: email,
+      token: token,
+      documents: documents,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      throw new Error("Failed to upload: Resource not found");
+    }
+    if (error.response?.status === 403) {
+      throw new Error("Failed to upload: Not permitted");
+    }
+    if (error.response?.statuss === 500) {
+      throw new Error("Failed to upload: Internal server error");
+    }
+    throw new Error("Failed to upload: Unknown error occured");
+  }
+};
+
+export const getDocuments = async (email, token, query) => {
+  try {
+    const response = await axios.get("https://api.ishkul.org/documents", {
+      email: email,
+      token: token,
+      query: query,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      throw new Error("Failed to load: Resource not found");
+    }
+    if (error.response?.status === 403) {
+      throw new Error("Failed to load: Not permitted");
+    }
+    if (error.response?.statuss === 500) {
+      throw new Error("Failed to load: Internal server error");
+    }
+    throw new Error("Failed to load: Unknown error occured");
+  }
+};
+
+export const getDocument = async (email, token, id) => {
+  try {
+    const response = await axios.get("https://api.ishkul.org/document", {
+      email: email,
+      token: token,
+      id: id,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      throw new Error("Failed to upload: Resource not found");
+    }
+    if (error.response?.status === 403) {
+      throw new Error("Failed to upload: Not permitted");
+    }
+    if (error.response?.statuss === 500) {
+      throw new Error("Failed to upload: Internal server error");
+    }
+    throw new Error("Failed to upload: Unknown error occured");
+  }
+};

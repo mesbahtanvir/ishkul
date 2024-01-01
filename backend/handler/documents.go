@@ -13,7 +13,6 @@ type DocumentWithoutResourceURL struct {
 	Year      int                `json:"year"`
 	Subject   model.Subject      `json:"subject"`
 	Uplaoder  primitive.ObjectID `json:"uploader_uid"`
-	Tags      []string           `json:"tags"`
 }
 
 type Document struct {
@@ -23,7 +22,6 @@ type Document struct {
 	Year        int                `json:"year"`
 	Subject     model.Subject      `json:"subject"`
 	Uplaoder    primitive.ObjectID `json:"uploader_uid"`
-	Tags        []string           `json:"tags"`
 }
 
 type AddDocumentRequest struct {
@@ -34,12 +32,7 @@ type AddDocumentRequest struct {
 type AddDocumentResponse struct{}
 
 type SearchDocumentRequest struct {
-	RequestorEmail string             `json:"email"`
-	Institute      string             `json:"institute"`
-	Year           int                `json:"year"`
-	Subject        model.Subject      `json:"subject"`
-	Uplaoder       primitive.ObjectID `json:"uploader_uid"`
-	Tags           []string           `json:"tags"`
+	Query string `json:"query"`
 }
 
 type SearchDocumentResponse struct {
@@ -56,13 +49,12 @@ type GetDocumentResponse struct {
 	Year        int                `json:"year"`
 	Subject     model.Subject      `json:"subject"`
 	Uplaoder    primitive.ObjectID `json:"uploader_uid"`
-	Tags        []string           `json:"tags"`
 }
 
 type DocumentDatabase interface {
 	AddDocument(ctx context.Context, documents []model.Document) error
 	FindDocumentByID(ctx context.Context, id primitive.ObjectID) (model.Document, error)
-	SearchDocument(ctx context.Context, document model.Document) ([]model.Document, error)
+	SearchDocument(ctx context.Context, query string) ([]model.Document, error)
 }
 
 func HandleAddDocument(ctx context.Context, userdb UserDatabase, docdb DocumentDatabase, req AddDocumentRequest) (AddDocumentResponse, error) {
@@ -78,7 +70,6 @@ func HandleAddDocument(ctx context.Context, userdb UserDatabase, docdb DocumentD
 			Year:        req.Documents[i].Year,
 			Subject:     req.Documents[i].Subject,
 			Uplaoder:    user.ID,
-			Tags:        req.Documents[i].Tags,
 		}
 	}
 	if err := docdb.AddDocument(ctx, docs); err != nil {
@@ -88,18 +79,10 @@ func HandleAddDocument(ctx context.Context, userdb UserDatabase, docdb DocumentD
 }
 
 func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req SearchDocumentRequest) (SearchDocumentResponse, error) {
-	searchFilter := model.Document{
-		Institute: req.Institute,
-		Year:      req.Year,
-		Subject:   req.Subject,
-		Uplaoder:  req.Uplaoder,
-		Tags:      req.Tags,
-	}
-	docs, err := docdb.SearchDocument(ctx, searchFilter)
+	docs, err := docdb.SearchDocument(ctx, req.Query)
 	if err != nil {
 		return SearchDocumentResponse{}, err
 	}
-
 	respDocs := make([]DocumentWithoutResourceURL, len(docs))
 	for i := 0; i < len(docs); i++ {
 		respDocs[i] = DocumentWithoutResourceURL{
@@ -108,7 +91,6 @@ func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req Searc
 			Year:      docs[i].Year,
 			Subject:   docs[i].Subject,
 			Uplaoder:  docs[i].Uplaoder,
-			Tags:      docs[i].Tags,
 		}
 	}
 	return SearchDocumentResponse{Documents: respDocs}, nil
@@ -126,6 +108,5 @@ func HandleGetDocument(ctx context.Context, docdb DocumentDatabase, req GetDocum
 		Year:        doc.Year,
 		Subject:     doc.Subject,
 		Uplaoder:    doc.Uplaoder,
-		Tags:        doc.Tags,
 	}, nil
 }

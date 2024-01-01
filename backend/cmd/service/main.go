@@ -100,8 +100,8 @@ func main() {
 		ctx.JSON(http.StatusOK, gin.H{"data": resp})
 	})
 
-	// Add document
-	r.POST("/document", middleware.AllowIfAdmin(), func(ctx *gin.Context) {
+	// Add documents
+	r.POST("/documents", middleware.AllowIfAdmin(), func(ctx *gin.Context) {
 		var req handler.AddDocumentRequest
 		if err := ctx.BindJSON(&req); err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
