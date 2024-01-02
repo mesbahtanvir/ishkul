@@ -82,6 +82,7 @@ export default function MenuBar() {
         anchor="left"
         open={isDrawerOpen}
         onClose={toggleDrawer(false)}
+        onOpen={toggleDrawer(true)}
       >
         <DrawerContent />
       </SwipeableDrawer>

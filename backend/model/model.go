@@ -31,7 +31,6 @@ type Document struct {
 	ResourceURL string             `bson:"resource_url"`
 	Institute   string             `bson:"institute,omitempty"`
 	Year        int                `bson:"year,omitempty"`
-	Subject     Subject            `bson:"subject,omitempty"`
-	Uplaoder    primitive.ObjectID `bson:"uploader_uid"`
+	Subject     string             `bson:"subject,omitempty"`
 	Tags        []string           `bson:"tags,omitempty"`
 }

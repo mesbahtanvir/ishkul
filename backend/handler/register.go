@@ -7,6 +7,7 @@ import (
 	"net/mail"
 
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.uber.org/zap"
 	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
 )
@@ -39,6 +40,7 @@ type RegisterResponse struct{}
 
 func HandleRegister(ctx context.Context, db UserDatabase, req RegisterRequest) (resp RegisterResponse, err error) {
 	if err := req.Validate(); err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return RegisterResponse{}, err
 	}
 	if _, err := db.FindUserByEmail(ctx, req.Email); !errors.Is(err, mongo.ErrNoDocuments) {
@@ -47,6 +49,7 @@ func HandleRegister(ctx context.Context, db UserDatabase, req RegisterRequest) (
 
 	hash, err := utils.HashPassword(req.Password)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return RegisterResponse{}, errors.New("internal server error")
 	}
 	user := model.User{
@@ -58,6 +61,7 @@ func HandleRegister(ctx context.Context, db UserDatabase, req RegisterRequest) (
 	}
 
 	if err := db.AddUser(ctx, user); err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return RegisterResponse{}, err
 	}
 

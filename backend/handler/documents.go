@@ -4,63 +4,69 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/zap"
 	"ishkul.org/backend/model"
+	"ishkul.org/backend/utils"
 )
 
-type DocumentWithoutResourceURL struct {
-	ID        primitive.ObjectID `json:"id"`
-	Institute string             `json:"institute"`
-	Year      int                `json:"year"`
-	Subject   model.Subject      `json:"subject"`
-	Uplaoder  primitive.ObjectID `json:"uploader_uid"`
-}
-
-type Document struct {
-	ID          primitive.ObjectID `json:"id,omitempty"`
-	ResourceURL string             `json:"resource_url"`
-	Institute   string             `json:"institute"`
-	Year        int                `json:"year"`
-	Subject     model.Subject      `json:"subject"`
-	Uplaoder    primitive.ObjectID `json:"uploader_uid"`
-}
-
 type AddDocumentRequest struct {
-	RequestorEmail string     `json:"email"`
-	Documents      []Document `json:"documents"`
+	Token          string `json:"token" form:"token"`
+	RequestorEmail string `json:"email" form:"email"`
+	Documents      []struct {
+		ID          string `json:"id,omitempty" form:"id"`
+		ResourceURL string `json:"resource_url" form:"resource_url"`
+		Institute   string `json:"institute" form:"institute"`
+		Year        int    `json:"year" form:"year"`
+		Subject     string `json:"subject" form:"subject"`
+		Uplaoder    string `json:"uploader_uid,omitempty" form:"uploader_uid"`
+	} `json:"documents" form:"documents"`
 }
 
 type AddDocumentResponse struct{}
 
 type SearchDocumentRequest struct {
-	Query string `json:"query"`
+	Token string `json:"token" form:"token"`
+	Email string `json:"email" form:"email"`
+	Query string `json:"query" form:"query"`
 }
 
 type SearchDocumentResponse struct {
-	Documents []DocumentWithoutResourceURL `json:"documents"`
+	Documents []struct {
+		ID        string `json:"id" form:"id"`
+		Institute string `json:"institute" form:"institute"`
+		Year      int    `json:"year" form:"year"`
+		Subject   string `json:"subject" form:"subject"`
+	} `json:"documents"`
 }
 
 type GetDocumentRequest struct {
-	ID primitive.ObjectID `json:"id"`
+	Token string             `json:"token" form:"token"`
+	Email string             `json:"email" form:"email"`
+	ID    primitive.ObjectID `json:"id" form:"id"`
 }
 type GetDocumentResponse struct {
-	ID          primitive.ObjectID `json:"id"`
-	ResourceURL string             `json:"resource_url"`
-	Institute   string             `json:"institute"`
-	Year        int                `json:"year"`
-	Subject     model.Subject      `json:"subject"`
-	Uplaoder    primitive.ObjectID `json:"uploader_uid"`
+	ID          primitive.ObjectID `json:"id" form:"id"`
+	ResourceURL string             `json:"resource_url" form:"resource_url"`
+	Institute   string             `json:"institute" form:"institute"`
+	Year        int                `json:"year" form:"year"`
+	Subject     string             `json:"subject" form:"subject"`
 }
 
 type DocumentDatabase interface {
 	AddDocument(ctx context.Context, documents []model.Document) error
 	FindDocumentByID(ctx context.Context, id primitive.ObjectID) (model.Document, error)
 	SearchDocument(ctx context.Context, query string) ([]model.Document, error)
+	GetDocuments(ctx context.Context) ([]model.Document, error)
+}
+
+type DocumentLimitStorage interface {
+	IncrUserResourceRequest(ctx context.Context, endpoint string, userID string, limit int64) error
 }
 
 func HandleAddDocument(ctx context.Context, userdb UserDatabase, docdb DocumentDatabase, req AddDocumentRequest) (AddDocumentResponse, error) {
-	user, err := userdb.FindUserByEmail(ctx, req.RequestorEmail)
-	if err != nil {
-		return AddDocumentResponse{}, err
+	if err := utils.IsAuthenticatedAdmin(req.RequestorEmail, req.Token); err != nil {
+		zap.L().Info("Reject as user not admin", zap.Error(err))
+		return AddDocumentResponse{}, nil
 	}
 	docs := make([]model.Document, len(req.Documents))
 	for i := 0; i < len(req.Documents); i++ {
@@ -69,7 +75,6 @@ func HandleAddDocument(ctx context.Context, userdb UserDatabase, docdb DocumentD
 			Institute:   req.Documents[i].Institute,
 			Year:        req.Documents[i].Year,
 			Subject:     req.Documents[i].Subject,
-			Uplaoder:    user.ID,
 		}
 	}
 	if err := docdb.AddDocument(ctx, docs); err != nil {
@@ -79,26 +84,53 @@ func HandleAddDocument(ctx context.Context, userdb UserDatabase, docdb DocumentD
 }
 
 func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req SearchDocumentRequest) (SearchDocumentResponse, error) {
-	docs, err := docdb.SearchDocument(ctx, req.Query)
-	if err != nil {
+	if err := utils.IsAuthenticatedUser(req.Email, req.Token); err != nil {
+		zap.L().Info("User not authenticated", zap.Error(err))
 		return SearchDocumentResponse{}, err
 	}
-	respDocs := make([]DocumentWithoutResourceURL, len(docs))
+	docs, err := docdb.SearchDocument(ctx, req.Query)
+	if err != nil {
+		zap.L().Error("failed to load docs from storage", zap.Error(err))
+		return SearchDocumentResponse{}, err
+	}
+	if len(docs) == 0 {
+		// Best effort if no document match the query
+		docs, err = docdb.GetDocuments(ctx)
+		zap.L().Info("failed to load docs from storage", zap.Error(err))
+	}
+	resp := SearchDocumentResponse{}
 	for i := 0; i < len(docs); i++ {
-		respDocs[i] = DocumentWithoutResourceURL{
-			ID:        docs[i].ID,
+		resp.Documents = append(resp.Documents, struct {
+			ID        string `json:"id" form:"id"`
+			Institute string `json:"institute" form:"institute"`
+			Year      int    `json:"year" form:"year"`
+			Subject   string `json:"subject" form:"subject"`
+		}{
+			ID:        docs[i].ID.Hex(), // Convert ObjectID to string
 			Institute: docs[i].Institute,
 			Year:      docs[i].Year,
 			Subject:   docs[i].Subject,
-			Uplaoder:  docs[i].Uplaoder,
-		}
+		})
 	}
-	return SearchDocumentResponse{Documents: respDocs}, nil
+	return resp, nil
 }
 
-func HandleGetDocument(ctx context.Context, docdb DocumentDatabase, req GetDocumentRequest) (GetDocumentResponse, error) {
+func HandleGetDocument(ctx context.Context, storage DocumentLimitStorage, docdb DocumentDatabase, req GetDocumentRequest) (GetDocumentResponse, error) {
+	if err := utils.IsAuthenticatedUser(req.Email, req.Token); err != nil {
+		zap.L().Info("User not authenticated", zap.Error(err))
+		return GetDocumentResponse{}, err
+	}
+
+	if err := utils.IsAuthenticatedAdmin(req.Email, req.Token); err != nil {
+		zap.L().Info("User not admit checking resource limit", zap.Any("req", req))
+		if err := storage.IncrUserResourceRequest(ctx, "get/document", req.Email, 100); err != nil {
+			zap.L().Warn("user has been rejected from viewing the resource")
+			return GetDocumentResponse{}, err
+		}
+	}
 	doc, err := docdb.FindDocumentByID(ctx, req.ID)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return GetDocumentResponse{}, err
 	}
 	return GetDocumentResponse{
@@ -107,6 +139,5 @@ func HandleGetDocument(ctx context.Context, docdb DocumentDatabase, req GetDocum
 		Institute:   doc.Institute,
 		Year:        doc.Year,
 		Subject:     doc.Subject,
-		Uplaoder:    doc.Uplaoder,
 	}, nil
 }

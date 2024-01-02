@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -35,6 +36,7 @@ func EncodeJWTToken(email string, verified bool) (string, error) {
 
 // DecodeJWT decodes a JWT token and returns the claims.
 func DecodeJWT(tokenString string) (*Claims, error) {
+	zap.L().Info("received token", zap.String("token", tokenString))
 	claims := &Claims{}
 
 	_, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
@@ -42,6 +44,7 @@ func DecodeJWT(tokenString string) (*Claims, error) {
 	})
 
 	if err != nil {
+		zap.L().Info("A key suppose to get deleted but it did not")
 		return nil, err
 	}
 
@@ -52,6 +55,7 @@ func DecodeJWT(tokenString string) (*Claims, error) {
 func ValidateToken(tokenString string) (email string, verified bool, validated bool) {
 	claims, err := DecodeJWT(tokenString)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return "", false, false
 	}
 	return claims.Email, claims.Verified, true
@@ -61,6 +65,7 @@ func ValidateToken(tokenString string) (email string, verified bool, validated b
 func ValidateUserToken(email string, tokenString string) bool {
 	claims, err := DecodeJWT(tokenString)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return false
 	}
 	return claims.Email == email
@@ -69,6 +74,7 @@ func ValidateUserToken(email string, tokenString string) bool {
 func ValidateVerifiedUserToken(email string, tokenString string) bool {
 	claims, err := DecodeJWT(tokenString)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return false
 	}
 	return claims.Email == email && claims.Verified
@@ -78,10 +84,11 @@ func ValidateVerifiedUserToken(email string, tokenString string) bool {
 func VerifiedUserToken(tokenString string) error {
 	claims, err := DecodeJWT(tokenString)
 	if err != nil {
-		return errors.New("Invalid token provided")
+		zap.L().Error("failed to verify", zap.Error(err))
+		return errors.New("invalid token provided")
 	}
 	if !claims.Verified {
-		return errors.New("User account is not verified")
+		return errors.New("user account is not verified")
 	}
 	return nil
 }
@@ -92,6 +99,7 @@ func HashPassword(password string) (string, error) {
 	// DefaultCost is usually a good balance of security and performance
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		zap.L().Error("failed to generate password", zap.Error(err))
 		// If there's an error, return an empty string and the error
 		return "", err
 	}
@@ -103,4 +111,34 @@ func GenerateRandomVerificationCode() string {
 	srand := rand.New(rand.NewSource(time.Now().UnixNano()))
 	code := srand.Intn(1000000)      // generates a number in [0, 1000000)
 	return fmt.Sprintf("%06d", code) // formats the number as a 6-digit code
+}
+
+var currentAdmins = map[string]bool{
+	"mesbah.tanvir.cs@gmail.com": true,
+}
+
+func IsAuthenticatedUser(email string, token string) error {
+	claims, err := DecodeJWT(token)
+	if err != nil {
+		return errors.New("invalid token")
+	}
+	if email != claims.Email {
+		return errors.New("token & email mismatched")
+	}
+	if !claims.Verified {
+		return errors.New("unverified user")
+	}
+	return nil
+}
+
+func IsAuthenticatedAdmin(email string, token string) error {
+
+	if err := IsAuthenticatedUser(email, token); err != nil {
+		return err
+	}
+
+	if value, ok := currentAdmins[email]; !ok || !value {
+		return errors.New("not an admin")
+	}
+	return nil
 }

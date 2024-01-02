@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.uber.org/zap"
 	"ishkul.org/backend/utils"
 )
 
@@ -33,6 +34,7 @@ func (r ChangePasswordRequest) Validate() error {
 
 func HandleChangePassword(ctx context.Context, db UserDatabase, req ChangePasswordRequest) (resp ChangePasswordResponse, err error) {
 	if err := req.Validate(); err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return ChangePasswordResponse{}, err
 	}
 	if !utils.ValidateVerifiedUserToken(req.Email, req.Token) {
@@ -44,6 +46,7 @@ func HandleChangePassword(ctx context.Context, db UserDatabase, req ChangePasswo
 	}
 	hash, err := utils.HashPassword(req.NewPassword)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return ChangePasswordResponse{}, errors.New("internal server error")
 	}
 
@@ -51,10 +54,12 @@ func HandleChangePassword(ctx context.Context, db UserDatabase, req ChangePasswo
 
 	token, err := utils.EncodeJWTToken(user.Email, user.EmailVerified)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return ChangePasswordResponse{}, err
 	}
 
 	if err := db.UpdateUser(ctx, user); err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return ChangePasswordResponse{}, err
 	}
 

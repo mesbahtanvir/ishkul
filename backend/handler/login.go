@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
@@ -44,13 +45,16 @@ type UserDatabase interface {
 
 func HandleLogin(ctx context.Context, db UserDatabase, req LoginRequest) (LoginResponse, error) {
 	if err := req.Validate(); err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return LoginResponse{}, err
 	}
 	user, err := db.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
+		zap.L().Error("error", zap.Error(err))
 		return LoginResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exists"}
 	}
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return LoginResponse{}, err
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
@@ -58,6 +62,7 @@ func HandleLogin(ctx context.Context, db UserDatabase, req LoginRequest) (LoginR
 	}
 	token, err := utils.EncodeJWTToken(user.Email, user.EmailVerified)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return LoginResponse{}, err
 	}
 	return LoginResponse{

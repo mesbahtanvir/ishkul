@@ -1,8 +1,11 @@
 import axios from "axios";
 
+const BASE_URL =
+  process.env.REACT_APP_BACKEND_BASE_URL ?? "https://api.ishkul.org";
+
 export const checkHealth = async () => {
   try {
-    const response = await axios.get("https://api.ishkul.org/health");
+    const response = await axios.get(`${BASE_URL}/health`);
     return response.data;
   } catch (error) {
     throw new Error("Failed to check health");
@@ -17,7 +20,7 @@ export const postRegisterUser = async (
   marketingOptin
 ) => {
   try {
-    const response = await axios.post("https://api.ishkul.org/register", {
+    const response = await axios.post(`${BASE_URL}/register`, {
       first_name: firstName,
       last_name: lastName,
       email: email,
@@ -41,7 +44,7 @@ export const postRegisterUser = async (
 
 export const postLoginUser = async (email, password) => {
   try {
-    const response = await axios.post("https://api.ishkul.org/login", {
+    const response = await axios.post(`${BASE_URL}/login`, {
       email: email,
       password: password,
     });
@@ -62,12 +65,9 @@ export const postLoginUser = async (email, password) => {
 
 export const postSendVerificationCode = async (email) => {
   try {
-    const response = await axios.post(
-      "https://api.ishkul.org/send_verification_code",
-      {
-        email: email,
-      }
-    );
+    const response = await axios.post(`${BASE_URL}/send_verification_code`, {
+      email: email,
+    });
     return response.data;
   } catch (error) {
     if (error.response?.status === 404) {
@@ -82,7 +82,7 @@ export const postSendVerificationCode = async (email) => {
 
 export const postVerifyAccount = async (email, code) => {
   try {
-    const response = await axios.post("https://api.ishkul.org/verify_account", {
+    const response = await axios.post(`${BASE_URL}/verify_account`, {
       email: email,
       code: code,
     });
@@ -125,7 +125,7 @@ export const postChangePassword = async (email, token, password) => {
 
 export const postDocuments = async (email, token, documents) => {
   try {
-    const response = await axios.post("https://api.ishkul.org/documents", {
+    const response = await axios.post(`${BASE_URL}/documents`, {
       email: email,
       token: token,
       documents: documents,
@@ -146,12 +146,15 @@ export const postDocuments = async (email, token, documents) => {
 };
 
 export const getDocuments = async (email, token, filter) => {
+  const queryString = filter?.filterModel?.quickFilterValues?.join(" ") ?? "";
+  console.log(queryString);
+
   try {
-    const response = await axios.get("https://api.ishkul.org/documents", {
-      email: email,
-      token: token,
-      query: filter,
-    });
+    const encodedEmail = encodeURIComponent(email);
+    const encodedToken = encodeURIComponent(token);
+    const encodedQuery = encodeURIComponent(queryString);
+    const url = `${BASE_URL}/documents?email=${encodedEmail}&token=${encodedToken}&query=${encodedQuery}`;
+    const response = await axios.get(url);
     return response.data;
   } catch (error) {
     if (error.response?.status === 404) {
@@ -169,11 +172,9 @@ export const getDocuments = async (email, token, filter) => {
 
 export const getDocument = async (email, token, id) => {
   try {
-    const response = await axios.get("https://api.ishkul.org/document", {
-      email: email,
-      token: token,
-      id: id,
-    });
+    const response = await axios.get(
+      `${BASE_URL}/document?email=${email}&token=${token}&id=${id}`
+    );
     return response.data;
   } catch (error) {
     if (error.response?.status === 404) {

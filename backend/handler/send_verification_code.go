@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.uber.org/zap"
 	"ishkul.org/backend/utils"
 )
 
@@ -42,6 +43,7 @@ func HandleSendVerificationCode(ctx context.Context, storage AccountStorage, db 
 
 	err = storage.StoreAccountRecoveryKey(ctx, user.Email, recovery_code)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return SendVerificationCodeResponse{}, err
 	}
 	return SendVerificationCodeResponse{}, nil

@@ -1,12 +1,14 @@
 import * as React from "react";
 import { DataGrid, GridToolbarQuickFilter } from "@mui/x-data-grid";
-import { Box, Button } from "@mui/material";
-import { Container } from "@mui/material";
+import { Box, Button, Pagination, Container } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
 import { StyledBox } from "./ProfileComponents";
 import DownloadIcon from "@mui/icons-material/Download";
 import { getDocuments } from "../service/apiClient";
 import { useAuth } from "./AuthContext";
+import { Snackbar } from "@mui/material";
+import Alert from "./Alert";
+import { useState } from "react";
 
 const columns = [
   { field: "institute", headerName: "Institute", width: 200 },
@@ -18,17 +20,7 @@ const columns = [
     sortable: false,
     renderCell: (params) => {
       const onClick = (e) => {
-        e.stopPropagation(); // don't select this row after clicking
-        const api = params.api;
-        const thisRow = {};
-        api
-          .getAllColumns()
-          .filter((c) => c.field !== "__check__" && !!c)
-          .forEach(
-            (c) => (thisRow[c.field] = params.getValue(params.id, c.field))
-          );
-
-        alert(JSON.stringify(thisRow, null, 4));
+        console.log(params);
       };
 
       return (
@@ -42,22 +34,34 @@ const columns = [
 ];
 
 export default function Resources() {
-  const { email, token } = useAuth();
-
+  const { email, loggedInToken } = useAuth();
   const [queryOptions, setQueryOptions] = React.useState({});
+  const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [rows, setRows] = useState([]);
+  const [page, setPage] = useState(1);
+  const onFilterChange = React.useCallback(
+    (filterModel) => {
+      // Here you save the data you need from the filter model
+      setQueryOptions({ filterModel: { ...filterModel } });
+      async function fetchDocuments(options) {
+        try {
+          const resp = await getDocuments(email, loggedInToken, options);
+          setRows(resp?.data?.documents);
+        } catch (e) {
+          setIsOpen(true);
+          setMessage("Please log in first");
+          console.log(e);
+        }
+      }
+      fetchDocuments(queryOptions);
+    },
+    [setQueryOptions, queryOptions, email, loggedInToken]
+  );
 
-  const onFilterChange = React.useCallback((filterModel) => {
-    // Here you save the data you need from the filter model
-    setQueryOptions({ filterModel: { ...filterModel } });
-  }, []);
-  var rows = [];
-
-  try {
-    const resp = getDocuments(email, token, queryOptions);
-    rows = resp?.data?.documents ?? [];
-  } catch (e) {
-    console.log(e);
-  }
+  const handleClose = () => {
+    // setIsOpen(false);
+  };
 
   function CustomToolbar() {
     return (
@@ -79,6 +83,22 @@ export default function Resources() {
             onFilterModelChange={onFilterChange}
           />
         </Box>
+        <Pagination
+          count={10}
+          page={rows}
+          onChange={(event, val) => setPage(val)}
+        />
+
+        <Snackbar
+          open={isOpen}
+          autoHideDuration={10000}
+          onClose={handleClose}
+          severity="error"
+        >
+          <Alert onClose={handleClose} severity="info" sx={{ width: "100%" }}>
+            {message}
+          </Alert>
+        </Snackbar>
       </StyledBox>
     </Container>
   );

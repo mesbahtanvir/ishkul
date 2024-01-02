@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 	"ishkul.org/backend/utils"
 )
 
@@ -49,9 +50,11 @@ func (g *GlobalStorage) StoreAccountRecoveryKey(ctx context.Context, userID stri
 func (g *GlobalStorage) RetriveAccountRecoveryKey(ctx context.Context, userID string) (string, error) {
 	code, err := g.client.Get(ctx, getVerifyRedisKey(userID)).Result()
 	if errors.Is(err, redis.Nil) {
+		zap.L().Info("error", zap.Error(err))
 		return "", &ErrKeyNotFound{Msg: "code not found"}
 	}
 	if err != nil {
+		zap.L().Info("error", zap.Error(err))
 		return "", err
 	}
 	return code, nil
@@ -60,7 +63,7 @@ func (g *GlobalStorage) RetriveAccountRecoveryKey(ctx context.Context, userID st
 func (g *GlobalStorage) RemoveAccountRecoveryKey(ctx context.Context, userID string) error {
 	res, err := g.client.Del(ctx, getVerifyRedisKey(userID)).Result()
 	if errors.Is(err, redis.Nil) {
-		fmt.Println("A key suppose to get deleted but it did not")
+		zap.L().Info("A key suppose to get deleted but it did not")
 		return nil
 	}
 	if err != nil {
@@ -79,17 +82,17 @@ func (g *GlobalStorage) IncrUserResourceRequest(ctx context.Context, endpoint st
 	key := getQuotaRedisKey(fmt.Sprintf("%s:%s", endpoint, userID))
 	val, err := g.client.Incr(ctx, key).Result()
 	if err != nil {
-		fmt.Println("Error incrementing key:", key, err)
+		zap.L().Error("Error incrementing key:", zap.String("key", key), zap.Error(err))
 		return nil //errors.New("you've reached your limit for today")
 	}
 	if val == 1 {
 		if _, err = g.client.Expire(ctx, key, time.Hour*24).Result(); err != nil {
-			fmt.Println("Error setting key expiry:", key, err)
+			zap.L().Error("Error incrementing key:", zap.String("key", key), zap.Error(err))
 		}
 	}
 	if val > limit {
 		if _, err := g.client.Decr(ctx, key).Result(); err != nil {
-			fmt.Println("Error decrementing key:", key, err)
+			zap.L().Error("Error incrementing key:", zap.String("key", key), zap.Error(err))
 		}
 		return errors.New("you've reached your limit for today")
 	}

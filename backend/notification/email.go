@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 
 	//go get -u github.com/aws/aws-sdk-go
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
+	"go.uber.org/zap"
 )
 
 const (
@@ -82,26 +82,26 @@ func main() {
 
 	// Display error messages if they occur.
 	if err != nil {
+		zap.L().Error("failed to send email", zap.Error(err))
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case ses.ErrCodeMessageRejected:
-				fmt.Println(ses.ErrCodeMessageRejected, aerr.Error())
+				zap.L().Error(ses.ErrCodeMessageRejected, zap.Error(aerr))
 			case ses.ErrCodeMailFromDomainNotVerifiedException:
-				fmt.Println(ses.ErrCodeMailFromDomainNotVerifiedException, aerr.Error())
+				zap.L().Error(ses.ErrCodeMailFromDomainNotVerifiedException, zap.Error(aerr))
 			case ses.ErrCodeConfigurationSetDoesNotExistException:
-				fmt.Println(ses.ErrCodeConfigurationSetDoesNotExistException, aerr.Error())
+				zap.L().Error(ses.ErrCodeConfigurationSetDoesNotExistException, zap.Error(aerr))
 			default:
-				fmt.Println(aerr.Error())
+				zap.L().Error("error", zap.Error(aerr))
 			}
 		} else {
 			// Print the error, cast err to awserr.Error to get the Code and
 			// Message from an error.
-			fmt.Println(err.Error())
+			zap.L().Error("unknown", zap.Error(err))
 		}
-
 		return
 	}
 
-	fmt.Println("Email Sent to address: " + Recipient)
-	fmt.Println(result)
+	zap.L().Info("Email Sent to address: " + Recipient)
+	zap.L().Info(result.GoString())
 }

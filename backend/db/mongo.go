@@ -5,11 +5,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
 )
@@ -86,13 +88,14 @@ type DocumentDatabase struct {
 func MustNewMongoDocumentDatabase() *DocumentDatabase {
 	client := NewMustMongoClient()
 	doc_collection := client.Database("prod").Collection("documents")
-	indexModel := mongo.IndexModel{Keys: bson.D{{Key: "tags", Value: 1}}}
+	indexModel := mongo.IndexModel{
+		Keys: bson.M{"tags": "text"},
+	}
 	name, err := doc_collection.Indexes().CreateOne(context.TODO(), indexModel)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("mongo document index created:", name)
-
+	zap.L().Info("mongo document index created:", zap.String("index_name", name))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -100,12 +103,16 @@ func MustNewMongoDocumentDatabase() *DocumentDatabase {
 }
 
 func (db *DocumentDatabase) AddDocument(ctx context.Context, documents []model.Document) error {
-	iDocuments := make([]interface{}, len(documents))
+
+	for _, doc := range documents {
+		doc.Tags = []string{doc.Institute, strconv.Itoa(doc.Year), doc.Subject}
+	}
+	docs := make([]interface{}, len(documents))
 	// Copy elements from the original array to the new slice
 	for i, v := range documents {
-		iDocuments[i] = v
+		docs[i] = v
 	}
-	_, err := db.collection.InsertMany(ctx, iDocuments)
+	_, err := db.collection.InsertMany(ctx, docs)
 	return err
 }
 
@@ -119,7 +126,23 @@ func (db *DocumentDatabase) SearchDocument(ctx context.Context, query string) ([
 		return nil, err
 	}
 	var documents []model.Document
-	if err := cursor.All(ctx, documents); err != nil {
+	if err := cursor.All(ctx, &documents); err != nil {
+		return nil, err
+	}
+	return documents, nil
+}
+
+func (db *DocumentDatabase) GetDocuments(ctx context.Context) ([]model.Document, error) {
+	filter := bson.D{}
+	limit := int64(100) // for example, to limit the results to 10 documents
+	findOptions := options.Find()
+	findOptions.SetLimit(limit)
+	cursor, err := db.collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, err
+	}
+	var documents []model.Document
+	if err := cursor.All(ctx, &documents); err != nil {
 		return nil, err
 	}
 	return documents, nil
@@ -130,6 +153,7 @@ func (db *DocumentDatabase) FindDocumentByID(ctx context.Context, id primitive.O
 	var result model.Document
 	err := db.collection.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return model.Document{}, err
 	}
 	return result, nil
