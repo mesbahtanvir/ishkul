@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -103,10 +102,6 @@ func MustNewMongoDocumentDatabase() *DocumentDatabase {
 }
 
 func (db *DocumentDatabase) AddDocument(ctx context.Context, documents []model.Document) error {
-
-	for _, doc := range documents {
-		doc.Tags = []string{doc.Institute, strconv.Itoa(doc.Year), doc.Subject}
-	}
 	docs := make([]interface{}, len(documents))
 	// Copy elements from the original array to the new slice
 	for i, v := range documents {

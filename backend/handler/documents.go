@@ -12,12 +12,12 @@ type AddDocumentRequest struct {
 	Token          string `json:"token" form:"token"`
 	RequestorEmail string `json:"email" form:"email"`
 	Documents      []struct {
-		ID          string `json:"id,omitempty" form:"id"`
-		ResourceURL string `json:"resource_url" form:"resource_url"`
-		Institute   string `json:"institute" form:"institute"`
-		Year        int    `json:"year" form:"year"`
-		Subject     string `json:"subject" form:"subject"`
-		Uplaoder    string `json:"uploader_uid,omitempty" form:"uploader_uid"`
+		ID          string   `json:"id,omitempty" form:"id"`
+		ResourceURL string   `json:"resource_url" form:"resource_url"`
+		Institute   string   `json:"institute" form:"institute"`
+		Year        int      `json:"year" form:"year"`
+		Tags        []string `json:"tags" form:"tags"`
+		Uplaoder    string   `json:"uploader_uid,omitempty" form:"uploader_uid"`
 	} `json:"documents" form:"documents"`
 }
 
@@ -31,10 +31,10 @@ type SearchDocumentRequest struct {
 
 type SearchDocumentResponse struct {
 	Documents []struct {
-		ID        string `json:"id" form:"id"`
-		Institute string `json:"institute" form:"institute"`
-		Year      int    `json:"year" form:"year"`
-		Subject   string `json:"subject" form:"subject"`
+		ID        string   `json:"id" form:"id"`
+		Institute string   `json:"institute" form:"institute"`
+		Year      int      `json:"year" form:"year"`
+		Tags      []string `json:"tags" form:"tags"`
 	} `json:"documents"`
 }
 
@@ -44,11 +44,11 @@ type GetDocumentRequest struct {
 	ID    string `json:"id" form:"id"`
 }
 type GetDocumentResponse struct {
-	ID          string `json:"id" form:"id"`
-	ResourceURL string `json:"resource_url" form:"resource_url"`
-	Institute   string `json:"institute" form:"institute"`
-	Year        int    `json:"year" form:"year"`
-	Subject     string `json:"subject" form:"subject"`
+	ID          string   `json:"id" form:"id"`
+	ResourceURL string   `json:"resource_url" form:"resource_url"`
+	Institute   string   `json:"institute" form:"institute"`
+	Year        int      `json:"year" form:"year"`
+	Tags        []string `json:"tags" form:"tags"`
 }
 
 type DocumentDatabase interface {
@@ -73,7 +73,7 @@ func HandleAddDocument(ctx context.Context, userdb UserDatabase, docdb DocumentD
 			ResourceURL: req.Documents[i].ResourceURL,
 			Institute:   req.Documents[i].Institute,
 			Year:        req.Documents[i].Year,
-			Subject:     req.Documents[i].Subject,
+			Tags:        req.Documents[i].Tags,
 		}
 	}
 	if err := docdb.AddDocument(ctx, docs); err != nil {
@@ -100,15 +100,15 @@ func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req Searc
 	resp := SearchDocumentResponse{}
 	for i := 0; i < len(docs); i++ {
 		resp.Documents = append(resp.Documents, struct {
-			ID        string `json:"id" form:"id"`
-			Institute string `json:"institute" form:"institute"`
-			Year      int    `json:"year" form:"year"`
-			Subject   string `json:"subject" form:"subject"`
+			ID        string   `json:"id" form:"id"`
+			Institute string   `json:"institute" form:"institute"`
+			Year      int      `json:"year" form:"year"`
+			Tags      []string `json:"tags" form:"tags"`
 		}{
 			ID:        docs[i].ID.Hex(), // Convert ObjectID to string
 			Institute: docs[i].Institute,
 			Year:      docs[i].Year,
-			Subject:   docs[i].Subject,
+			Tags:      docs[i].Tags,
 		})
 	}
 	return resp, nil
@@ -137,6 +137,6 @@ func HandleGetDocument(ctx context.Context, storage DocumentLimitStorage, docdb 
 		ResourceURL: doc.ResourceURL,
 		Institute:   doc.Institute,
 		Year:        doc.Year,
-		Subject:     doc.Subject,
+		Tags:        doc.Tags,
 	}, nil
 }

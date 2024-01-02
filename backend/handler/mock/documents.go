@@ -9,7 +9,6 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	primitive "go.mongodb.org/mongo-driver/bson/primitive"
 	model "ishkul.org/backend/model"
 )
 
@@ -51,7 +50,7 @@ func (mr *MockDocumentDatabaseMockRecorder) AddDocument(ctx, documents interface
 }
 
 // FindDocumentByID mocks base method.
-func (m *MockDocumentDatabase) FindDocumentByID(ctx context.Context, id primitive.ObjectID) (model.Document, error) {
+func (m *MockDocumentDatabase) FindDocumentByID(ctx context.Context, id string) (model.Document, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindDocumentByID", ctx, id)
 	ret0, _ := ret[0].(model.Document)

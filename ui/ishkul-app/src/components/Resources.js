@@ -16,6 +16,7 @@ import {
   Container,
   CssBaseline,
 } from "@mui/material";
+import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import { makeStyles } from "@mui/styles";
 import { StyledBox } from "./ProfileComponents";
 import { useAuth } from "./AuthContext";
@@ -36,7 +37,7 @@ const ParentComponent = () => {
     setSearchQuery(search);
     try {
       const resp = await getDocuments(email, loggedInToken, search);
-      setInitialData(resp?.data?.documents);
+      setInitialData(resp?.data?.documents || []);
       setCurrentPage(1);
     } catch (e) {
       setIsOpen(true);
@@ -55,7 +56,7 @@ const ParentComponent = () => {
           resourceUrl: doc?.data?.resource_url,
           institute: doc?.data?.institute,
           year: doc?.data?.year,
-          subject: doc?.data?.subject,
+          tags: doc?.data?.tags || [],
         });
       } catch (error) {
         setIsOpen(true);
@@ -117,8 +118,11 @@ const ParentComponent = () => {
     return (
       <Card className={classes.card}>
         <CardContent>
-          <Typography variant="h6" color="primary" gutterBottom>
-            More details about {details.institute}
+          <Typography variant="body1">
+            <Box component="span" fontWeight="fontWeightMedium">
+              Institute:{" "}
+            </Box>
+            {details.institute}
           </Typography>
           <Typography variant="body1">
             <Box component="span" fontWeight="fontWeightMedium">
@@ -147,9 +151,22 @@ const ParentComponent = () => {
           </Typography>
           <Typography variant="body1">
             <Box component="span" fontWeight="fontWeightMedium">
-              Subject:{" "}
+              Tags:{" "}
             </Box>
-            {details.subject}
+            {details.tags.map((tag, index) => (
+              <Box
+                component="span"
+                key={index}
+                style={{
+                  marginRight: 8,
+                  display: "inline-flex", // Changed from 'flex' to 'inline-flex'
+                  alignItems: "center",
+                }}
+              >
+                <LocalOfferIcon style={{ fontSize: "small", marginRight: 4 }} />
+                {tag}
+              </Box>
+            ))}
           </Typography>
         </CardContent>
       </Card>
@@ -177,7 +194,7 @@ const ParentComponent = () => {
         style={{ margin: "20px", padding: "10px", width: "80%" }}
       >
         <List>
-          {data.map(({ id, institute, year, subject }) => (
+          {data.map(({ id, institute, year }) => (
             <React.Fragment key={id}>
               <ListItem
                 divider
@@ -204,13 +221,6 @@ const ParentComponent = () => {
                         color="textSecondary"
                       >
                         Year: {year}
-                      </Typography>
-                      <Typography
-                        component="span"
-                        variant="body2"
-                        style={{ float: "right" }}
-                      >
-                        Subject: {subject}
                       </Typography>
                     </>
                   }

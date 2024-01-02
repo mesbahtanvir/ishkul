@@ -1,15 +1,5 @@
 import React, { useState } from "react";
-import {
-  TextField,
-  Button,
-  Select,
-  MenuItem,
-  InputLabel,
-  FormControl,
-  Grid,
-  Paper,
-  Container,
-} from "@mui/material";
+import { TextField, Button, Grid, Paper, Chip, Container } from "@mui/material";
 import { postDocuments } from "../service/apiClient";
 import { useAuth } from "./AuthContext";
 import { Snackbar } from "@mui/material";
@@ -18,12 +8,12 @@ import Alert from "./Alert";
 const DocumentForm = () => {
   const { email, loggedInToken } = useAuth();
   const [documents, setDocuments] = useState([]);
-
+  const [inputTags, setInputTags] = useState([]);
   const [currentDocument, setCurrentDocument] = useState({
     resource_url: "",
     institute: "",
     year: new Date().getFullYear(),
-    subject: "",
+    tags: [],
     uploader_uid: "",
   });
 
@@ -46,17 +36,41 @@ const DocumentForm = () => {
     setIsOpen(false);
   };
 
+  const handleTagDelete = (tagToDelete) => () => {
+    setInputTags((tags) => tags.filter((tag) => tag !== tagToDelete));
+  };
+
+  const handleTagInput = (e) => {
+    if (e.key === "Enter" && e.target.value) {
+      e.preventDefault(); // Prevent the default form submit action
+      setInputTags([...inputTags, e.target.value]);
+      e.target.value = "";
+    }
+  };
+
   const handleAddDocument = (e) => {
     e.preventDefault();
     if (isFormValid()) {
-      setDocuments([...documents, currentDocument]);
+      setDocuments([
+        ...documents,
+        {
+          ...currentDocument,
+          tags: [
+            ...inputTags,
+            currentDocument.institute,
+            currentDocument.year.toString(),
+          ],
+        },
+      ]);
+
       setCurrentDocument({
         resource_url: "",
         institute: "",
         year: new Date().getFullYear(),
-        subject: "",
-        uploader_uid: "",
+        tags: [],
       });
+
+      setInputTags([]);
     }
   };
 
@@ -78,7 +92,7 @@ const DocumentForm = () => {
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
           <Paper style={{ padding: 16 }}>
-            <form onSubmit={handleAddDocument}>
+            <form>
               <TextField
                 label="Resource URL"
                 name="resource_url"
@@ -107,32 +121,33 @@ const DocumentForm = () => {
                 margin="normal"
                 required
               />
-              <FormControl fullWidth margin="normal">
-                <InputLabel>Subject</InputLabel>
-                <Select
-                  label="Subject"
-                  name="subject"
-                  value={currentDocument.subject}
-                  onChange={handleChange}
-                >
-                  {/* Replace with actual subject options */}
-                  <MenuItem value="Bangla">Bangla</MenuItem>
-                  <MenuItem value="English">English</MenuItem>
-                  <MenuItem value="Mathematics">Mathematics</MenuItem>
-                </Select>
-              </FormControl>
               <TextField
-                label="Uploader UID"
-                name="uploader_uid"
-                value={currentDocument.uploader_uid}
-                onChange={handleChange}
+                label="Tags"
+                onKeyDown={handleTagInput}
                 fullWidth
                 margin="normal"
               />
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginTop: 8,
+                }}
+              >
+                {inputTags.map((tag, index) => (
+                  <Chip
+                    key={index}
+                    label={tag}
+                    onDelete={handleTagDelete(tag)}
+                  />
+                ))}
+              </div>
               <Button
                 type="submit"
                 variant="contained"
                 color="primary"
+                onClick={handleAddDocument}
                 disabled={!isFormValid()}
               >
                 Add Document

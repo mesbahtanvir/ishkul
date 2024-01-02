@@ -4,18 +4,6 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type Subject string
 
-const (
-	Bangla        Subject = "Bangla"
-	English       Subject = "English"
-	Math          Subject = "Mathematics"
-	Science       Subject = "Science"
-	SocialScience Subject = "Scocial Science"
-	Biology       Subject = "Biology"
-	Chemistry     Subject = "Chemistry"
-	HigherMath    Subject = "Higher Mathematics"
-	Religion      Subject = "Religion"
-)
-
 type User struct {
 	ID               primitive.ObjectID `bson:"_id,omitempty"`
 	FirstName        string             `bson:"first_name"`
@@ -31,6 +19,5 @@ type Document struct {
 	ResourceURL string             `bson:"resource_url"`
 	Institute   string             `bson:"institute,omitempty"`
 	Year        int                `bson:"year,omitempty"`
-	Subject     string             `bson:"subject,omitempty"`
 	Tags        []string           `bson:"tags,omitempty"`
 }
