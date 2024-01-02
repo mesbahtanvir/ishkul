@@ -146,13 +146,10 @@ export const postDocuments = async (email, token, documents) => {
 };
 
 export const getDocuments = async (email, token, filter) => {
-  const queryString = filter?.filterModel?.quickFilterValues?.join(" ") ?? "";
-  console.log(queryString);
-
   try {
     const encodedEmail = encodeURIComponent(email);
     const encodedToken = encodeURIComponent(token);
-    const encodedQuery = encodeURIComponent(queryString);
+    const encodedQuery = encodeURIComponent(filter);
     const url = `${BASE_URL}/documents?email=${encodedEmail}&token=${encodedToken}&query=${encodedQuery}`;
     const response = await axios.get(url);
     return response.data;

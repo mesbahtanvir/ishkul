@@ -1,4 +1,6 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useEffect } from "react";
+
+import Cookies from "js-cookie";
 
 const AuthContext = createContext();
 
@@ -22,12 +24,54 @@ export function AuthProvider({ children }) {
     token
   ) => {
     setFirstName(firstName);
+    Cookies.set("firstName", JSON.stringify(firstName), { expires: 1 });
     setLastName(lastName);
+    Cookies.set("lastName", JSON.stringify(lastName), { expires: 1 });
     setEmail(email);
+    Cookies.set("email", JSON.stringify(email), { expires: 1 });
     setEmailverified(isEmailVerified);
+    Cookies.set("isEmailVerified", JSON.stringify(isEmailVerified), {
+      expires: 1,
+    });
     setLoggedInToken(token);
+    Cookies.set("token", JSON.stringify(token), {
+      expires: 1,
+    });
     setIsSignedIn(true);
+    Cookies.set("isSignedIn", JSON.stringify(true), {
+      expires: 1,
+    });
   };
+
+  useEffect(() => {
+    console.log("read from coockie");
+    const firstName = Cookies.get("firstName");
+    console.log(firstName);
+    if (firstName) {
+      setFirstName(JSON.parse(firstName));
+    }
+    const lastName = Cookies.get("lastName");
+    if (lastName) {
+      setLastName(JSON.parse(lastName));
+    }
+    const email = Cookies.get("email");
+    if (email) {
+      setFirstName(JSON.parse(email));
+    }
+    const isEmailVerified = Cookies.get("isEmailVerified");
+    if (isEmailVerified) {
+      setFirstName(JSON.parse(isEmailVerified));
+    }
+    const token = Cookies.get("token");
+    if (token) {
+      setFirstName(JSON.parse(token));
+    }
+    const isSignedIn = Cookies.get("isSignedIn");
+    console.log(isSignedIn);
+    if (isSignedIn) {
+      setIsSignedIn(JSON.parse(isSignedIn));
+    }
+  }, []);
 
   const signOut = () => {
     setFirstName("");

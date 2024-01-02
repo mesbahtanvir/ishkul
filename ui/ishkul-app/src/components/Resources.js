@@ -1,4 +1,3 @@
-import TextField from "@mui/material/TextField";
 import Pagination from "@mui/material/Pagination";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -10,7 +9,15 @@ import { useAuth } from "./AuthContext";
 import { getDocuments } from "../service/apiClient";
 import { Snackbar } from "@mui/material";
 import Alert from "./Alert";
-import { ListItemText, Paper, Typography, useTheme } from "@mui/material";
+import {
+  ListItemText,
+  TextField,
+  Paper,
+  Typography,
+  useTheme,
+} from "@mui/material";
+
+import { makeStyles } from "@mui/styles";
 
 const ParentComponent = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -26,7 +33,29 @@ const ParentComponent = () => {
     console.log(search);
     try {
       const resp = await getDocuments(email, loggedInToken, search);
-      setInitialData(resp?.data?.documents);
+      const data = [
+        { id: "1", institute: "1", year: 2103, subject: "bangla" },
+        { id: "2", institute: "2", year: 2103, subject: "bangla" },
+        { id: "3", institute: "3", year: 2103, subject: "bangla" },
+        { id: "4", institute: "4", year: 2103, subject: "bangla" },
+        { id: "5", institute: "5", year: 2103, subject: "bangla" },
+        { id: "6", institute: "6", year: 2103, subject: "bangla" },
+        { id: "7", institute: "7", year: 2103, subject: "bangla" },
+        { id: "8", institute: "8", year: 2103, subject: "bangla" },
+        { id: "9", institute: "9", year: 2103, subject: "bangla" },
+        { id: "10", institute: "Dhaka", year: 2103, subject: "bangla" },
+        { id: "12", institute: "Dhaka", year: 2103, subject: "bangla" },
+        { id: "13", institute: "Dhaka", year: 2103, subject: "bangla" },
+        { id: "14", institute: "Dhaka", year: 2103, subject: "bangla" },
+        { id: "15", institute: "15", year: 2103, subject: "bangla" },
+        { id: "16", institute: "Dhaka", year: 2103, subject: "bangla" },
+        { id: "17", institute: "Dhaka", year: 2103, subject: "bangla" },
+        { id: "18", institute: "Dhaka", year: 2103, subject: "bangla" },
+        { id: "19", institute: "20", year: 2103, subject: "bangla" },
+        { id: "20", institute: "Dhaka", year: 2103, subject: "bangla" },
+      ];
+      setInitialData(data);
+      //setInitialData(resp?.data?.documents);
       setCurrentPage(1);
     } catch (e) {
       setIsOpen(true);
@@ -44,12 +73,47 @@ const ParentComponent = () => {
     );
   };
 
+  const useStyles = makeStyles((theme) => ({
+    roundedTextField: {
+      "& .MuiOutlinedInput-root": {
+        borderRadius: 25, // Adjust the border radius for rounder corners
+        "& fieldset": {
+          borderColor:
+            theme.palette.mode === "dark"
+              ? "rgba(255, 255, 255, 0.23)"
+              : "rgba(0, 0, 0, 0.23)", // Adjusting for dark mode
+        },
+        "&:hover fieldset": {
+          borderColor:
+            theme.palette.mode === "dark" ? theme.palette.grey[500] : "black", // Border color on hover for dark mode
+        },
+        "&.Mui-focused fieldset": {
+          borderColor:
+            theme.palette.mode === "dark"
+              ? theme.palette.primary.main
+              : theme.palette.primary.main, // Border color when focused
+        },
+      },
+    },
+  }));
+
   const SearchComponent = ({ onSearchChange }) => {
+    const classes = useStyles();
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Enter") {
+        console.log(e.target.value);
+        onSearchChange(e.target.value);
+      }
+    };
+
     return (
       <TextField
         label="Search"
         variant="outlined"
-        onChange={(e) => onSearchChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        className={classes.roundedTextField} // Apply custom styles
+        // You can add more styling here if needed
       />
     );
   };
@@ -127,11 +191,11 @@ const ParentComponent = () => {
   };
 
   const GetPageCount = ({ data }) => {
-    if (!data?.length) {
+    if (!initialData?.length) {
       return 1;
     }
-    var len = data.length / 10;
-    if (data.length % 10 !== 0) {
+    var len = Math.floor(initialData.length / 10);
+    if (initialData.length % 10 !== 0) {
       len = len + 1;
     }
     return len;
