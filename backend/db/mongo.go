@@ -148,11 +148,15 @@ func (db *DocumentDatabase) GetDocuments(ctx context.Context) ([]model.Document,
 	return documents, nil
 }
 
-func (db *DocumentDatabase) FindDocumentByID(ctx context.Context, id primitive.ObjectID) (model.Document, error) {
-	filter := bson.D{{Key: "_id", Value: id}}
-	var result model.Document
-	err := db.collection.FindOne(ctx, filter).Decode(&result)
+func (db *DocumentDatabase) FindDocumentByID(ctx context.Context, id string) (model.Document, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
+		zap.L().Warn("Error converting hex to ObjectID:", zap.Error(err))
+		return model.Document{}, err
+	}
+	filter := bson.D{{Key: "_id", Value: objectID}}
+	var result model.Document
+	if err := db.collection.FindOne(ctx, filter).Decode(&result); err != nil {
 		zap.L().Error("error", zap.Error(err))
 		return model.Document{}, err
 	}

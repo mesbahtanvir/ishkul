@@ -9,6 +9,7 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
+  // TODO refactor this to make it readable and maintainable
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [loggedInToken, setLoggedInToken] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -56,15 +57,15 @@ export function AuthProvider({ children }) {
     }
     const email = Cookies.get("email");
     if (email) {
-      setFirstName(JSON.parse(email));
+      setEmail(JSON.parse(email));
     }
     const isEmailVerified = Cookies.get("isEmailVerified");
     if (isEmailVerified) {
-      setFirstName(JSON.parse(isEmailVerified));
+      setEmailverified(JSON.parse(isEmailVerified));
     }
     const token = Cookies.get("token");
     if (token) {
-      setFirstName(JSON.parse(token));
+      setLoggedInToken(JSON.parse(token));
     }
     const isSignedIn = Cookies.get("isSignedIn");
     console.log(isSignedIn);

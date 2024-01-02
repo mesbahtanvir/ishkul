@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
@@ -40,21 +39,21 @@ type SearchDocumentResponse struct {
 }
 
 type GetDocumentRequest struct {
-	Token string             `json:"token" form:"token"`
-	Email string             `json:"email" form:"email"`
-	ID    primitive.ObjectID `json:"id" form:"id"`
+	Token string `json:"token" form:"token"`
+	Email string `json:"email" form:"email"`
+	ID    string `json:"id" form:"id"`
 }
 type GetDocumentResponse struct {
-	ID          primitive.ObjectID `json:"id" form:"id"`
-	ResourceURL string             `json:"resource_url" form:"resource_url"`
-	Institute   string             `json:"institute" form:"institute"`
-	Year        int                `json:"year" form:"year"`
-	Subject     string             `json:"subject" form:"subject"`
+	ID          string `json:"id" form:"id"`
+	ResourceURL string `json:"resource_url" form:"resource_url"`
+	Institute   string `json:"institute" form:"institute"`
+	Year        int    `json:"year" form:"year"`
+	Subject     string `json:"subject" form:"subject"`
 }
 
 type DocumentDatabase interface {
 	AddDocument(ctx context.Context, documents []model.Document) error
-	FindDocumentByID(ctx context.Context, id primitive.ObjectID) (model.Document, error)
+	FindDocumentByID(ctx context.Context, id string) (model.Document, error)
 	SearchDocument(ctx context.Context, query string) ([]model.Document, error)
 	GetDocuments(ctx context.Context) ([]model.Document, error)
 }
@@ -134,7 +133,7 @@ func HandleGetDocument(ctx context.Context, storage DocumentLimitStorage, docdb 
 		return GetDocumentResponse{}, err
 	}
 	return GetDocumentResponse{
-		ID:          doc.ID,
+		ID:          doc.ID.Hex(),
 		ResourceURL: doc.ResourceURL,
 		Institute:   doc.Institute,
 		Year:        doc.Year,
