@@ -45,6 +45,20 @@ const ParentComponent = () => {
     }
   };
 
+  useEffect(() => {
+    const loadFirstTime = async () => {
+      try {
+        const resp = await getDocuments(email, loggedInToken, "");
+        setInitialData(resp?.data?.documents || []);
+        setCurrentPage(1);
+      } catch (e) {
+        setIsOpen(true);
+        setMessage("Please log in first");
+      }
+    };
+    loadFirstTime();
+  }, [email, loggedInToken]);
+
   const handleClick = async ({ id }) => {
     if (selectedItemDetails && selectedItemDetails.id === id) {
       setSelectedItemDetails(null); // Hide details if the same item is clicked
