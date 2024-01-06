@@ -9,9 +9,8 @@ import (
 )
 
 type AddDocumentRequest struct {
-	Token          string `json:"token" form:"token"`
-	RequestorEmail string `json:"email" form:"email"`
-	Documents      []struct {
+	Token     string `json:"token" form:"token"`
+	Documents []struct {
 		ID          string   `json:"id,omitempty" form:"id"`
 		ResourceURL string   `json:"resource_url" form:"resource_url"`
 		Institute   string   `json:"institute" form:"institute"`
@@ -21,12 +20,25 @@ type AddDocumentRequest struct {
 	} `json:"documents" form:"documents"`
 }
 
+func (a *AddDocumentRequest) Validate() error {
+	if a.Token == "" {
+		return ErrParamTokenIsRequired
+	}
+	return nil
+}
+
 type AddDocumentResponse struct{}
 
 type SearchDocumentRequest struct {
 	Token string `json:"token" form:"token"`
-	Email string `json:"email" form:"email"`
 	Query string `json:"query" form:"query"`
+}
+
+func (a *SearchDocumentRequest) Validate() error {
+	if a.Token == "" {
+		return ErrParamTokenIsRequired
+	}
+	return nil
 }
 
 type SearchDocumentResponse struct {
@@ -40,9 +52,19 @@ type SearchDocumentResponse struct {
 
 type GetDocumentRequest struct {
 	Token string `json:"token" form:"token"`
-	Email string `json:"email" form:"email"`
 	ID    string `json:"id" form:"id"`
 }
+
+func (a *GetDocumentRequest) Validate() error {
+	if a.Token == "" {
+		return ErrParamTokenIsRequired
+	}
+	if a.ID == "" {
+		return ErrParamIdIsRequired
+	}
+	return nil
+}
+
 type GetDocumentResponse struct {
 	ID          string   `json:"id" form:"id"`
 	ResourceURL string   `json:"resource_url" form:"resource_url"`
@@ -62,11 +84,16 @@ type DocumentLimitStorage interface {
 	IncrUserResourceRequest(ctx context.Context, endpoint string, userID string, limit int64) error
 }
 
-func HandleAddDocument(ctx context.Context, userdb UserDatabase, docdb DocumentDatabase, req AddDocumentRequest) (AddDocumentResponse, error) {
-	if err := utils.IsAuthenticatedAdmin(req.RequestorEmail, req.Token); err != nil {
-		zap.L().Info("Reject as user not admin", zap.Error(err))
-		return AddDocumentResponse{}, nil
+func HandleAddDocument(ctx context.Context, docdb DocumentDatabase, req AddDocumentRequest) (AddDocumentResponse, error) {
+	if err := req.Validate(); err != nil {
+		return AddDocumentResponse{}, err
 	}
+
+	if err := utils.IsAuthenticatedAdmin(req.Token); err != nil {
+		zap.L().Info("Reject as user not admin", zap.Error(err))
+		return AddDocumentResponse{}, err
+	}
+
 	docs := make([]model.Document, len(req.Documents))
 	for i := 0; i < len(req.Documents); i++ {
 		docs[i] = model.Document{
@@ -83,7 +110,10 @@ func HandleAddDocument(ctx context.Context, userdb UserDatabase, docdb DocumentD
 }
 
 func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req SearchDocumentRequest) (SearchDocumentResponse, error) {
-	if err := utils.IsAuthenticatedUser(req.Email, req.Token); err != nil {
+	if err := req.Validate(); err != nil {
+		return SearchDocumentResponse{}, err
+	}
+	if _, err := utils.IsAuthenticatedUser(req.Token); err != nil {
 		zap.L().Info("User not authenticated", zap.Error(err))
 		return SearchDocumentResponse{}, err
 	}
@@ -115,14 +145,18 @@ func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req Searc
 }
 
 func HandleGetDocument(ctx context.Context, storage DocumentLimitStorage, docdb DocumentDatabase, req GetDocumentRequest) (GetDocumentResponse, error) {
-	if err := utils.IsAuthenticatedUser(req.Email, req.Token); err != nil {
+	if err := req.Validate(); err != nil {
+		return GetDocumentResponse{}, err
+	}
+	claims, err := utils.IsAuthenticatedUser(req.Token)
+	if err != nil {
 		zap.L().Info("User not authenticated", zap.Error(err))
 		return GetDocumentResponse{}, err
 	}
 
-	if err := utils.IsAuthenticatedAdmin(req.Email, req.Token); err != nil {
+	if err := utils.IsAuthenticatedAdmin(req.Token); err != nil {
 		zap.L().Info("User not admit checking resource limit", zap.Any("req", req))
-		if err := storage.IncrUserResourceRequest(ctx, "get/document", req.Email, 100); err != nil {
+		if err := storage.IncrUserResourceRequest(ctx, "get/document", claims.Email, 100); err != nil {
 			zap.L().Warn("user has been rejected from viewing the resource")
 			return GetDocumentResponse{}, err
 		}

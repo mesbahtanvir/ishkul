@@ -20,54 +20,50 @@ type VerifyAccountResponse struct {
 
 func (r VerifyAccountRequest) Validate() error {
 	if r.Email == "" {
-		return &ErrHandlerBadParam{Msg: "Must provide email address"}
+		return ErrParamEmailIsRequired
 	}
 	if r.Code == "" {
-		return &ErrHandlerBadParam{Msg: "Must provide a code"}
+		return ErrParamCodeIsRequired
 	}
 	return nil
 }
 
-func HandleVerifyAccount(ctx context.Context, storage AccountStorage, db UserDatabase, req VerifyAccountRequest) (resp VerifyAccountResponse, err error) {
+func HandleVerifyAccount(ctx context.Context, accountStorage AccountStorage, userDatabase UserDatabase, req VerifyAccountRequest) (resp VerifyAccountResponse, err error) {
 	if err := req.Validate(); err != nil {
 		zap.L().Error("error", zap.Error(err))
 		return VerifyAccountResponse{}, err
 	}
-	user, err := db.FindUserByEmail(ctx, req.Email)
+	user, err := userDatabase.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		zap.L().Error("error", zap.Error(err))
-		return VerifyAccountResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exist this email"}
+		return VerifyAccountResponse{}, ErrUserEmailDoesNotExist
 	}
-	expected_code, err := storage.RetriveAccountRecoveryKey(ctx, user.Email)
+	expected_code, err := accountStorage.RetriveAccountRecoveryKey(ctx, user.Email)
 	if err != nil {
 		zap.L().Error("error", zap.Error(err))
 		return VerifyAccountResponse{}, err
 	}
 	if expected_code != req.Code {
 		zap.L().Info("code mistmatched", zap.String("expected", expected_code), zap.String("code", req.Code))
-		return VerifyAccountResponse{}, &ErrHandlerBadParam{"Invalid code provided"}
+		return VerifyAccountResponse{}, ErrUserInvalidCodeProvided
 	}
 
-	if err := storage.RemoveAccountRecoveryKey(ctx, user.Email); err != nil {
+	if err := accountStorage.RemoveAccountRecoveryKey(ctx, user.Email); err != nil {
 		zap.L().Error("error", zap.Error(err))
 		return VerifyAccountResponse{}, err
 	}
 
 	user.EmailVerified = true
-	if err := db.UpdateUser(ctx, user); err != nil {
+	if err := userDatabase.UpdateUser(ctx, user); err != nil {
 		zap.L().Error("error", zap.Error(err))
-		return VerifyAccountResponse{}, err
+		return VerifyAccountResponse{}, ErrInternalFailedToUpdateDatabase
 	}
 
-	token, err := utils.EncodeJWTToken(user.Email, user.EmailVerified)
+	token, err := utils.EncodeJWTToken(user)
 	if err != nil {
 		zap.L().Error("failed to encode json", zap.Error(err))
 		return VerifyAccountResponse{}, err
 	}
-	resp.FirstName = user.FirstName
-	resp.LastName = user.LastName
-	resp.Email = user.Email
-	resp.EmailVerified = user.EmailVerified
 	resp.Token = token
 	return resp, nil
 }

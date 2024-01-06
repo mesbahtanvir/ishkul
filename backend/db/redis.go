@@ -51,11 +51,11 @@ func (g *GlobalStorage) RetriveAccountRecoveryKey(ctx context.Context, userID st
 	code, err := g.client.Get(ctx, getVerifyRedisKey(userID)).Result()
 	if errors.Is(err, redis.Nil) {
 		zap.L().Info("error", zap.Error(err))
-		return "", &ErrKeyNotFound{Msg: "code not found"}
+		return "", ErrRedisKeyNotFound
 	}
 	if err != nil {
 		zap.L().Info("error", zap.Error(err))
-		return "", err
+		return "", ErrInternalRedisOperation
 	}
 	return code, nil
 }
@@ -63,15 +63,15 @@ func (g *GlobalStorage) RetriveAccountRecoveryKey(ctx context.Context, userID st
 func (g *GlobalStorage) RemoveAccountRecoveryKey(ctx context.Context, userID string) error {
 	res, err := g.client.Del(ctx, getVerifyRedisKey(userID)).Result()
 	if errors.Is(err, redis.Nil) {
-		zap.L().Info("A key suppose to get deleted but it did not")
+		zap.L().Warn("A key suppose to get deleted but it did not")
 		return nil
 	}
 	if err != nil {
-		fmt.Printf("Redis error occured %e\n", err)
+		zap.L().Warn("A key suppose to get deleted but it did not", zap.Error(err))
 		return nil
 	}
 	if res > 1 {
-		fmt.Printf("Only one key suppose to get deleted but deleted: %d\n", res)
+		zap.L().Warn(fmt.Sprintf("Only one key suppose to get deleted but deleted: %d\n", res))
 		return nil
 	}
 	return nil
@@ -83,7 +83,7 @@ func (g *GlobalStorage) IncrUserResourceRequest(ctx context.Context, endpoint st
 	val, err := g.client.Incr(ctx, key).Result()
 	if err != nil {
 		zap.L().Error("Error incrementing key:", zap.String("key", key), zap.Error(err))
-		return nil //errors.New("you've reached your limit for today")
+		return ErrReachedDocViewLimit
 	}
 	if val == 1 {
 		if _, err = g.client.Expire(ctx, key, time.Hour*24).Result(); err != nil {
@@ -94,7 +94,7 @@ func (g *GlobalStorage) IncrUserResourceRequest(ctx context.Context, endpoint st
 		if _, err := g.client.Decr(ctx, key).Result(); err != nil {
 			zap.L().Error("Error incrementing key:", zap.String("key", key), zap.Error(err))
 		}
-		return errors.New("you've reached your limit for today")
+		return ErrReachedDocViewLimit
 	}
 	return nil
 }

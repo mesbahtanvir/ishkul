@@ -22,7 +22,7 @@ func GinHandleRegister(userDatabase handler.UserDatabase) func(*gin.Context) {
 		resp, err := handler.HandleRegister(ctx, userDatabase, req)
 		if err != nil {
 			zap.L().Error("error", zap.Error(err))
-			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
 		}
@@ -39,7 +39,7 @@ func GinHandleLogin(userDatabase handler.UserDatabase) func(*gin.Context) {
 		}
 		resp, err := handler.HandleLogin(ctx, userDatabase, req)
 		if err != nil {
-			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
 		}
@@ -59,7 +59,7 @@ func GinHandleSendVerificationCode(storage handler.AccountStorage, userDatabase 
 		resp, err := handler.HandleSendVerificationCode(ctx, storage, userDatabase, req)
 		if err != nil {
 			zap.L().Error("error", zap.Error(err))
-			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
 		}
@@ -79,7 +79,7 @@ func GinHandleVerifyAccount(storage handler.AccountStorage, userDatabase handler
 		resp, err := handler.HandleVerifyAccount(ctx, storage, userDatabase, req)
 		if err != nil {
 			zap.L().Error("error", zap.Error(err))
-			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
 		}
@@ -99,7 +99,7 @@ func GinHandleChangePassword(storage handler.AccountStorage, userDatabase handle
 		resp, err := handler.HandleChangePassword(ctx, userDatabase, req)
 		if err != nil {
 			zap.L().Error("error", zap.Error(err))
-			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
 		}
@@ -120,7 +120,7 @@ func GinHandlePostDocuments(userDatabase handler.UserDatabase, documentDatabase 
 		resp, err := handler.HandleAddDocument(ctx, userDatabase, documentDatabase, req)
 		if err != nil {
 			zap.L().Error("error", zap.Error(err))
-			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
 		}
@@ -140,7 +140,7 @@ func GinHandleGetDocument(storage handler.DocumentLimitStorage, userDatabase han
 		resp, err := handler.HandleGetDocument(ctx, storage, documentDatabase, req)
 		if err != nil {
 			zap.L().Error("error", zap.Error(err))
-			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
 		}
@@ -160,7 +160,7 @@ func GinHandleGetDocuments(userDatabase handler.UserDatabase, documentDatabase h
 		resp, err := handler.HandleSearchDocument(ctx, documentDatabase, req)
 		if err != nil {
 			zap.L().Error("error", zap.Error(err))
-			ctx.JSON(handler.ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
 		}

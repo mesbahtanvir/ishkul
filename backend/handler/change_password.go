@@ -6,13 +6,15 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"ishkul.org/backend/utils"
 )
 
 type ChangePasswordRequest struct {
 	Email       string `json:"email"`
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
 	Token       string `json:"token"`
-	NewPassword string `json:"password"`
 }
 
 type ChangePasswordResponse struct {
@@ -21,38 +23,50 @@ type ChangePasswordResponse struct {
 
 func (r ChangePasswordRequest) Validate() error {
 	if r.Email == "" {
-		return &ErrHandlerBadParam{Msg: "Must provide a email address"}
+		return ErrParamEmailIsRequired
 	}
-	if r.Token == "" {
-		return &ErrHandlerBadParam{Msg: "Must provide a token"}
+	if r.OldPassword == "" {
+		return ErrParamOldPasswordIsRequired
 	}
 	if r.NewPassword == "" {
-		return &ErrHandlerBadParam{Msg: "Must provide a password"}
+		return ErrParamPasswordIsRequired
+	}
+	if r.Token == "" {
+		return ErrParamTokenIsRequired
 	}
 	return nil
 }
 
-func HandleChangePassword(ctx context.Context, db UserDatabase, req ChangePasswordRequest) (resp ChangePasswordResponse, err error) {
+func HandleChangePassword(ctx context.Context, db UserDatabase, req ChangePasswordRequest) (ChangePasswordResponse, error) {
 	if err := req.Validate(); err != nil {
 		zap.L().Error("error", zap.Error(err))
 		return ChangePasswordResponse{}, err
 	}
-	if !utils.ValidateVerifiedUserToken(req.Email, req.Token) {
-		return ChangePasswordResponse{}, &ErrAuthenticationFailure{"Invalid Credentials or email not verified"}
+	if err := utils.ValidateVerifiedUserEmail(req.Email, req.Token); err != nil {
+		return ChangePasswordResponse{}, err
 	}
 	user, err := db.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return ChangePasswordResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exist with this email"}
+		return ChangePasswordResponse{}, ErrUserEmailDoesNotExist
 	}
+
+	if err != nil {
+		return ChangePasswordResponse{}, ErrInternalFailedToRetriveFromDatabase
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.OldPassword)); err != nil {
+		return ChangePasswordResponse{}, ErrUserProvidedPasswordDidntMatchTheRecord
+	}
+
 	hash, err := utils.HashPassword(req.NewPassword)
 	if err != nil {
 		zap.L().Error("error", zap.Error(err))
-		return ChangePasswordResponse{}, errors.New("internal server error")
+		return ChangePasswordResponse{}, ErrInternalFailedToGenerateHash
 	}
 
 	user.PasswordHash = hash
 
-	token, err := utils.EncodeJWTToken(user.Email, user.EmailVerified)
+	token, err := utils.EncodeJWTToken(user)
 	if err != nil {
 		zap.L().Error("error", zap.Error(err))
 		return ChangePasswordResponse{}, err
@@ -60,13 +74,9 @@ func HandleChangePassword(ctx context.Context, db UserDatabase, req ChangePasswo
 
 	if err := db.UpdateUser(ctx, user); err != nil {
 		zap.L().Error("error", zap.Error(err))
-		return ChangePasswordResponse{}, err
+		return ChangePasswordResponse{}, ErrInternalFailedToUpdateDatabase
 	}
-
-	resp.FirstName = user.FirstName
-	resp.LastName = user.LastName
-	resp.Email = user.Email
-	resp.Token = token
-	resp.EmailVerified = user.EmailVerified
-	return resp, nil
+	return ChangePasswordResponse{
+		LoginResponse: LoginResponse{Token: token},
+	}, nil
 }

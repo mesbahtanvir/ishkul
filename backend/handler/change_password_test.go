@@ -4,13 +4,14 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
-	"ishkul.org/backend/db"
 	"ishkul.org/backend/handler/mock"
 	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
@@ -19,49 +20,82 @@ import (
 func TestChangePassword_Validate(t *testing.T) {
 	type fields struct {
 		Email       string
-		Token       string
+		OldPassword string
 		NewPassword string
+		Token       string
 	}
 	tests := []struct {
 		name    string
 		fields  fields
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name: "When email is empty Then return error",
 			fields: fields{
 				Email:       "",
-				Token:       "",
 				NewPassword: "",
+				Token:       "",
 			},
-			wantErr: true,
+			wantErr: ErrParamEmailIsRequired,
 		},
 		{
-			name: "When email is not empty Then return no error",
+			name: "When old passwrod is not empty Then return  error",
 			fields: fields{
 				Email:       "a",
-				Token:       "b",
+				OldPassword: "",
 				NewPassword: "c",
+				Token:       "b",
 			},
-			wantErr: false,
+			wantErr: ErrParamOldPasswordIsRequired,
+		},
+		{
+			name: "When passwrod is empty Then return ",
+			fields: fields{
+				Email:       "a",
+				OldPassword: "c",
+				NewPassword: "",
+				Token:       "",
+			},
+			wantErr: ErrParamPasswordIsRequired,
+		},
+		{
+			name: "When token is empty Then return ",
+			fields: fields{
+				Email:       "a",
+				OldPassword: "c",
+				NewPassword: "d",
+				Token:       "",
+			},
+			wantErr: ErrParamTokenIsRequired,
+		},
+		{
+			name: "When  everything is passed Then return no error",
+			fields: fields{
+				Email:       "a",
+				OldPassword: "c",
+				NewPassword: "d",
+				Token:       "t",
+			},
+			wantErr: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := ChangePasswordRequest{
 				Email:       tt.fields.Email,
-				Token:       tt.fields.Token,
+				OldPassword: tt.fields.OldPassword,
 				NewPassword: tt.fields.NewPassword,
+				Token:       tt.fields.Token,
 			}
-			if err := r.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("LoginRequest.Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := r.Validate()
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
 
 func TestHandleChangePassword(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
 	type args struct {
 		ctx context.Context
@@ -71,19 +105,21 @@ func TestHandleChangePassword(t *testing.T) {
 
 	var (
 		ctx                       = context.Background()
-		password                  = "password"
-		valid_unverified_token, _ = utils.EncodeJWTToken("mesbah@tanvir.com", false)
-		valid_verified_token, _   = utils.EncodeJWTToken("mesbah@tanvir.com", true)
+		old_password              = "old_password"
+		new_password              = "new_password"
+		old_password_hash, _      = utils.HashPassword(old_password)
+		valid_unverified_token, _ = utils.EncodeJWTToken(model.User{Email: "mesbah@tanvir.com", EmailVerified: false})
+		valid_verified_token, _   = utils.EncodeJWTToken(model.User{Email: "mesbah@tanvir.com", EmailVerified: true})
 
 		invalid_token = "2342345"
 		new_passowrd  = "123"
 	)
 
 	tests := []struct {
-		name    string
-		args    args
-		want    ChangePasswordResponse
-		wantErr bool
+		name string
+		args args
+		want ChangePasswordResponse
+		err  error
 	}{
 		{
 			name: "When invalid input Then return Error",
@@ -95,12 +131,13 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					Token:       "",
+					OldPassword: "pass",
 					NewPassword: new_passowrd,
+					Token:       "",
 				},
 			},
-			want:    ChangePasswordResponse{},
-			wantErr: true,
+			want: ChangePasswordResponse{},
+			err:  ErrParamTokenIsRequired,
 		},
 		{
 			name: "When Invalid token Then return error",
@@ -112,12 +149,13 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					Token:       invalid_token,
+					OldPassword: old_password,
 					NewPassword: new_passowrd,
+					Token:       invalid_token,
 				},
 			},
-			want:    ChangePasswordResponse{},
-			wantErr: true,
+			want: ChangePasswordResponse{},
+			err:  utils.ErrUserTokenIsInvalid,
 		},
 		{
 			name: "When user unverified Then return Error",
@@ -129,15 +167,16 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
+					OldPassword: old_password,
+					NewPassword: new_password,
 					Token:       valid_unverified_token,
-					NewPassword: new_passowrd,
 				},
 			},
-			want:    ChangePasswordResponse{},
-			wantErr: true,
+			want: ChangePasswordResponse{},
+			err:  utils.ErrUserUnverified,
 		},
 		{
-			name: "When error from database Then return Error",
+			name: "When no document error from database Then return Error",
 			args: args{
 				ctx: ctx,
 				db: func() UserDatabase {
@@ -152,14 +191,63 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
+					OldPassword: old_password,
+					NewPassword: new_password,
 					Token:       valid_verified_token,
-					NewPassword: new_passowrd,
 				},
 			},
-			want:    ChangePasswordResponse{},
-			wantErr: true,
+			want: ChangePasswordResponse{},
+			err:  ErrUserEmailDoesNotExist,
+		},
+		{
+			name: "When unknown error from database Then return Error",
+			args: args{
+				ctx: ctx,
+				db: func() UserDatabase {
+					mockedDB := mock.NewMockUserDatabase(ctrl)
+					gomock.InOrder(
+						mockedDB.EXPECT().
+							FindUserByEmail(ctx, "mesbah@tanvir.com").
+							Return(model.User{}, errors.New("error")).
+							Times(1),
+					)
+					return mockedDB
+				}(),
+				req: ChangePasswordRequest{
+					Email:       "mesbah@tanvir.com",
+					OldPassword: old_password,
+					NewPassword: new_password,
+					Token:       valid_verified_token,
+				},
+			},
+			want: ChangePasswordResponse{},
+			err:  ErrInternalFailedToRetriveFromDatabase,
 		},
 
+		{
+			name: "When old password fail to match Then return Error",
+			args: args{
+				ctx: ctx,
+				db: func() UserDatabase {
+					mockedDB := mock.NewMockUserDatabase(ctrl)
+					gomock.InOrder(
+						mockedDB.EXPECT().
+							FindUserByEmail(ctx, "mesbah@tanvir.com").
+							Return(model.User{FirstName: "mesbah", LastName: "tanvir", Email: "mesbah@tanvir.com", PasswordHash: "wrong_hash"}, nil).
+							Times(1),
+					)
+					return mockedDB
+				}(),
+				req: ChangePasswordRequest{
+					Email:       "mesbah@tanvir.com",
+					OldPassword: old_password,
+					NewPassword: new_password,
+					Token:       valid_verified_token,
+				},
+			},
+			want: ChangePasswordResponse{},
+			err:  ErrUserProvidedPasswordDidntMatchTheRecord,
+		},
 		{
 			name: "When update user failed Then return error",
 			args: args{
@@ -169,26 +257,27 @@ func TestHandleChangePassword(t *testing.T) {
 					gomock.InOrder(
 						mockedDB.EXPECT().
 							FindUserByEmail(ctx, "mesbah@tanvir.com").
-							Return(model.User{FirstName: "mesbah", LastName: "tanvir", Email: "mesbah@tanvir.com", PasswordHash: "passwordhash"}, nil).
+							Return(model.User{FirstName: "mesbah", LastName: "tanvir", Email: "mesbah@tanvir.com", PasswordHash: old_password_hash}, nil).
 							Times(1),
 						mockedDB.EXPECT().
 							UpdateUser(ctx, gomock.Any()).
-							Return(&db.ErrKeyNotFound{}).
+							Return(errors.New("not found")).
 							Times(1),
 					)
 					return mockedDB
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
+					OldPassword: old_password,
+					NewPassword: new_password,
 					Token:       valid_verified_token,
-					NewPassword: password,
 				},
 			},
-			want:    ChangePasswordResponse{},
-			wantErr: true,
+			want: ChangePasswordResponse{},
+			err:  ErrInternalFailedToUpdateDatabase,
 		},
 		{
-			name: "When token matched and things arer stored Then return token",
+			name: "When token matched and things are stored Then return token",
 			args: args{
 				ctx: ctx,
 				db: func() UserDatabase {
@@ -196,7 +285,7 @@ func TestHandleChangePassword(t *testing.T) {
 					gomock.InOrder(
 						mockedDB.EXPECT().
 							FindUserByEmail(ctx, "mesbah@tanvir.com").
-							Return(model.User{FirstName: "mesbah", LastName: "tanvir", Email: "mesbah@tanvir.com", PasswordHash: "passwordhash"}, nil).
+							Return(model.User{FirstName: "mesbah", LastName: "tanvir", Email: "mesbah@tanvir.com", PasswordHash: old_password_hash}, nil).
 							Times(1),
 						mockedDB.EXPECT().
 							UpdateUser(ctx, gomock.Any()).
@@ -207,28 +296,23 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
+					OldPassword: old_password,
+					NewPassword: new_password,
 					Token:       valid_verified_token,
-					NewPassword: password,
 				},
 			},
 			want: ChangePasswordResponse{
 				LoginResponse: LoginResponse{
-					FirstName: "mesbah",
-					LastName:  "tanvir",
-					Email:     "mesbah@tanvir.com",
-					Token:     "pass",
+					Token: "pass",
 				},
 			},
-			wantErr: false,
+			err: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := HandleChangePassword(tt.args.ctx, tt.args.db, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("HandleChangePassword() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			assert.ErrorIs(t, err, tt.err)
 			if !cmp.Equal(tt.want, got, cmpopts.IgnoreFields(LoginResponse{}, "Token")) {
 				t.Errorf("FuncUnderTest() mismatch")
 			}

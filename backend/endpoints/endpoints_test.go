@@ -10,63 +10,71 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
+	"ishkul.org/backend/handler"
 	"ishkul.org/backend/handler/mock"
+	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
 )
 
 func TestGinHandleGetDocuments(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-
-	// Mock the dependencies
 	userDbMock := mock.NewMockUserDatabase(ctrl)
 	docDbMock := mock.NewMockDocumentDatabase(ctrl)
 	docDbMock.EXPECT().SearchDocument(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	docDbMock.EXPECT().GetDocuments(gomock.Any()).Return(nil, nil).AnyTimes()
-	// Setup the Gin router and handler
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
 	router.GET("/documents", GinHandleGetDocuments(userDbMock, docDbMock))
-	email := "mesbah.tanvir.cs@gmail.com"
-	token, _ := utils.EncodeJWTToken(email, true)
-	encodedEmail := url.QueryEscape(email)
-	encodedToken := url.QueryEscape(token)
-	query := fmt.Sprintf("email=%s&token=%s", encodedEmail, encodedToken)
 
-	// Define your test cases
+	var (
+		email        = "mesbah.tanvir.cs@gmail.com"
+		token, _     = utils.EncodeJWTToken(model.User{Email: email, EmailVerified: true})
+		encodedEmail = url.QueryEscape(email)
+		encodedToken = url.QueryEscape(token)
+		query        = fmt.Sprintf("email=%s&token=%s", encodedEmail, encodedToken)
+	)
+
 	tests := []struct {
-		name         string
-		requestQuery string
-		expectedCode int
+		name                   string
+		mockedUserDatabase     handler.UserDatabase
+		mockedDocumentDatabase handler.DocumentDatabase
+		requestQuery           string
+		expectedCode           int
 	}{
 		{
-			name:         "ValidRequest",
+			name: "Valid Request",
+			mockedUserDatabase: func() handler.UserDatabase {
+				userDB := mock.NewMockUserDatabase(ctrl)
+				return userDB
+			}(),
+			mockedDocumentDatabase: func() handler.DocumentDatabase {
+				documentDB := mock.NewMockDocumentDatabase(ctrl)
+				documentDB.EXPECT().SearchDocument(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+				documentDB.EXPECT().GetDocuments(gomock.Any()).Return(nil, nil).AnyTimes()
+				return documentDB
+			}(),
+
 			requestQuery: query,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "InvalidRequest",
 			requestQuery: "",
-			expectedCode: http.StatusBadRequest, // ok beacause we are returning empty data in the case of invalid query
+			expectedCode: http.StatusBadRequest,
 		},
-		// Add more test cases as needed
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// Create a request to our handler
 			req, _ := http.NewRequest("GET", "/documents?"+tc.requestQuery, nil)
 			resp := httptest.NewRecorder()
 
-			// Perform the request
 			router.ServeHTTP(resp, req)
 
-			// Check the status code
 			if resp.Code != tc.expectedCode {
 				t.Errorf("Expected status code %d, got %d", tc.expectedCode, resp.Code)
 			}
-
-			// Add more assertions as needed
 		})
 	}
 }
@@ -83,7 +91,7 @@ func TestGinHandlePostDocuments(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
 	router.POST("/documents", GinHandlePostDocuments(userDbMock, docDbMock))
-	token, _ := utils.EncodeJWTToken("mesbah.tanvir.cs@gmail.com", true)
+	token, _ := utils.EncodeJWTToken(model.User{Email: "mesbah.tanvir.cs@gmail.com", EmailVerified: true})
 
 	tests := []struct {
 		name         string

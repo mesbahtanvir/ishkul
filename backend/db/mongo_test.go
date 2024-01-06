@@ -17,11 +17,11 @@ func TestAddUser(t *testing.T) {
 	defer ctrl.Finish()
 
 	type TestCase struct {
-		name       string
-		ctx        context.Context
-		user       model.User
-		mocked     MongoCollectionInterface
-		expect_err error
+		name    string
+		ctx     context.Context
+		user    model.User
+		mocked  MongoCollectionInterface
+		wantErr error
 	}
 
 	testCases := []TestCase{
@@ -34,7 +34,7 @@ func TestAddUser(t *testing.T) {
 				mockCollection.EXPECT().InsertOne(context.Background(), model.User{}).Return(nil, nil).Times(1)
 				return mockCollection
 			}(),
-			expect_err: nil,
+			wantErr: nil,
 		},
 		{
 			name: "When error from db Then return error",
@@ -45,7 +45,7 @@ func TestAddUser(t *testing.T) {
 				mockCollection.EXPECT().InsertOne(context.Background(), model.User{}).Return(nil, mongo.ErrNoDocuments).Times(1)
 				return mockCollection
 			}(),
-			expect_err: mongo.ErrNoDocuments,
+			wantErr: mongo.ErrNoDocuments,
 		},
 	}
 
@@ -53,7 +53,7 @@ func TestAddUser(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			userDatabase := UserDatabase{collection: tc.mocked}
 			err := userDatabase.AddUser(tc.ctx, tc.user)
-			assert.Equal(t, tc.expect_err, err)
+			assert.Equal(t, tc.wantErr, err)
 
 		})
 
@@ -66,12 +66,12 @@ func TestFingUserByEmail(t *testing.T) {
 	defer ctrl.Finish()
 
 	type TestCase struct {
-		name        string
-		ctx         context.Context
-		email       string
-		mocked      MongoCollectionInterface
-		expect_user model.User
-		expect_err  error
+		name     string
+		ctx      context.Context
+		email    string
+		mocked   MongoCollectionInterface
+		wantUser model.User
+		wantErr  error
 	}
 
 	testCases := []TestCase{
@@ -86,8 +86,8 @@ func TestFingUserByEmail(t *testing.T) {
 				).Return(mongo.NewSingleResultFromDocument(model.User{}, nil, nil)).Times(1)
 				return mockCollection
 			}(),
-			expect_user: model.User{},
-			expect_err:  nil,
+			wantUser: model.User{},
+			wantErr:  nil,
 		},
 		{
 			name:  "When error from db Then return error",
@@ -100,8 +100,8 @@ func TestFingUserByEmail(t *testing.T) {
 				).Times(1)
 				return mockCollection
 			}(),
-			expect_user: model.User{},
-			expect_err:  mongo.ErrNoDocuments,
+			wantUser: model.User{},
+			wantErr:  mongo.ErrNoDocuments,
 		},
 	}
 
@@ -109,8 +109,8 @@ func TestFingUserByEmail(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			userDatabase := UserDatabase{collection: tc.mocked}
 			user, err := userDatabase.FindUserByEmail(tc.ctx, tc.email)
-			assert.Equal(t, tc.expect_err, err)
-			assert.Equal(t, tc.expect_user, user)
+			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.wantUser, user)
 
 		})
 

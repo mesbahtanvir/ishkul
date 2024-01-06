@@ -24,7 +24,7 @@ type AccountStorage interface {
 
 func (r SendVerificationCodeRequest) Validate() error {
 	if r.Email == "" {
-		return &ErrHandlerBadParam{Msg: "Must provide email address"}
+		return ErrParamEmailIsRequired
 	}
 	return nil
 }
@@ -35,7 +35,7 @@ func HandleSendVerificationCode(ctx context.Context, storage AccountStorage, db 
 	}
 	user, err := db.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return SendVerificationCodeResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exist this email"}
+		return SendVerificationCodeResponse{}, ErrUserEmailDoesNotExist
 	}
 	recovery_code := utils.GenerateRandomVerificationCode()
 	// TODO Send the code to ther user

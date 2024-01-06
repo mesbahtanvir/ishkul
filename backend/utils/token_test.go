@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"ishkul.org/backend/model"
 )
 
 func TestGetJWTToken(t *testing.T) {
@@ -21,7 +22,7 @@ func TestGetJWTToken(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			token, err := EncodeJWTToken(tc.email, tc.emailVerified)
+			token, err := EncodeJWTToken(model.User{Email: tc.email, EmailVerified: tc.emailVerified})
 			if tc.expectError {
 				assert.Error(t, err)
 			} else {
@@ -33,7 +34,7 @@ func TestGetJWTToken(t *testing.T) {
 }
 
 func TestDecodeJWT(t *testing.T) {
-	token, _ := EncodeJWTToken("test@example.com", false)
+	token, _ := EncodeJWTToken(model.User{Email: "test@example.com", EmailVerified: false})
 
 	testCases := []struct {
 		name        string
@@ -58,7 +59,7 @@ func TestDecodeJWT(t *testing.T) {
 }
 
 func TestValidateToken(t *testing.T) {
-	validToken, _ := EncodeJWTToken("test@example.com", false)
+	validToken, _ := EncodeJWTToken(model.User{Email: "test@example.com", EmailVerified: false})
 
 	testCases := []struct {
 		name    string
