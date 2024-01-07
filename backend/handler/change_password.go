@@ -49,29 +49,23 @@ func HandleChangePassword(ctx context.Context, db UserDatabase, req ChangePasswo
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return ChangePasswordResponse{}, ErrUserEmailDoesNotExist
 	}
-
 	if err != nil {
 		return ChangePasswordResponse{}, ErrInternalFailedToRetriveFromDatabase
 	}
-
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.OldPassword)); err != nil {
 		return ChangePasswordResponse{}, ErrUserProvidedPasswordDidntMatchTheRecord
 	}
-
 	hash, err := utils.HashPassword(req.NewPassword)
 	if err != nil {
 		zap.L().Error("error", zap.Error(err))
 		return ChangePasswordResponse{}, ErrInternalFailedToGenerateHash
 	}
-
 	user.PasswordHash = hash
-
 	token, err := utils.EncodeJWTToken(user)
 	if err != nil {
 		zap.L().Error("error", zap.Error(err))
 		return ChangePasswordResponse{}, err
 	}
-
 	if err := db.UpdateUser(ctx, user); err != nil {
 		zap.L().Error("error", zap.Error(err))
 		return ChangePasswordResponse{}, ErrInternalFailedToUpdateDatabase

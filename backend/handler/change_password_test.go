@@ -110,9 +110,8 @@ func TestHandleChangePassword(t *testing.T) {
 		old_password_hash, _      = utils.HashPassword(old_password)
 		valid_unverified_token, _ = utils.EncodeJWTToken(model.User{Email: "mesbah@tanvir.com", EmailVerified: false})
 		valid_verified_token, _   = utils.EncodeJWTToken(model.User{Email: "mesbah@tanvir.com", EmailVerified: true})
-
-		invalid_token = "2342345"
-		new_passowrd  = "123"
+		invalid_token             = "2342345"
+		new_passowrd              = "123"
 	)
 
 	tests := []struct {

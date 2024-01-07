@@ -3,6 +3,9 @@ package handler
 import (
 	"errors"
 	"net/http"
+
+	"go.uber.org/zap"
+	"ishkul.org/backend/utils"
 )
 
 var (
@@ -36,15 +39,18 @@ func ErrorHTTPCode(err error) int {
 
 	switch {
 	case errors.Is(err, ErrParamPasswordIsRequired),
+		errors.Is(err, ErrParamOldPasswordIsRequired),
 		errors.Is(err, ErrParamEmailIsRequired),
 		errors.Is(err, ErrParamTokenIsRequired),
 		errors.Is(err, ErrParamCodeIsRequired),
+		errors.Is(err, ErrParamIdIsRequired),
 		errors.Is(err, ErrParamFirstNameIsRequired),
 		errors.Is(err, ErrParamLastNameIsRequired):
 		return http.StatusBadRequest
 
 	case
-		errors.Is(err, ErrUserEmailDoesNotExist):
+		errors.Is(err, ErrUserEmailDoesNotExist),
+		errors.Is(err, ErrRequestedResourceDoesNotExist):
 		return http.StatusNotFound
 
 	case errors.Is(err, ErrUserEmailAlreadyExists):
@@ -53,10 +59,23 @@ func ErrorHTTPCode(err error) int {
 	case errors.Is(err, ErrUserInvalidCodeProvided),
 		errors.Is(err, ErrUserInvalidEmailAddressProvided),
 		errors.Is(err, ErrUserAuthenticationFailure),
-		errors.Is(err, ErrUserEmailAndPasswordMismatched):
+		errors.Is(err, ErrUserProvidedPasswordDidntMatchTheRecord),
+		errors.Is(err, ErrUserEmailAndPasswordMismatched),
+		errors.Is(err, utils.ErrUserNotAnAdmin),
+		errors.Is(err, utils.ErrUserTokenIsInvalid),
+		errors.Is(err, utils.ErrUserEmailTokenMismatch),
+		errors.Is(err, utils.ErrUserUnverified),
+		errors.Is(err, utils.ErrFailedToEncodeToken),
+		errors.Is(err, utils.ErrFailedToParseJwt):
 		return http.StatusUnauthorized
 
+	case errors.Is(err, ErrInternalFailedToGenerateHash),
+		errors.Is(err, ErrInternalFailedToRetriveFromDatabase),
+		errors.Is(err, ErrInternalFailedToUpdateDatabase):
+		return http.StatusInternalServerError
+
 	default:
+		zap.L().Warn("error not handled in server", zap.Error(err))
 		return http.StatusInternalServerError
 	}
 

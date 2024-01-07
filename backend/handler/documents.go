@@ -8,16 +8,23 @@ import (
 	"ishkul.org/backend/utils"
 )
 
+type Document struct {
+	ID          string   `json:"id,omitempty" form:"id"`
+	ResourceURL string   `json:"resource_url" form:"resource_url"`
+	Institute   string   `json:"institute" form:"institute"`
+	Year        int      `json:"year" form:"year"`
+	Tags        []string `json:"tags" form:"tags"`
+}
+type DocumentNoUrl struct {
+	ID        string   `json:"id" form:"id"`
+	Institute string   `json:"institute" form:"institute"`
+	Year      int      `json:"year" form:"year"`
+	Tags      []string `json:"tags" form:"tags"`
+}
+
 type AddDocumentRequest struct {
-	Token     string `json:"token" form:"token"`
-	Documents []struct {
-		ID          string   `json:"id,omitempty" form:"id"`
-		ResourceURL string   `json:"resource_url" form:"resource_url"`
-		Institute   string   `json:"institute" form:"institute"`
-		Year        int      `json:"year" form:"year"`
-		Tags        []string `json:"tags" form:"tags"`
-		Uplaoder    string   `json:"uploader_uid,omitempty" form:"uploader_uid"`
-	} `json:"documents" form:"documents"`
+	Token     string     `json:"token" form:"token"`
+	Documents []Document `json:"documents" form:"documents"`
 }
 
 func (a *AddDocumentRequest) Validate() error {
@@ -42,12 +49,7 @@ func (a *SearchDocumentRequest) Validate() error {
 }
 
 type SearchDocumentResponse struct {
-	Documents []struct {
-		ID        string   `json:"id" form:"id"`
-		Institute string   `json:"institute" form:"institute"`
-		Year      int      `json:"year" form:"year"`
-		Tags      []string `json:"tags" form:"tags"`
-	} `json:"documents"`
+	Documents []DocumentNoUrl `json:"documents"`
 }
 
 type GetDocumentRequest struct {
@@ -104,7 +106,7 @@ func HandleAddDocument(ctx context.Context, docdb DocumentDatabase, req AddDocum
 		}
 	}
 	if err := docdb.AddDocument(ctx, docs); err != nil {
-		return AddDocumentResponse{}, err
+		return AddDocumentResponse{}, ErrInternalFailedToRetriveFromDatabase
 	}
 	return AddDocumentResponse{}, nil
 }
@@ -120,7 +122,7 @@ func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req Searc
 	docs, err := docdb.SearchDocument(ctx, req.Query)
 	if err != nil {
 		zap.L().Error("failed to load docs from storage", zap.Error(err))
-		return SearchDocumentResponse{}, err
+		return SearchDocumentResponse{}, ErrInternalFailedToRetriveFromDatabase
 	}
 	if len(docs) == 0 {
 		// Best effort if no document match the query
@@ -129,12 +131,7 @@ func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req Searc
 	}
 	resp := SearchDocumentResponse{}
 	for i := 0; i < len(docs); i++ {
-		resp.Documents = append(resp.Documents, struct {
-			ID        string   `json:"id" form:"id"`
-			Institute string   `json:"institute" form:"institute"`
-			Year      int      `json:"year" form:"year"`
-			Tags      []string `json:"tags" form:"tags"`
-		}{
+		resp.Documents = append(resp.Documents, DocumentNoUrl{
 			ID:        docs[i].ID.Hex(), // Convert ObjectID to string
 			Institute: docs[i].Institute,
 			Year:      docs[i].Year,

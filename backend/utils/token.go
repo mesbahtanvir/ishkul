@@ -41,7 +41,7 @@ func EncodeJWTToken(user model.User) (string, error) {
 		zap.L().Error("failed to encode jwt token", zap.Error(err))
 		return "", ErrFailedToEncodeToken
 	}
-	return tokenStr, err
+	return tokenStr, nil
 }
 
 // DecodeJWT decodes a JWT token and returns the claims.
