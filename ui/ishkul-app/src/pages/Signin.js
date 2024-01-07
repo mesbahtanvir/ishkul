@@ -5,7 +5,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import * as React from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { postLoginUser } from "../service/apiClient";
+import { postLoginUser } from "../services/apiClient";
 import { useAuth } from "../context/AuthContext";
 import {
   CopyWriteUnderInput,

@@ -6,7 +6,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { useNavigate } from "react-router-dom";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import PendingIcon from "@mui/icons-material/Pending";
-import { postSendVerificationCode } from "../service/apiClient";
+import { postSendVerificationCode } from "../services/apiClient";
 
 const ProfilePage = () => {
   const { firstName, lastName, email, emailVerified } = useAuth();

@@ -13,7 +13,7 @@ import {
   AccountVerifyHeader,
   MayBePrefieldEmailBox,
 } from "../components/ProfileComponents";
-import { postVerifyAccount } from "../service/apiClient";
+import { postVerifyAccount } from "../services/apiClient";
 import Alert from "../components/Alert";
 import { useNavigate } from "react-router-dom";
 

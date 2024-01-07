@@ -18,7 +18,7 @@ import {
   AllowExtraEmailsConfirmation,
 } from "../components/ProfileComponents";
 import { Snackbar, Alert } from "@mui/material";
-import { postRegisterUser } from "../service/apiClient";
+import { postRegisterUser } from "../services/apiClient";
 import { styled } from "@mui/material/styles";
 
 export default function SignUp() {

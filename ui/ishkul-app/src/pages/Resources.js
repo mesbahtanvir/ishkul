@@ -20,7 +20,7 @@ import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import { styled } from "@mui/material/styles";
 import { StyledBox } from "../components/ProfileComponents";
 import { useAuth } from "../context/AuthContext";
-import { getDocuments, getDocument } from "../service/apiClient";
+import { getDocuments, getDocument } from "../services/apiClient";
 import Alert from "../components/Alert";
 
 const ParentComponent = () => {

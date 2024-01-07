@@ -17,7 +17,7 @@ import {
 } from "../components/ProfileComponents";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { postChangePassword } from "../service/apiClient";
+import { postChangePassword } from "../services/apiClient";
 import Alert from "../components/Alert";
 
 export default function ChangePassword() {

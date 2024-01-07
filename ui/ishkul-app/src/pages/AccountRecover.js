@@ -13,7 +13,7 @@ import {
 } from "../components/ProfileComponents";
 import AccountVerify from "./AccountVerify";
 
-import { postSendVerificationCode } from "../service/apiClient";
+import { postSendVerificationCode } from "../services/apiClient";
 import Alert from "../components/Alert";
 
 export default function AccountRecover() {
