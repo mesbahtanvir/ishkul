@@ -18,7 +18,7 @@ describe("apiClient module", () => {
     jest.clearAllMocks();
   });
 
-  it("check health should be defined", () => {
+  it("checkHealth should be defined", () => {
     expect(checkHealth).toBeDefined();
   });
 
@@ -29,12 +29,16 @@ describe("apiClient module", () => {
     expect(axios.get).toHaveBeenCalledWith("https://api.ishkul.org/health");
   });
 
+  it("postRegisterUser should be defined", () => {
+    expect(postRegisterUser).toBeDefined();
+  });
+
   it("register should post data using axios and return response", async () => {
     const firstName = "Joe";
     const lastName = "Biden";
     const email = "joe.biden@email.com";
     const password = "mypass";
-    const marketingOptin = true;
+    const allowExtraEmail = true;
     axios.post.mockResolvedValueOnce({
       status: 201,
       data: {
@@ -46,7 +50,7 @@ describe("apiClient module", () => {
       lastName,
       email,
       password,
-      marketingOptin
+      allowExtraEmail
     );
     expect(result).toEqual({ message: "Registration successful" });
     expect(axios.post).toHaveBeenCalledWith("https://api.ishkul.org/register", {
@@ -54,36 +58,38 @@ describe("apiClient module", () => {
       last_name: lastName,
       email: email,
       password: password,
-      marketing_optin: marketingOptin,
+      allow_extra_email: allowExtraEmail,
     });
   });
 
+  it("postLoginUser should be defined", () => {
+    expect(postLoginUser).toBeDefined();
+  });
+
   it("login should post data using axios and return response", async () => {
-    const firstName = "Joe";
-    const lastName = "Biden";
     const email = "joe.biden@email.com";
     const password = "mypass";
+
     const token = "mytok";
+
     axios.post.mockResolvedValueOnce({
       status: 200,
       data: {
-        first_name: firstName,
-        last_name: lastName,
-        email: email,
         token: token,
       },
     });
     const result = await postLoginUser(email, password);
     expect(result).toEqual({
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
       token: token,
     });
     expect(axios.post).toHaveBeenCalledWith("https://api.ishkul.org/login", {
       email: email,
       password: password,
     });
+  });
+
+  it("postSendVerificationCode should be defined", () => {
+    expect(postSendVerificationCode).toBeDefined();
   });
 
   it("postSendVerificationCode should post data using axios and return response", async () => {
@@ -102,85 +108,117 @@ describe("apiClient module", () => {
     );
   });
 
+  it("postVerifyAccount should be defined", () => {
+    expect(postVerifyAccount).toBeDefined();
+  });
+
   it("postVerifyAccount should post data using axios and return response", async () => {
     const email = "joe.biden@email.com";
+    const code = "12";
     axios.post.mockResolvedValueOnce({
       status: 200,
       data: {},
     });
-    const result = await postVerifyAccount(email);
+    const result = await postVerifyAccount(email, code);
     expect(result).toEqual({});
     expect(axios.post).toHaveBeenCalledWith(
       "https://api.ishkul.org/verify_account",
       {
         email: email,
+        code: code,
       }
     );
   });
 
-  it("account_recover should post data using axios and return response", async () => {
+  it("postChangePassword should be defined", () => {
+    expect(postChangePassword).toBeDefined();
+  });
+
+  it("postChangePassword should post data using axios and return response", async () => {
     const email = "joe.biden@email.com";
+    const oldPassword = "oldPassword";
+    const newPassword = "newPassword";
+    const token = "fakeToken";
     axios.post.mockResolvedValueOnce({
       status: 200,
       data: {},
     });
-    const result = await postChangePassword(email);
+    const result = await postChangePassword(
+      email,
+      oldPassword,
+      newPassword,
+      token
+    );
     expect(result).toEqual({});
     expect(axios.post).toHaveBeenCalledWith(
       "https://api.ishkul.org/change_password",
       {
         email: email,
+        old_password: oldPassword,
+        new_password: newPassword,
+        token: token,
       }
     );
   });
 
-  it("post documents should post data using axios and return response", async () => {
-    const email = "joe.biden@email.com";
+  it("postDocuments should be defined", () => {
+    expect(postDocuments).toBeDefined();
+  });
+
+  it("postDocuments should post data using axios and return response", async () => {
+    const token = "test_token";
+    const documents = [
+      { institue: "Alice", year: 30, tags: ["a"] },
+      { institue: "Alice", year: 30, tags: ["b"] },
+    ];
     axios.post.mockResolvedValueOnce({
       status: 200,
       data: {},
     });
-    const result = await postDocuments(email);
+    const result = await postDocuments(token, documents);
     expect(result).toEqual({});
     expect(axios.post).toHaveBeenCalledWith(
       "https://api.ishkul.org/documents",
       {
-        email: email,
+        token: token,
+        documents: documents,
       }
     );
   });
 
-  it("get documents should post data using axios and return response", async () => {
-    const email = "joe.biden@email.com";
+  it("getDocuments should be defined", () => {
+    expect(getDocuments).toBeDefined();
+  });
+
+  it("getDocuments should post data using axios and return response", async () => {
     const token = "token";
     const filter = "filter";
     axios.get.mockResolvedValueOnce({
       status: 200,
       data: {},
     });
-    const result = await getDocuments(email, token, filter);
+    const result = await getDocuments(token, filter);
     expect(result).toEqual({});
-    expect(axios.get).toHaveBeenCalledWith("https://api.ishkul.org/documents", {
-      email: email,
-      token: token,
-      query: filter,
-    });
+    expect(axios.get).toHaveBeenCalledWith(
+      "https://api.ishkul.org/documents?token=token&query=filter"
+    );
+  });
+
+  it("getDocument should be defined", () => {
+    expect(getDocument).toBeDefined();
   });
 
   it("get document should post data using axios and return response", async () => {
-    const email = "joe.biden@email.com";
     const token = "token";
     const id = "id";
     axios.get.mockResolvedValueOnce({
       status: 200,
       data: {},
     });
-    const result = await getDocument(email, token, id);
+    const result = await getDocument(token, id);
     expect(result).toEqual({});
-    expect(axios.get).toHaveBeenCalledWith("https://api.ishkul.org/document", {
-      email: email,
-      token: token,
-      id: id,
-    });
+    expect(axios.get).toHaveBeenCalledWith(
+      "https://api.ishkul.org/document?token=token&id=id"
+    );
   });
 });
