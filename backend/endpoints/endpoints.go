@@ -1,7 +1,6 @@
 package endpoints
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -116,8 +115,7 @@ func GinHandlePostDocuments(userDatabase handler.UserDatabase, documentDatabase 
 			ctx.Abort()
 			return
 		}
-		fmt.Println(req)
-		resp, err := handler.HandleAddDocument(ctx, userDatabase, documentDatabase, req)
+		resp, err := handler.HandleAddDocument(ctx, documentDatabase, req)
 		if err != nil {
 			zap.L().Error("error", zap.Error(err))
 			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})
