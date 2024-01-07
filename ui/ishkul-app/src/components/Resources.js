@@ -126,7 +126,7 @@ const ParentComponent = () => {
   };
 
   const DetailCard = ({ details }) => {
-    const classes = useStyles();
+    const classes = RoundedTextField();
     return (
       <Card className={classes.card}>
         <CardContent>
