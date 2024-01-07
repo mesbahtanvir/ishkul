@@ -13,7 +13,7 @@ func GinHandleRegister(userDatabase handler.UserDatabase) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		var req handler.RegisterRequest
 		if err := ctx.BindJSON(&req); err != nil {
-			zap.L().Error("error", zap.Error(err))
+			zap.L().Error("bind-error", zap.Error(err))
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
@@ -33,6 +33,7 @@ func GinHandleLogin(userDatabase handler.UserDatabase) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		var req handler.LoginRequest
 		if err := ctx.BindJSON(&req); err != nil {
+			zap.L().Error("bind-error", zap.Error(err))
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -50,7 +51,7 @@ func GinHandleSendVerificationCode(storage handler.AccountStorage, userDatabase 
 	return func(ctx *gin.Context) {
 		var req handler.SendVerificationCodeRequest
 		if err := ctx.BindJSON(&req); err != nil {
-			zap.L().Error("error", zap.Error(err))
+			zap.L().Error("bind-error", zap.Error(err))
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
@@ -70,7 +71,7 @@ func GinHandleVerifyAccount(storage handler.AccountStorage, userDatabase handler
 	return func(ctx *gin.Context) {
 		var req handler.VerifyAccountRequest
 		if err := ctx.BindJSON(&req); err != nil {
-			zap.L().Error("error", zap.Error(err))
+			zap.L().Error("bind-error", zap.Error(err))
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
@@ -90,7 +91,7 @@ func GinHandleChangePassword(storage handler.AccountStorage, userDatabase handle
 	return func(ctx *gin.Context) {
 		var req handler.ChangePasswordRequest
 		if err := ctx.BindJSON(&req); err != nil {
-			zap.L().Error("error", zap.Error(err))
+			zap.L().Error("bind-error", zap.Error(err))
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
@@ -110,7 +111,7 @@ func GinHandlePostDocuments(userDatabase handler.UserDatabase, documentDatabase 
 	return func(ctx *gin.Context) {
 		var req handler.AddDocumentRequest
 		if err := ctx.BindJSON(&req); err != nil {
-			zap.L().Error("error", zap.Error(err))
+			zap.L().Error("bind-error", zap.Error(err))
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
@@ -130,7 +131,7 @@ func GinHandleGetDocument(storage handler.DocumentLimitStorage, userDatabase han
 	return func(ctx *gin.Context) {
 		var req handler.GetDocumentRequest
 		if err := ctx.ShouldBindQuery(&req); err != nil {
-			zap.L().Error("error", zap.Error(err))
+			zap.L().Error("bind-error", zap.Error(err))
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			ctx.Abort()
 			return
@@ -150,7 +151,7 @@ func GinHandleGetDocuments(userDatabase handler.UserDatabase, documentDatabase h
 	return func(ctx *gin.Context) {
 		var req handler.SearchDocumentRequest
 		if err := ctx.ShouldBindQuery(&req); err != nil {
-			zap.L().Error("error", zap.Error(err))
+			zap.L().Error("bind-error", zap.Error(err))
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			ctx.Abort()
 			return

@@ -17,7 +17,7 @@ import {
   CssBaseline,
 } from "@mui/material";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
-import { makeStyles } from "@mui/styles";
+import { styled } from "@mui/material/styles";
 import { StyledBox } from "./ProfileComponents";
 import { useAuth } from "./AuthContext";
 import { getDocuments, getDocument } from "../service/apiClient";
@@ -88,29 +88,27 @@ const ParentComponent = () => {
     );
   };
 
-  const useStyles = makeStyles((theme) => ({
-    roundedTextField: {
-      "& .MuiOutlinedInput-root": {
-        borderRadius: 25,
-        "& fieldset": {
-          borderColor:
-            theme.palette.mode === "dark"
-              ? "rgba(255, 255, 255, 0.23)"
-              : "rgba(0, 0, 0, 0.23)",
-        },
-        "&:hover fieldset": {
-          borderColor:
-            theme.palette.mode === "dark" ? theme.palette.grey[500] : "black",
-        },
-        "&.Mui-focused fieldset": {
-          borderColor: theme.palette.primary.main,
-        },
+  const RoundedTextField = styled(TextField)(({ theme }) => ({
+    "& .MuiOutlinedInput-root": {
+      borderRadius: 25,
+      "& fieldset": {
+        borderColor:
+          theme.palette.mode === "dark"
+            ? "rgba(255, 255, 255, 0.23)"
+            : "rgba(0, 0, 0, 0.23)",
+      },
+      "&:hover fieldset": {
+        borderColor:
+          theme.palette.mode === "dark" ? theme.palette.grey[500] : "black",
+      },
+      "&.Mui-focused fieldset": {
+        borderColor: theme.palette.primary.main,
       },
     },
   }));
 
   const SearchComponent = ({ onSearchChange }) => {
-    const classes = useStyles();
+    const classes = RoundedTextField();
     const handleKeyDown = (e) => {
       if (e.key === "Enter") {
         onSearchChange(e.target.value);
