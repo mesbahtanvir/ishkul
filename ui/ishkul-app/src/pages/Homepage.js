@@ -1,6 +1,6 @@
-import ComingSoon from "./ComingSoon";
-import { useAuth } from "./AuthContext";
-import LoginFirst from "./LoginFirst";
+import ComingSoon from "../components/ComingSoon";
+import { useAuth } from "../context/AuthContext";
+import LoginFirst from "../components/LoginFirst";
 
 export default function HomePage() {
   const { isSignedIn } = useAuth();

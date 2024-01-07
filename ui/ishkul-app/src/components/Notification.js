@@ -3,7 +3,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import Badge from "@mui/material/Badge";
 import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../context/AuthContext";
 import Alert from "./Alert";
 import { Snackbar } from "@mui/material";
 import { useState } from "react";

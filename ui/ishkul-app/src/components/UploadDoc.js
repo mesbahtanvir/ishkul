@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { TextField, Button, Grid, Paper, Chip, Container } from "@mui/material";
 import { postDocuments } from "../service/apiClient";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { Snackbar } from "@mui/material";
 import Alert from "./Alert";
 

@@ -4,7 +4,7 @@ import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
 import * as React from "react";
 import { useState } from "react";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../context/AuthContext";
 import {
   CopyWriteUnderInput,
   StyledBox,

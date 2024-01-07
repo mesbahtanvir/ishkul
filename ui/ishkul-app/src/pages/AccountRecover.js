@@ -6,22 +6,22 @@ import * as React from "react";
 import { useState } from "react";
 import {
   CopyWriteUnderInput,
+  SignInEmailField,
+  AccountRecoverHeader,
+  SendVerificationCode,
   StyledBox,
-  SignUpPasswordField,
-  ChangePasswordHeader,
-  SubmitChangePassword,
-  MayBePrefieldEmailBox,
-} from "./ProfileComponents";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "./AuthContext";
-import { postChangePassword } from "../service/apiClient";
-import Alert from "./Alert";
+} from "../components/ProfileComponents";
+import AccountVerify from "./AccountVerify";
 
-export default function ChangePassword() {
-  const { email, loggedInToken, storeSignedInData } = useAuth();
+import { postSendVerificationCode } from "../service/apiClient";
+import Alert from "../components/Alert";
+
+export default function AccountRecover() {
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [email, setEmail] = useState("");
+
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  let navigate = useNavigate();
 
   const handleError = (message) => {
     setIsError(true);
@@ -34,40 +34,29 @@ export default function ChangePassword() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    if (loggedInToken === "") {
-      handleError("Please sign in first");
-      return;
-    }
     try {
-      const resp = await postChangePassword(
-        email ?? data.get("email"),
-        loggedInToken,
-        data.get("password")
-      );
-      storeSignedInData(
-        resp.data.first_name,
-        resp.data.last_name,
-        resp.data.email,
-        resp.data.email_verified,
-        resp.data.token
-      );
-      navigate("/my_account");
+      const data = new FormData(event.currentTarget);
+      setEmail(data.get("email"));
+      await postSendVerificationCode(data.get("email"));
+      setIsSubmitted(true);
     } catch (error) {
       handleError(error.message);
       return;
     }
   };
 
+  if (isSubmitted) {
+    return <AccountVerify email={email} />; // Render the AccountVerify component
+  }
+
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />
       <StyledBox>
-        <ChangePasswordHeader />
+        <AccountRecoverHeader />
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-          <MayBePrefieldEmailBox email={email} />
-          <SignUpPasswordField />
-          <SubmitChangePassword />
+          <SignInEmailField />
+          <SendVerificationCode />
         </Box>
       </StyledBox>
       <CopyWriteUnderInput />

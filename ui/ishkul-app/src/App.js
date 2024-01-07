@@ -1,8 +1,8 @@
 import PrimaryAppBar from "./components/Appbar.js";
-import { AuthProvider } from "./components/AuthContext.js";
+import { AuthProvider } from "./context/AuthContext.js";
 import IshkulRouterWithTracker from "./components/IshkulRoutes.js";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import ThemeContextProvider, { useTheme } from "./components/ThemeContext.js";
+import ThemeContextProvider, { useTheme } from "./context/ThemeContext.js";
 
 const lightTheme = createTheme({
   palette: {

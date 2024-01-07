@@ -1,7 +1,7 @@
 import { Container, Paper, Avatar, Typography } from "@mui/material";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../context/AuthContext";
 import Box from "@mui/material/Box";
-import { ProfileChangePasswordOrVerifyEmailFooter } from "./ProfileComponents";
+import { ProfileChangePasswordOrVerifyEmailFooter } from "../components/ProfileComponents";
 import CssBaseline from "@mui/material/CssBaseline";
 import { useNavigate } from "react-router-dom";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";

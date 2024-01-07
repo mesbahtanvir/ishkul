@@ -1,28 +1,26 @@
-import { Snackbar } from "@mui/material";
+import { Snackbar, Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
 import * as React from "react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { postLoginUser } from "../service/apiClient";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../context/AuthContext";
 import {
   CopyWriteUnderInput,
-  ForgotAndSingupBox,
-  RememberMe,
-  SignInEmailField,
-  SignInHeader,
-  SignInPasswordField,
-  SignInSubmitButton,
   StyledBox,
-} from "./ProfileComponents";
-import Alert from "./Alert";
+  CodeField,
+  SubmitVerificationCode,
+  AccountVerifyHeader,
+  MayBePrefieldEmailBox,
+} from "../components/ProfileComponents";
+import { postVerifyAccount } from "../service/apiClient";
+import Alert from "../components/Alert";
+import { useNavigate } from "react-router-dom";
 
-export default function SignIn() {
-  const { storeSignedInData } = useAuth();
+export default function AccountVerify({ email }) {
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const { storeSignedInData } = useAuth();
   let navigate = useNavigate();
 
   const handleError = (message) => {
@@ -36,9 +34,10 @@ export default function SignIn() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
     try {
-      const resp = await postLoginUser(data.get("email"), data.get("password"));
+      const data = new FormData(event.currentTarget);
+      const submit_email = email ?? data.get("email");
+      const resp = await postVerifyAccount(submit_email, data.get("code"));
       storeSignedInData(
         resp.data.first_name,
         resp.data.last_name,
@@ -46,25 +45,33 @@ export default function SignIn() {
         resp.data.email_verified,
         resp.data.token
       );
+      navigate("/change_password");
     } catch (error) {
       handleError(error.message);
-      console.log(error);
       return;
     }
-    navigate("/my_account");
+  };
+
+  const InfoSection = () => {
+    var text = "";
+    if (typeof email !== "undefined" && email !== "") {
+      text = "A code has been sent your email: " + email;
+    } else {
+      text = "Enter your email and verification code";
+    }
+    return <Typography variant="caption">{text}</Typography>;
   };
 
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />
       <StyledBox>
-        <SignInHeader />
+        <AccountVerifyHeader />
+        <InfoSection />
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-          <SignInEmailField />
-          <SignInPasswordField />
-          <RememberMe />
-          <SignInSubmitButton />
-          <ForgotAndSingupBox />
+          <MayBePrefieldEmailBox email={email} />
+          <CodeField />
+          <SubmitVerificationCode />
         </Box>
       </StyledBox>
       <CopyWriteUnderInput />

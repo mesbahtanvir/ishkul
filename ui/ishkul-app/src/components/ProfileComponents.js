@@ -13,7 +13,7 @@ import Copyright from "./Copyright";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { styled } from "@mui/material/styles";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 export function StyledBox({ children, ...props }) {
   return (
@@ -325,6 +325,34 @@ export function SignUpPasswordField() {
       label="Password"
       type="password"
       id="password"
+      autoComplete="new-password"
+    />
+  );
+}
+
+export function PreviousPasswordField() {
+  return (
+    <TextField
+      required
+      fullWidth
+      name="password"
+      label="OldPassword"
+      type="password"
+      id="old-password"
+      autoComplete="old-password"
+    />
+  );
+}
+
+export function NewPasswordField() {
+  return (
+    <TextField
+      required
+      fullWidth
+      name="password"
+      label="NewPassword"
+      type="password"
+      id="new-password"
       autoComplete="new-password"
     />
   );

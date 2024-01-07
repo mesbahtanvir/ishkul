@@ -16,7 +16,7 @@ import {
   SingUpSubmit,
   CopyWriteUnderInput,
   AllowExtraEmailsConfirmation,
-} from "./ProfileComponents";
+} from "../components/ProfileComponents";
 import { Snackbar, Alert } from "@mui/material";
 import { postRegisterUser } from "../service/apiClient";
 import { styled } from "@mui/material/styles";

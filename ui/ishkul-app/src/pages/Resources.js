@@ -18,10 +18,10 @@ import {
 } from "@mui/material";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import { styled } from "@mui/material/styles";
-import { StyledBox } from "./ProfileComponents";
-import { useAuth } from "./AuthContext";
+import { StyledBox } from "../components/ProfileComponents";
+import { useAuth } from "../context/AuthContext";
 import { getDocuments, getDocument } from "../service/apiClient";
-import Alert from "./Alert";
+import Alert from "../components/Alert";
 
 const ParentComponent = () => {
   const [searchQuery, setSearchQuery] = useState("");

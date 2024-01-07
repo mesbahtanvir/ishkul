@@ -8,7 +8,7 @@ import Menu from "@mui/material/Menu";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import MoreIcon from "@mui/icons-material/MoreVert";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../context/AuthContext";
 import MenuBar from "./MenuBar";
 import IshkulTypography from "./IshkulTypography";
 import { WebNotification } from "./Notification";
@@ -19,7 +19,7 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import InputIcon from "@mui/icons-material/Input";
 import ListItemIcon from "@mui/material/ListItemIcon";
-import { useTheme } from "./ThemeContext";
+import { useTheme } from "../context/ThemeContext";
 
 export default function PrimaryAppBar() {
   const { isSignedIn, signOut } = useAuth();

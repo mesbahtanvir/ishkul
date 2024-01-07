@@ -4,24 +4,26 @@ import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
 import * as React from "react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { postLoginUser } from "../service/apiClient";
+import { useAuth } from "../context/AuthContext";
 import {
   CopyWriteUnderInput,
+  ForgotAndSingupBox,
+  RememberMe,
   SignInEmailField,
-  AccountRecoverHeader,
-  SendVerificationCode,
+  SignInHeader,
+  SignInPasswordField,
+  SignInSubmitButton,
   StyledBox,
-} from "./ProfileComponents";
-import AccountVerify from "./AccountVerify";
+} from "../components/ProfileComponents";
+import Alert from "../components/Alert";
 
-import { postSendVerificationCode } from "../service/apiClient";
-import Alert from "./Alert";
-
-export default function AccountRecover() {
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [email, setEmail] = useState("");
-
+export default function SignIn() {
+  const { storeSignedInData } = useAuth();
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  let navigate = useNavigate();
 
   const handleError = (message) => {
     setIsError(true);
@@ -34,29 +36,35 @@ export default function AccountRecover() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const data = new FormData(event.currentTarget);
     try {
-      const data = new FormData(event.currentTarget);
-      setEmail(data.get("email"));
-      await postSendVerificationCode(data.get("email"));
-      setIsSubmitted(true);
+      const resp = await postLoginUser(data.get("email"), data.get("password"));
+      storeSignedInData(
+        resp.data.first_name,
+        resp.data.last_name,
+        resp.data.email,
+        resp.data.email_verified,
+        resp.data.token
+      );
     } catch (error) {
       handleError(error.message);
+      console.log(error);
       return;
     }
+    navigate("/my_account");
   };
-
-  if (isSubmitted) {
-    return <AccountVerify email={email} />; // Render the AccountVerify component
-  }
 
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />
       <StyledBox>
-        <AccountRecoverHeader />
+        <SignInHeader />
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <SignInEmailField />
-          <SendVerificationCode />
+          <SignInPasswordField />
+          <RememberMe />
+          <SignInSubmitButton />
+          <ForgotAndSingupBox />
         </Box>
       </StyledBox>
       <CopyWriteUnderInput />
