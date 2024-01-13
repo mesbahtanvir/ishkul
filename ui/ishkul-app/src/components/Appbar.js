@@ -22,9 +22,9 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import { useTheme } from "../context/ThemeContext";
 
 export default function PrimaryAppBar() {
-  const { isSignedIn, signOut } = useAuth();
+  const { authInfo, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  console.log(isSignedIn);
+  console.log(authInfo);
   let navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
   const isMenuOpen = Boolean(anchorEl);
@@ -124,7 +124,7 @@ export default function PrimaryAppBar() {
       open={isMenuOpen}
       onClose={handleMenuClose}
     >
-      <MenuItems userSignedIn={isSignedIn} />
+      <MenuItems userSignedIn={authInfo is nonnull} />
     </Menu>
   );
   const mobileMenuId = "primary-search-account-menu-mobile";

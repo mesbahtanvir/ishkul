@@ -12,7 +12,7 @@ var (
 	// params related
 	ErrParamPasswordIsRequired    = errors.New("password is required")
 	ErrParamOldPasswordIsRequired = errors.New("old password is required")
-	ErrParamEmailIsRequired       = errors.New("error is required")
+	ErrParamEmailIsRequired       = errors.New("email is required")
 	ErrParamTokenIsRequired       = errors.New("token is required")
 	ErrParamCodeIsRequired        = errors.New("code is required")
 	ErrParamIdIsRequired          = errors.New("id is required")

@@ -37,7 +37,7 @@ export default function AccountRecover() {
     try {
       const data = new FormData(event.currentTarget);
       setEmail(data.get("email"));
-      await postSendVerificationCode(data.get("email"));
+      await postSendVerificationCode({ email: data.get("email") });
       setIsSubmitted(true);
     } catch (error) {
       handleError(error.message);

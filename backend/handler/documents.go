@@ -15,12 +15,6 @@ type Document struct {
 	Year        int      `json:"year" form:"year"`
 	Tags        []string `json:"tags" form:"tags"`
 }
-type DocumentNoUrl struct {
-	ID        string   `json:"id" form:"id"`
-	Institute string   `json:"institute" form:"institute"`
-	Year      int      `json:"year" form:"year"`
-	Tags      []string `json:"tags" form:"tags"`
-}
 
 type AddDocumentRequest struct {
 	Token     string     `json:"token" form:"token"`
@@ -35,45 +29,6 @@ func (a *AddDocumentRequest) Validate() error {
 }
 
 type AddDocumentResponse struct{}
-
-type SearchDocumentRequest struct {
-	Token string `json:"token" form:"token"`
-	Query string `json:"query" form:"query"`
-}
-
-func (a *SearchDocumentRequest) Validate() error {
-	if a.Token == "" {
-		return ErrParamTokenIsRequired
-	}
-	return nil
-}
-
-type SearchDocumentResponse struct {
-	Documents []DocumentNoUrl `json:"documents"`
-}
-
-type GetDocumentRequest struct {
-	Token string `json:"token" form:"token"`
-	ID    string `json:"id" form:"id"`
-}
-
-func (a *GetDocumentRequest) Validate() error {
-	if a.Token == "" {
-		return ErrParamTokenIsRequired
-	}
-	if a.ID == "" {
-		return ErrParamIdIsRequired
-	}
-	return nil
-}
-
-type GetDocumentResponse struct {
-	ID          string   `json:"id" form:"id"`
-	ResourceURL string   `json:"resource_url" form:"resource_url"`
-	Institute   string   `json:"institute" form:"institute"`
-	Year        int      `json:"year" form:"year"`
-	Tags        []string `json:"tags" form:"tags"`
-}
 
 type DocumentDatabase interface {
 	AddDocument(ctx context.Context, documents []model.Document) error
@@ -111,6 +66,29 @@ func HandleAddDocument(ctx context.Context, docdb DocumentDatabase, req AddDocum
 	return AddDocumentResponse{}, nil
 }
 
+type SearchDocumentRequest struct {
+	Token string `json:"token" form:"token"`
+	Query string `json:"query" form:"query"`
+}
+
+func (a *SearchDocumentRequest) Validate() error {
+	if a.Token == "" {
+		return ErrParamTokenIsRequired
+	}
+	return nil
+}
+
+type DocumentNoUrl struct {
+	ID        string   `json:"id" form:"id"`
+	Institute string   `json:"institute" form:"institute"`
+	Year      int      `json:"year" form:"year"`
+	Tags      []string `json:"tags" form:"tags"`
+}
+
+type SearchDocumentResponse struct {
+	Documents []DocumentNoUrl `json:"documents"`
+}
+
 func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req SearchDocumentRequest) (SearchDocumentResponse, error) {
 	if err := req.Validate(); err != nil {
 		return SearchDocumentResponse{}, err
@@ -139,6 +117,29 @@ func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req Searc
 		})
 	}
 	return resp, nil
+}
+
+type GetDocumentRequest struct {
+	Token string `json:"token" form:"token"`
+	ID    string `json:"id" form:"id"`
+}
+
+func (a *GetDocumentRequest) Validate() error {
+	if a.Token == "" {
+		return ErrParamTokenIsRequired
+	}
+	if a.ID == "" {
+		return ErrParamIdIsRequired
+	}
+	return nil
+}
+
+type GetDocumentResponse struct {
+	ID          string   `json:"id" form:"id"`
+	ResourceURL string   `json:"resource_url" form:"resource_url"`
+	Institute   string   `json:"institute" form:"institute"`
+	Year        int      `json:"year" form:"year"`
+	Tags        []string `json:"tags" form:"tags"`
 }
 
 func HandleGetDocument(ctx context.Context, storage DocumentLimitStorage, docdb DocumentDatabase, req GetDocumentRequest) (GetDocumentResponse, error) {

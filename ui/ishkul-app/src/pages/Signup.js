@@ -41,13 +41,13 @@ export default function SignUp() {
     event.preventDefault();
     try {
       const data = new FormData(event.currentTarget);
-      await postRegisterUser(
-        data.get("firstName"),
-        data.get("lastName"),
-        data.get("email"),
-        data.get("password"),
-        checked
-      );
+      await postRegisterUser({
+        first_name: data.get("firstName"),
+        last_name: data.get("lastName"),
+        email: data.get("email"),
+        password: data.get("password"),
+        allow_extra_email: checked,
+      });
     } catch (error) {
       handleError(error.message);
       return;

@@ -9,16 +9,16 @@ import PendingIcon from "@mui/icons-material/Pending";
 import { postSendVerificationCode } from "../services/apiClient";
 
 const ProfilePage = () => {
-  const { firstName, lastName, email, emailVerified } = useAuth();
+  const { authInfo } = useAuth();
   let navigate = useNavigate();
 
   function handleOnSubmit() {
-    if (emailVerified) {
+    if (authInfo.user.verified) {
       navigate("/change_password");
       return;
     }
     // TODO handle error
-    postSendVerificationCode(email);
+    postSendVerificationCode({ email: authInfo.user.email });
     navigate("/validate_email");
   }
   function EmailVerified({ email }) {
@@ -59,7 +59,7 @@ const ProfilePage = () => {
   }
 
   function AccountEmailWithVefication({ email }) {
-    if (emailVerified) {
+    if (email) {
       return <EmailVerified email={email} />;
     }
     return <EmailUnverified email={email} />;
@@ -71,9 +71,9 @@ const ProfilePage = () => {
       <Paper style={{ padding: "20px", marginTop: "20px" }}>
         <Avatar style={{ width: "100px", height: "100px", margin: "auto" }} />
         <Typography variant="h5" align="center">
-          {firstName} {lastName}
+          {authInfo.user.first_name} {authInfo.user.last_name}
         </Typography>
-        <AccountEmailWithVefication email={email} />
+        <AccountEmailWithVefication email={authInfo.user.email} />
         <div style={{ textAlign: "center", marginTop: "20px" }}>
           <Box
             component="form"

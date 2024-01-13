@@ -20,7 +20,7 @@ import { useNavigate } from "react-router-dom";
 export default function ValidateEmail() {
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const { email, storeSignedInData } = useAuth();
+  const { email, setAuthInfo } = useAuth();
   let navigate = useNavigate();
 
   const handleError = (message) => {
@@ -38,13 +38,7 @@ export default function ValidateEmail() {
       const data = new FormData(event.currentTarget);
       const submit_email = email ?? data.get("email");
       const resp = await postVerifyAccount(submit_email, data.get("code"));
-      storeSignedInData(
-        resp.data.first_name,
-        resp.data.last_name,
-        resp.data.email,
-        resp.data.email_verified,
-        resp.data.token
-      );
+      setAuthInfo(resp.data.token);
       navigate("/my_account");
     } catch (error) {
       handleError(error.message);
