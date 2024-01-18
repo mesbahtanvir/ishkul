@@ -20,7 +20,6 @@ import {
   GetDocumentsRequest,
   GetDocumentRequest,
 } from "../models/model";
-
 import axios from "axios";
 
 jest.mock("axios");
@@ -86,12 +85,16 @@ describe("apiClient module", () => {
     mockedAxios.post.mockResolvedValueOnce({
       status: 200,
       data: {
-        token: token,
+        data: {
+          token: token,
+        },
       },
     });
     const result = await postLoginUser(userData);
     expect(result).toEqual({
-      token: token,
+      data: {
+        token: token,
+      },
     });
     expect(axios.post).toHaveBeenCalledWith(
       "https://api.ishkul.org/login",
@@ -199,7 +202,7 @@ describe("apiClient module", () => {
   it("getDocuments should post data using axios and return response", async () => {
     const userData: GetDocumentsRequest = {
       token: "token",
-      query: "query",
+      query: "filter",
     };
     mockedAxios.get.mockResolvedValueOnce({
       status: 200,

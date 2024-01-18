@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
   RegisterUserRequest,
   RegisterUserResponse,
@@ -17,6 +16,8 @@ import {
   GetDocumentRequest,
   GetDocumentResponse,
 } from "../models/model";
+
+import axios from "axios";
 
 const BASE_URL =
   process.env.REACT_APP_BACKEND_BASE_URL ?? "https://api.ishkul.org";

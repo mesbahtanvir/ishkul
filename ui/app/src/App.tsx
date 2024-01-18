@@ -1,20 +1,14 @@
+import { useAppSelector } from "./hooks/hooks";
+import { ThemeProvider } from "@mui/material";
+import IshkulAppBar from "./components/AppBar";
+import { darkTheme, lightTheme } from "./theme/theme";
+
 function App() {
+  const theme = useAppSelector((state) => state.appState.theme);
   return (
-    <div className="App">
-      <header className="App-header">
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ThemeProvider theme={theme === "dark" ? darkTheme : lightTheme}>
+      <IshkulAppBar />
+    </ThemeProvider>
   );
 }
 
