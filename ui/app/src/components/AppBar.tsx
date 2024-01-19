@@ -6,9 +6,10 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
-import AccountCircle from "@mui/icons-material/AccountCircle";
 import MenuIcon from "@mui/icons-material/Menu";
 import SideBar from "./SideBar";
+import AccountMenuPopup from "./AccountMenuPopup";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 
 import {
   useAppSelector,
@@ -47,9 +48,12 @@ const BrandName: React.FC = () => {
 
 const AccountOpener: React.FC = () => {
   return (
-    <IconButton color="inherit" onClick={useOpenAccountMenuHandler()}>
-      <AccountCircle />
-    </IconButton>
+    <>
+      <IconButton color="inherit" onClick={useOpenAccountMenuHandler()}>
+        <ManageAccountsIcon />
+      </IconButton>
+      <AccountMenuPopup />
+    </>
   );
 };
 
