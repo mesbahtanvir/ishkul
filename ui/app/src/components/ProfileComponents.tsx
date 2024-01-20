@@ -5,7 +5,6 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
-import Link from "@mui/material/Link";
 import Grid from "@mui/material/Grid";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Typography from "@mui/material/Typography";
@@ -40,11 +39,13 @@ export function StyledBox({ children, ...props }: StyledBoxProps) {
   );
 }
 
-export function ForgotAndSingupBox() {
+export function ForgotAndSignupBox() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const navigate = useNavigate();
 
   const linkStyle = {
+    cursor: "pointer", // Add pointer cursor for better UX
     textDecoration: "none",
     color: theme.palette.primary.main,
     "&:hover": {
@@ -56,14 +57,22 @@ export function ForgotAndSingupBox() {
   return (
     <Grid container spacing={isMobile ? 1 : 2} justifyContent="space-between">
       <Grid item>
-        <Link href="/account_recover" style={linkStyle} variant="body2">
+        <Typography
+          style={linkStyle}
+          variant="body2"
+          onClick={() => navigate("/account_recover")}
+        >
           Forgot Password?
-        </Link>
+        </Typography>
       </Grid>
       <Grid item>
-        <Link href="/signup" style={linkStyle} variant="body2">
-          {"Sign Up"}
-        </Link>
+        <Typography
+          style={linkStyle}
+          variant="body2"
+          onClick={() => navigate("/signup")}
+        >
+          Sign Up
+        </Typography>
       </Grid>
     </Grid>
   );
@@ -93,14 +102,9 @@ export function SignInHeader() {
 
 export function AccountRecoverHeader() {
   return (
-    <>
-      <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
-        <LockOutlinedIcon />
-      </Avatar>
-      <Typography component="h1" variant="h5">
-        Recover Your Account
-      </Typography>
-    </>
+    <Typography component="h1" variant="h5">
+      Recover Your Account
+    </Typography>
   );
 }
 
@@ -170,17 +174,22 @@ export function SignInPasswordField() {
   );
 }
 
-export function CodeField() {
+interface CodeFieldProps {
+  code?: string; // This makes the code property optional
+}
+
+export function CodeField(props: CodeFieldProps) {
   return (
     <TextField
       margin="normal"
-      required
+      required={props.code ? true : false} // Set required based on whether code is provided
       fullWidth
       name="code"
       label="Code"
       type="code"
       id="code"
       autoComplete="verification-code"
+      defaultValue={props.code} // Use defaultValue to set the field value if code is provided
     />
   );
 }
@@ -227,7 +236,7 @@ export function ChangePasswordWithRedirection() {
   );
 }
 
-export function EmailVerificationInfoBox() {
+export function VerificationCode() {
   let navigate = useNavigate();
   const user = useAppSelector(selectAccountState).user;
   const handleOnSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -242,28 +251,35 @@ export function EmailVerificationInfoBox() {
     navigate("/account_verify");
     enqueueSnackbar("a code has sent to your email");
   };
+
+  return (
+    <form onSubmit={handleOnSubmit}>
+      <Button
+        type="submit"
+        fullWidth
+        variant="contained"
+        sx={{
+          mt: 3,
+          mb: 2,
+          backgroundColor: "#FFCDD2", // Light red color
+          "&:hover": {
+            backgroundColor: "#EF5350", // Darker red color on hover
+          },
+        }}
+      >
+        Send Verification Code
+      </Button>{" "}
+    </form>
+  );
+}
+
+export function EmailVerificationInfoBox() {
   return (
     <>
       <Typography variant="caption" align="center">
         To unlock features verify your email now!
       </Typography>
-      <form onSubmit={handleOnSubmit}>
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
-          sx={{
-            mt: 3,
-            mb: 2,
-            backgroundColor: "#FFCDD2", // Light red color
-            "&:hover": {
-              backgroundColor: "#EF5350", // Darker red color on hover
-            },
-          }}
-        >
-          Send Verification Code
-        </Button>
-      </form>
+      <VerificationCode />
     </>
   );
 }

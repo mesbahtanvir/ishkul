@@ -15,18 +15,29 @@ import { useNavigate } from "react-router-dom";
 import { useAppSelector, useLoginHandler } from "../hooks/hooks";
 import { selectAccountState } from "../store/selectors";
 import { enqueueSnackbar } from "notistack";
+import { useSearchParams } from "react-router-dom";
 
 export default function AccountVerifyPage() {
   const account = useAppSelector(selectAccountState);
   let navigate = useNavigate();
   const loginHandler = useLoginHandler();
+  const [searchParams] = useSearchParams();
+  const urlEmail = searchParams.get("email") as string;
+  console.log(urlEmail);
+  // stored in redux get precedence
+  const email =
+    account.user.email.trim() === ""
+      ? urlEmail.trim()
+      : account.user.email.trim();
+
+  const urlCode = searchParams.get("code")?.trim();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
       const data = new FormData(event.currentTarget);
       const resp = await postVerifyAccount({
-        email: account.user.email,
+        email: email,
         code: data.get("code") as string,
         token: account.token,
       });
@@ -39,7 +50,7 @@ export default function AccountVerifyPage() {
   };
 
   const InfoSection = () => {
-    const text = "A code has been sent your email: " + account.user.email;
+    const text = "A code has been sent your email: " + email;
     return <Typography variant="caption">{text}</Typography>;
   };
 
@@ -50,8 +61,8 @@ export default function AccountVerifyPage() {
         <AccountVerifyHeader />
         <InfoSection />
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-          <PrefieldEmailBox email={account.user.email} />
-          <CodeField />
+          <PrefieldEmailBox email={email} />
+          {urlCode !== "" ? <CodeField code={urlCode} /> : <CodeField />}
           <SubmitVerificationCode />
         </Box>
       </StyledBox>

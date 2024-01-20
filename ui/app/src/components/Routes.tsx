@@ -7,6 +7,7 @@ import AccountPage from "../pages/AccountPage";
 import ChangePasswordPage from "../pages/ChangePasswordPage";
 import AccountVerify from "../pages/AccountVerifyPage";
 import SignupPage from "../pages/SignupPage";
+import AccountRecoverPage from "../pages/AccountRecoverPage";
 
 function AppRoutes() {
   return (
@@ -15,6 +16,7 @@ function AppRoutes() {
       <Route path="/account" element={<AccountPage />} />
       <Route path="/change_password" element={<ChangePasswordPage />} />
       <Route path="/account_verify" element={<AccountVerify />} />
+      <Route path="/account_recover" element={<AccountRecoverPage />} />
       <Route path="/signup" element={<SignupPage />} />
     </Routes>
   );

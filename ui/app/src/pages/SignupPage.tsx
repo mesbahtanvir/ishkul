@@ -1,8 +1,8 @@
 import * as React from "react";
 import CssBaseline from "@mui/material/CssBaseline";
-import Link from "@mui/material/Link";
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
+import { Typography } from "@mui/material";
 import Container from "@mui/material/Container";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,7 +15,6 @@ import {
   SingUpSubmit,
 } from "../components/ProfileComponents";
 import { postRegisterUser } from "../services/apiClient";
-import { styled } from "@mui/material/styles";
 import { enqueueSnackbar } from "notistack";
 
 export default function SignupPage() {
@@ -39,26 +38,28 @@ export default function SignupPage() {
     navigate("/login");
   };
 
-  const StyledLink = styled(Link)(({ theme }) => ({
-    textDecoration: "none",
-    color: theme.palette.primary.main, // Customize as needed
-    "&:hover": {
+  function AlreadyHaveAccount() {
+    const navigate = useNavigate();
+    const linkStyle = {
+      cursor: "pointer", // Add pointer cursor for better UX
       textDecoration: "underline",
-      color: theme.palette.secondary.main, // Customize as needed
-      transition: "color 0.3s",
-    },
-    // Additional styling here
-  }));
-
-  const AlreadyHaveAccount = () => {
+      color: "inherit", // You can customize the color as needed
+      "&:hover": {
+        textDecoration: "none",
+      },
+    };
     return (
       <Grid item>
-        <StyledLink href="/login" variant="body2">
+        <Typography
+          style={linkStyle}
+          variant="body2"
+          onClick={() => navigate("/login")}
+        >
           Already have an account?
-        </StyledLink>
+        </Typography>
       </Grid>
     );
-  };
+  }
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />

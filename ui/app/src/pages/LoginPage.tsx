@@ -5,7 +5,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { useNavigate, NavigateFunction } from "react-router-dom";
 import { postLoginUser } from "../services/apiClient";
 import {
-  ForgotAndSingupBox,
+  ForgotAndSignupBox,
   SignInEmailField,
   SignInPasswordField,
   SignInSubmitButton,
@@ -48,7 +48,7 @@ const Login: React.FC = () => {
           <SignInEmailField />
           <SignInPasswordField />
           <SignInSubmitButton />
-          <ForgotAndSingupBox />
+          <ForgotAndSignupBox />
         </Box>
       </StyledBox>
     </Container>
