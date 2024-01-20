@@ -1,7 +1,7 @@
-// IshkulAppBar.js
 import React from "react";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
+import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import LightModeIcon from "@mui/icons-material/LightMode";
@@ -59,14 +59,16 @@ const AccountOpener: React.FC = () => {
 
 const IshkulAppBar: React.FC = () => {
   return (
-    <AppBar>
-      <Toolbar>
-        <SideBarOpener />
-        <BrandName />
-        <ThemeToggler />
-        <AccountOpener />
-      </Toolbar>
-    </AppBar>
+    <Box sx={{ flexGrow: 1 }}>
+      <AppBar position="static">
+        <Toolbar>
+          <SideBarOpener />
+          <BrandName />
+          <ThemeToggler />
+          <AccountOpener />
+        </Toolbar>
+      </AppBar>
+    </Box>
   );
 };
 

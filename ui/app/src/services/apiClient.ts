@@ -49,20 +49,18 @@ export const postRegisterUser = async (
 export const postLoginUser = async (
   req: LoginUserRequest
 ): Promise<LoginUserResponse> => {
-  try {
-    const response = await axios
-      .post<LoginUserResponse>(`${BASE_URL}/login`, req)
-      .then((response) => response.data);
-
-    if (isValidLoginUserResponse(response)) {
-      return response;
-    } else {
-      throw new Error("Invalid response format");
-    }
-  } catch (error) {
-    console.log(error);
-    throw error;
+  console.log("hello");
+  const response = await axios
+    .post<LoginUserResponse>(`${BASE_URL}/login`, req)
+    .then((response) => response.data)
+    .catch((error) => {
+      console.log(error);
+      throw new Error(error.response.data.error);
+    });
+  if (!isValidLoginUserResponse(response)) {
+    throw Error("invalid response received");
   }
+  return response;
 };
 
 const isValidLoginUserResponse = (obj: any): obj is LoginUserResponse => {

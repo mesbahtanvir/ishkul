@@ -1,18 +1,22 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { User } from "./../../models/model";
+import { ParseToken } from "./../../lib/token";
 
 interface AccountState {
   isLoggedIn: boolean;
-  email: string;
   token: string;
-  firstName: string;
-  lastName: string;
+  user: User;
 }
 const initialState: AccountState = {
   isLoggedIn: false,
-  email: "",
   token: "",
-  firstName: "",
-  lastName: "",
+  user: {
+    id: "",
+    first_name: "",
+    last_name: "",
+    email: "",
+    verified: "",
+  },
 };
 
 // Define a type for the payload of the openAccountMenu action
@@ -26,8 +30,21 @@ export const accountStateSlice = createSlice({
   reducers: {
     login: (state, action: PayloadAction<LoginPayload>) => {
       state.token = action.payload.token;
+      state.isLoggedIn = true;
+      state.user = ParseToken(state.token);
+    },
+    logout: (state) => {
+      state.token = "";
+      state.isLoggedIn = false;
+      state.user = {
+        id: "",
+        first_name: "",
+        last_name: "",
+        email: "",
+        verified: "",
+      };
     },
   },
 });
-export const { login } = accountStateSlice.actions;
+export const { login, logout } = accountStateSlice.actions;
 export default accountStateSlice.reducer;

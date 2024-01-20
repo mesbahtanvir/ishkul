@@ -3,46 +3,79 @@ import LoginIcon from "@mui/icons-material/Login";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AccountCircle from "@mui/icons-material/AccountCircle";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 import InputIcon from "@mui/icons-material/Input";
 import Menu from "@mui/material/Menu";
-import { useAppSelector, useCloseAccountMenuHandler } from "../hooks/hooks";
+import {
+  useAppSelector,
+  useCloseAccountMenuHandler,
+  useLogoutHandler,
+} from "../hooks/hooks";
 import {
   selectAccountMenuState,
   selectAccountLoginState,
 } from "../store/selectors";
 
+import { useNavigate } from "react-router-dom";
+
 const LoggedInMenuItems: React.FC = () => {
+  const navigate = useNavigate();
+  const closeAccountMenu = useCloseAccountMenuHandler();
+  const logout = useLogoutHandler();
+
+  function closeAndNavigate(path: string) {
+    closeAccountMenu();
+    navigate(path);
+  }
+
+  function closeAndLogout(path: string) {
+    closeAccountMenu();
+    navigate("/");
+    logout();
+  }
+
   return (
     <>
-      {" "}
-      <MenuItem onClick={() => {}}>
+      <MenuItem onClick={() => closeAndNavigate("/account")}>
         <ListItemIcon>
           <AccountCircle />
         </ListItemIcon>
-        Profile
+        Account
       </MenuItem>
-      <MenuItem onClick={() => {}}>
+      <MenuItem onClick={() => closeAndNavigate("/settings")}>
         <ListItemIcon>
           <SettingsIcon />
         </ListItemIcon>
         Settings
+      </MenuItem>
+      <MenuItem onClick={() => closeAndLogout("/")}>
+        <ListItemIcon>
+          <ExitToAppIcon />
+        </ListItemIcon>
+        Log out
       </MenuItem>
     </>
   );
 };
 
 const LoggedOutMenuItems: React.FC = () => {
+  const navigate = useNavigate();
+  const closeAccountMenu = useCloseAccountMenuHandler();
+  function closeAndNavigate(path: string) {
+    navigate(path);
+    closeAccountMenu();
+  }
+
   return (
     <>
-      {" "}
-      <MenuItem onClick={() => {}}>
+      <MenuItem onClick={() => closeAndNavigate("/login")}>
         <ListItemIcon>
           <LoginIcon />
         </ListItemIcon>
         Log in
       </MenuItem>
-      <MenuItem onClick={() => {}}>
+      <MenuItem onClick={() => closeAndNavigate("/signup")}>
         <ListItemIcon>
           <InputIcon />
         </ListItemIcon>

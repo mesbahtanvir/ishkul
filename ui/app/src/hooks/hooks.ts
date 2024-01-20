@@ -7,6 +7,7 @@ import {
   openAccountMenu,
   closeAccountMenu,
 } from "../store/app/appState";
+import { login, logout } from "../store/account/account";
 
 // Use throughout your app instead of plain `useDispatch` and `useSelector`
 export const useAppDispatch: () => AppDispatch = useDispatch;
@@ -29,16 +30,20 @@ export const useOpenSideBarHandler = (): (() => void) => {
 
 export const useOpenAccountMenuHandler = (): (() => void) => {
   const dispatch: AppDispatch = useDispatch();
-  const handleOpenAccountMenu = () => {
-    dispatch(openAccountMenu());
-  };
-  return handleOpenAccountMenu;
+  return () => dispatch(openAccountMenu());
 };
 
 export const useCloseAccountMenuHandler = (): (() => void) => {
   const dispatch: AppDispatch = useDispatch();
-  const handleCloseAccountMenu = () => {
-    dispatch(closeAccountMenu());
-  };
-  return handleCloseAccountMenu;
+  return () => dispatch(closeAccountMenu());
+};
+
+export const useLoginHandler = (): ((token: string) => void) => {
+  const dispatch: AppDispatch = useDispatch();
+  return (token: string) => dispatch(login({ token: token }));
+};
+
+export const useLogoutHandler = (): (() => void) => {
+  const dispatch: AppDispatch = useDispatch();
+  return () => dispatch(logout());
 };

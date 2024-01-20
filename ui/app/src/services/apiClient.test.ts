@@ -56,7 +56,6 @@ describe("apiClient module", () => {
       last_name: "Biden",
       email: "joe.biden@email.com",
       password: "mypass",
-      allow_extra_email: true,
     };
     mockedAxios.post.mockResolvedValueOnce({
       status: 201,

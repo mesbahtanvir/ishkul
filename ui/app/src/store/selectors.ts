@@ -5,3 +5,4 @@ export const selectAccountMenuState = (state: RootState) =>
   state.appState.accountMenu;
 export const selectAccountLoginState = (state: RootState) =>
   state.accountState.isLoggedIn;
+export const selectAccountState = (state: RootState) => state.accountState;

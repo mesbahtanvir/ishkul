@@ -5,7 +5,6 @@ export interface RegisterUserRequest {
   last_name: string;
   email: string;
   password: string;
-  allow_extra_email: boolean;
 }
 
 export interface RegisterUserResponse {}
@@ -18,6 +17,7 @@ export interface LoginUserRequest {
 export interface LoginUserResponse {
   data: {
     token: string;
+    error: string;
   };
 }
 
@@ -83,4 +83,12 @@ export interface GetDocumentResponse {
   institude: string;
   year: int;
   tags: string[];
+}
+
+export interface User {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  verified: string;
 }
