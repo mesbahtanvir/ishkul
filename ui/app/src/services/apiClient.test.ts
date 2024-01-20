@@ -129,6 +129,7 @@ describe("apiClient module", () => {
     const userData: VerifyAccountRequest = {
       email: "joe.biden@email.com",
       code: "12",
+      token: "asgsdf",
     };
 
     mockedAxios.post.mockResolvedValueOnce({
@@ -150,8 +151,8 @@ describe("apiClient module", () => {
   it("postChangePassword should post data using axios and return response", async () => {
     const userData: ChangePasswordRequest = {
       email: "joe.biden@email.com",
-      oldPassword: "oldPassword",
-      newPassword: "newPassword",
+      old_password: "oldPassword",
+      new_password: "newPassword",
       token: "fakeToken",
     };
 

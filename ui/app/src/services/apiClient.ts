@@ -57,14 +57,7 @@ export const postLoginUser = async (
       console.log(error);
       throw new Error(error.response.data.error);
     });
-  if (!isValidLoginUserResponse(response)) {
-    throw Error("invalid response received");
-  }
   return response;
-};
-
-const isValidLoginUserResponse = (obj: any): obj is LoginUserResponse => {
-  return "data" in obj; // Replace with actual validation logic
 };
 
 export const postSendVerificationCode = async (
@@ -76,40 +69,53 @@ export const postSendVerificationCode = async (
       req
     );
     return response.data;
-  } catch (error) {
-    console.log(error);
-    throw error;
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        throw new Error(error.response.data.error);
+      } else if (error.request) {
+        // The request was made but no response was received
+        throw new Error("No response was received from the server");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        throw new Error(error.message);
+      }
+    } else {
+      // Not an Axios error
+      throw error;
+    }
   }
 };
 
 export const postVerifyAccount = async (
   req: VerifyAccountRequest
 ): Promise<VerifyAccountResponse> => {
-  try {
-    const response = await axios.post<VerifyAccountResponse>(
-      `${BASE_URL}/verify_account`,
-      req
-    );
-    return response.data;
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
+  const response = await axios
+    .post<VerifyAccountResponse>(`${BASE_URL}/verify_account`, req)
+    .then((response) => response.data)
+    .catch((error) => {
+      console.log(error);
+      throw new Error(error.response.data.error);
+    });
+  return response;
 };
 
 export const postChangePassword = async (
   req: ChangePasswordRequest
 ): Promise<ChangePasswordResponse> => {
-  try {
-    const response = await axios.post<ChangePasswordResponse>(
-      "https://api.ishkul.org/change_password",
-      req
-    );
-    return response.data;
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
+  const response = await axios
+    .post<ChangePasswordResponse>(`${BASE_URL}/change_password`, req)
+    .then((response) => response.data)
+    .catch((error) => {
+      console.log(error);
+      if (error && error.response) {
+        throw new Error(error.response.data.error);
+      }
+      throw error;
+    });
+  return response;
 };
 
 export const postDocuments = async (

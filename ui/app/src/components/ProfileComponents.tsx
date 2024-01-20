@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, FormEvent } from "react";
 import Box, { BoxProps } from "@mui/material/Box"; // Import Box and BoxProps from the respective library
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
@@ -12,8 +12,11 @@ import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { styled } from "@mui/material/styles";
+import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "../hooks/hooks";
 import { selectAccountState } from "../store/selectors";
+import { postSendVerificationCode } from "../services/apiClient";
+import { enqueueSnackbar } from "notistack";
 
 // Define the props for StyledBox
 interface StyledBoxProps extends BoxProps {
@@ -103,27 +106,17 @@ export function AccountRecoverHeader() {
 
 export function AccountVerifyHeader() {
   return (
-    <>
-      <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
-        <LockOutlinedIcon />
-      </Avatar>
-      <Typography component="h1" variant="h5">
-        Verify Your Account
-      </Typography>
-    </>
+    <Typography component="h1" variant="h6">
+      Verify Your Account
+    </Typography>
   );
 }
 
 export function ChangePasswordHeader() {
   return (
-    <>
-      <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
-        <LockOutlinedIcon />
-      </Avatar>
-      <Typography component="h1" variant="h5">
-        Update Your Password
-      </Typography>
-    </>
+    <Typography component="h1" variant="h6">
+      Change Your Password
+    </Typography>
   );
 }
 
@@ -142,9 +135,11 @@ export function SignInEmailField() {
   );
 }
 
-export function MayBePrefieldEmailBox(email: string) {
-  const isDisabled = email.trim() !== "";
+interface PrefieldEmailBoxProps {
+  email: string;
+}
 
+export function PrefieldEmailBox(props: PrefieldEmailBoxProps) {
   return (
     <TextField
       margin="normal"
@@ -153,10 +148,9 @@ export function MayBePrefieldEmailBox(email: string) {
       id="email"
       label="Email"
       name="email"
-      autoComplete="email"
       autoFocus
-      value={email || ""} // Prefill the email, if provided
-      disabled={isDisabled} // Disable editing if an email is present
+      value={props.email}
+      disabled={true} // Disable editing if an email is present
     />
   );
 }
@@ -216,53 +210,68 @@ export function SendVerificationCode() {
   );
 }
 
-export function SubmitChangePassword() {
+export function ChangePassword() {
   return (
-    <>
-      <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-        Change Password
-      </Button>
-    </>
+    <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
+      Change Password
+    </Button>
   );
 }
 
-export function VerifyYourEmail() {
+export function ChangePasswordWithRedirection() {
+  let navigate = useNavigate();
+  return (
+    <form onSubmit={() => navigate("/change_password")}>
+      <ChangePassword />
+    </form>
+  );
+}
+
+export function EmailVerificationInfoBox() {
+  let navigate = useNavigate();
+  const user = useAppSelector(selectAccountState).user;
+  const handleOnSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      await postSendVerificationCode({ email: user.email });
+    } catch (error) {
+      console.log(error);
+      enqueueSnackbar((error as Error).message, { variant: "error" });
+      return;
+    }
+    navigate("/account_verify");
+    enqueueSnackbar("a code has sent to your email");
+  };
   return (
     <>
       <Typography variant="caption" align="center">
         To unlock features verify your email now!
       </Typography>
-      <Button
-        type="submit"
-        fullWidth
-        variant="contained"
-        sx={{
-          mt: 3,
-          mb: 2,
-          backgroundColor: "#FFCDD2", // Light red color
-          "&:hover": {
-            backgroundColor: "#EF5350", // Darker red color on hover
-          },
-        }}
-      >
-        Verify Your Email
-      </Button>
+      <form onSubmit={handleOnSubmit}>
+        <Button
+          type="submit"
+          fullWidth
+          variant="contained"
+          sx={{
+            mt: 3,
+            mb: 2,
+            backgroundColor: "#FFCDD2", // Light red color
+            "&:hover": {
+              backgroundColor: "#EF5350", // Darker red color on hover
+            },
+          }}
+        >
+          Send Verification Code
+        </Button>
+      </form>
     </>
   );
-}
-
-export function ProfileChangePasswordOrVerifyEmailFooter() {
-  const account = useAppSelector(selectAccountState).user;
-  if (account.verified) {
-    return <SubmitChangePassword />;
-  }
-  return <VerifyYourEmail />;
 }
 
 export function SubmitVerificationCode() {
   return (
     <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-      Submit Verification Code
+      Submit Code
     </Button>
   );
 }
@@ -333,13 +342,13 @@ export function SignUpPasswordField() {
   );
 }
 
-export function PreviousPasswordField() {
+export function OldPasswordField() {
   return (
     <TextField
       required
       fullWidth
-      name="password"
-      label="OldPassword"
+      name="old-password"
+      label="Previous password"
       type="password"
       id="old-password"
       autoComplete="old-password"
@@ -352,8 +361,8 @@ export function NewPasswordField() {
     <TextField
       required
       fullWidth
-      name="password"
-      label="NewPassword"
+      name="new-password"
+      label="New password"
       type="password"
       id="new-password"
       autoComplete="new-password"

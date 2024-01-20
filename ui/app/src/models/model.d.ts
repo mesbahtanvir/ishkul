@@ -30,18 +30,29 @@ export interface SendVerificationCodeResponse {}
 export interface VerifyAccountRequest {
   email: string;
   code: string;
-}
-
-export interface VerifyAccountResponse {}
-
-export interface ChangePasswordRequest {
-  email: string;
-  oldPassword: string;
-  newPassword: string;
   token: string;
 }
 
-export interface ChangePasswordResponse {}
+export interface VerifyAccountResponse {
+  data: {
+    token: string;
+    error: string;
+  };
+}
+
+export interface ChangePasswordRequest {
+  email: string;
+  old_password: string;
+  new_password: string;
+  token: string;
+}
+
+export interface ChangePasswordResponse {
+  data: {
+    token: string;
+    error: string;
+  };
+}
 
 export interface Document {
   institude: string;

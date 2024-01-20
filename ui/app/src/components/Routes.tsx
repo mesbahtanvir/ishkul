@@ -4,12 +4,16 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import LoginPage from "../pages/LoginPage";
 import AccountPage from "../pages/AccountPage";
+import ChangePasswordPage from "../pages/ChangePasswordPage";
+import AccountVerify from "../pages/VerifyEmail";
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/account" element={<AccountPage />} />
+      <Route path="/change_password" element={<ChangePasswordPage />} />
+      <Route path="/account_verify" element={<AccountVerify />} />
     </Routes>
   );
 }

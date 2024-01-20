@@ -1,30 +1,19 @@
 import { Container, Paper, Avatar, Typography } from "@mui/material";
 import Box from "@mui/material/Box";
-import { ProfileChangePasswordOrVerifyEmailFooter } from "../components/ProfileComponents";
 import CssBaseline from "@mui/material/CssBaseline";
-import { useNavigate } from "react-router-dom";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import PendingIcon from "@mui/icons-material/Pending";
-import { postSendVerificationCode } from "../services/apiClient";
 import { selectAccountState } from "../store/selectors";
 import { useAppSelector } from "../hooks/hooks";
+import {
+  ChangePasswordWithRedirection,
+  EmailVerificationInfoBox,
+} from "../components/ProfileComponents";
 
 const ProfileInfo: React.FC = () => {
-  let navigate = useNavigate();
-  const userInfo = useAppSelector(selectAccountState).user;
-  function handleOnSubmit() {
-    if (userInfo.verified) {
-      navigate("/change_password");
-      return;
-    }
-    postSendVerificationCode({ email: userInfo.email });
-    navigate("/validate_email");
-  }
+  const user = useAppSelector(selectAccountState).user;
 
-  interface EmailVerifiedProps {
-    email: string;
-  }
-  function EmailVerified(props: EmailVerifiedProps) {
+  function EmailVerified() {
     return (
       <div>
         <Typography
@@ -36,17 +25,14 @@ const ProfileInfo: React.FC = () => {
             justifyContent: "center",
           }}
         >
-          {props.email}{" "}
+          {user.email}{" "}
           <VerifiedUserIcon style={{ color: "green", marginLeft: "5px" }} />
         </Typography>
       </div>
     );
   }
 
-  interface EmailUnVerifiedProps {
-    email: string;
-  }
-  function EmailUnverified(props: EmailUnVerifiedProps) {
+  function EmailUnverified() {
     return (
       <div>
         <Typography
@@ -58,22 +44,29 @@ const ProfileInfo: React.FC = () => {
             justifyContent: "center",
           }}
         >
-          {props.email}{" "}
+          {user.email}{" "}
           <PendingIcon style={{ color: "red", marginLeft: "5px" }} />
         </Typography>
       </div>
     );
   }
 
-  interface AccountEmailWithVeficationProps {
-    email: string;
+  function AccountEmailWithVefication() {
+    return user.verified ? <EmailVerified /> : <EmailUnverified />;
   }
 
-  function AccountEmailWithVefication(props: AccountEmailWithVeficationProps) {
-    if (props.email.trim() !== "") {
-      return <EmailVerified email={props.email} />;
-    }
-    return <EmailUnverified email={props.email} />;
+  function AccountAction() {
+    return (
+      <div style={{ textAlign: "center", marginTop: "20px" }}>
+        <Box>
+          {user.verified ? (
+            <ChangePasswordWithRedirection />
+          ) : (
+            <EmailVerificationInfoBox />
+          )}
+        </Box>
+      </div>
+    );
   }
 
   return (
@@ -82,19 +75,10 @@ const ProfileInfo: React.FC = () => {
       <Paper style={{ padding: "20px", marginTop: "20px" }}>
         <Avatar style={{ width: "100px", height: "100px", margin: "auto" }} />
         <Typography variant="h5" align="center">
-          {userInfo.first_name} {userInfo.last_name}
+          {user.first_name} {user.last_name}
         </Typography>
-        <AccountEmailWithVefication email={userInfo.email} />
-        <div style={{ textAlign: "center", marginTop: "20px" }}>
-          <Box
-            component="form"
-            onSubmit={handleOnSubmit}
-            noValidate
-            sx={{ mt: 1 }}
-          >
-            <ProfileChangePasswordOrVerifyEmailFooter />
-          </Box>
-        </div>
+        <AccountEmailWithVefication />
+        <AccountAction />
       </Paper>
     </Container>
   );
