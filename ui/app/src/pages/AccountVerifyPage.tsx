@@ -12,14 +12,14 @@ import {
 } from "../components/ProfileComponents";
 import { postVerifyAccount } from "../services/apiClient";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector } from "../hooks/hooks";
+import { useAppSelector, useLoginHandler } from "../hooks/hooks";
 import { selectAccountState } from "../store/selectors";
-import { login } from "../store/account/account";
 import { enqueueSnackbar } from "notistack";
 
-export default function AccountVerify() {
+export default function AccountVerifyPage() {
   const account = useAppSelector(selectAccountState);
   let navigate = useNavigate();
+  const loginHandler = useLoginHandler();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -30,7 +30,7 @@ export default function AccountVerify() {
         code: data.get("code") as string,
         token: account.token,
       });
-      login({ token: resp.data.token });
+      loginHandler(resp.data.token);
       navigate("/account");
     } catch (error: unknown) {
       enqueueSnackbar((error as Error).message, { variant: "error" });

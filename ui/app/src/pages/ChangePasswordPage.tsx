@@ -13,17 +13,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import { postChangePassword } from "../services/apiClient";
 import { selectAccountState } from "../store/selectors";
-import { useAppSelector } from "../hooks/hooks";
+import { useAppSelector, useLoginHandler } from "../hooks/hooks";
 import { enqueueSnackbar } from "notistack";
-import { login } from "../store/account/account";
 
-interface ChangePasswordProps {
-  // Define props here if any
-}
-
-const ChangePasswordPage: React.FC<ChangePasswordProps> = () => {
+const ChangePasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const account = useAppSelector(selectAccountState);
+  const loginHandler = useLoginHandler();
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -34,7 +30,7 @@ const ChangePasswordPage: React.FC<ChangePasswordProps> = () => {
         new_password: data.get("new-password") as string,
         token: account.token,
       });
-      login({ token: resp.data.token });
+      loginHandler(resp.data.token);
     } catch (error: unknown) {
       enqueueSnackbar((error as Error).message, { variant: "error" });
       return;

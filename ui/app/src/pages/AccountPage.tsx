@@ -10,7 +10,7 @@ import {
   EmailVerificationInfoBox,
 } from "../components/ProfileComponents";
 
-const ProfileInfo: React.FC = () => {
+const AccountPage: React.FC = () => {
   const user = useAppSelector(selectAccountState).user;
 
   function EmailVerified() {
@@ -84,7 +84,4 @@ const ProfileInfo: React.FC = () => {
   );
 };
 
-const AccountPage: React.FC = () => {
-  return <ProfileInfo />;
-};
 export default AccountPage;

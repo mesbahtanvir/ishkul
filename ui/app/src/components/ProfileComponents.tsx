@@ -61,7 +61,7 @@ export function ForgotAndSingupBox() {
         </Link>
       </Grid>
       <Grid item>
-        <Link href="/sign_up" style={linkStyle} variant="body2">
+        <Link href="/signup" style={linkStyle} variant="body2">
           {"Sign Up"}
         </Link>
       </Grid>
@@ -278,14 +278,9 @@ export function SubmitVerificationCode() {
 
 export function SignUpHeader() {
   return (
-    <>
-      <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
-        <LockOutlinedIcon />
-      </Avatar>
-      <Typography component="h1" variant="h5">
-        Register
-      </Typography>
-    </>
+    <Typography component="h1" variant="h5">
+      Register Your Account
+    </Typography>
   );
 }
 

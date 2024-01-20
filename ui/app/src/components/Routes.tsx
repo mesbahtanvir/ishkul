@@ -5,7 +5,8 @@ import { useLocation } from "react-router-dom";
 import LoginPage from "../pages/LoginPage";
 import AccountPage from "../pages/AccountPage";
 import ChangePasswordPage from "../pages/ChangePasswordPage";
-import AccountVerify from "../pages/VerifyEmail";
+import AccountVerify from "../pages/AccountVerifyPage";
+import SignupPage from "../pages/SignupPage";
 
 function AppRoutes() {
   return (
@@ -14,6 +15,7 @@ function AppRoutes() {
       <Route path="/account" element={<AccountPage />} />
       <Route path="/change_password" element={<ChangePasswordPage />} />
       <Route path="/account_verify" element={<AccountVerify />} />
+      <Route path="/signup" element={<SignupPage />} />
     </Routes>
   );
 }

@@ -29,7 +29,7 @@ func (r ChangePasswordRequest) Validate() error {
 		return ErrParamOldPasswordIsRequired
 	}
 	if r.NewPassword == "" {
-		return ErrParamPasswordIsRequired
+		return ErrParamNewPasswordIsRequired
 	}
 	if r.Token == "" {
 		return ErrParamTokenIsRequired

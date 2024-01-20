@@ -12,6 +12,7 @@ var (
 	// params related
 	ErrParamPasswordIsRequired    = errors.New("password is required")
 	ErrParamOldPasswordIsRequired = errors.New("old password is required")
+	ErrParamNewPasswordIsRequired = errors.New("new password is required")
 	ErrParamEmailIsRequired       = errors.New("email is required")
 	ErrParamTokenIsRequired       = errors.New("token is required")
 	ErrParamCodeIsRequired        = errors.New("code is required")
@@ -26,7 +27,7 @@ var (
 	ErrUserAuthenticationFailure               = errors.New("authentication failure")
 	ErrUserEmailAndPasswordMismatched          = errors.New("email and password mismatched")
 	ErrUserEmailAlreadyExists                  = errors.New("a user with this email already exists")
-	ErrUserProvidedPasswordDidntMatchTheRecord = errors.New("provided password didnt match record")
+	ErrUserProvidedPasswordDidntMatchTheRecord = errors.New("password didn't match")
 	ErrRequestedResourceDoesNotExist           = errors.New("resource does not exists")
 
 	// Internal error
@@ -40,6 +41,7 @@ func ErrorHTTPCode(err error) int {
 	switch {
 	case errors.Is(err, ErrParamPasswordIsRequired),
 		errors.Is(err, ErrParamOldPasswordIsRequired),
+		errors.Is(err, ErrParamNewPasswordIsRequired),
 		errors.Is(err, ErrParamEmailIsRequired),
 		errors.Is(err, ErrParamTokenIsRequired),
 		errors.Is(err, ErrParamCodeIsRequired),
