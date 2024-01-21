@@ -1,12 +1,12 @@
 ####### run this script from root directory
 
-docker build -t ishkul-web  ./ui/ishkul-web
-docker tag ishkul-web mesbahtanvir/ishkul-web:latest # tag ishkul-web
-docker push mesbahtanvir/ishkul-web:latest
+docker build -t web-www  ./ui/web-www
+docker tag web-www mesbahtanvir/web-www:latest # tag web-www
+docker push mesbahtanvir/web-www:latest
 
-docker build -t ishkul-app  ./ui/ishkul-app 
-docker tag ishkul-app mesbahtanvir/ishkul-app:latest # tag ishkul-app
-docker push mesbahtanvir/ishkul-app:latest
+docker build -t web-app  ./ui/app 
+docker tag web-app mesbahtanvir/web-app:latest # tag web-app
+docker push mesbahtanvir/web-app:latest
 
 docker build -t ishkul-backend  ./backend
 docker tag ishkul-backend mesbahtanvir/ishkul-backend:latest  # tag ishkul-backend

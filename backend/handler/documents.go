@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 
 	"go.uber.org/zap"
 	"ishkul.org/backend/model"
@@ -53,14 +54,17 @@ func HandleAddDocument(ctx context.Context, docdb DocumentDatabase, req AddDocum
 
 	docs := make([]model.Document, len(req.Documents))
 	for i := 0; i < len(req.Documents); i++ {
+		tags := req.Documents[i].Tags
+		tags = append(tags, req.Documents[i].Institute, fmt.Sprint(req.Documents[i].Year))
 		docs[i] = model.Document{
 			ResourceURL: req.Documents[i].ResourceURL,
 			Institute:   req.Documents[i].Institute,
 			Year:        req.Documents[i].Year,
-			Tags:        req.Documents[i].Tags,
+			Tags:        tags,
 		}
 	}
 	if err := docdb.AddDocument(ctx, docs); err != nil {
+		zap.L().Error("failed to add document", zap.Error(err))
 		return AddDocumentResponse{}, ErrInternalFailedToRetriveFromDatabase
 	}
 	return AddDocumentResponse{}, nil
@@ -104,8 +108,11 @@ func HandleSearchDocument(ctx context.Context, docdb DocumentDatabase, req Searc
 	}
 	if len(docs) == 0 {
 		// Best effort if no document match the query
+		zap.L().Info("search document didnt return any document")
 		docs, err = docdb.GetDocuments(ctx)
-		zap.L().Info("failed to load docs from storage", zap.Error(err))
+		if err != nil {
+			zap.L().Info("failed to load docs from storage", zap.Error(err))
+		}
 	}
 	resp := SearchDocumentResponse{}
 	for i := 0; i < len(docs); i++ {

@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -116,4 +118,23 @@ func TestFingUserByEmail(t *testing.T) {
 
 	}
 
+}
+
+func TestGetDocuments(t *testing.T) {
+	t.SkipNow()
+	os.Setenv("MONGODB_HOST", "localhost")
+	db := MustNewMongoDocumentDatabase()
+	res, err := db.GetDocuments(context.Background())
+	assert.Nil(t, err)
+	fmt.Print(res)
+	assert.NotEmpty(t, res)
+}
+
+func TestSearchDocument(t *testing.T) {
+	t.SkipNow()
+	os.Setenv("MONGODB_HOST", "localhost")
+	db := MustNewMongoDocumentDatabase()
+	res, err := db.SearchDocument(context.Background(), "dhaka")
+	assert.Nil(t, err)
+	assert.NotEmpty(t, res)
 }

@@ -19,6 +19,7 @@ type Claims struct {
 	LastName  string `json:"last_name"`
 	Email     string `json:"email"`
 	Verified  bool   `json:"verified"`
+	IsAdmin   bool   `json:"is_admin"`
 	jwt.StandardClaims
 }
 
@@ -31,6 +32,7 @@ func EncodeJWTToken(user model.User) (string, error) {
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Verified:  user.EmailVerified,
+		IsAdmin:   IsAdmin(user.Email),
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -131,6 +133,13 @@ func GenerateRandomVerificationCode() string {
 
 var currentAdmins = map[string]bool{
 	"mesbah.tanvir.cs@gmail.com": true,
+}
+
+func IsAdmin(email string) bool {
+	if value, ok := currentAdmins[email]; !ok || !value {
+		return false
+	}
+	return true
 }
 
 func IsAuthenticatedUser(token string) (*Claims, error) {
