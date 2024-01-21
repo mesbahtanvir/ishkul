@@ -1,4 +1,4 @@
-name: App Linter & Test
+name: Web App Linter & Test
 
 on: [push, pull_request]
 

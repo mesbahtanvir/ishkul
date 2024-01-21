@@ -1,4 +1,4 @@
-name: Terraform Workflow Test
+name: Terraform Validation Check
 
 on: [push, pull_request]
 

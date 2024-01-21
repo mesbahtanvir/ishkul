@@ -1,4 +1,4 @@
-name: Web Linter Check
+name: Web WWW Linter Check
 
 on: [push, pull_request]
 

@@ -42,7 +42,7 @@ function updatePagination(state: Resources) {
   const startIndex = (state.data.currentPage - 1) * 10;
   state.data.documentsInView = state.data.documents.slice(
     startIndex,
-    startIndex + 10
+    startIndex + 10,
   );
 }
 

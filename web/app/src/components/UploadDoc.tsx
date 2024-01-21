@@ -47,7 +47,7 @@ const UploadDoc = () => {
         typeof doc.resource_url === "string" &&
         typeof doc.year === "number" &&
         doc.tags &&
-        Array.isArray(doc.tags.split(",")) // Assuming tags are comma-separated
+        Array.isArray(doc.tags.split(",")), // Assuming tags are comma-separated
     );
   };
 

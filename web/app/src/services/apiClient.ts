@@ -25,7 +25,7 @@ const BASE_URL =
 export const checkHealth = async (): Promise<RegisterUserResponse> => {
   try {
     const response = await axios.get<RegisterUserResponse>(
-      `${BASE_URL}/health`
+      `${BASE_URL}/health`,
     );
     return response.data;
   } catch (error) {
@@ -35,7 +35,7 @@ export const checkHealth = async (): Promise<RegisterUserResponse> => {
 };
 
 export const postRegisterUser = async (
-  req: RegisterUserRequest
+  req: RegisterUserRequest,
 ): Promise<any> => {
   const response = await axios
     .post<RegisterUserResponse>(`${BASE_URL}/register`, req)
@@ -51,7 +51,7 @@ export const postRegisterUser = async (
 };
 
 export const postLoginUser = async (
-  req: LoginUserRequest
+  req: LoginUserRequest,
 ): Promise<LoginUserResponse> => {
   const response = await axios
     .post<LoginUserResponse>(`${BASE_URL}/login`, req)
@@ -67,12 +67,12 @@ export const postLoginUser = async (
 };
 
 export const postSendVerificationCode = async (
-  req: SendVerificationCodeRequest
+  req: SendVerificationCodeRequest,
 ): Promise<SendVerificationCodeResponse> => {
   const response = await axios
     .post<SendVerificationCodeResponse>(
       `${BASE_URL}/send_verification_code`,
-      req
+      req,
     )
     .then((response) => response.data)
     .catch((error) => {
@@ -86,7 +86,7 @@ export const postSendVerificationCode = async (
 };
 
 export const postVerifyAccount = async (
-  req: VerifyAccountRequest
+  req: VerifyAccountRequest,
 ): Promise<VerifyAccountResponse> => {
   const response = await axios
     .post<VerifyAccountResponse>(`${BASE_URL}/verify_account`, req)
@@ -102,7 +102,7 @@ export const postVerifyAccount = async (
 };
 
 export const postChangePassword = async (
-  req: ChangePasswordRequest
+  req: ChangePasswordRequest,
 ): Promise<ChangePasswordResponse> => {
   const response = await axios
     .post<ChangePasswordResponse>(`${BASE_URL}/change_password`, req)
@@ -118,7 +118,7 @@ export const postChangePassword = async (
 };
 
 export const postDocuments = async (
-  req: PostDocumentsRequest
+  req: PostDocumentsRequest,
 ): Promise<PostDocumentsResponse> => {
   const response = await axios
     .post<PostDocumentsResponse>(`${BASE_URL}/documents`, req)

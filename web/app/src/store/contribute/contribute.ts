@@ -21,7 +21,7 @@ export const contributeResourcesSlice = createSlice({
   reducers: {
     storeContributeDocuments: (
       state,
-      action: PayloadAction<StoreDocumentsPayload>
+      action: PayloadAction<StoreDocumentsPayload>,
     ) => {
       state.data.documents = [
         ...state.data.documents,

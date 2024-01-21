@@ -42,7 +42,7 @@ describe("apiClient module", () => {
     const result = await checkHealth();
     expect(result).toEqual({ healthy: "ok" });
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      "https://api.ishkul.org/health"
+      "https://api.ishkul.org/health",
     );
   });
 
@@ -67,7 +67,7 @@ describe("apiClient module", () => {
     expect(result).toEqual({ message: "ok" });
     expect(axios.post).toHaveBeenCalledWith(
       "https://api.ishkul.org/register",
-      userData
+      userData,
     );
   });
 
@@ -97,7 +97,7 @@ describe("apiClient module", () => {
     });
     expect(axios.post).toHaveBeenCalledWith(
       "https://api.ishkul.org/login",
-      userData
+      userData,
     );
   });
 
@@ -117,7 +117,7 @@ describe("apiClient module", () => {
     expect(result).toEqual({});
     expect(axios.post).toHaveBeenCalledWith(
       "https://api.ishkul.org/send_verification_code",
-      userData
+      userData,
     );
   });
 
@@ -140,7 +140,7 @@ describe("apiClient module", () => {
     expect(result).toEqual({});
     expect(axios.post).toHaveBeenCalledWith(
       "https://api.ishkul.org/verify_account",
-      userData
+      userData,
     );
   });
 
@@ -163,7 +163,7 @@ describe("apiClient module", () => {
     expect(result).toEqual({});
     expect(axios.post).toHaveBeenCalledWith(
       "https://api.ishkul.org/change_password",
-      userData
+      userData,
     );
   });
 
@@ -191,7 +191,7 @@ describe("apiClient module", () => {
     expect(result).toEqual({});
     expect(axios.post).toHaveBeenCalledWith(
       "https://api.ishkul.org/documents",
-      userData
+      userData,
     );
   });
 
@@ -211,7 +211,7 @@ describe("apiClient module", () => {
     const result = await getDocuments(userData);
     expect(result).toEqual({});
     expect(axios.get).toHaveBeenCalledWith(
-      "https://api.ishkul.org/documents?token=token&query=filter"
+      "https://api.ishkul.org/documents?token=token&query=filter",
     );
   });
 
@@ -231,7 +231,7 @@ describe("apiClient module", () => {
     const result = await getDocument(userData);
     expect(result).toEqual({});
     expect(axios.get).toHaveBeenCalledWith(
-      "https://api.ishkul.org/document?token=token&id=id"
+      "https://api.ishkul.org/document?token=token&id=id",
     );
   });
 });

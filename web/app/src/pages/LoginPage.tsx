@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
   const loginHandler = useLoginHandler();
 
   const handleSubmit = async (
-    event: React.FormEvent<HTMLFormElement>
+    event: React.FormEvent<HTMLFormElement>,
   ): Promise<void> => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
