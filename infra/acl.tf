@@ -65,8 +65,8 @@ resource "aws_wafv2_web_acl_association" "web_domain_limit" {
   web_acl_arn  = aws_wafv2_web_acl.rate_limit_500_per_5_min.arn
 }
 
-resource "aws_wafv2_web_acl_association" "contributor_domain_limit" {
-  resource_arn = aws_lb.ishkul_contributor_web_alb.arn
+resource "aws_wafv2_web_acl_association" "app_domain_limit" {
+  resource_arn = aws_lb.ishkul_app_alb.arn
   web_acl_arn  = aws_wafv2_web_acl.rate_limit_500_per_5_min.arn
 }
 

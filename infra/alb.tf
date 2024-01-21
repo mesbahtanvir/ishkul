@@ -38,8 +38,8 @@ resource "aws_lb" "ishkul_api_alb" {
   ]
 }
 
-resource "aws_lb" "ishkul_contributor_web_alb" {
-  name               = "ishkul-contributor-web-alb"
+resource "aws_lb" "ishkul_app_alb" {
+  name               = "ishkul-app-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -84,8 +84,8 @@ resource "aws_lb_listener" "ishkul_https_api_listener" {
   }
 }
 
-resource "aws_lb_listener" "ishkul_https_contributor_web_listener" {
-  load_balancer_arn = aws_lb.ishkul_contributor_web_alb.arn
+resource "aws_lb_listener" "ishkul_https_app_listener" {
+  load_balancer_arn = aws_lb.ishkul_app_alb.arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
@@ -93,7 +93,7 @@ resource "aws_lb_listener" "ishkul_https_contributor_web_listener" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.ishkul_contributor_web_tg.arn
+    target_group_arn = aws_lb_target_group.ishkul_app_tg.arn
   }
 }
 
@@ -127,8 +127,8 @@ resource "aws_lb_listener" "http_api_redirection" {
   }
 }
 
-resource "aws_lb_listener" "http_contributor_web_redirection" {
-  load_balancer_arn = aws_lb.ishkul_contributor_web_alb.arn
+resource "aws_lb_listener" "http_app_redirection" {
+  load_balancer_arn = aws_lb.ishkul_app_alb.arn
   port              = 80
   protocol          = "HTTP"
 
@@ -180,8 +180,8 @@ resource "aws_lb_target_group" "ishkul_api_tg" {
   }
 }
 
-resource "aws_lb_target_group" "ishkul_contributor_web_tg" {
-  name       = "ishkul-contributor-web-tg"
+resource "aws_lb_target_group" "ishkul_app_tg" {
+  name       = "ishkul-app-tg"
   port       = 3000
   protocol   = "HTTP"
   vpc_id     = aws_vpc.main.id
@@ -211,8 +211,8 @@ resource "aws_lb_target_group_attachment" "api_tg_attachment" {
   port             = 8080
 }
 
-resource "aws_lb_target_group_attachment" "contributor_web_tg_attachment" {
-  target_group_arn = aws_lb_target_group.ishkul_contributor_web_tg.arn
+resource "aws_lb_target_group_attachment" "app_tg_attachment" {
+  target_group_arn = aws_lb_target_group.ishkul_app_tg.arn
   target_id        = aws_instance.ishkul_ec2.id
   port             = 3000
 }
@@ -225,6 +225,6 @@ output "api_load_balancer_dns" {
   value = aws_lb.ishkul_api_alb.dns_name
 }
 
-output "contrib_web_load_balancer_dns" {
-  value = aws_lb.ishkul_contributor_web_alb.dns_name
+output "web_app_load_balancer_dns" {
+  value = aws_lb.ishkul_app_alb.dns_name
 }

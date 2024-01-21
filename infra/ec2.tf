@@ -1,6 +1,6 @@
 resource "aws_instance" "ishkul_ec2" {
   ami           = "ami-05f8c2ee58e71f8e6" # Replace with a valid AMI ID
-  instance_type = "t4g.small"
+  instance_type = "t4g.medium"
   key_name      = "ishkul"
 
   subnet_id              = aws_subnet.public_1.id
