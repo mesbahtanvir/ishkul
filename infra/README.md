@@ -4,7 +4,7 @@ ishkul org domain has been created with GoDaddy, we need to setup dns propery to
 
 1. Route request to aws load balancer
 
-   1. app.ishkul.org `contrib_web_load_balancer_dns = "ishkul-contributor-web-alb-158982329.ap-southeast-1.elb.amazonaws.com"`
+   1. app.ishkul.org `contrib_web_load_balancer_dns = "ishkul-app-alb-158982329.ap-southeast-1.elb.amazonaws.com"`
    2. www.ishkul.org `web_load_balancer_dns = "ishkul-web-alb-729849842.ap-southeast-1.elb.amazonaws.com"`
 
 2. Add certificate validation so that https works

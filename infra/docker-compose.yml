@@ -19,15 +19,15 @@ services:
       - mongodb
       - redis # Add dependency on Redis
 
-  ishkul-web:
-    image: mesbahtanvir/ishkul-web:latest
+  web-www:
+    image: mesbahtanvir/web-www:latest
     ports:
       - "80:80"
     networks:
       - ishkul-network
 
-  ishkul-app:
-    image: mesbahtanvir/ishkul-app:latest
+  web-app:
+    image: mesbahtanvir/web-app:latest
     ports:
       - "3000:3000"
     networks:

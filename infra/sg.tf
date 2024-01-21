@@ -18,7 +18,7 @@ resource "aws_security_group" "ec2_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Contributor Frontend
+  # App Frontend
   ingress {
     from_port   = 3000
     to_port     = 3000
