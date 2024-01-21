@@ -56,10 +56,11 @@ func TestHandleSendVerificationCode(t *testing.T) {
 	defer ctrl.Finish()
 
 	type args struct {
-		ctx     context.Context
-		storage AccountStorage
-		db      UserDatabase
-		req     SendVerificationCodeRequest
+		ctx         context.Context
+		storage     AccountStorage
+		db          UserDatabase
+		emailSender EmailSender
+		req         SendVerificationCodeRequest
 	}
 
 	var (
@@ -109,13 +110,22 @@ func TestHandleSendVerificationCode(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "When error from storage Then return error",
+			name: "When failed to send notification Then return error",
 			args: args{
 				ctx: ctx,
 				storage: func() AccountStorage {
 					mockedStorage := mock.NewMockAccountStorage(ctrl)
-					mockedStorage.EXPECT().StoreAccountRecoveryKey(ctx, "mesbah@tanvir.com", gomock.Any()).Return(db.ErrRedisKeyNotFound)
 					return mockedStorage
+				}(),
+				emailSender: func() EmailSender {
+					mockSender := mock.NewMockEmailSender(ctrl)
+					gomock.InOrder(
+						mockSender.EXPECT().
+							SendVerificationCode(ctx, "mesbah@tanvir.com", gomock.Any()).
+							Return(ErrFailedToSendVerificationCode).
+							Times(1),
+					)
+					return mockSender
 				}(),
 				db: func() UserDatabase {
 					mockedDB := mock.NewMockUserDatabase(ctrl)
@@ -135,7 +145,43 @@ func TestHandleSendVerificationCode(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "When key matched Then return token",
+			name: "When error from storage Then return error",
+			args: args{
+				ctx: ctx,
+				storage: func() AccountStorage {
+					mockedStorage := mock.NewMockAccountStorage(ctrl)
+					mockedStorage.EXPECT().StoreAccountRecoveryKey(ctx, "mesbah@tanvir.com", gomock.Any()).Return(db.ErrRedisKeyNotFound)
+					return mockedStorage
+				}(),
+				emailSender: func() EmailSender {
+					mockSender := mock.NewMockEmailSender(ctrl)
+					gomock.InOrder(
+						mockSender.EXPECT().
+							SendVerificationCode(ctx, "mesbah@tanvir.com", gomock.Any()).
+							Return(nil).
+							Times(1),
+					)
+					return mockSender
+				}(),
+				db: func() UserDatabase {
+					mockedDB := mock.NewMockUserDatabase(ctrl)
+					gomock.InOrder(
+						mockedDB.EXPECT().
+							FindUserByEmail(ctx, "mesbah@tanvir.com").
+							Return(model.User{Email: "mesbah@tanvir.com"}, nil).
+							Times(1),
+					)
+					return mockedDB
+				}(),
+				req: SendVerificationCodeRequest{
+					Email: "mesbah@tanvir.com",
+				},
+			},
+			want:    SendVerificationCodeResponse{},
+			wantErr: true,
+		},
+		{
+			name: "When no error then return ok",
 			args: args{
 				ctx: ctx,
 				storage: func() AccountStorage {
@@ -158,6 +204,18 @@ func TestHandleSendVerificationCode(t *testing.T) {
 					)
 					return mockedDB
 				}(),
+
+				emailSender: func() EmailSender {
+					mockSender := mock.NewMockEmailSender(ctrl)
+					gomock.InOrder(
+						mockSender.EXPECT().
+							SendVerificationCode(ctx, "mesbah@tanvir.com", gomock.Any()).
+							Return(nil).
+							Times(1),
+					)
+					return mockSender
+				}(),
+
 				req: SendVerificationCodeRequest{
 					Email: "mesbah@tanvir.com",
 				},
@@ -168,7 +226,7 @@ func TestHandleSendVerificationCode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := HandleSendVerificationCode(tt.args.ctx, tt.args.storage, tt.args.db, tt.args.req)
+			got, err := HandleSendVerificationCode(tt.args.ctx, tt.args.storage, tt.args.db, tt.args.emailSender, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HandleAccountRecover() error = %v, wantErr %v", err, tt.wantErr)
 				return

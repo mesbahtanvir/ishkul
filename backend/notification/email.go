@@ -1,10 +1,13 @@
-package main
+package notification
 
 import (
 
 	//go get -u github.com/aws/aws-sdk-go
+
+	"context"
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"go.uber.org/zap"
@@ -24,84 +27,80 @@ const (
 	//ConfigurationSet = "ConfigSet"
 
 	// The subject line for the email.
-	Subject = "Amazon SES Test (AWS SDK for Go)"
-
+	Subject = "app.ishkul.org Verification code"
 	// The HTML body for the email.
-	HtmlBody = "<h1>Amazon SES Test Email (AWS SDK for Go)</h1><p>This email was sent with " +
-		"<a href='https://aws.amazon.com/ses/'>Amazon SES</a> using the " +
-		"<a href='https://aws.amazon.com/sdk-for-go/'>AWS SDK for Go</a>.</p>"
-
+	HtmlBody = "<h1>app.ishkul.org Verification code</h1>"
 	//The email body for recipients with non-HTML email clients.
 	TextBody = "This email was sent with Amazon SES using the AWS SDK for Go."
-
 	// The character encoding for the email.
 	CharSet = "UTF-8"
 )
 
-func main() {
-	// Create a new session in the us-west-2 region.
-	// Replace us-west-2 with the AWS Region you're using for Amazon SES.
+type EmailNotificationSender struct {
+	svc *ses.SES
+}
+
+func MustNewEmailNotificationSender() *EmailNotificationSender {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("ap-southeast-1")},
 	)
-
-	// Create an SES session.
+	if err != nil {
+		zap.L().Fatal("failed to initiate email sender", zap.Error(err))
+	}
 	svc := ses.New(sess)
+	return &EmailNotificationSender{svc: svc}
+}
 
-	// Assemble the email.
-	input := &ses.SendEmailInput{
+type EmailContent struct {
+	sender    string
+	recipient string
+	subject   string
+	htmlBody  string
+	textBody  string
+}
+
+func SimpleEmailFormatter(content EmailContent) *ses.SendEmailInput {
+	return &ses.SendEmailInput{
 		Destination: &ses.Destination{
 			CcAddresses: []*string{},
 			ToAddresses: []*string{
-				aws.String(Recipient),
+				aws.String(content.recipient),
 			},
 		},
 		Message: &ses.Message{
 			Body: &ses.Body{
 				Html: &ses.Content{
-					Charset: aws.String(CharSet),
-					Data:    aws.String(HtmlBody),
+					Charset: aws.String("UTF-8"),
+					Data:    aws.String(content.htmlBody),
 				},
 				Text: &ses.Content{
-					Charset: aws.String(CharSet),
-					Data:    aws.String(TextBody),
+					Charset: aws.String("UTF-8"),
+					Data:    aws.String(content.textBody),
 				},
 			},
 			Subject: &ses.Content{
-				Charset: aws.String(CharSet),
-				Data:    aws.String(Subject),
+				Charset: aws.String("UTF-8"),
+				Data:    aws.String(content.subject),
 			},
 		},
-		Source: aws.String(Sender),
-		// Uncomment to use a configuration set
-		//ConfigurationSetName: aws.String(ConfigurationSet),
+		Source: aws.String(content.sender),
 	}
+}
 
-	// Attempt to send the email.
-	result, err := svc.SendEmail(input)
-
-	// Display error messages if they occur.
+func (es *EmailNotificationSender) SendVerificationCode(ctx context.Context, email string, code string) error {
+	input := SimpleEmailFormatter(EmailContent{
+		sender:    "no-reply@ishkul.org",
+		recipient: email,
+		subject:   "app.ishkul.org Verification Code",
+		htmlBody: fmt.Sprintf(`
+		<p1> The verification code is: %s, code is valid for 15 minutes.</p1>			
+		`, code),
+		textBody: fmt.Sprintf("The verification code is: %s, code is valid for 15 minutes.", code),
+	})
+	_, err := es.svc.SendEmail(input)
 	if err != nil {
-		zap.L().Error("failed to send email", zap.Error(err))
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ses.ErrCodeMessageRejected:
-				zap.L().Error(ses.ErrCodeMessageRejected, zap.Error(aerr))
-			case ses.ErrCodeMailFromDomainNotVerifiedException:
-				zap.L().Error(ses.ErrCodeMailFromDomainNotVerifiedException, zap.Error(aerr))
-			case ses.ErrCodeConfigurationSetDoesNotExistException:
-				zap.L().Error(ses.ErrCodeConfigurationSetDoesNotExistException, zap.Error(aerr))
-			default:
-				zap.L().Error("error", zap.Error(aerr))
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			zap.L().Error("unknown", zap.Error(err))
-		}
-		return
+		zap.L().Error("failed to send notification", zap.Any("input", input), zap.Error(err))
+		return err
 	}
-
-	zap.L().Info("Email Sent to address: " + Recipient)
-	zap.L().Info(result.GoString())
+	return nil
 }

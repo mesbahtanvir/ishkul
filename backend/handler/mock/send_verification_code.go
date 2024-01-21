@@ -76,3 +76,40 @@ func (mr *MockAccountStorageMockRecorder) StoreAccountRecoveryKey(ctx, userID, c
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreAccountRecoveryKey", reflect.TypeOf((*MockAccountStorage)(nil).StoreAccountRecoveryKey), ctx, userID, code)
 }
+
+// MockEmailSender is a mock of EmailSender interface.
+type MockEmailSender struct {
+	ctrl     *gomock.Controller
+	recorder *MockEmailSenderMockRecorder
+}
+
+// MockEmailSenderMockRecorder is the mock recorder for MockEmailSender.
+type MockEmailSenderMockRecorder struct {
+	mock *MockEmailSender
+}
+
+// NewMockEmailSender creates a new mock instance.
+func NewMockEmailSender(ctrl *gomock.Controller) *MockEmailSender {
+	mock := &MockEmailSender{ctrl: ctrl}
+	mock.recorder = &MockEmailSenderMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockEmailSender) EXPECT() *MockEmailSenderMockRecorder {
+	return m.recorder
+}
+
+// SendVerificationCode mocks base method.
+func (m *MockEmailSender) SendVerificationCode(ctx context.Context, email, code string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendVerificationCode", ctx, email, code)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendVerificationCode indicates an expected call of SendVerificationCode.
+func (mr *MockEmailSenderMockRecorder) SendVerificationCode(ctx, email, code interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendVerificationCode", reflect.TypeOf((*MockEmailSender)(nil).SendVerificationCode), ctx, email, code)
+}

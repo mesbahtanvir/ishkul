@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 	"ishkul.org/backend/db"
 	"ishkul.org/backend/endpoints"
+	"ishkul.org/backend/notification"
 	"ishkul.org/backend/utils"
 )
 
@@ -25,6 +26,7 @@ func main() {
 	userDatabase := db.MustNewMongoUserDatabase()
 	documentDatabase := db.MustNewMongoDocumentDatabase()
 	storage := db.MustNewGlobalStorage()
+	emailSender := notification.MustNewEmailNotificationSender()
 
 	// Genenric Middleware settings
 	r.Use(cors.Default())
@@ -34,7 +36,7 @@ func main() {
 	})
 	r.POST("/register", endpoints.GinHandleRegister(userDatabase))
 	r.POST("/login", endpoints.GinHandleLogin(userDatabase))
-	r.POST("/send_verification_code", endpoints.GinHandleSendVerificationCode(storage, userDatabase))
+	r.POST("/send_verification_code", endpoints.GinHandleSendVerificationCode(storage, userDatabase, emailSender))
 	r.POST("/verify_account", endpoints.GinHandleVerifyAccount(storage, userDatabase))
 	r.POST("/change_password", endpoints.GinHandleChangePassword(storage, userDatabase))
 	r.POST("/documents", endpoints.GinHandlePostDocuments(userDatabase, documentDatabase))
