@@ -1,14 +1,14 @@
-name: Web Linter Check
+name: App Linter & Test
 
 on: [push, pull_request]
 
 defaults:
   run:
     shell: bash
-    working-directory: ./ui/ishkul-web
+    working-directory: ./web/app
 
 jobs:
-  javascript-lint-and-test:
+  typescript-lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -26,13 +26,13 @@ jobs:
         run: npm install --global prettier
 
       - name: Install ESLint
-        run: npm install eslint
+        run: npm install eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
 
       - name: Run Prettier
-        run: prettier --check src/*.js
+        run: prettier --check src/**/*.{ts,tsx}
 
       - name: Run ESLint
-        run: npx eslint .
+        run: npx eslint --ext .ts,.tsx .
 
       - name: Run React Tests
         run: npm test

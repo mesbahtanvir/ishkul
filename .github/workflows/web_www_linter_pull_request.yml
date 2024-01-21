@@ -1,11 +1,11 @@
-name: App Linter & Test
+name: Web Linter Check
 
 on: [push, pull_request]
 
 defaults:
   run:
     shell: bash
-    working-directory: ./ui/ishkul-app
+    working-directory: ./web/www
 
 jobs:
   javascript-lint-and-test:

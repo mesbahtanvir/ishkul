@@ -20,7 +20,6 @@ import (
 func TestChangePassword_Validate(t *testing.T) {
 	type fields struct {
 		Email       string
-		OldPassword string
 		NewPassword string
 		Token       string
 	}
@@ -39,30 +38,18 @@ func TestChangePassword_Validate(t *testing.T) {
 			wantErr: ErrParamEmailIsRequired,
 		},
 		{
-			name: "When old passwrod is not empty Then return  error",
-			fields: fields{
-				Email:       "a",
-				OldPassword: "",
-				NewPassword: "c",
-				Token:       "b",
-			},
-			wantErr: ErrParamOldPasswordIsRequired,
-		},
-		{
 			name: "When passwrod is empty Then return ",
 			fields: fields{
 				Email:       "a",
-				OldPassword: "c",
 				NewPassword: "",
 				Token:       "",
 			},
-			wantErr: ErrParamPasswordIsRequired,
+			wantErr: ErrParamNewPasswordIsRequired,
 		},
 		{
 			name: "When token is empty Then return ",
 			fields: fields{
 				Email:       "a",
-				OldPassword: "c",
 				NewPassword: "d",
 				Token:       "",
 			},
@@ -72,7 +59,6 @@ func TestChangePassword_Validate(t *testing.T) {
 			name: "When  everything is passed Then return no error",
 			fields: fields{
 				Email:       "a",
-				OldPassword: "c",
 				NewPassword: "d",
 				Token:       "t",
 			},
@@ -83,7 +69,6 @@ func TestChangePassword_Validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := ChangePasswordRequest{
 				Email:       tt.fields.Email,
-				OldPassword: tt.fields.OldPassword,
 				NewPassword: tt.fields.NewPassword,
 				Token:       tt.fields.Token,
 			}
@@ -130,7 +115,6 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					OldPassword: "pass",
 					NewPassword: new_passowrd,
 					Token:       "",
 				},
@@ -148,7 +132,6 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					OldPassword: old_password,
 					NewPassword: new_passowrd,
 					Token:       invalid_token,
 				},
@@ -166,7 +149,6 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					OldPassword: old_password,
 					NewPassword: new_password,
 					Token:       valid_unverified_token,
 				},
@@ -190,7 +172,6 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					OldPassword: old_password,
 					NewPassword: new_password,
 					Token:       valid_verified_token,
 				},
@@ -214,38 +195,12 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					OldPassword: old_password,
 					NewPassword: new_password,
 					Token:       valid_verified_token,
 				},
 			},
 			want: ChangePasswordResponse{},
 			err:  ErrInternalFailedToRetriveFromDatabase,
-		},
-
-		{
-			name: "When old password fail to match Then return Error",
-			args: args{
-				ctx: ctx,
-				db: func() UserDatabase {
-					mockedDB := mock.NewMockUserDatabase(ctrl)
-					gomock.InOrder(
-						mockedDB.EXPECT().
-							FindUserByEmail(ctx, "mesbah@tanvir.com").
-							Return(model.User{FirstName: "mesbah", LastName: "tanvir", Email: "mesbah@tanvir.com", PasswordHash: "wrong_hash"}, nil).
-							Times(1),
-					)
-					return mockedDB
-				}(),
-				req: ChangePasswordRequest{
-					Email:       "mesbah@tanvir.com",
-					OldPassword: old_password,
-					NewPassword: new_password,
-					Token:       valid_verified_token,
-				},
-			},
-			want: ChangePasswordResponse{},
-			err:  ErrUserProvidedPasswordDidntMatchTheRecord,
 		},
 		{
 			name: "When update user failed Then return error",
@@ -267,7 +222,6 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					OldPassword: old_password,
 					NewPassword: new_password,
 					Token:       valid_verified_token,
 				},
@@ -295,7 +249,6 @@ func TestHandleChangePassword(t *testing.T) {
 				}(),
 				req: ChangePasswordRequest{
 					Email:       "mesbah@tanvir.com",
-					OldPassword: old_password,
 					NewPassword: new_password,
 					Token:       valid_verified_token,
 				},

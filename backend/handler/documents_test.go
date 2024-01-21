@@ -100,13 +100,13 @@ func TestHandleAddDocument(t *testing.T) {
 							ResourceURL: "a.com",
 							Institute:   "a",
 							Year:        2024,
-							Tags:        []string{"tag1"},
+							Tags:        []string{"tag1", "a", "2024"},
 						},
 						{
 							ResourceURL: "a2.com",
 							Institute:   "a2",
 							Year:        2024,
-							Tags:        []string{"tag2"},
+							Tags:        []string{"tag2", "a2", "2024"},
 						},
 					}).Return(errors.New("error")).Times(1)
 					return mockDocDB
@@ -139,7 +139,7 @@ func TestHandleAddDocument(t *testing.T) {
 			wantErr: ErrInternalFailedToRetriveFromDatabase,
 		},
 		{
-			name: "When db return error then return error",
+			name: "When db return no error then return no error",
 			args: args{
 				ctx: context.Background(),
 				docDb: func() DocumentDatabase {
@@ -149,13 +149,13 @@ func TestHandleAddDocument(t *testing.T) {
 							ResourceURL: "a.com",
 							Institute:   "a",
 							Year:        2024,
-							Tags:        []string{"tag1"},
+							Tags:        []string{"tag1", "a", "2024"},
 						},
 						{
 							ResourceURL: "a2.com",
 							Institute:   "a2",
 							Year:        2024,
-							Tags:        []string{"tag2"},
+							Tags:        []string{"tag2", "a2", "2024"},
 						},
 					}).Return(nil).Times(1)
 					return mockDocDB
