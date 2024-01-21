@@ -97,10 +97,14 @@ func (es *EmailNotificationSender) SendVerificationCode(ctx context.Context, ema
 		`, code),
 		textBody: fmt.Sprintf("The verification code is: %s, code is valid for 15 minutes.", code),
 	})
-	_, err := es.svc.SendEmail(input)
-	if err != nil {
-		zap.L().Error("failed to send notification", zap.Any("input", input), zap.Error(err))
-		return err
-	}
+
+	// do not wait, do not return error even if fails
+	go func() {
+		_, err := es.svc.SendEmail(input)
+		if err != nil {
+			zap.L().Error("failed to send notification", zap.Any("input", input), zap.Error(err))
+		}
+	}()
+
 	return nil
 }

@@ -3,6 +3,9 @@ resource "aws_instance" "ishkul_ec2" {
   instance_type = "t4g.medium"
   key_name      = "ishkul"
 
+  # Associate the IAM role with the EC2 instance
+  iam_instance_profile = aws_iam_instance_profile.ec2_ses_profile.name
+
   subnet_id              = aws_subnet.public_1.id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
 
@@ -50,6 +53,13 @@ resource "null_resource" "run_remote_exec" {
   }
 }
 
+
+resource "aws_iam_instance_profile" "ec2_ses_profile" {
+  name = "ec2-ses-instance-profile"
+  role = aws_iam_role.ec2_ses_role.name
+}
+
 output "ec2_public_ip" {
   value = aws_instance.ishkul_ec2.public_ip
 }
+

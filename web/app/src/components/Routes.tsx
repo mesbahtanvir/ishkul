@@ -34,7 +34,7 @@ function RoutesWithTracker() {
   const location = useLocation();
   useEffect(() => {
     if (process.env.NODE_ENV !== "test") {
-      ReactGA.initialize("G-E1NGLSXMG9");
+      ReactGA.initialize("G-ZVNW8GGWRJ");
       const currentPage = location.pathname + location.search;
       ReactGA.pageview(currentPage);
     }
