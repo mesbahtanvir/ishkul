@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
 )
@@ -20,6 +21,7 @@ func NewMustMongoClient() *mongo.Client {
 		utils.GetEnvOrDefault("MONGODB_HOST", "mongodb"),
 		utils.GetEnvOrDefault("MONGODB_PORT", "27017"),
 	)
+	zap.L().Info("mongodb", zap.String("mongodb_url", uri))
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	if err != nil {
 		log.Fatal(err)
@@ -74,6 +76,7 @@ func (db *UserDatabase) FindUserByEmail(ctx context.Context, email string) (mode
 	var user model.User
 	err := db.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
+		zap.L().Error("failed to find user by email", zap.Error(err))
 		return user, err
 	}
 	return user, nil
@@ -86,50 +89,75 @@ type DocumentDatabase struct {
 func MustNewMongoDocumentDatabase() *DocumentDatabase {
 	client := NewMustMongoClient()
 	doc_collection := client.Database("prod").Collection("documents")
-	indexModel := mongo.IndexModel{Keys: bson.D{{Key: "tags", Value: 1}}}
-	name, err := doc_collection.Indexes().CreateOne(context.TODO(), indexModel)
-	if err != nil {
-		panic(err)
+	indexModel := mongo.IndexModel{
+		Keys: bson.M{"tags": "text"},
 	}
-	fmt.Println("mongo document index created:", name)
-
+	name, err := doc_collection.Indexes().CreateOne(context.TODO(), indexModel)
 	if err != nil {
 		log.Fatal(err)
 	}
+	zap.L().Info("mongo document index created:", zap.String("index_name", name))
 	return &DocumentDatabase{collection: doc_collection}
 }
 
 func (db *DocumentDatabase) AddDocument(ctx context.Context, documents []model.Document) error {
-	iDocuments := make([]interface{}, len(documents))
+	docs := make([]interface{}, len(documents))
 	// Copy elements from the original array to the new slice
 	for i, v := range documents {
-		iDocuments[i] = v
+		docs[i] = v
 	}
-	_, err := db.collection.InsertMany(ctx, iDocuments)
-	return err
+	_, err := db.collection.InsertMany(ctx, docs)
+	if err != nil {
+		zap.L().Error("failed to insert", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func (db *DocumentDatabase) SearchDocument(ctx context.Context, query string) ([]model.Document, error) {
 	filter := bson.D{{Key: "$text", Value: bson.D{{Key: "$search", Value: query}}}}
-	limit := int64(100) // for example, to limit the results to 10 documents
-	findOptions := options.Find()
-	findOptions.SetLimit(limit)
+	findOptions := options.Find().SetLimit(100)
 	cursor, err := db.collection.Find(ctx, filter, findOptions)
 	if err != nil {
+		zap.L().Error("failed to search with query", zap.Error(err))
 		return nil, err
 	}
 	var documents []model.Document
-	if err := cursor.All(ctx, documents); err != nil {
+	if err := cursor.All(ctx, &documents); err != nil {
+		zap.L().Error("failed to parse document from cursor", zap.Error(err))
 		return nil, err
 	}
 	return documents, nil
 }
 
-func (db *DocumentDatabase) FindDocumentByID(ctx context.Context, id primitive.ObjectID) (model.Document, error) {
-	filter := bson.D{{Key: "_id", Value: id}}
-	var result model.Document
-	err := db.collection.FindOne(ctx, filter).Decode(&result)
+func (db *DocumentDatabase) GetDocuments(ctx context.Context) ([]model.Document, error) {
+	filter := bson.D{}
+	limit := int64(100) // for example, to limit the results to 10 documents
+	findOptions := options.Find()
+	findOptions.SetLimit(limit)
+	cursor, err := db.collection.Find(ctx, filter, findOptions)
 	if err != nil {
+		zap.L().Error("failed to find from mongodb", zap.Error(err))
+		return nil, err
+	}
+	var documents []model.Document
+	if err := cursor.All(ctx, &documents); err != nil {
+		zap.L().Error("failed to parse document from cursor", zap.Error(err))
+		return nil, err
+	}
+	return documents, nil
+}
+
+func (db *DocumentDatabase) FindDocumentByID(ctx context.Context, id string) (model.Document, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		zap.L().Warn("failed to convert id (string) to ObjectID:", zap.Error(err))
+		return model.Document{}, err
+	}
+	filter := bson.D{{Key: "_id", Value: objectID}}
+	var result model.Document
+	if err := db.collection.FindOne(ctx, filter).Decode(&result); err != nil {
+		zap.L().Error("failed to find document with id", zap.String("id", id), zap.Error(err))
 		return model.Document{}, err
 	}
 	return result, nil

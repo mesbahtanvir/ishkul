@@ -1,7 +1,7 @@
 # Start by building the application.
 # Use the official Golang image to create a build artifact.
 # This is called a multi-stage build. This stage is named as builder.
-FROM golang:1.18 AS builder
+FROM golang:1.19 AS builder
 
 # Set the working directory inside the container.
 WORKDIR /app

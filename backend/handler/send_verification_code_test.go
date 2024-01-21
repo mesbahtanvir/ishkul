@@ -15,11 +15,9 @@ import (
 	"ishkul.org/backend/model"
 )
 
-func TestAccountRecover_Validate(t *testing.T) {
+func TestSendVerificationCodeRequest_Validate(t *testing.T) {
 	type fields struct {
-		Email       string
-		Token       string
-		NewPassword string
+		Email string
 	}
 	tests := []struct {
 		name    string
@@ -29,28 +27,22 @@ func TestAccountRecover_Validate(t *testing.T) {
 		{
 			name: "When email is empty Then return error",
 			fields: fields{
-				Email:       "",
-				Token:       "",
-				NewPassword: "",
+				Email: "",
 			},
 			wantErr: true,
 		},
 		{
 			name: "When email is not empty Then return no error",
 			fields: fields{
-				Email:       "a",
-				Token:       "b",
-				NewPassword: "c",
+				Email: "a",
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := ChangePasswordRequest{
-				Email:       tt.fields.Email,
-				Token:       tt.fields.Token,
-				NewPassword: tt.fields.NewPassword,
+			r := SendVerificationCodeRequest{
+				Email: tt.fields.Email,
 			}
 			if err := r.Validate(); (err != nil) != tt.wantErr {
 				t.Errorf("LoginRequest.Validate() error = %v, wantErr %v", err, tt.wantErr)
@@ -59,8 +51,9 @@ func TestAccountRecover_Validate(t *testing.T) {
 	}
 }
 
-func TestHandleAccountRecover(t *testing.T) {
+func TestHandleSendVerificationCode(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
 	type args struct {
 		ctx     context.Context
@@ -121,7 +114,7 @@ func TestHandleAccountRecover(t *testing.T) {
 				ctx: ctx,
 				storage: func() AccountStorage {
 					mockedStorage := mock.NewMockAccountStorage(ctrl)
-					mockedStorage.EXPECT().StoreAccountRecoveryKey(ctx, "mesbah@tanvir.com", gomock.Any()).Return(&db.ErrKeyNotFound{})
+					mockedStorage.EXPECT().StoreAccountRecoveryKey(ctx, "mesbah@tanvir.com", gomock.Any()).Return(db.ErrRedisKeyNotFound)
 					return mockedStorage
 				}(),
 				db: func() UserDatabase {

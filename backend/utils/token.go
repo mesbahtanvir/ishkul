@@ -1,50 +1,64 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"ishkul.org/backend/model"
 )
 
-var secretKey = []byte("super-secret-backend-key")
+var secretKey = []byte("023945wdjefsfa409534f")
 
 type Claims struct {
-	Email    string `json:"email"`
-	Verified bool   `json:"verified"`
+	ID        string `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
+	Verified  bool   `json:"verified"`
+	IsAdmin   bool   `json:"is_admin"`
 	jwt.StandardClaims
 }
 
 // EncodeJWTToken generates a JWT token for the given email.
-func EncodeJWTToken(email string, verified bool) (string, error) {
+func EncodeJWTToken(user model.User) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour) // Token expiration set to 1 day
 	claims := &Claims{
-		Email:    email,
-		Verified: verified,
+		ID:        user.ID.Hex(),
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Verified:  user.EmailVerified,
+		IsAdmin:   IsAdmin(user.Email),
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(secretKey)
+	tokenStr, err := token.SignedString(secretKey)
+	if err != nil {
+		zap.L().Error("failed to encode jwt token", zap.Error(err))
+		return "", ErrFailedToEncodeToken
+	}
+	return tokenStr, nil
 }
 
 // DecodeJWT decodes a JWT token and returns the claims.
 func DecodeJWT(tokenString string) (*Claims, error) {
 	claims := &Claims{}
-
-	_, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil
 	})
-
 	if err != nil {
-		return nil, err
+		zap.L().Warn("Failed to parse jwt token", zap.Error(err))
+		return nil, ErrFailedToParseJwt
 	}
-
+	if !token.Valid {
+		return nil, ErrUserTokenIsInvalid
+	}
 	return claims, nil
 }
 
@@ -52,6 +66,7 @@ func DecodeJWT(tokenString string) (*Claims, error) {
 func ValidateToken(tokenString string) (email string, verified bool, validated bool) {
 	claims, err := DecodeJWT(tokenString)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return "", false, false
 	}
 	return claims.Email, claims.Verified, true
@@ -61,27 +76,37 @@ func ValidateToken(tokenString string) (email string, verified bool, validated b
 func ValidateUserToken(email string, tokenString string) bool {
 	claims, err := DecodeJWT(tokenString)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return false
 	}
 	return claims.Email == email
 }
 
-func ValidateVerifiedUserToken(email string, tokenString string) bool {
+func ValidateVerifiedUserEmail(email string, tokenString string) error {
 	claims, err := DecodeJWT(tokenString)
 	if err != nil {
-		return false
+		zap.L().Error("error", zap.Error(err))
+		return ErrUserTokenIsInvalid
 	}
-	return claims.Email == email && claims.Verified
+	if claims.Email != email {
+		return ErrUserEmailTokenMismatch
+	}
+
+	if !claims.Verified {
+		return ErrUserUnverified
+	}
+	return nil
 }
 
 // TODO refactor rename
 func VerifiedUserToken(tokenString string) error {
 	claims, err := DecodeJWT(tokenString)
 	if err != nil {
-		return errors.New("Invalid token provided")
+		zap.L().Error("failed to decode token", zap.Error(err))
+		return ErrUserTokenIsInvalid
 	}
 	if !claims.Verified {
-		return errors.New("User account is not verified")
+		return ErrUserUnverified
 	}
 	return nil
 }
@@ -92,6 +117,7 @@ func HashPassword(password string) (string, error) {
 	// DefaultCost is usually a good balance of security and performance
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		zap.L().Error("failed to generate password", zap.Error(err))
 		// If there's an error, return an empty string and the error
 		return "", err
 	}
@@ -103,4 +129,37 @@ func GenerateRandomVerificationCode() string {
 	srand := rand.New(rand.NewSource(time.Now().UnixNano()))
 	code := srand.Intn(1000000)      // generates a number in [0, 1000000)
 	return fmt.Sprintf("%06d", code) // formats the number as a 6-digit code
+}
+
+var currentAdmins = map[string]bool{
+	"mesbah.tanvir.cs@gmail.com": true,
+}
+
+func IsAdmin(email string) bool {
+	if value, ok := currentAdmins[email]; !ok || !value {
+		return false
+	}
+	return true
+}
+
+func IsAuthenticatedUser(token string) (*Claims, error) {
+	claims, err := DecodeJWT(token)
+	if err != nil {
+		return nil, ErrUserTokenIsInvalid
+	}
+	if !claims.Verified {
+		return nil, ErrUserUnverified
+	}
+	return claims, nil
+}
+
+func IsAuthenticatedAdmin(token string) error {
+	claims, err := IsAuthenticatedUser(token)
+	if err != nil {
+		return err
+	}
+	if value, ok := currentAdmins[claims.Email]; !ok || !value {
+		return ErrUserNotAnAdmin
+	}
+	return nil
 }

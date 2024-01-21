@@ -10,6 +10,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"ishkul.org/backend/db"
 	"ishkul.org/backend/handler/mock"
@@ -18,50 +19,45 @@ import (
 
 func TestValidateAccountRecover_Validate(t *testing.T) {
 	type fields struct {
-		Email       string
-		Token       string
-		NewPassword string
+		Email string
+		Code  string
 	}
 	tests := []struct {
 		name    string
 		fields  fields
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name: "When email is empty Then return error",
 			fields: fields{
-				Email:       "",
-				Token:       "",
-				NewPassword: "",
+				Email: "",
+				Code:  "",
 			},
-			wantErr: true,
+			wantErr: ErrParamEmailIsRequired,
 		},
 		{
 			name: "When email is not empty Then return no error",
 			fields: fields{
-				Email:       "a",
-				Token:       "b",
-				NewPassword: "c",
+				Email: "a",
+				Code:  "",
 			},
-			wantErr: false,
+			wantErr: ErrParamCodeIsRequired,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := ChangePasswordRequest{
-				Email:       tt.fields.Email,
-				Token:       tt.fields.Token,
-				NewPassword: tt.fields.NewPassword,
+			r := VerifyAccountRequest{
+				Email: tt.fields.Email,
+				Code:  tt.fields.Code,
 			}
-			if err := r.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("LoginRequest.Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			assert.ErrorIs(t, r.Validate(), tt.wantErr)
 		})
 	}
 }
 
 func TestHandleValidateAccountRecover(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
 	type args struct {
 		ctx     context.Context
@@ -78,7 +74,7 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 		name    string
 		args    args
 		want    VerifyAccountResponse
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name: "When Invalid input then return error",
@@ -94,7 +90,7 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				},
 			},
 			want:    VerifyAccountResponse{},
-			wantErr: true,
+			wantErr: ErrParamCodeIsRequired,
 		},
 		{
 			name: "When error from database Then return error",
@@ -103,7 +99,10 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				db: func() UserDatabase {
 					mockedDB := mock.NewMockUserDatabase(ctrl)
 					gomock.InOrder(
-						mockedDB.EXPECT().FindUserByEmail(ctx, "mesbah@tanvir.com").Return(model.User{}, mongo.ErrNoDocuments).Times(1),
+						mockedDB.EXPECT().
+							FindUserByEmail(ctx, "mesbah@tanvir.com").
+							Return(model.User{}, mongo.ErrNoDocuments).
+							Times(1),
 					)
 					return mockedDB
 				}(),
@@ -113,7 +112,7 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				},
 			},
 			want:    VerifyAccountResponse{},
-			wantErr: true,
+			wantErr: ErrUserEmailDoesNotExist,
 		},
 		{
 			name: "When error from storage Then return error",
@@ -121,7 +120,7 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				ctx: ctx,
 				storage: func() AccountStorage {
 					mockedStorage := mock.NewMockAccountStorage(ctrl)
-					mockedStorage.EXPECT().RetriveAccountRecoveryKey(ctx, "mesbah@tanvir.com").Return("", &db.ErrKeyNotFound{})
+					mockedStorage.EXPECT().RetriveAccountRecoveryKey(ctx, "mesbah@tanvir.com").Return("", db.ErrRedisKeyNotFound)
 					return mockedStorage
 				}(),
 				db: func() UserDatabase {
@@ -137,7 +136,7 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				},
 			},
 			want:    VerifyAccountResponse{},
-			wantErr: true,
+			wantErr: db.ErrRedisKeyNotFound,
 		},
 		{
 			name: "When key mismatched Then return error",
@@ -151,7 +150,10 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				db: func() UserDatabase {
 					mockedDB := mock.NewMockUserDatabase(ctrl)
 					gomock.InOrder(
-						mockedDB.EXPECT().FindUserByEmail(ctx, "mesbah@tanvir.com").Return(model.User{Email: "mesbah@tanvir.com"}, nil).Times(1),
+						mockedDB.EXPECT().
+							FindUserByEmail(ctx, "mesbah@tanvir.com").
+							Return(model.User{Email: "mesbah@tanvir.com"}, nil).
+							Times(1),
 					)
 					return mockedDB
 				}(),
@@ -161,7 +163,7 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				},
 			},
 			want:    VerifyAccountResponse{},
-			wantErr: true,
+			wantErr: ErrUserInvalidCodeProvided,
 		},
 		{
 			name: "When failed to remove token Then return error",
@@ -169,14 +171,25 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				ctx: ctx,
 				storage: func() AccountStorage {
 					mockedStorage := mock.NewMockAccountStorage(ctrl)
-					mockedStorage.EXPECT().RetriveAccountRecoveryKey(ctx, "mesbah@tanvir.com").Return("12", nil).Times(1)
-					mockedStorage.EXPECT().RemoveAccountRecoveryKey(ctx, "mesbah@tanvir.com").Return(errors.New("failed")).Times(1)
+					gomock.InOrder(
+						mockedStorage.EXPECT().
+							RetriveAccountRecoveryKey(ctx, "mesbah@tanvir.com").
+							Return("12", nil).
+							Times(1),
+						mockedStorage.EXPECT().
+							RemoveAccountRecoveryKey(ctx, "mesbah@tanvir.com").
+							Return(db.ErrInternalRedisOperation).
+							Times(1),
+					)
 					return mockedStorage
 				}(),
 				db: func() UserDatabase {
 					mockedDB := mock.NewMockUserDatabase(ctrl)
 					gomock.InOrder(
-						mockedDB.EXPECT().FindUserByEmail(ctx, "mesbah@tanvir.com").Return(model.User{Email: "mesbah@tanvir.com"}, nil).Times(1),
+						mockedDB.EXPECT().
+							FindUserByEmail(ctx, "mesbah@tanvir.com").
+							Return(model.User{Email: "mesbah@tanvir.com"}, nil).
+							Times(1),
 					)
 					return mockedDB
 				}(),
@@ -186,7 +199,7 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				},
 			},
 			want:    VerifyAccountResponse{},
-			wantErr: true,
+			wantErr: db.ErrInternalRedisOperation,
 		},
 		{
 			name: "When update user failed Then return error",
@@ -195,16 +208,28 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				storage: func() AccountStorage {
 					mockedStorage := mock.NewMockAccountStorage(ctrl)
 					gomock.InOrder(
-						mockedStorage.EXPECT().RetriveAccountRecoveryKey(ctx, "mesbah@tanvir.com").Return("12", nil).Times(1),
-						mockedStorage.EXPECT().RemoveAccountRecoveryKey(ctx, "mesbah@tanvir.com").Return(nil),
+						mockedStorage.EXPECT().
+							RetriveAccountRecoveryKey(ctx, "mesbah@tanvir.com").
+							Return("12", nil).
+							Times(1),
+						mockedStorage.EXPECT().
+							RemoveAccountRecoveryKey(ctx, "mesbah@tanvir.com").
+							Return(nil).
+							Times(1),
 					)
 					return mockedStorage
 				}(),
 				db: func() UserDatabase {
 					mockedDB := mock.NewMockUserDatabase(ctrl)
 					gomock.InOrder(
-						mockedDB.EXPECT().FindUserByEmail(ctx, "mesbah@tanvir.com").Return(model.User{Email: "mesbah@tanvir.com"}, nil).Times(1),
-						mockedDB.EXPECT().UpdateUser(ctx, model.User{Email: "mesbah@tanvir.com", EmailVerified: true}).Return(errors.New("error")).Times(1),
+						mockedDB.EXPECT().
+							FindUserByEmail(ctx, "mesbah@tanvir.com").
+							Return(model.User{Email: "mesbah@tanvir.com"}, nil).
+							Times(1),
+						mockedDB.EXPECT().
+							UpdateUser(ctx, model.User{Email: "mesbah@tanvir.com", EmailVerified: true}).
+							Return(errors.New("error")).
+							Times(1),
 					)
 					return mockedDB
 				}(),
@@ -214,7 +239,7 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				},
 			},
 			want:    VerifyAccountResponse{},
-			wantErr: true,
+			wantErr: ErrInternalFailedToUpdateDatabase,
 		},
 		{
 			name: "When all smooth Then return resp",
@@ -242,20 +267,20 @@ func TestHandleValidateAccountRecover(t *testing.T) {
 				},
 			},
 			want: VerifyAccountResponse{
-				LoginResponse: LoginResponse{Email: "mesbah@tanvir.com", EmailVerified: true},
+				LoginResponse: LoginResponse{},
 			},
-			wantErr: false,
+			wantErr: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := HandleVerifyAccount(tt.args.ctx, tt.args.storage, tt.args.db, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("HandleValidateAccountRecover() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
 			if !cmp.Equal(tt.want, got, cmpopts.IgnoreFields(LoginResponse{}, "Token")) {
 				t.Errorf("HandleValidateAccountRecover() mismatch")
+			}
+			if tt.wantErr == nil {
+				assert.NotEmpty(t, got.LoginResponse.Token)
 			}
 		})
 	}

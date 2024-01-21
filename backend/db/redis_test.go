@@ -39,13 +39,13 @@ func TestMyRedisFunction(t *testing.T) {
 	err = storage.StoreAccountRecoveryKey(context.Background(), "Mesbah", "123")
 	assert.Nil(t, err)
 	_, err = storage.RetriveAccountRecoveryKey(context.Background(), "Tanvir")
-	assert.Equal(t, &ErrKeyNotFound{Msg: "code not found"}, err)
+	assert.Equal(t, ErrRedisKeyNotFound, err)
 
 	// Remove key successfully
 	err = storage.RemoveAccountRecoveryKey(context.Background(), "Mesbah")
 	assert.Nil(t, err)
 	code, err = storage.RetriveAccountRecoveryKey(context.Background(), "Mesbah")
-	assert.Equal(t, &ErrKeyNotFound{Msg: "code not found"}, err)
+	assert.Equal(t, ErrRedisKeyNotFound, err)
 	assert.Equal(t, "", code)
 
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 	"ishkul.org/backend/utils"
 )
 
@@ -23,8 +24,12 @@ var GetRedisAddr = func() string {
 }
 
 func MustNewGlobalStorage() *GlobalStorage {
+	addr := GetRedisAddr()
+
+	zap.L().Info("redis", zap.String("redis_addr", addr))
+
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     GetRedisAddr(),
+		Addr:     addr,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 		Protocol: 3,  // specify 2 for RESP 2 or 3 for RESP 3
@@ -49,10 +54,12 @@ func (g *GlobalStorage) StoreAccountRecoveryKey(ctx context.Context, userID stri
 func (g *GlobalStorage) RetriveAccountRecoveryKey(ctx context.Context, userID string) (string, error) {
 	code, err := g.client.Get(ctx, getVerifyRedisKey(userID)).Result()
 	if errors.Is(err, redis.Nil) {
-		return "", &ErrKeyNotFound{Msg: "code not found"}
+		zap.L().Info("error", zap.Error(err))
+		return "", ErrRedisKeyNotFound
 	}
 	if err != nil {
-		return "", err
+		zap.L().Info("error", zap.Error(err))
+		return "", ErrInternalRedisOperation
 	}
 	return code, nil
 }
@@ -60,15 +67,15 @@ func (g *GlobalStorage) RetriveAccountRecoveryKey(ctx context.Context, userID st
 func (g *GlobalStorage) RemoveAccountRecoveryKey(ctx context.Context, userID string) error {
 	res, err := g.client.Del(ctx, getVerifyRedisKey(userID)).Result()
 	if errors.Is(err, redis.Nil) {
-		fmt.Println("A key suppose to get deleted but it did not")
+		zap.L().Warn("A key suppose to get deleted but it did not")
 		return nil
 	}
 	if err != nil {
-		fmt.Printf("Redis error occured %e\n", err)
+		zap.L().Warn("A key suppose to get deleted but it did not", zap.Error(err))
 		return nil
 	}
 	if res > 1 {
-		fmt.Printf("Only one key suppose to get deleted but deleted: %d\n", res)
+		zap.L().Warn(fmt.Sprintf("Only one key suppose to get deleted but deleted: %d\n", res))
 		return nil
 	}
 	return nil
@@ -79,19 +86,19 @@ func (g *GlobalStorage) IncrUserResourceRequest(ctx context.Context, endpoint st
 	key := getQuotaRedisKey(fmt.Sprintf("%s:%s", endpoint, userID))
 	val, err := g.client.Incr(ctx, key).Result()
 	if err != nil {
-		fmt.Println("Error incrementing key:", key, err)
-		return nil //errors.New("you've reached your limit for today")
+		zap.L().Error("Error incrementing key:", zap.String("key", key), zap.Error(err))
+		return ErrReachedDocViewLimit
 	}
 	if val == 1 {
 		if _, err = g.client.Expire(ctx, key, time.Hour*24).Result(); err != nil {
-			fmt.Println("Error setting key expiry:", key, err)
+			zap.L().Error("Error incrementing key:", zap.String("key", key), zap.Error(err))
 		}
 	}
 	if val > limit {
 		if _, err := g.client.Decr(ctx, key).Result(); err != nil {
-			fmt.Println("Error decrementing key:", key, err)
+			zap.L().Error("Error incrementing key:", zap.String("key", key), zap.Error(err))
 		}
-		return errors.New("you've reached your limit for today")
+		return ErrReachedDocViewLimit
 	}
 	return nil
 }

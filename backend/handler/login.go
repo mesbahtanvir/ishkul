@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"ishkul.org/backend/model"
 	"ishkul.org/backend/utils"
@@ -20,20 +21,16 @@ func (r LoginRequest) Validate() error {
 	// the same check we do during register endpoint call.
 	// ParseAddress may evolve and have breaking changes;
 	if r.Email == "" {
-		return &ErrHandlerBadParam{Msg: "Must provide a valid email address"}
+		return ErrParamEmailIsRequired
 	}
 	if r.Password == "" {
-		return &ErrHandlerBadParam{"Must provide password"}
+		return ErrParamPasswordIsRequired
 	}
 	return nil
 }
 
 type LoginResponse struct {
-	FirstName     string `json:"first_name"`
-	LastName      string `json:"last_name"`
-	Email         string `json:"email"`
-	EmailVerified bool   `json:"email_verified"`
-	Token         string `json:"token"`
+	Token string `json:"token"`
 }
 
 type UserDatabase interface {
@@ -44,27 +41,27 @@ type UserDatabase interface {
 
 func HandleLogin(ctx context.Context, db UserDatabase, req LoginRequest) (LoginResponse, error) {
 	if err := req.Validate(); err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return LoginResponse{}, err
 	}
 	user, err := db.FindUserByEmail(ctx, req.Email)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return LoginResponse{}, &ErrResourceDoesNotExist{Msg: "User does not exists"}
+		zap.L().Error("error", zap.Error(err))
+		return LoginResponse{}, ErrUserEmailDoesNotExist
 	}
 	if err != nil {
-		return LoginResponse{}, err
+		zap.L().Error("error", zap.Error(err))
+		return LoginResponse{}, ErrInternalFailedToRetriveFromDatabase
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		return LoginResponse{}, &ErrHandlerBadParam{Msg: "Password and email mismatched"}
+		return LoginResponse{}, ErrUserEmailAndPasswordMismatched
 	}
-	token, err := utils.EncodeJWTToken(user.Email, user.EmailVerified)
+	token, err := utils.EncodeJWTToken(user)
 	if err != nil {
+		zap.L().Error("error", zap.Error(err))
 		return LoginResponse{}, err
 	}
 	return LoginResponse{
-		FirstName:     user.FirstName,
-		LastName:      user.LastName,
-		Email:         user.Email,
-		EmailVerified: user.EmailVerified,
-		Token:         token,
+		Token: token,
 	}, nil
 }

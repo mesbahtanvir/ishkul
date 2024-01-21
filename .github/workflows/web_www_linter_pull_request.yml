@@ -1,0 +1,38 @@
+name: Web WWW Linter Check
+
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./web/www
+
+jobs:
+  javascript-lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Prettier
+        run: npm install --global prettier
+
+      - name: Install ESLint
+        run: npm install eslint
+
+      - name: Run Prettier
+        run: prettier --check src/*.js
+
+      - name: Run ESLint
+        run: npx eslint .
+
+      - name: Run React Tests
+        run: npm test

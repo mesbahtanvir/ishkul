@@ -2,10 +2,12 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"ishkul.org/backend/handler/mock"
 	"ishkul.org/backend/model"
@@ -22,30 +24,63 @@ func TestRegisterRequest_Validate(t *testing.T) {
 	type TestCase struct {
 		name    string
 		fields  fields
-		wantErr bool
+		wantErr error
 	}
 	tests := []TestCase{
 		{
-			name: "When invalid email Then return error",
+			name: "When first name is not provided Then return error",
 			fields: fields{
-				FirstName:        "mesbah",
+				FirstName:        "",
 				LastName:         "tanvir",
 				Email:            "invalid email",
 				Password:         "test",
 				AllowExtraEmails: false,
 			},
-			wantErr: true,
+			wantErr: ErrParamFirstNameIsRequired,
 		},
 		{
-			name: "When vaild email Then no error",
+			name: "When no last name Then return error",
 			fields: fields{
 				FirstName:        "mesbah",
-				LastName:         "tanvir",
+				LastName:         "",
 				Email:            "vaild@email",
 				Password:         "test",
 				AllowExtraEmails: false,
 			},
-			wantErr: false,
+			wantErr: ErrParamLastNameIsRequired,
+		},
+		{
+			name: "When no email Then return error",
+			fields: fields{
+				FirstName:        "mesbah",
+				LastName:         "tanvir",
+				Email:            "",
+				Password:         "test",
+				AllowExtraEmails: false,
+			},
+			wantErr: ErrUserInvalidEmailAddressProvided,
+		},
+		{
+			name: "When no password Then return error",
+			fields: fields{
+				FirstName:        "mesbah",
+				LastName:         "tanvir",
+				Email:            "test@test.com",
+				Password:         "",
+				AllowExtraEmails: false,
+			},
+			wantErr: ErrParamPasswordIsRequired,
+		},
+		{
+			name: "When everything is provided Then return error",
+			fields: fields{
+				FirstName:        "mesbah",
+				LastName:         "tanvir",
+				Email:            "test@test.com",
+				Password:         "awer62345",
+				AllowExtraEmails: false,
+			},
+			wantErr: nil,
 		},
 	}
 	for _, tt := range tests {
@@ -57,15 +92,14 @@ func TestRegisterRequest_Validate(t *testing.T) {
 				Password:         tt.fields.Password,
 				AllowExtraEmails: tt.fields.AllowExtraEmails,
 			}
-			if err := r.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("RegisterRequest.Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			assert.ErrorIs(t, r.Validate(), tt.wantErr)
 		})
 	}
 }
 
 func TestHandleRegister(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
 	type args struct {
 		ctx context.Context
@@ -83,40 +117,18 @@ func TestHandleRegister(t *testing.T) {
 		name     string
 		args     args
 		wantResp RegisterResponse
-		wantErr  bool
+		wantErr  error
 	}{
 		{
-			name: "When no error from database Then return success",
+			name: "When invalid param Then return error",
 			args: args{
 				ctx: ctx,
 				db: func() UserDatabase {
 					mockedDB := mock.NewMockUserDatabase(ctrl)
-					gomock.InOrder(
-						mockedDB.EXPECT().
-							FindUserByEmail(ctx, "mesbah@tanvir.com").
-							Return(model.User{}, mongo.ErrNoDocuments).
-							Times(1),
-						mockedDB.EXPECT().
-							AddUser(ctx,
-								// TODO make the commeted code work
-								// gomock.Eq(
-								// 	model.User{
-								// 		FirstName: "mesbah",
-								// 		LastName:  "tanvir",
-								// 		Email:     "mesbah@tanvir.com",
-								// 		//PasswordHash:     hashPassword,
-								// 		AllowExtraEmails: true,
-								// 	},
-								// ),
-								gomock.Any(),
-							).
-							Return(nil).
-							Times(1),
-					)
 					return mockedDB
 				}(),
 				req: RegisterRequest{
-					FirstName:        "mesbah",
+					FirstName:        "",
 					LastName:         "tanvir",
 					Email:            "mesbah@tanvir.com",
 					Password:         password,
@@ -124,7 +136,7 @@ func TestHandleRegister(t *testing.T) {
 				},
 			},
 			wantResp: RegisterResponse{},
-			wantErr:  false,
+			wantErr:  ErrParamFirstNameIsRequired,
 		},
 		{
 			name: "When user exists Then return error",
@@ -149,7 +161,32 @@ func TestHandleRegister(t *testing.T) {
 				},
 			},
 			wantResp: RegisterResponse{},
-			wantErr:  true,
+			wantErr:  ErrUserEmailAlreadyExists,
+		},
+		{
+			name: "When db error Then return error",
+			args: args{
+				ctx: ctx,
+				db: func() UserDatabase {
+					mockedDB := mock.NewMockUserDatabase(ctrl)
+					gomock.InOrder(
+						mockedDB.EXPECT().
+							FindUserByEmail(ctx, "mesbah@tanvir.com").
+							Return(model.User{}, errors.New("random error occured")).
+							Times(1),
+					)
+					return mockedDB
+				}(),
+				req: RegisterRequest{
+					FirstName:        "mesbah",
+					LastName:         "tanvir",
+					Email:            "mesbah@tanvir.com",
+					Password:         password,
+					AllowExtraEmails: true,
+				},
+			},
+			wantResp: RegisterResponse{},
+			wantErr:  ErrInternalFailedToRetriveFromDatabase,
 		},
 		{
 			name: "When failed to add user to database Then return error",
@@ -190,16 +227,54 @@ func TestHandleRegister(t *testing.T) {
 				},
 			},
 			wantResp: RegisterResponse{},
-			wantErr:  true,
+			wantErr:  ErrInternalFailedToUpdateDatabase,
+		},
+		{
+			name: "When no error from database Then return success",
+			args: args{
+				ctx: ctx,
+				db: func() UserDatabase {
+					mockedDB := mock.NewMockUserDatabase(ctrl)
+					gomock.InOrder(
+						mockedDB.EXPECT().
+							FindUserByEmail(ctx, "mesbah@tanvir.com").
+							Return(model.User{}, mongo.ErrNoDocuments).
+							Times(1),
+						mockedDB.EXPECT().
+							AddUser(ctx,
+								// TODO make the commeted code work
+								// gomock.Eq(
+								// 	model.User{
+								// 		FirstName: "mesbah",
+								// 		LastName:  "tanvir",
+								// 		Email:     "mesbah@tanvir.com",
+								// 		//PasswordHash:     hashPassword,
+								// 		AllowExtraEmails: true,
+								// 	},
+								// ),
+								gomock.Any(),
+							).
+							Return(nil).
+							Times(1),
+					)
+					return mockedDB
+				}(),
+				req: RegisterRequest{
+					FirstName:        "mesbah",
+					LastName:         "tanvir",
+					Email:            "mesbah@tanvir.com",
+					Password:         password,
+					AllowExtraEmails: true,
+				},
+			},
+			wantResp: RegisterResponse{},
+			wantErr:  nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotResp, err := HandleRegister(tt.args.ctx, tt.args.db, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("HandleRegister() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
 			if !reflect.DeepEqual(gotResp, tt.wantResp) {
 				t.Errorf("HandleRegister() = %v, want %v", gotResp, tt.wantResp)
 			}
