@@ -2,6 +2,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import HomeIcon from "@mui/icons-material/Home";
+import { useNavigate } from "react-router-dom";
 
 import { selectSideBarState } from "../store/selectors";
 import {
@@ -52,6 +53,13 @@ interface DrawerContentProps {
 }
 
 const DrawerContent: React.FC<DrawerContentProps> = ({ closeSideBar }) => {
+  const navigate = useNavigate();
+
+  const handleItemClick = (path: string) => {
+    navigate(path);
+    closeSideBar();
+  };
+
   return (
     <Box
       role="presentation"
@@ -62,7 +70,9 @@ const DrawerContent: React.FC<DrawerContentProps> = ({ closeSideBar }) => {
       <List>
         {menuItems.map((item, index) => (
           <ListItem key={index} disablePadding>
-            <ListItemButton>
+            <ListItemButton
+              onClick={() => handleItemClick(`/${item.text.toLowerCase()}`)}
+            >
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>

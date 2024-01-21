@@ -7,7 +7,6 @@ import {
   ChangePasswordHeader,
   PrefieldEmailBox,
   NewPasswordField,
-  OldPasswordField,
   ChangePassword,
 } from "../components/ProfileComponents";
 import { useNavigate } from "react-router-dom";
@@ -26,7 +25,6 @@ const ChangePasswordPage: React.FC = () => {
     try {
       const resp = await postChangePassword({
         email: account.user.email,
-        old_password: data.get("old-password") as string,
         new_password: data.get("new-password") as string,
         token: account.token,
       });
@@ -46,7 +44,6 @@ const ChangePasswordPage: React.FC = () => {
         <ChangePasswordHeader />
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <PrefieldEmailBox email={account.user.email} />
-          <OldPasswordField />
           <NewPasswordField />
           <ChangePassword />
         </Box>

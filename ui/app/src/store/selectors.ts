@@ -6,3 +6,8 @@ export const selectAccountMenuState = (state: RootState) =>
 export const selectAccountLoginState = (state: RootState) =>
   state.accountState.isLoggedIn;
 export const selectAccountState = (state: RootState) => state.accountState;
+
+export const selectResources = (state: RootState) => state.resourceState;
+
+export const selectContributeResourcesData = (state: RootState) =>
+  state.contributeResourcesState.data;

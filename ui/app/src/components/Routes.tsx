@@ -8,7 +8,10 @@ import ChangePasswordPage from "../pages/ChangePasswordPage";
 import AccountVerify from "../pages/AccountVerifyPage";
 import SignupPage from "../pages/SignupPage";
 import AccountRecoverPage from "../pages/AccountRecoverPage";
-
+import ResourcesPage from "./../pages/ResourcesPage";
+import HomePage from "../pages/HomePage";
+import NotFoundPage from "../pages/NotFoundPage";
+import ContributePage from "../pages/ContributePage";
 function AppRoutes() {
   return (
     <Routes>
@@ -18,6 +21,10 @@ function AppRoutes() {
       <Route path="/account_verify" element={<AccountVerify />} />
       <Route path="/account_recover" element={<AccountRecoverPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/resources" element={<ResourcesPage />} />
+      <Route path="/contribute" element={<ContributePage />} />
+      <Route path="/" element={<HomePage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

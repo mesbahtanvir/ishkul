@@ -139,29 +139,36 @@ export const getDocuments = async ({
 }: GetDocumentsRequest): Promise<GetDocumentsResponse> => {
   const eToken = encodeURIComponent(token);
   const eQuery = encodeURIComponent(query);
-  try {
-    const url = `${BASE_URL}/documents?token=${eToken}&query=${eQuery}`;
-    const response = await axios.get<GetDocumentsResponse>(url);
-    return response.data;
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
+  const url = `${BASE_URL}/documents?token=${eToken}&query=${eQuery}`;
+  const response = await axios
+    .get<GetDocumentsResponse>(url)
+    .then((response) => response.data)
+    .catch((error) => {
+      console.log(error);
+      if (error && error.response && error.response.data) {
+        throw new Error(error.response.data.error);
+      }
+      throw error;
+    });
+  return response;
 };
 
 export const getDocument = async ({
   token,
   id,
 }: GetDocumentRequest): Promise<GetDocumentResponse> => {
-  try {
-    const response = await axios.get<GetDocumentResponse>(
-      `${BASE_URL}/document?token=${encodeURIComponent(
-        token
-      )}&id=${encodeURIComponent(id)}`
-    );
-    return response.data;
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
+  const eToken = encodeURIComponent(token);
+  const eId = encodeURIComponent(id);
+  const url = `${BASE_URL}/documentoken=${eToken}&id=${eId}`;
+  const response = await axios
+    .get<GetDocumentResponse>(url)
+    .then((response) => response.data)
+    .catch((error) => {
+      console.log(error);
+      if (error && error.response && error.response.data) {
+        throw new Error(error.response.data.error);
+      }
+      throw error;
+    });
+  return response;
 };

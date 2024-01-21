@@ -42,7 +42,6 @@ export interface VerifyAccountResponse {
 
 export interface ChangePasswordRequest {
   email: string;
-  old_password: string;
   new_password: string;
   token: string;
 }
@@ -55,7 +54,8 @@ export interface ChangePasswordResponse {
 }
 
 export interface Document {
-  institude: string;
+  resource_url: string;
+  institute: string;
   year: int;
   tags: string[];
 }
@@ -91,8 +91,8 @@ export interface GetDocumentRequest {
 export interface GetDocumentResponse {
   id: string;
   resource_url: string;
-  institude: string;
-  year: int;
+  institute: string;
+  year: number;
   tags: string[];
 }
 

@@ -15,7 +15,7 @@ import { useSnackbar } from "notistack";
 import { useLoginHandler } from "../hooks/hooks";
 import { LoginUserResponse } from "../models/model";
 
-const Login: React.FC = () => {
+const LoginPage: React.FC = () => {
   const navigate: NavigateFunction = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const loginHandler = useLoginHandler();
@@ -55,4 +55,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default LoginPage;

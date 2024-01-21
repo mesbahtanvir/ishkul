@@ -151,7 +151,6 @@ describe("apiClient module", () => {
   it("postChangePassword should post data using axios and return response", async () => {
     const userData: ChangePasswordRequest = {
       email: "joe.biden@email.com",
-      old_password: "oldPassword",
       new_password: "newPassword",
       token: "fakeToken",
     };
@@ -177,7 +176,8 @@ describe("apiClient module", () => {
       token: "myTok",
       documents: [
         {
-          institude: "Dhaka",
+          resource_url: "a.com",
+          institute: "Dhaka",
           year: 1,
           tags: ["a", "b"],
         },

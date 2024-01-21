@@ -1,11 +1,15 @@
 import { configureStore } from "@reduxjs/toolkit";
 import appStateReducer from "./app/appState";
 import accountStateReduder from "./account/account";
+import resourceStateReducer from "./resources/resources";
+import contributeResourcesReducer from "./contribute/contribute";
 
 export const store = configureStore({
   reducer: {
     appState: appStateReducer,
     accountState: accountStateReduder,
+    resourceState: resourceStateReducer,
+    contributeResourcesState: contributeResourcesReducer,
   },
   devTools: process.env.NODE_ENV !== "production", // Enable Redux DevTools only in development
 });
