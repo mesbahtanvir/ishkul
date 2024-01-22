@@ -4,7 +4,7 @@ resource "aws_instance" "ishkul_ec2" {
   key_name      = "ishkul"
 
   # Associate the IAM role with the EC2 instance
-  iam_instance_profile = aws_iam_instance_profile.ec2_ses_profile.name
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
 
   subnet_id              = aws_subnet.public_1.id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
@@ -54,9 +54,39 @@ resource "null_resource" "run_remote_exec" {
 }
 
 
-resource "aws_iam_instance_profile" "ec2_ses_profile" {
+# ec2 needs to be able to send email and upload data to s3
+
+resource "aws_iam_role" "ec2_role" {
+  name = "ec2-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# Attached policy so that it can send message using ses
+resource "aws_iam_role_policy_attachment" "ses_policy_attachment" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = aws_iam_policy.ses_send_policy.arn
+}
+
+# attache policy so that it read/write object to s3
+resource "aws_iam_role_policy_attachment" "s3_access_attachment" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = aws_iam_policy.s3_access.arn
+}
+
+resource "aws_iam_instance_profile" "ec2_profile" {
   name = "ec2-ses-instance-profile"
-  role = aws_iam_role.ec2_ses_role.name
+  role = aws_iam_role.ec2_role.name
 }
 
 output "ec2_public_ip" {

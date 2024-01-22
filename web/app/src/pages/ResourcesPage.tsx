@@ -252,6 +252,7 @@ const ActualPage = () => {
       </ListItem>
     );
   }
+
   return (
     <Container component="main" maxWidth="lg">
       <CssBaseline />
