@@ -11,7 +11,7 @@ resource "aws_iam_policy" "ses_send_policy" {
           "ses:SendEmail",
           "ses:SendRawEmail"
         ],
-        Effect = "Allow",
+        Effect   = "Allow",
         Resource = "*"
       }
     ]
