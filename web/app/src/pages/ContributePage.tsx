@@ -11,7 +11,6 @@ import { BottomNavbar } from "../models/enum";
 
 const ContributorSubpageSwitcher: React.FC = () => {
   const appState = useAppSelector(selectAppState);
-  console.log(appState.bottomNavbar);
   switch (appState.bottomNavbar) {
     case BottomNavbar.Upload:
       return <UploadDoc />;
@@ -25,7 +24,6 @@ const ContributorSubpageSwitcher: React.FC = () => {
 
 const ContributePage: React.FC = () => {
   const account = useAppSelector(selectAccountState);
-  console.log(account.user);
 
   if (
     !(

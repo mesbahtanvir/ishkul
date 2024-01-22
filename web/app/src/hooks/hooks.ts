@@ -36,7 +36,7 @@ export const useCloseSideBarHandler = (): (() => void) => {
 };
 
 export const useUpdateBottonNavHandler = (): ((
-  value: BottomNavbar
+  value: BottomNavbar,
 ) => void) => {
   const dispatch: AppDispatch = useDispatch();
   return (value: BottomNavbar) =>
@@ -69,7 +69,7 @@ export const useLogoutHandler = (): (() => void) => {
 };
 
 export const useStoreDocumentsHandler = (): ((
-  documents: DocumentNoUrl[]
+  documents: DocumentNoUrl[],
 ) => void) => {
   const dispatch: AppDispatch = useDispatch();
   return (documents: DocumentNoUrl[]) =>
@@ -77,7 +77,7 @@ export const useStoreDocumentsHandler = (): ((
 };
 
 export const useStoreDocumentHandler = (): ((
-  document: GetDocumentResponse
+  document: GetDocumentResponse,
 ) => void) => {
   const dispatch: AppDispatch = useDispatch();
   return (document: GetDocumentResponse) =>
@@ -91,7 +91,7 @@ export const useSetCurrentPageHandler = (): ((currentPage: number) => void) => {
 };
 
 export const useStoreContributeDocumentHandler = (): ((
-  documents: Document[]
+  documents: Document[],
 ) => void) => {
   const dispatch: AppDispatch = useDispatch();
   return (documents: Document[]) =>

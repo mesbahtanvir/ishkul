@@ -14,9 +14,8 @@ const BottomNav: React.FC = () => {
   const updateBottomNavbar = useUpdateBottonNavHandler();
   const handleChange = (
     event: React.ChangeEvent<{}>,
-    newValue: BottomNavbar
+    newValue: BottomNavbar,
   ): void => {
-    console.log(newValue);
     updateBottomNavbar(newValue);
   };
 

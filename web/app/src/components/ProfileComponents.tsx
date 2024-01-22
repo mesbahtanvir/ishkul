@@ -244,7 +244,6 @@ export function VerificationCode() {
     try {
       await postSendVerificationCode({ email: user.email });
     } catch (error) {
-      console.log(error);
       enqueueSnackbar((error as Error).message, { variant: "error" });
       return;
     }
