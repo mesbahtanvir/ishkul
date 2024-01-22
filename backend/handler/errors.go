@@ -34,6 +34,9 @@ var (
 	ErrInternalFailedToGenerateHash        = errors.New("failed to generate password hash")
 	ErrInternalFailedToRetriveFromDatabase = errors.New("internal server error")
 	ErrInternalFailedToUpdateDatabase      = errors.New("internal server error")
+
+	//  Verification code
+	ErrFailedToSendVerificationCode = errors.New("failed to sent code")
 )
 
 func ErrorHTTPCode(err error) int {
@@ -73,7 +76,8 @@ func ErrorHTTPCode(err error) int {
 
 	case errors.Is(err, ErrInternalFailedToGenerateHash),
 		errors.Is(err, ErrInternalFailedToRetriveFromDatabase),
-		errors.Is(err, ErrInternalFailedToUpdateDatabase):
+		errors.Is(err, ErrInternalFailedToUpdateDatabase),
+		errors.Is(err, ErrFailedToSendVerificationCode):
 		return http.StatusInternalServerError
 
 	default:

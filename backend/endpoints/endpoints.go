@@ -47,7 +47,7 @@ func GinHandleLogin(userDatabase handler.UserDatabase) func(*gin.Context) {
 	}
 }
 
-func GinHandleSendVerificationCode(storage handler.AccountStorage, userDatabase handler.UserDatabase) func(*gin.Context) {
+func GinHandleSendVerificationCode(storage handler.AccountStorage, userDatabase handler.UserDatabase, emailSender handler.EmailSender) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		var req handler.SendVerificationCodeRequest
 		if err := ctx.BindJSON(&req); err != nil {
@@ -56,7 +56,7 @@ func GinHandleSendVerificationCode(storage handler.AccountStorage, userDatabase 
 			ctx.Abort()
 			return
 		}
-		resp, err := handler.HandleSendVerificationCode(ctx, storage, userDatabase, req)
+		resp, err := handler.HandleSendVerificationCode(ctx, storage, userDatabase, emailSender, req)
 		if err != nil {
 			zap.L().Error("error", zap.Error(err))
 			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})

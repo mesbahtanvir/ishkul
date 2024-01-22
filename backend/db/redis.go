@@ -48,7 +48,7 @@ func getQuotaRedisKey(userID string) string {
 }
 
 func (g *GlobalStorage) StoreAccountRecoveryKey(ctx context.Context, userID string, code string) error {
-	return g.client.Set(ctx, getVerifyRedisKey(userID), code, time.Minute*10).Err()
+	return g.client.Set(ctx, getVerifyRedisKey(userID), code, time.Minute*15).Err()
 }
 
 func (g *GlobalStorage) RetriveAccountRecoveryKey(ctx context.Context, userID string) (string, error) {

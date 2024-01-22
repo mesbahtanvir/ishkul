@@ -11,3 +11,9 @@ resource "aws_s3_bucket_policy" "lb_log_policy" {
   depends_on = [aws_s3_bucket.ishkul_lb_logs]
 }
 
+resource "aws_s3_bucket" "ishkul_storage" {
+  bucket = "ishkul-storage"
+  lifecycle {
+    prevent_destroy = false
+  }
+}

@@ -7,10 +7,10 @@ import ReactGA from "react-ga";
 import { BrowserRouter } from "react-router-dom";
 
 const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement,
+  document.getElementById("root") as HTMLElement
 );
 
-ReactGA.initialize("G-E1NGLSXMG9");
+ReactGA.initialize("G-ZVNW8GGWRJ");
 ReactGA.pageview(window.location.pathname + window.location.search);
 
 root.render(
@@ -20,5 +20,5 @@ root.render(
         <App />
       </Provider>
     </BrowserRouter>
-  </React.StrictMode>,
+  </React.StrictMode>
 );
