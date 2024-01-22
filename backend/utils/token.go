@@ -14,12 +14,13 @@ import (
 var secretKey = []byte("023945wdjefsfa409534f")
 
 type Claims struct {
-	ID        string `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
-	Verified  bool   `json:"verified"`
-	IsAdmin   bool   `json:"is_admin"`
+	ID            string `json:"id"`
+	FirstName     string `json:"first_name"`
+	LastName      string `json:"last_name"`
+	Email         string `json:"email"`
+	IsVerified    bool   `json:"is_verified"`
+	IsAdmin       bool   `json:"is_admin"`
+	IsContributor bool   `json:"is_contributor"`
 	jwt.StandardClaims
 }
 
@@ -27,12 +28,13 @@ type Claims struct {
 func EncodeJWTToken(user model.User) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour) // Token expiration set to 1 day
 	claims := &Claims{
-		ID:        user.ID.Hex(),
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-		Verified:  user.EmailVerified,
-		IsAdmin:   IsAdmin(user.Email),
+		ID:            user.ID.Hex(),
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		Email:         user.Email,
+		IsVerified:    user.EmailVerified,
+		IsAdmin:       IsAdmin(user.Email),
+		IsContributor: IsContributor(user.Email),
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -69,7 +71,7 @@ func ValidateToken(tokenString string) (email string, verified bool, validated b
 		zap.L().Error("error", zap.Error(err))
 		return "", false, false
 	}
-	return claims.Email, claims.Verified, true
+	return claims.Email, claims.IsVerified, true
 }
 
 // ValidateToken validates the JWT token and returns the email from the claims.
@@ -92,7 +94,7 @@ func ValidateVerifiedUserEmail(email string, tokenString string) error {
 		return ErrUserEmailTokenMismatch
 	}
 
-	if !claims.Verified {
+	if !claims.IsVerified {
 		return ErrUserUnverified
 	}
 	return nil
@@ -105,7 +107,7 @@ func VerifiedUserToken(tokenString string) error {
 		zap.L().Error("failed to decode token", zap.Error(err))
 		return ErrUserTokenIsInvalid
 	}
-	if !claims.Verified {
+	if !claims.IsVerified {
 		return ErrUserUnverified
 	}
 	return nil
@@ -135,8 +137,19 @@ var currentAdmins = map[string]bool{
 	"mesbah.tanvir.cs@gmail.com": true,
 }
 
+var currentContributor = map[string]bool{
+	"mesbah.tanvir.cs@gmail.com": true,
+}
+
 func IsAdmin(email string) bool {
 	if value, ok := currentAdmins[email]; !ok || !value {
+		return false
+	}
+	return true
+}
+
+func IsContributor(email string) bool {
+	if value, ok := currentContributor[email]; !ok || !value {
 		return false
 	}
 	return true
@@ -147,7 +160,7 @@ func IsAuthenticatedUser(token string) (*Claims, error) {
 	if err != nil {
 		return nil, ErrUserTokenIsInvalid
 	}
-	if !claims.Verified {
+	if !claims.IsVerified {
 		return nil, ErrUserUnverified
 	}
 	return claims, nil
@@ -160,6 +173,17 @@ func IsAuthenticatedAdmin(token string) error {
 	}
 	if value, ok := currentAdmins[claims.Email]; !ok || !value {
 		return ErrUserNotAnAdmin
+	}
+	return nil
+}
+
+func IsAuthenticatedContributor(token string) error {
+	claims, err := IsAuthenticatedUser(token)
+	if err != nil {
+		return err
+	}
+	if value, ok := currentContributor[claims.Email]; !ok || !value {
+		return ErrUserNotAContributor
 	}
 	return nil
 }

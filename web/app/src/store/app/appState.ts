@@ -1,15 +1,24 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { BottomNavbar } from "../../models/enum";
 
 interface AppState {
   accountMenu: string;
   sideBar: string;
   theme: string;
+  bottomNavbar: BottomNavbar;
 }
+
 const initialState: AppState = {
   accountMenu: "close",
   sideBar: "close",
   theme: "dark",
+  bottomNavbar: BottomNavbar.Upload,
 };
+
+interface BottomNavbarPayload {
+  value: BottomNavbar;
+}
+
 export const appStateSlice = createSlice({
   name: "appState",
   initialState,
@@ -28,6 +37,9 @@ export const appStateSlice = createSlice({
     closeSideBar: (state) => {
       state.sideBar = "close";
     },
+    updateBottomNavbar: (state, action: PayloadAction<BottomNavbarPayload>) => {
+      state.bottomNavbar = action.payload.value;
+    },
     toggleTheme: (state) => {
       state.theme = state.theme === "dark" ? "light" : "dark";
     },
@@ -39,5 +51,6 @@ export const {
   openSideBar,
   closeSideBar,
   toggleTheme,
+  updateBottomNavbar,
 } = appStateSlice.actions;
 export default appStateSlice.reducer;
