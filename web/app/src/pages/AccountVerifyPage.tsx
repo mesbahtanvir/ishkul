@@ -23,7 +23,6 @@ export default function AccountVerifyPage() {
   const loginHandler = useLoginHandler();
   const [searchParams] = useSearchParams();
   const urlEmail = searchParams.get("email") as string;
-  console.log(urlEmail);
   // stored in redux get precedence
   const email =
     account.user.email.trim() === ""

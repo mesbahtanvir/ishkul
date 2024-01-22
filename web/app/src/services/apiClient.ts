@@ -29,7 +29,6 @@ export const checkHealth = async (): Promise<RegisterUserResponse> => {
     );
     return response.data;
   } catch (error) {
-    console.log(error);
     throw new Error("Failed to check health");
   }
 };
@@ -41,7 +40,6 @@ export const postRegisterUser = async (
     .post<RegisterUserResponse>(`${BASE_URL}/register`, req)
     .then((response) => response.data)
     .catch((error) => {
-      console.log(error);
       if (error && error.response && error.response.data) {
         throw new Error(error.response.data.error);
       }
@@ -57,7 +55,6 @@ export const postLoginUser = async (
     .post<LoginUserResponse>(`${BASE_URL}/login`, req)
     .then((response) => response.data)
     .catch((error) => {
-      console.log(error);
       if (error && error.response && error.response.data) {
         throw new Error(error.response.data.error);
       }
@@ -76,7 +73,6 @@ export const postSendVerificationCode = async (
     )
     .then((response) => response.data)
     .catch((error) => {
-      console.log(error);
       if (error && error.response && error.response.data) {
         throw new Error(error.response.data.error);
       }
@@ -92,7 +88,6 @@ export const postVerifyAccount = async (
     .post<VerifyAccountResponse>(`${BASE_URL}/verify_account`, req)
     .then((response) => response.data)
     .catch((error) => {
-      console.log(error);
       if (error && error.response && error.response.data) {
         throw new Error(error.response.data.error);
       }
@@ -108,7 +103,6 @@ export const postChangePassword = async (
     .post<ChangePasswordResponse>(`${BASE_URL}/change_password`, req)
     .then((response) => response.data)
     .catch((error) => {
-      console.log(error);
       if (error && error.response && error.response.data) {
         throw new Error(error.response.data.error);
       }
@@ -124,7 +118,6 @@ export const postDocuments = async (
     .post<PostDocumentsResponse>(`${BASE_URL}/documents`, req)
     .then((response) => response.data)
     .catch((error) => {
-      console.log(error);
       if (error && error.response && error.response.data) {
         throw new Error(error.response.data.error);
       }
@@ -144,7 +137,6 @@ export const getDocuments = async ({
     .get<GetDocumentsResponse>(url)
     .then((response) => response.data)
     .catch((error) => {
-      console.log(error);
       if (error && error.response && error.response.data) {
         throw new Error(error.response.data.error);
       }
@@ -164,12 +156,10 @@ export const getDocument = async ({
     .get<GetDocumentResponse>(url)
     .then((response) => response.data)
     .catch((error) => {
-      console.log(error);
       if (error && error.response && error.response.data) {
         throw new Error(error.response.data.error);
       }
       throw error;
     });
-  console.log(response);
   return response;
 };

@@ -105,6 +105,13 @@ export interface User {
   first_name: string;
   last_name: string;
   email: string;
-  verified: bool;
+  is_verified: bool;
   is_admin: bool;
+  is_contributor;
+}
+
+export enum BottomNavbar {
+  Upload = "Upload",
+  Validate = "Validate",
+  MyStats = "My Stats",
 }

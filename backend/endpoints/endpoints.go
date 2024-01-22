@@ -166,3 +166,23 @@ func GinHandleGetDocuments(userDatabase handler.UserDatabase, documentDatabase h
 		ctx.JSON(http.StatusOK, gin.H{"data": resp})
 	}
 }
+
+func GinHandlePresignedURLHandler(userDatabase handler.UserDatabase, signer handler.SignedURLGenerator) func(*gin.Context) {
+	return func(ctx *gin.Context) {
+		var req handler.PresignedURLRequest
+		if err := ctx.ShouldBindQuery(&req); err != nil {
+			zap.L().Error("bind-error", zap.Error(err))
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			ctx.Abort()
+			return
+		}
+		resp, err := handler.HandlePresignedURL(ctx, userDatabase, signer, req)
+		if err != nil {
+			zap.L().Error("error", zap.Error(err))
+			ctx.JSON(ErrorHTTPCode(err), gin.H{"error": err.Error()})
+			ctx.Abort()
+			return
+		}
+		ctx.JSON(http.StatusOK, gin.H{"data": resp})
+	}
+}

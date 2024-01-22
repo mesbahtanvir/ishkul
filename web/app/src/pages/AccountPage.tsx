@@ -52,14 +52,14 @@ const AccountPage: React.FC = () => {
   }
 
   function AccountEmailWithVefication() {
-    return user.verified ? <EmailVerified /> : <EmailUnverified />;
+    return user.is_verified ? <EmailVerified /> : <EmailUnverified />;
   }
 
   function AccountAction() {
     return (
       <div style={{ textAlign: "center", marginTop: "20px" }}>
         <Box>
-          {user.verified ? (
+          {user.is_verified ? (
             <ChangePasswordWithRedirection />
           ) : (
             <EmailVerificationInfoBox />

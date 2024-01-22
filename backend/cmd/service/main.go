@@ -27,6 +27,7 @@ func main() {
 	documentDatabase := db.MustNewMongoDocumentDatabase()
 	storage := db.MustNewGlobalStorage()
 	emailSender := notification.MustNewEmailNotificationSender()
+	s3Storage := db.MustNewS3Storage()
 
 	// Genenric Middleware settings
 	r.Use(cors.Default())
@@ -42,6 +43,7 @@ func main() {
 	r.POST("/documents", endpoints.GinHandlePostDocuments(userDatabase, documentDatabase))
 	r.GET("/document", endpoints.GinHandleGetDocument(storage, userDatabase, documentDatabase))
 	r.GET("/documents", endpoints.GinHandleGetDocuments(userDatabase, documentDatabase))
+	r.GET("/presign_url", endpoints.GinHandlePresignedURLHandler(userDatabase, s3Storage))
 
 	// Start the server
 	r.Run()

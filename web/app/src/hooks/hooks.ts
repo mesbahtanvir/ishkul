@@ -6,6 +6,7 @@ import {
   toggleTheme,
   openAccountMenu,
   closeAccountMenu,
+  updateBottomNavbar,
 } from "../store/app/appState";
 import { login, logout } from "../store/account/account";
 import {
@@ -18,6 +19,7 @@ import {
   clearContributeDocument,
   storeContributeDocuments,
 } from "../store/contribute/contribute";
+import { BottomNavbar } from "../models/enum";
 
 // Use throughout your app instead of plain `useDispatch` and `useSelector`
 export const useAppDispatch: () => AppDispatch = useDispatch;
@@ -31,6 +33,14 @@ export const useToggleThemeHandler = () => {
 export const useCloseSideBarHandler = (): (() => void) => {
   const dispatch: AppDispatch = useDispatch();
   return () => dispatch(closeSideBar());
+};
+
+export const useUpdateBottonNavHandler = (): ((
+  value: BottomNavbar,
+) => void) => {
+  const dispatch: AppDispatch = useDispatch();
+  return (value: BottomNavbar) =>
+    dispatch(updateBottomNavbar({ value: value }));
 };
 
 export const useOpenSideBarHandler = (): (() => void) => {

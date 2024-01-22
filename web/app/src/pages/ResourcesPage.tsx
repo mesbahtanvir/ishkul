@@ -51,7 +51,6 @@ const ActualPage = () => {
     try {
       const resp = await getDocuments({ token: account.token, query: search });
       setQuery(search);
-      console.log(resp.data.documents);
       storeDocuments(resp.data.documents);
     } catch (error) {
       enqueueSnackbar((error as Error).message, { variant: "error" });
