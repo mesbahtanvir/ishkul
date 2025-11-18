@@ -202,35 +202,60 @@ npm install
 npx expo start -c
 ```
 
-## Deployment
+## CI/CD
 
-### Deploy to Vercel (Web)
+The project includes a GitHub Actions CI workflow that runs on every push and pull request:
 
-The app includes automatic deployment to Vercel via GitHub Actions.
+**Automated Checks:**
+- ✅ TypeScript compilation check
+- ✅ ESLint code quality check
+- ✅ Web build verification
+- ✅ Bundle size reporting
 
-**Quick Deploy:**
-1. Push to `main` branch
-2. GitHub Actions automatically builds and deploys
-3. Visit your Vercel URL
-
-**Setup:**
-- See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions
-- Configure GitHub Secrets for Vercel token and environment variables
-- Add Firebase and OAuth credentials to Vercel environment variables
-
-**Manual Deploy:**
+**Run checks locally:**
 ```bash
+# TypeScript check
+npm run type-check
+
+# Lint code
+npm run lint
+
+# Fix lint issues
+npm run lint:fix
+
+# Build
 npm run build
-vercel --prod
+
+# Run all checks
+npm run type-check && npm run lint && npm run build
 ```
 
-**What gets deployed:**
-- Web version of the app (iOS/Android use native apps)
-- Firebase Authentication
-- Google Sign-In
-- Full learning experience in the browser
+## Deployment
 
-For detailed deployment instructions, see **[DEPLOYMENT.md](./DEPLOYMENT.md)**
+To deploy the web version, you can use any static hosting provider:
+
+**Build for production:**
+```bash
+npm run build:production
+```
+
+**Deployment options:**
+- **Vercel**: `vercel --prod` (requires Vercel CLI)
+- **Netlify**: Drag & drop `dist/` folder
+- **GitHub Pages**: Deploy `dist/` folder
+- **Firebase Hosting**: `firebase deploy`
+
+For iOS and Android, use Expo EAS:
+```bash
+# Install EAS CLI
+npm install -g eas-cli
+
+# Build for iOS
+eas build --platform ios
+
+# Build for Android
+eas build --platform android
+```
 
 ## Future Enhancements
 
