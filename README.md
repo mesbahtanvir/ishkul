@@ -202,6 +202,36 @@ npm install
 npx expo start -c
 ```
 
+## Deployment
+
+### Deploy to Vercel (Web)
+
+The app includes automatic deployment to Vercel via GitHub Actions.
+
+**Quick Deploy:**
+1. Push to `main` branch
+2. GitHub Actions automatically builds and deploys
+3. Visit your Vercel URL
+
+**Setup:**
+- See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions
+- Configure GitHub Secrets for Vercel token and environment variables
+- Add Firebase and OAuth credentials to Vercel environment variables
+
+**Manual Deploy:**
+```bash
+npm run build
+vercel --prod
+```
+
+**What gets deployed:**
+- Web version of the app (iOS/Android use native apps)
+- Firebase Authentication
+- Google Sign-In
+- Full learning experience in the browser
+
+For detailed deployment instructions, see **[DEPLOYMENT.md](./DEPLOYMENT.md)**
+
 ## Future Enhancements
 
 - [ ] Real LLM integration (OpenAI/Anthropic)

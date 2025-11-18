@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Build artifacts
+.expo/
+.expo-shared/
+
+# Native folders
+ios/
+android/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Documentation (optional)
+# README.md
+# SETUP.md
+
+# Git
+.git/
+.gitignore
