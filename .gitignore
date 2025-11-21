@@ -40,3 +40,25 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Backend (Go)
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+backend/server
+backend/cmd/server/server
+*.test
+*.out
+backend/vendor/
+go.work
+backend/serviceAccountKey.json
+backend/firebase-credentials.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
