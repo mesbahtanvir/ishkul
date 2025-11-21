@@ -1,129 +1,141 @@
-# Learning AI - Adaptive Learning App
+# Ishkul - Adaptive Learning Platform
 
-A universal adaptive learning tutor built with Expo, React Native, TypeScript, Firebase, and AI.
+A full-stack adaptive learning platform with React Native frontend and Go backend, powered by Firebase and AI.
+
+## Architecture
+
+```
+ishkul/
+├── frontend/           # React Native/Expo mobile & web app
+└── backend/            # Go backend service with Firebase
+```
 
 ## Features
 
 - 🎓 **Adaptive Learning Engine** - AI-powered personalized learning paths
-- 🔥 **Firebase Authentication** - Google Sign-In for iOS, Android, and Web
-- 💾 **Cloud Sync** - Progress saved to Firestore
+- 🔥 **Firebase Integration** - Authentication, Firestore, Storage
+- 💾 **Cloud Sync** - Progress saved and synced across devices
 - 📱 **Cross-Platform** - Works on iOS, Android, Web, and Tablets
 - 🎯 **Goal-Based Learning** - Set custom learning goals
 - 📊 **Progress Tracking** - Monitor your learning journey
 - 🧠 **Three Learning Modes** - Lessons, Quizzes, and Practice Tasks
+- 🚀 **RESTful API** - Go backend with Firebase integration
+- 🔒 **Secure** - Firebase Auth with JWT token validation
 
 ## Tech Stack
 
-- **Expo** - React Native framework
+### Frontend
+- **Expo/React Native** - Cross-platform mobile framework
 - **TypeScript** - Type-safe code
-- **Firebase** - Authentication & Firestore
+- **Firebase SDK** - Client-side Firebase integration
 - **Zustand** - State management
 - **React Navigation** - Navigation (Tabs + Stack)
+
+### Backend
+- **Go 1.21+** - High-performance backend
+- **Firebase Admin SDK** - Server-side Firebase integration
+- **Firestore** - NoSQL database
+- **Firebase Storage** - File storage
+- **Firebase Auth** - User authentication
 
 ## Prerequisites
 
 - Node.js 18+ and npm
+- Go 1.21+
 - Expo CLI
-- Firebase project
-- Google OAuth credentials
+- Firebase project with Billing enabled
+- Firebase CLI: `npm install -g firebase-tools`
 
-## Setup Instructions
+## Quick Start
 
-### 1. Clone and Install
+### 1. Clone Repository
 
 ```bash
 git clone <repository-url>
 cd ishkul
-npm install
 ```
 
-### 2. Firebase Setup
+### 2. Frontend Setup
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project
-3. Enable **Authentication** → **Google Sign-In**
-4. Create a **Firestore Database**
-5. Copy your Firebase config
-
-### 3. Google OAuth Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create OAuth 2.0 credentials for:
-   - Web application
-   - iOS application
-   - Android application
-3. Copy the client IDs
-
-### 4. Environment Variables
-
-1. Copy `.env.example` to `.env`:
 ```bash
+cd frontend
+npm install
 cp .env.example .env
+# Edit .env with your Firebase config
+npm start
 ```
 
-2. Fill in your credentials in `.env`:
-```env
-EXPO_PUBLIC_FIREBASE_API_KEY=your-actual-api-key
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
-EXPO_PUBLIC_FIREBASE_APP_ID=1:123:web:abc123
+### 3. Backend Setup
 
-EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-web-client-id
-EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client-id
-EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id
+```bash
+cd backend
+go mod tidy
+cp .env.example .env
+# Add your Firebase service account key as serviceAccountKey.json
+# Edit .env with your Firebase config
+go run cmd/server/main.go
 ```
 
-### 5. Run the App
+The backend will start on `http://localhost:8080`
+
+### 4. Run Frontend
 
 **Web:**
 ```bash
+cd frontend
 npm run web
 ```
 
 **iOS:**
 ```bash
+cd frontend
 npm run ios
 ```
 
 **Android:**
 ```bash
+cd frontend
 npm run android
 ```
 
 ## Project Structure
 
 ```
-src/
-├── components/          # Reusable UI components
-│   ├── Button.tsx
-│   ├── Input.tsx
-│   ├── Container.tsx
-│   └── LoadingScreen.tsx
-├── screens/            # App screens
-│   ├── LoginScreen.tsx
-│   ├── GoalSelectionScreen.tsx
-│   ├── LevelSelectionScreen.tsx
-│   ├── NextStepScreen.tsx
-│   ├── LessonScreen.tsx
-│   ├── QuizScreen.tsx
-│   ├── PracticeScreen.tsx
-│   ├── ProgressScreen.tsx
-│   └── SettingsScreen.tsx
-├── navigation/         # Navigation setup
-│   └── AppNavigator.tsx
-├── state/             # Zustand stores
-│   ├── userStore.ts
-│   └── learningStore.ts
-├── services/          # Backend services
-│   ├── firebase.ts
-│   ├── auth.ts
-│   ├── memory.ts
-│   └── llmEngine.ts
-└── types/            # TypeScript types
-    └── app.ts
+ishkul/
+├── frontend/                    # React Native/Expo frontend
+│   ├── src/
+│   │   ├── components/         # Reusable UI components
+│   │   ├── screens/            # App screens
+│   │   ├── navigation/         # Navigation setup
+│   │   ├── state/              # Zustand stores
+│   │   ├── services/           # Firebase services
+│   │   └── types/              # TypeScript types
+│   ├── package.json
+│   └── .env.example
+│
+├── backend/                     # Go backend service
+│   ├── cmd/
+│   │   └── server/             # Application entry point
+│   ├── internal/
+│   │   ├── handlers/           # HTTP request handlers
+│   │   ├── middleware/         # HTTP middleware (auth, cors)
+│   │   └── models/             # Data models
+│   ├── pkg/
+│   │   └── firebase/           # Firebase integration
+│   ├── go.mod
+│   └── .env.example
+│
+├── DEPLOYMENT.md                # Deployment guide
+└── README.md                    # This file
 ```
+
+### Frontend Structure
+
+See [frontend/README.md](frontend/README.md) for detailed frontend documentation.
+
+### Backend Structure
+
+See [backend/README.md](backend/README.md) for detailed backend documentation.
 
 ## How It Works
 
@@ -230,31 +242,51 @@ npm run build
 npm run type-check && npm run lint && npm run build
 ```
 
-## Deployment
+## Backend API
 
-To deploy the web version, you can use any static hosting provider:
+The Go backend provides the following endpoints:
 
-**Build for production:**
-```bash
-npm run build:production
+### Public
+- `GET /health` - Health check
+
+### Authenticated (Require Firebase ID token)
+- `GET /api/users` - Get all users
+- `POST /api/users/create` - Create/update user
+- `GET /api/progress` - Get user progress
+- `POST /api/progress/update` - Update lesson progress
+- `GET /api/lessons?level=beginner` - Get lessons
+- `POST /api/upload` - Upload file to Firebase Storage
+
+**Authentication:**
+All `/api/*` endpoints require a Firebase ID token in the Authorization header:
+```
+Authorization: Bearer <firebase-id-token>
 ```
 
-**Deployment options:**
-- **Vercel**: `vercel --prod` (requires Vercel CLI)
-- **Netlify**: Drag & drop `dist/` folder
-- **GitHub Pages**: Deploy `dist/` folder
-- **Firebase Hosting**: `firebase deploy`
+## Deployment
 
-For iOS and Android, use Expo EAS:
+See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive deployment instructions covering:
+
+- Firebase setup and configuration
+- Backend deployment (Firebase Functions or Cloud Run)
+- Frontend deployment (Web, iOS, Android)
+- Database initialization
+- CI/CD setup
+- Monitoring and logging
+- Security best practices
+
+**Quick Deploy:**
+
+### Backend (Cloud Run)
 ```bash
-# Install EAS CLI
-npm install -g eas-cli
+cd backend
+gcloud run deploy ishkul-backend --source .
+```
 
-# Build for iOS
-eas build --platform ios
-
-# Build for Android
-eas build --platform android
+### Frontend (Vercel)
+```bash
+cd frontend
+vercel --prod
 ```
 
 ## Future Enhancements
