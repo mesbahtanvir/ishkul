@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"cloud.google.com/go/firestore"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"google.golang.org/api/iterator"
@@ -25,13 +26,13 @@ func GetLessons(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := fs.Collection("lessons").OrderBy("order", "asc")
+	query := fs.Collection("lessons").OrderBy("order", firestore.Asc)
 
 	// Filter by level if provided
 	if level != "" {
 		query = fs.Collection("lessons").
 			Where("level", "==", level).
-			OrderBy("order", "asc")
+			OrderBy("order", firestore.Asc)
 	}
 
 	iter := query.Documents(ctx)

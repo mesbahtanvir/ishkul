@@ -45,6 +45,9 @@ backend/
 ## Setup
 
 1. **Install Dependencies**
+
+   **Note**: Internet connectivity is required to download Go modules.
+
    ```bash
    go mod tidy
    ```
