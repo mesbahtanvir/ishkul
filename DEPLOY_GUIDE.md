@@ -1,0 +1,417 @@
+# Ishkul Deployment Guide (No .env Required!)
+
+Deploy both frontend and backend to Firebase/Google Cloud with modern best practices - no deprecated `.env` files needed!
+
+## 🎯 Modern Configuration Approach
+
+This project uses:
+- ✅ **Firebase Config File** (`firebase.config.ts`) - committed to git, safe public identifiers
+- ✅ **Google Cloud Secret Manager** - for sensitive backend credentials
+- ✅ **Expo Environment Variables** - only for runtime API URL
+- ❌ **No `.env` files** - deprecated by Firebase
+
+## Prerequisites
+
+### 1. Install Tools
+
+```bash
+# Firebase CLI
+npm install -g firebase-tools
+
+# Google Cloud CLI
+# macOS:
+brew install --cask google-cloud-sdk
+
+# Other platforms:
+# https://cloud.google.com/sdk/docs/install
+```
+
+### 2. Create Firebase Project
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Create a new project
+3. Enable **Blaze (pay-as-you-go)** plan for Cloud Run
+4. Note your project ID
+
+### 3. Enable APIs
+
+```bash
+# Login
+firebase login
+gcloud auth login
+
+# Enable required Google Cloud APIs
+gcloud services enable \
+  run.googleapis.com \
+  cloudbuild.googleapis.com \
+  firestore.googleapis.com \
+  storage-component.googleapis.com \
+  secretmanager.googleapis.com
+```
+
+## 🚀 Quick Start (3 Steps)
+
+### Step 1: Configure Project ID
+
+Edit [`.firebaserc`](.firebaserc):
+
+```json
+{
+  "projects": {
+    "default": "your-actual-project-id"
+  }
+}
+```
+
+Set gcloud project:
+
+```bash
+gcloud config set project your-actual-project-id
+```
+
+### Step 2: Configure Firebase
+
+Run the configuration helper:
+
+```bash
+./scripts/configure-firebase.sh
+```
+
+Or manually update [`frontend/firebase.config.ts`](frontend/firebase.config.ts):
+
+1. Go to [Firebase Console](https://console.firebase.google.com) → Your Project → Settings
+2. Scroll to "Your apps"
+3. Add a Web app if you haven't
+4. Copy the config values
+5. Update `frontend/firebase.config.ts`:
+
+```typescript
+export const firebaseConfig = {
+  apiKey: "AIza...",  // From Firebase Console
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abc123",
+};
+```
+
+**Note:** These values are safe to commit! They're public identifiers. Security is handled by Firestore/Storage rules.
+
+### Step 3: Setup Backend Secrets (Optional but Recommended)
+
+```bash
+# Download service account key from Firebase Console
+# Project Settings → Service Accounts → Generate New Private Key
+# Save as: backend/serviceAccountKey.json
+
+# Store in Secret Manager
+./scripts/setup-secrets.sh
+```
+
+This stores your service account key securely in Google Cloud Secret Manager.
+
+**Alternative:** Skip this step and use Cloud Run's default service account (less secure but simpler).
+
+### Step 4: Deploy!
+
+```bash
+./deploy.sh
+```
+
+That's it! The script will:
+1. Build frontend
+2. Deploy to Firebase Hosting
+3. Build backend Docker image
+4. Deploy to Cloud Run (with secrets from Secret Manager)
+5. Deploy Firestore & Storage rules
+
+## 📁 Configuration Files
+
+### Frontend Config: `frontend/firebase.config.ts`
+
+```typescript
+export const firebaseConfig = {
+  // Public Firebase identifiers - safe to commit
+  apiKey: "YOUR_API_KEY",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+};
+
+export const apiConfig = {
+  // Auto-set during deployment or use for local dev
+  baseURL: process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080/api",
+};
+```
+
+### Backend Secrets: Google Cloud Secret Manager
+
+Sensitive credentials are stored in Secret Manager:
+- `firebase-service-account` - Firebase Admin SDK credentials
+- `storage-bucket` - Storage bucket name
+
+Cloud Run automatically mounts these at runtime.
+
+## 🛠 Available Commands
+
+```bash
+# Deploy everything
+./deploy.sh
+
+# Deploy components individually
+npm run deploy:frontend    # Frontend to Firebase Hosting
+npm run deploy:backend     # Backend to Cloud Run
+npm run deploy:firestore   # Firestore rules
+npm run deploy:storage     # Storage rules
+
+# Setup
+./scripts/setup-secrets.sh        # Configure Secret Manager
+./scripts/configure-firebase.sh   # Help configure Firebase
+
+# Local development
+npm run dev:frontend       # Start Expo dev server
+npm run dev:backend        # Start Go backend locally
+
+# Build locally
+npm run build:frontend
+npm run build:backend
+```
+
+## 🔄 Update Workflow
+
+### After First Deployment
+
+1. Get your backend URL from deployment output
+2. For production builds, set the API URL:
+
+```bash
+# Option 1: Build with environment variable
+cd frontend
+EXPO_PUBLIC_API_URL=https://your-backend-url.run.app/api npm run build
+cd ..
+npm run deploy:frontend
+
+# Option 2: Update firebase.config.ts (for production)
+# Change apiConfig.baseURL to your Cloud Run URL
+```
+
+### Updating Frontend
+
+```bash
+# Make changes, then:
+npm run deploy:frontend
+```
+
+### Updating Backend
+
+```bash
+# Make changes, then:
+npm run deploy:backend
+```
+
+### Updating Database Rules
+
+```bash
+# Edit firestore.rules or storage.rules, then:
+npm run deploy:firestore
+npm run deploy:storage
+```
+
+## 🔐 Security Best Practices
+
+### ✅ What's Safe to Commit
+
+- `frontend/firebase.config.ts` - Public Firebase identifiers
+- `firebase.json`, `firestore.rules`, `storage.rules` - Configuration
+- `.firebaserc` - Project references
+
+### ❌ Never Commit
+
+- `backend/serviceAccountKey.json` - Use Secret Manager instead
+- `.env` files with secrets - Deprecated anyway
+
+### 🛡️ Security Layers
+
+1. **Firestore Rules** - Control database access
+2. **Storage Rules** - Control file access
+3. **CORS Configuration** - Only allow your domains
+4. **Firebase App Check** - Protect against abuse (recommended for production)
+5. **Secret Manager** - Secure credential storage
+
+## 🌍 Environment-Specific Deploys
+
+### Development
+
+```bash
+# Use local backend
+cd frontend
+npm run dev  # Uses http://localhost:8080/api
+
+# In another terminal
+cd backend
+go run cmd/server/main.go
+```
+
+### Staging (Optional)
+
+```bash
+# Create staging project in .firebaserc
+firebase use --add
+
+# Deploy to staging
+firebase use staging
+./deploy.sh
+```
+
+### Production
+
+```bash
+firebase use production
+./deploy.sh
+```
+
+## 📊 Monitoring & Logs
+
+### View Backend Logs
+
+```bash
+# Real-time logs
+gcloud run services logs read ishkul-backend \
+  --region us-central1 \
+  --limit 50 \
+  --follow
+
+# Error logs only
+gcloud run services logs read ishkul-backend \
+  --region us-central1 \
+  --filter "severity>=ERROR"
+```
+
+### View Frontend Hosting Logs
+
+Firebase Console → Hosting → Usage
+
+### View Secret Access Logs
+
+```bash
+gcloud logging read "resource.type=secretmanager.googleapis.com/Secret" \
+  --limit 50
+```
+
+## 💰 Cost Estimates
+
+### Free Tier Limits (Per Month)
+- Firebase Hosting: 10 GB storage, 360 MB/day transfer
+- Firestore: 50K reads, 20K writes, 20K deletes/day
+- Cloud Run: 2M requests, 360K GB-seconds, 180K vCPU-seconds
+- Secret Manager: 6 active secret versions free
+
+### Expected Monthly Costs
+- **Small app** (<1K users): $0-5
+- **Medium app** (1K-10K users): $5-20
+- **Growing app** (10K-100K users): $20-100
+
+Cloud Run only charges when requests are being processed!
+
+## 🐛 Troubleshooting
+
+### "Permission denied" on scripts
+
+```bash
+chmod +x deploy.sh scripts/*.sh
+```
+
+### "Secret not found"
+
+```bash
+# Setup secrets first
+./scripts/setup-secrets.sh
+```
+
+### "API not enabled"
+
+```bash
+gcloud services enable \
+  run.googleapis.com \
+  cloudbuild.googleapis.com \
+  secretmanager.googleapis.com
+```
+
+### CORS Errors
+
+```bash
+# Add your custom domain to allowed origins
+gcloud run services update ishkul-backend \
+  --region us-central1 \
+  --update-env-vars "ALLOWED_ORIGINS=https://yourdomain.com,https://YOUR_PROJECT.web.app"
+```
+
+### Frontend can't connect to backend
+
+1. Check backend URL in deployment output
+2. Update `frontend/firebase.config.ts` apiConfig.baseURL
+3. Rebuild and redeploy frontend
+
+### Secrets not accessible
+
+```bash
+# Grant Cloud Run access to secrets
+PROJECT_ID=$(gcloud config get-value project)
+SERVICE_ACCOUNT="${PROJECT_ID}@appspot.gserviceaccount.com"
+
+gcloud secrets add-iam-policy-binding firebase-service-account \
+  --member="serviceAccount:${SERVICE_ACCOUNT}" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+## 📚 Architecture Overview
+
+```
+Ishkul Platform
+│
+├── Frontend (React Native/Expo)
+│   ├── firebase.config.ts          # Firebase config (committed)
+│   ├── Web → Firebase Hosting      # Static site
+│   └── Mobile → Expo/EAS Build     # Native apps
+│
+├── Backend (Go)
+│   ├── Cloud Run                   # Containerized API
+│   ├── Secrets from Secret Manager # Credentials
+│   └── Uses Firebase Admin SDK     # Database access
+│
+├── Firebase Services
+│   ├── Firestore                   # Database
+│   ├── Storage                     # File storage
+│   ├── Authentication              # User auth
+│   └── Hosting                     # Web hosting
+│
+└── Google Cloud
+    ├── Cloud Run                   # Backend hosting
+    ├── Secret Manager              # Credential storage
+    └── Cloud Build                 # CI/CD
+```
+
+## 🎓 Next Steps
+
+1. ✅ Deploy your app
+2. ✅ Set up [Firebase App Check](https://firebase.google.com/docs/app-check) for production
+3. ✅ Configure [custom domain](https://firebase.google.com/docs/hosting/custom-domain)
+4. ✅ Set up [monitoring alerts](https://cloud.google.com/monitoring/alerts)
+5. ✅ Enable [Cloud Armor](https://cloud.google.com/armor) for DDoS protection
+6. ✅ Implement [rate limiting](https://cloud.google.com/run/docs/configuring/rate-limits)
+
+## 📖 Resources
+
+- [Firebase Documentation](https://firebase.google.com/docs)
+- [Cloud Run Documentation](https://cloud.google.com/run/docs)
+- [Secret Manager Documentation](https://cloud.google.com/secret-manager/docs)
+- [Expo Documentation](https://docs.expo.dev)
+
+---
+
+**Questions?** Check [DEPLOYMENT.md](DEPLOYMENT.md) for more detailed information.
+
+**Ready to deploy?** Run `./deploy.sh` 🚀

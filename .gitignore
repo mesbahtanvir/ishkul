@@ -30,9 +30,11 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (deprecated - use firebase.config.ts instead)
 .env
 .env*.local
+frontend/.env
+frontend/.env.local
 
 # typescript
 *.tsbuildinfo
@@ -55,6 +57,14 @@ backend/vendor/
 go.work
 backend/serviceAccountKey.json
 backend/firebase-credentials.json
+*-firebase-adminsdk-*.json
+*.json.key
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
 
 # IDEs
 .vscode/

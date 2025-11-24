@@ -1,0 +1,16 @@
+# Ignore files that shouldn't be in the Docker image
+*.md
+.git
+.gitignore
+.env
+*.test
+*.out
+coverage.txt
+
+# Service account keys (use Cloud Run secrets instead)
+serviceAccountKey.json
+*.json
+
+# Build artifacts
+bin/
+dist/
