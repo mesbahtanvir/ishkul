@@ -1,15 +1,27 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Image, Platform, Alert, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  Alert,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { signInWithGoogle, signInWithGoogleMobile, useGoogleAuth } from '../services/auth';
 import { getUserDocument } from '../services/memory';
+import { Colors } from '../theme/colors';
+import { Typography } from '../theme/typography';
+import { Spacing } from '../theme/spacing';
 
 interface LoginScreenProps {
   navigation: any;
 }
+
+const { height } = Dimensions.get('window');
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { setUser, setUserDocument, setLoading } = useUserStore();
@@ -31,7 +43,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         const userDoc = await getUserDocument(user.uid);
         setUserDocument(userDoc);
 
-        // Navigate based on whether user has a profile
         if (!userDoc || !userDoc.goal) {
           navigation.replace('GoalSelection');
         } else {
@@ -55,7 +66,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         const userDoc = await getUserDocument(user.uid);
         setUserDocument(userDoc);
 
-        // Navigate based on whether user has a profile
         if (!userDoc || !userDoc.goal) {
           navigation.replace('GoalSelection');
         } else {
@@ -82,71 +92,47 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#667eea', '#764ba2', '#f093fb']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
+      <Container padding="medium" scrollable>
         <View style={styles.content}>
-          {/* Hero Section */}
+          {/* Hero Section - Minimalist */}
           <View style={styles.heroSection}>
             <View style={styles.logoContainer}>
               <Text style={styles.emoji}>🎓</Text>
             </View>
 
-            <Text style={styles.title}>Learning AI</Text>
-            <Text style={styles.subtitle}>
-              Your personal adaptive learning companion
-            </Text>
+            <Text style={styles.title}>Ishkul</Text>
+            <Text style={styles.tagline}>Learn smarter, faster</Text>
 
-            {/* Feature Pills */}
-            <View style={styles.featuresContainer}>
-              <View style={styles.featurePill}>
-                <Text style={styles.featureIcon}>✨</Text>
-                <Text style={styles.featureText}>Personalized</Text>
-              </View>
-              <View style={styles.featurePill}>
-                <Text style={styles.featureIcon}>🚀</Text>
-                <Text style={styles.featureText}>Adaptive</Text>
-              </View>
-              <View style={styles.featurePill}>
-                <Text style={styles.featureIcon}>📊</Text>
-                <Text style={styles.featureText}>Track Progress</Text>
-              </View>
-            </View>
+            <View style={styles.divider} />
+
+            <Text style={styles.description}>
+              Personalized adaptive learning powered by AI. Learn any skill at your own pace.
+            </Text>
           </View>
 
-          {/* Login Card */}
-          <View style={styles.loginCard}>
-            <Text style={styles.cardTitle}>Get Started</Text>
-            <Text style={styles.cardSubtitle}>
-              Sign in to unlock your learning potential
-            </Text>
-
+          {/* CTA Section */}
+          <View style={styles.ctaSection}>
             <TouchableOpacity
               style={[
                 styles.googleButton,
-                (Platform.OS !== 'web' && !request) && styles.googleButtonDisabled
+                Platform.OS !== 'web' && !request && styles.googleButtonDisabled,
               ]}
               onPress={handleSignIn}
               disabled={Platform.OS !== 'web' && !request}
               activeOpacity={0.8}
             >
-              <View style={styles.googleIconContainer}>
-                <Text style={styles.googleIcon}>G</Text>
-              </View>
+              <Text style={styles.googleIcon}>G</Text>
               <Text style={styles.googleButtonText}>Continue with Google</Text>
             </TouchableOpacity>
 
             <View style={styles.termsContainer}>
               <Text style={styles.termsText}>
-                By continuing, you agree to our Terms of Service and Privacy Policy
+                By continuing, you agree to our Terms and Privacy Policy
               </Text>
             </View>
           </View>
         </View>
-      </LinearGradient>
+      </Container>
     </View>
   );
 };
@@ -154,207 +140,111 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  gradient: {
-    flex: 1,
+    backgroundColor: Colors.background.primary,
   },
   content: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
+    paddingVertical: Spacing.lg,
   },
   heroSection: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 40,
+    marginBottom: Spacing.xl,
   },
   logoContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 30,
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: Spacing.lg,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.2,
-        shadowRadius: 16,
-      },
-      android: {
-        elevation: 8,
-      },
-      web: {
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-      },
-    }),
-  },
-  emoji: {
-    fontSize: 64,
-  },
-  title: {
-    fontSize: 42,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 12,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-      },
-      android: {
-        textShadowColor: 'rgba(0, 0, 0, 0.25)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 8,
-      },
-    }),
-  },
-  subtitle: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.95)',
-    textAlign: 'center',
-    paddingHorizontal: 32,
-    lineHeight: 26,
-    fontWeight: '500',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        textShadowColor: 'rgba(0, 0, 0, 0.2)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
-      },
-    }),
-  },
-  featuresContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 32,
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  featurePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  featureIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  featureText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  loginCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 32,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 16 },
-        shadowOpacity: 0.25,
-        shadowRadius: 32,
-      },
-      android: {
-        elevation: 16,
-      },
-      web: {
-        boxShadow: '0 16px 48px rgba(0, 0, 0, 0.25)',
-      },
-    }),
-  },
-  cardTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  cardSubtitle: {
-    fontSize: 16,
-    color: '#666666',
-    textAlign: 'center',
-    marginBottom: 28,
-    lineHeight: 22,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderWidth: 2,
-    borderColor: '#E5E5EA',
-    minHeight: 60,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowColor: Colors.black,
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
       },
       android: {
         elevation: 4,
       },
-      web: {
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    }),
+  },
+  emoji: {
+    fontSize: 48,
+  },
+  title: {
+    ...Typography.display.large,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  tagline: {
+    ...Typography.body.large,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+    fontWeight: '600',
+  },
+  divider: {
+    width: 40,
+    height: 2,
+    backgroundColor: Colors.primary,
+    marginBottom: Spacing.lg,
+  },
+  description: {
+    ...Typography.body.medium,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  ctaSection: {
+    gap: Spacing.md,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    minHeight: Spacing.buttonHeight.large,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    gap: Spacing.md,
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
       },
     }),
   },
   googleButtonDisabled: {
     opacity: 0.5,
   },
-  googleIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#4285F4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
   googleIcon: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 20,
     fontWeight: '700',
   },
   googleButtonText: {
-    color: '#1a1a1a',
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    ...Typography.button.medium,
+    color: Colors.text.primary,
   },
   termsContainer: {
-    marginTop: 20,
-    paddingHorizontal: 8,
+    marginTop: Spacing.md,
   },
   termsText: {
-    fontSize: 12,
-    color: '#999999',
+    ...Typography.label.small,
+    color: Colors.text.tertiary,
     textAlign: 'center',
     lineHeight: 18,
   },

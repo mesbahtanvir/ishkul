@@ -1,0 +1,422 @@
+# Claude Code Instructions for Ishkul Project
+
+## Project Overview
+
+Ishkul is a full-stack adaptive learning platform consisting of:
+
+- **Frontend**: React Native/Expo (TypeScript) - Cross-platform mobile & web app
+- **Backend**: Go service with Firebase Admin SDK
+- **Database**: Cloud Firestore
+- **Auth**: Firebase Authentication
+- **CI/CD**: GitHub Actions with automated deployment
+
+## Project Structure
+
+```text
+ishkul/
+├── frontend/                    # React Native/Expo mobile & web app
+│   ├── src/
+│   │   ├── components/         # Reusable UI components (Button, Input, Container, LoadingScreen)
+│   │   ├── screens/            # App screens (Login, Goal, Level, NextStep, Lesson, Quiz, Practice, Progress, Settings)
+│   │   ├── navigation/         # React Navigation setup (Tabs + Stack)
+│   │   ├── state/              # Zustand stores (userStore, learningStore)
+│   │   ├── services/           # Firebase services (auth, memory, llmEngine)
+│   │   ├── config/             # Firebase configuration
+│   │   └── types/              # TypeScript type definitions
+│   ├── App.tsx                 # Main entry point
+│   ├── package.json            # Dependencies (Expo 54, React 19, Firebase 12)
+│   └── .env.example
+│
+├── backend/                     # Go backend service
+│   ├── cmd/server/             # Application entry point (main.go)
+│   ├── internal/
+│   │   ├── handlers/           # HTTP request handlers
+│   │   ├── middleware/         # Auth, CORS middleware
+│   │   └── models/             # Data models
+│   ├── pkg/firebase/           # Firebase Admin SDK integration
+│   ├── go.mod                  # Go 1.23.0
+│   └── Dockerfile              # Container configuration
+│
+├── firebase/                    # Firebase configuration & rules
+│   ├── firestore.rules         # Database security rules
+│   ├── storage.rules           # Storage security rules
+│   └── config.ts               # Client-side Firebase config
+│
+├── .github/workflows/          # CI/CD pipelines
+│   ├── deploy.yml              # Automated deployment workflow
+│   └── ci.yml                  # Continuous integration checks
+│
+├── scripts/                     # Deployment & setup scripts
+│   ├── setup-github-actions.sh
+│   ├── setup-secrets.sh
+│   └── configure-firebase.sh
+│
+└── Documentation files (README, PROJECT_SUMMARY, DEPLOY_GUIDE, etc.)
+```
+
+## Tech Stack
+
+### Frontend
+
+- **Framework**: Expo 54 / React Native 0.81
+- **Language**: TypeScript 5.9
+- **State**: Zustand 5.0
+- **Navigation**: React Navigation 7 (Bottom Tabs + Stack)
+- **Firebase**: Firebase JS SDK 12.6
+- **Auth**: Google Sign-In (expo-auth-session)
+
+### Backend
+
+- **Language**: Go 1.23
+- **Firebase**: Firebase Admin SDK v4.18
+- **Database**: Cloud Firestore v1.18
+- **Deployment**: Google Cloud Run (containerized)
+
+### Infrastructure
+
+- **Hosting**: Firebase Hosting (frontend), Cloud Run (backend)
+- **CI/CD**: GitHub Actions
+- **Auth**: Firebase Authentication
+- **Storage**: Firebase Storage
+
+## Key Commands
+
+### Frontend
+
+```bash
+cd frontend
+npm install           # Install dependencies
+npm start            # Start Expo dev server
+npm run web          # Run on web
+npm run ios          # Run on iOS simulator
+npm run android      # Run on Android emulator
+npm run build        # Build for web
+npm run type-check   # TypeScript type checking
+npm run lint         # ESLint
+```
+
+### Backend
+
+```bash
+cd backend
+go mod tidy          # Install dependencies
+go run cmd/server/main.go  # Run server locally
+go build -o server cmd/server/main.go  # Build binary
+docker build -t ishkul-backend .       # Build Docker image
+```
+
+### Deployment
+
+```bash
+# Automated (via GitHub Actions)
+git push origin main  # Triggers automatic deployment
+
+# Manual deployment
+./scripts/setup-github-actions.sh  # One-time CI/CD setup
+cd backend && gcloud run deploy ishkul-backend --source .  # Deploy backend
+cd frontend && firebase deploy --only hosting  # Deploy frontend
+firebase deploy --only firestore:rules,storage  # Deploy rules
+```
+
+## Development Guidelines
+
+### When Working on Frontend
+
+1. **Always use TypeScript** - No plain JavaScript files
+2. **Follow existing patterns** - Match the structure in `src/` folders
+3. **Use Zustand stores** for state management (userStore, learningStore)
+4. **Firebase client SDK** - Use services in `src/services/`
+5. **Navigation** - Use React Navigation v7 patterns
+6. **UI Design** - Follow iOS-style minimalist design (colors, spacing in PROJECT_SUMMARY.md)
+7. **Cross-platform** - Code must work on iOS, Android, Web
+
+### When Working on Backend
+
+1. **Go conventions** - Follow Go best practices
+2. **Firebase Admin SDK** - Use for server-side operations
+3. **Middleware** - Auth required for all `/api/*` endpoints
+4. **Error handling** - Proper HTTP status codes
+5. **CORS** - Configure for frontend domains
+6. **Environment** - Use `.env` for configuration
+
+### Code Style
+
+- **Frontend**: ESLint configured, TypeScript strict mode
+- **Backend**: gofmt, standard Go conventions
+- **Comments**: Add clear comments for complex logic
+- **Types**: Use TypeScript interfaces/types, Go structs
+- **Naming**: Descriptive names (camelCase JS/TS, PascalCase Go exports)
+
+## Firebase Integration
+
+### Firestore Collections
+
+- `users/` - User profiles with learning history
+  - Fields: uid, email, displayName, goal, level, memory, history, nextStep
+- Security rules: Users can only read/write their own documents
+
+### Firebase Auth
+
+- Google Sign-In enabled
+- JWT tokens for backend authentication
+- Frontend: Firebase JS SDK
+- Backend: Firebase Admin SDK validates tokens
+
+### Firebase Storage
+
+- User-uploaded content (future feature)
+- Security rules: Authenticated users only
+
+## Modern Minimalist Design System
+
+The frontend now uses a **mobile-first, minimalist design system** with:
+
+- **Colors**: Modern palette in `frontend/src/theme/colors.ts`
+- **Typography**: Clean type scale in `frontend/src/theme/typography.ts`
+- **Spacing**: 4px-based scale in `frontend/src/theme/spacing.ts`
+- **Components**: Styled with design tokens (Button, Input, Container)
+
+See [frontend/DESIGN_SYSTEM.md](frontend/DESIGN_SYSTEM.md) for complete design documentation.
+
+### Design Principles
+
+- **Mobile-First**: Optimized for phones, responsive to tablets/web
+- **Minimalist**: Clean, uncluttered, focus on content
+- **Accessible**: WCAG AA compliant spacing, colors, contrast
+- **Consistent**: All UI uses theme system
+- **Flexible**: Components support variants and customization
+
+### When Adding New Screens
+
+1. Use the Container component with proper padding
+2. Import Colors, Typography, Spacing from theme
+3. Follow existing screen patterns
+4. Test on small (320px) and large (430px+) screens
+
+## Important Files to Update
+
+### When updating dependencies
+
+- `frontend/package.json` - Frontend npm packages
+- `backend/go.mod` - Backend Go modules
+
+### When modifying Firebase
+
+- `frontend/src/config/firebase.config.ts` - Client config
+- `backend/pkg/firebase/` - Admin SDK config
+- `firebase/firestore.rules` - Database rules
+- `firebase/storage.rules` - Storage rules
+
+### When changing UI/Design
+
+- `frontend/src/theme/colors.ts` - Update color palette
+- `frontend/src/theme/typography.ts` - Update typography
+- `frontend/src/theme/spacing.ts` - Update spacing scale
+- `frontend/src/components/` - Update component styles
+- `frontend/DESIGN_SYSTEM.md` - **Update design documentation!**
+
+### When changing CI/CD
+
+- `.github/workflows/deploy.yml` - Deployment workflow
+- `.github/workflows/ci.yml` - CI checks
+- `scripts/` - Deployment scripts
+
+### When updating documentation
+
+- `README.md` - Main project readme
+- `PROJECT_SUMMARY.md` - Detailed architecture
+- `CLAUDE.md` - **This file - keep updated!**
+- `frontend/DESIGN_SYSTEM.md` - UI/UX design documentation
+
+## Common Tasks
+
+### Adding a New Screen
+
+1. Create component in `frontend/src/screens/NewScreen.tsx`
+2. Add to navigation in `frontend/src/navigation/AppNavigator.tsx`
+3. Update types in `frontend/src/types/app.ts` if needed
+4. Add route to navigation params
+
+### Adding a Backend API Endpoint
+
+1. Create handler in `backend/internal/handlers/`
+2. Add route in `backend/cmd/server/main.go`
+3. Update middleware if needed
+4. Document in README.md API section
+
+### Modifying Learning Engine
+
+- Edit `frontend/src/services/llmEngine.ts`
+- Update mock data or integrate real LLM
+- Adjust types in `frontend/src/types/app.ts`
+
+### Updating Firestore Structure
+
+1. Update types in `frontend/src/types/app.ts`
+2. Update backend models in `backend/internal/models/`
+3. Update `firestore.rules` if security changes
+4. Migrate existing data if needed
+
+## CI/CD Pipeline
+
+### Automated Deployment (GitHub Actions)
+Every push to `main` triggers:
+
+1. **Build checks** - TypeScript compilation, Go build
+2. **Backend deployment** - Google Cloud Run
+3. **Frontend deployment** - Firebase Hosting
+4. **Rules deployment** - Firestore & Storage rules
+
+### Required GitHub Secrets
+
+- `GCP_PROJECT_ID` - Google Cloud project ID
+- `GCP_SA_KEY` - Service account JSON key
+- `FIREBASE_TOKEN` - Firebase CI token
+
+Setup via: `./scripts/setup-github-actions.sh`
+
+## Environment Variables
+
+### Frontend (.env)
+
+```env
+EXPO_PUBLIC_FIREBASE_API_KEY=
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+EXPO_PUBLIC_FIREBASE_APP_ID=
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=
+```
+
+### Backend (.env)
+
+```env
+FIREBASE_PROJECT_ID=
+GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
+PORT=8080
+```
+
+## Testing & Quality
+
+### Frontend Testing
+
+- Run `npm run type-check` before commits
+- Test on web, iOS, and Android
+- Verify Google Sign-In works
+- Check Firestore operations
+
+### Backend Testing
+
+- Run `go build` to check compilation
+- Test API endpoints with curl/Postman
+- Verify Firebase Admin SDK operations
+- Check authentication middleware
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Google Sign-In fails** - Check OAuth client IDs in .env
+2. **Firestore permission denied** - Verify security rules
+3. **Backend 401 errors** - Check Firebase ID token in Authorization header
+4. **Build fails** - Clear caches: `npx expo start -c`, `go clean -cache`
+5. **Deploy fails** - Check GitHub secrets, Firebase quota
+
+## Documentation
+
+Always keep these files synchronized:
+
+- **CLAUDE.md** (this file) - Development instructions
+- **README.md** - User-facing project overview
+- **PROJECT_SUMMARY.md** - Detailed architecture
+- **DEPLOY_GUIDE.md** - Deployment instructions
+- **CICD_SETUP.md** - CI/CD configuration
+
+## Best Practices
+
+### Before Committing
+
+1. Run type checks: `npm run type-check`
+2. Run linter: `npm run lint`
+3. Test on at least one platform (web easiest)
+4. Update CLAUDE.md if architecture changed
+5. Write clear commit messages
+
+### Before Deploying
+
+1. Test locally first
+2. Check all environment variables are set
+3. Verify Firebase rules are correct
+4. Review GitHub Actions workflow
+5. Monitor deployment logs
+
+### Code Organization
+
+- Keep components small and focused
+- Use services for external interactions (Firebase, API)
+- Store state in Zustand stores
+- Use TypeScript types everywhere
+- Follow DRY principle
+
+## Architecture Decisions
+
+### Why Expo
+
+- Cross-platform (iOS, Android, Web)
+- Fast development with hot reload
+- Easy OTA updates
+- Strong TypeScript support
+
+### Why Go Backend
+
+- High performance and concurrency
+- Easy deployment (single binary)
+- Strong Firebase Admin SDK
+- Good Cloud Run support
+
+### Why Firebase
+
+- Managed authentication
+- Real-time database (Firestore)
+- File storage
+- Easy integration with mobile apps
+- Generous free tier
+
+### Why Zustand
+
+- Simple API
+- TypeScript support
+- Less boilerplate than Redux
+- Good performance
+
+## Future Enhancements
+
+Potential areas for improvement:
+
+- [ ] Real LLM integration (OpenAI/Anthropic/Claude)
+- [ ] Spaced repetition algorithm
+- [ ] Push notifications
+- [ ] Dark mode
+- [ ] Offline mode
+- [ ] Social features
+- [ ] Voice input
+- [ ] Rich media in lessons
+
+## Support & Resources
+
+- **Issues**: GitHub Issues tab
+- **Docs**: See README.md and other .md files
+- **Firebase Console**: <https://console.firebase.google.com>
+- **Cloud Console**: <https://console.cloud.google.com>
+- **Expo Docs**: <https://docs.expo.dev>
+
+---
+
+**Last Updated**: 2025-11-23
+**Version**: 1.0.0
+**Status**: Production Ready ✅
+
+**Note**: Update this file whenever you make significant architectural changes or add new features!

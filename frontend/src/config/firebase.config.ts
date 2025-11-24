@@ -19,7 +19,7 @@
  * 6. Copy the config values
  */
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyDC-AtXHpF7jZ1iLIpsvhM6zzGF8WCPHFM",
   authDomain: "ishkul-org.firebaseapp.com",
   projectId: "ishkul-org",
