@@ -84,7 +84,7 @@ jobs:
       backend-url: ${{ steps.backend-url.outputs.url }}
 
   deploy-frontend:
-    name: Deploy Frontend to Firebase Hosting
+    name: Build Frontend
     runs-on: ubuntu-latest
     needs: deploy-backend # Wait for backend to get URL
 
@@ -109,13 +109,8 @@ jobs:
           cd frontend
           npm run build
 
-      - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channelId: live
-          projectId: ${{ env.PROJECT_ID }}
+      - name: Frontend build complete
+        run: echo "Frontend built successfully. Host it separately as needed."
 
   deploy-firestore:
     name: Deploy Firestore Rules & Indexes
@@ -214,7 +209,7 @@ jobs:
           echo "## Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Backend URL:** ${{ needs.deploy-backend.outputs.backend-url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Frontend URL:** https://${{ env.PROJECT_ID }}.web.app" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend:** Built and ready (host separately)" >> $GITHUB_STEP_SUMMARY
           echo "- **Firestore:** Rules and indexes deployed" >> $GITHUB_STEP_SUMMARY
           echo "- **Storage:** Rules deployed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
