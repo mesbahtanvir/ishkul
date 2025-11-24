@@ -5,7 +5,7 @@ Deploy both frontend and backend to Firebase/Google Cloud with modern best pract
 ## 🎯 Modern Configuration Approach
 
 This project uses:
-- ✅ **Firebase Config File** (`firebase.config.ts`) - committed to git, safe public identifiers
+- ✅ **Firebase Config File** (`firebase/config.ts`) - committed to git, safe public identifiers
 - ✅ **Google Cloud Secret Manager** - for sensitive backend credentials
 - ✅ **Expo Environment Variables** - only for runtime API URL
 - ❌ **No `.env` files** - deprecated by Firebase
@@ -77,13 +77,13 @@ Run the configuration helper:
 ./scripts/configure-firebase.sh
 ```
 
-Or manually update [`frontend/firebase.config.ts`](frontend/firebase.config.ts):
+Or manually update [`firebase/config.ts`](firebase/config.ts):
 
 1. Go to [Firebase Console](https://console.firebase.google.com) → Your Project → Settings
 2. Scroll to "Your apps"
 3. Add a Web app if you haven't
 4. Copy the config values
-5. Update `frontend/firebase.config.ts`:
+5. Update `firebase/config.ts`:
 
 ```typescript
 export const firebaseConfig = {
@@ -116,7 +116,7 @@ This stores your service account key securely in Google Cloud Secret Manager.
 ### Step 4: Deploy!
 
 ```bash
-./deploy.sh
+git push origin main  # Triggers GitHub Actions deployment
 ```
 
 That's it! The script will:
@@ -128,7 +128,7 @@ That's it! The script will:
 
 ## 📁 Configuration Files
 
-### Frontend Config: `frontend/firebase.config.ts`
+### Frontend Config: `firebase/config.ts`
 
 ```typescript
 export const firebaseConfig = {
@@ -159,13 +159,13 @@ Cloud Run automatically mounts these at runtime.
 
 ```bash
 # Deploy everything
-./deploy.sh
+git push origin main  # Triggers GitHub Actions deployment
 
 # Deploy components individually
-npm run deploy:frontend    # Frontend to Firebase Hosting
-npm run deploy:backend     # Backend to Cloud Run
-npm run deploy:firestore   # Firestore rules
-npm run deploy:storage     # Storage rules
+git push origin main  # Triggers GitHub Actions deployment:frontend    # Frontend to Firebase Hosting
+git push origin main  # Triggers GitHub Actions deployment:backend     # Backend to Cloud Run
+git push origin main  # Triggers GitHub Actions deployment:firestore   # Firestore rules
+git push origin main  # Triggers GitHub Actions deployment:storage     # Storage rules
 
 # Setup
 ./scripts/setup-secrets.sh        # Configure Secret Manager
@@ -192,9 +192,9 @@ npm run build:backend
 cd frontend
 EXPO_PUBLIC_API_URL=https://your-backend-url.run.app/api npm run build
 cd ..
-npm run deploy:frontend
+git push origin main  # Triggers GitHub Actions deployment:frontend
 
-# Option 2: Update firebase.config.ts (for production)
+# Option 2: Update firebase/config.ts (for production)
 # Change apiConfig.baseURL to your Cloud Run URL
 ```
 
@@ -202,29 +202,29 @@ npm run deploy:frontend
 
 ```bash
 # Make changes, then:
-npm run deploy:frontend
+git push origin main  # Triggers GitHub Actions deployment:frontend
 ```
 
 ### Updating Backend
 
 ```bash
 # Make changes, then:
-npm run deploy:backend
+git push origin main  # Triggers GitHub Actions deployment:backend
 ```
 
 ### Updating Database Rules
 
 ```bash
 # Edit firestore.rules or storage.rules, then:
-npm run deploy:firestore
-npm run deploy:storage
+git push origin main  # Triggers GitHub Actions deployment:firestore
+git push origin main  # Triggers GitHub Actions deployment:storage
 ```
 
 ## 🔐 Security Best Practices
 
 ### ✅ What's Safe to Commit
 
-- `frontend/firebase.config.ts` - Public Firebase identifiers
+- `firebase/config.ts` - Public Firebase identifiers
 - `firebase.json`, `firestore.rules`, `storage.rules` - Configuration
 - `.firebaserc` - Project references
 
@@ -263,14 +263,14 @@ firebase use --add
 
 # Deploy to staging
 firebase use staging
-./deploy.sh
+git push origin main  # Triggers GitHub Actions deployment
 ```
 
 ### Production
 
 ```bash
 firebase use production
-./deploy.sh
+git push origin main  # Triggers GitHub Actions deployment
 ```
 
 ## 📊 Monitoring & Logs
@@ -352,7 +352,7 @@ gcloud run services update ishkul-backend \
 ### Frontend can't connect to backend
 
 1. Check backend URL in deployment output
-2. Update `frontend/firebase.config.ts` apiConfig.baseURL
+2. Update `firebase/config.ts` apiConfig.baseURL
 3. Rebuild and redeploy frontend
 
 ### Secrets not accessible
@@ -372,8 +372,16 @@ gcloud secrets add-iam-policy-binding firebase-service-account \
 ```
 Ishkul Platform
 │
+├── firebase/                       # Firebase configuration folder
+│   ├── config.ts                   # Client config (safe to commit)
+│   ├── firebase.json               # Project configuration
+│   ├── .firebaserc                 # Project aliases
+│   ├── firestore.rules             # Database security rules
+│   ├── firestore.indexes.json      # Database indexes
+│   └── storage.rules               # Storage security rules
+│
 ├── Frontend (React Native/Expo)
-│   ├── firebase.config.ts          # Firebase config (committed)
+│   ├── Uses firebase/config.ts     # Firebase config
 │   ├── Web → Firebase Hosting      # Static site
 │   └── Mobile → Expo/EAS Build     # Native apps
 │
@@ -412,6 +420,6 @@ Ishkul Platform
 
 ---
 
-**Questions?** Check [DEPLOYMENT.md](DEPLOYMENT.md) for more detailed information.
+**Questions?** Check [CICD_SETUP.md](CICD_SETUP.md) for automated deployment with GitHub Actions.
 
-**Ready to deploy?** Run `./deploy.sh` 🚀
+**Ready to deploy?** Run `git push origin main  # Triggers GitHub Actions deployment` 🚀

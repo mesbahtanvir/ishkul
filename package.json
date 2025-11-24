@@ -4,7 +4,6 @@
   "description": "Ishkul Learning Platform - Monorepo",
   "private": true,
   "scripts": {
-    "deploy": "./deploy.sh",
     "deploy:frontend": "cd frontend && npm run build && firebase deploy --only hosting",
     "deploy:backend": "cd backend && gcloud builds submit --tag gcr.io/$(gcloud config get-value project)/ishkul-backend && gcloud run deploy ishkul-backend --image gcr.io/$(gcloud config get-value project)/ishkul-backend --platform managed --region us-central1 --allow-unauthenticated",
     "deploy:firestore": "firebase deploy --only firestore",

@@ -65,7 +65,7 @@ print_status "  1. Go to: https://console.firebase.google.com/project/${PROJECT_
 print_status "  2. Scroll to 'Your apps' section"
 print_status "  3. If no web app exists, click 'Add app' and select Web"
 print_status "  4. Copy the firebaseConfig object values"
-print_status "  5. Update frontend/firebase.config.ts with these values:"
+print_status "  5. Update firebase/config.ts with these values:"
 echo ""
 echo "export const firebaseConfig = {"
 echo "  apiKey: \"YOUR_API_KEY\","

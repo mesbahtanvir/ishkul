@@ -216,31 +216,44 @@ npx expo start -c
 
 ## CI/CD
 
-The project includes a GitHub Actions CI workflow that runs on every push and pull request:
+**Automated Deployment with GitHub Actions**
 
-**Automated Checks:**
-- ✅ TypeScript compilation check
-- ✅ ESLint code quality check
-- ✅ Web build verification
-- ✅ Bundle size reporting
+Every push to `main` automatically deploys the entire application:
 
-**Run checks locally:**
+- ✅ **Backend** → Google Cloud Run
+- ✅ **Frontend** → Firebase Hosting
+- ✅ **Database Rules** → Firestore
+- ✅ **Storage Rules** → Firebase Storage
+
+**Quick Setup:**
+
 ```bash
-# TypeScript check
-npm run type-check
+# Run the setup script
+./scripts/setup-github-actions.sh
 
-# Lint code
-npm run lint
+# Follow prompts and push to main
+git push origin main
 
-# Fix lint issues
-npm run lint:fix
-
-# Build
-npm run build
-
-# Run all checks
-npm run type-check && npm run lint && npm run build
+# Watch deployment in GitHub Actions tab!
 ```
+
+**Manual Deployment (for testing):**
+
+```bash
+# Deploy everything locally
+npm run deploy
+
+# Or deploy individually
+npm run deploy:frontend
+npm run deploy:backend
+npm run deploy:firestore
+npm run deploy:storage
+```
+
+**Learn More:**
+- [CI/CD Setup Guide](CICD_SETUP.md) - Complete GitHub Actions setup
+- [Deployment Guide](DEPLOY_GUIDE.md) - Manual deployment instructions
+- [Workflow Documentation](.github/workflows/README.md) - Workflow details
 
 ## Backend API
 
@@ -265,15 +278,10 @@ Authorization: Bearer <firebase-id-token>
 
 ## Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive deployment instructions covering:
-
-- Firebase setup and configuration
-- Backend deployment (Firebase Functions or Cloud Run)
-- Frontend deployment (Web, iOS, Android)
-- Database initialization
-- CI/CD setup
-- Monitoring and logging
-- Security best practices
+See deployment documentation:
+- **[QUICK_START.md](QUICK_START.md)** - 5-minute quick start guide
+- **[DEPLOY_GUIDE.md](DEPLOY_GUIDE.md)** - Comprehensive deployment guide
+- **[CICD_SETUP.md](CICD_SETUP.md)** - Automated deployment with GitHub Actions
 
 **Quick Deploy:**
 
@@ -300,14 +308,55 @@ vercel --prod
 - [ ] Voice input for quizzes
 - [ ] Image/diagram support in lessons
 
+## Documentation
+
+Complete documentation for the Ishkul platform:
+
+### Getting Started
+- **[QUICK_START.md](QUICK_START.md)** - 5-minute quick start guide to deploy your app
+- **[README.md](README.md)** - This file - project overview and features
+
+### Deployment
+- **[DEPLOY_GUIDE.md](DEPLOY_GUIDE.md)** - Comprehensive deployment guide
+- **[CICD_SETUP.md](CICD_SETUP.md)** - Automated deployment with GitHub Actions
+- **[.github/workflows/deploy.yml](.github/workflows/deploy.yml)** - Automated deployment workflow
+
+### Firebase Configuration
+- **[firebase/README.md](firebase/README.md)** - Firebase configuration overview
+- **[firebase/SETUP.md](firebase/SETUP.md)** - Firebase setup instructions
+- **[firebase/config.ts](firebase/config.ts)** - Client configuration file
+
+### Workflows & CI/CD
+- **[.github/workflows/README.md](.github/workflows/README.md)** - GitHub Actions workflow documentation
+- **[.github/workflows/deploy.yml](.github/workflows/deploy.yml)** - Main deployment workflow
+- **[.github/workflows/ci.yml](.github/workflows/ci.yml)** - Continuous integration checks
+
+### Scripts
+- **[scripts/setup-github-actions.sh](scripts/setup-github-actions.sh)** - Setup GitHub Actions
+- **[scripts/setup-secrets.sh](scripts/setup-secrets.sh)** - Configure Secret Manager
+- **[scripts/configure-firebase.sh](scripts/configure-firebase.sh)** - Firebase config helper
+
+### Project Information
+- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Detailed project architecture and overview
+- **[LICENSE](LICENSE)** - MIT License
+
 ## License
 
-MIT
+MIT License - See [LICENSE](LICENSE) file for details
 
 ## Contributing
 
-Pull requests welcome! Please open an issue first to discuss changes.
+Pull requests are welcome! Please open an issue first to discuss changes.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## Support
 
-For issues or questions, please open a GitHub issue.
+For issues or questions:
+- 📝 Open a [GitHub Issue](https://github.com/mesbahtanvir/ishkul/issues)
+- 📖 Check the [documentation](#documentation)
+- 💬 Start a [Discussion](https://github.com/mesbahtanvir/ishkul/discussions)
