@@ -1,6 +1,6 @@
 # Design System Quick Start
 
-Quick reference for using the new design system.
+Ultra-minimal design reference for building clean, simple screens.
 
 ## Import Theme
 

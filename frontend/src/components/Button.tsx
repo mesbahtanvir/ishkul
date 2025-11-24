@@ -97,20 +97,9 @@ export const Button: React.FC<ButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     paddingVertical: Spacing.md,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.black,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   primaryButton: {
     backgroundColor: Colors.primary,
@@ -120,8 +109,8 @@ const styles = StyleSheet.create({
   },
   outlineButton: {
     backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.gray300,
   },
   ghostButton: {
     backgroundColor: 'transparent',
@@ -131,14 +120,20 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: Colors.white,
-    ...Typography.button.medium,
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   outlineText: {
-    color: Colors.primary,
-    ...Typography.button.medium,
+    color: Colors.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   ghostText: {
     color: Colors.primary,
-    ...Typography.button.medium,
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
 });

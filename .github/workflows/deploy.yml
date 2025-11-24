@@ -146,7 +146,7 @@ jobs:
           args: deploy --only storage
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          PROJECT_ID: ${{ env.PROJECT_ID }}
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
 
   notify-deployment:
     name: Notify Deployment Status

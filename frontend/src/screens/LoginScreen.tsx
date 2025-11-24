@@ -92,26 +92,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Container padding="medium" scrollable>
+      <Container padding="none" scrollable>
         <View style={styles.content}>
-          {/* Hero Section - Minimalist */}
-          <View style={styles.heroSection}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.emoji}>🎓</Text>
-            </View>
-
-            <Text style={styles.title}>Ishkul</Text>
-            <Text style={styles.tagline}>Learn smarter, faster</Text>
-
-            <View style={styles.divider} />
-
-            <Text style={styles.description}>
-              Personalized adaptive learning powered by AI. Learn any skill at your own pace.
-            </Text>
+          {/* Top Section - Logo */}
+          <View style={styles.topSection}>
+            <Text style={styles.emoji}>🎓</Text>
           </View>
 
-          {/* CTA Section */}
-          <View style={styles.ctaSection}>
+          {/* Middle Section - Content */}
+          <View style={styles.middleSection}>
+            <Text style={styles.title}>Ishkul</Text>
+            <Text style={styles.subtitle}>Learn anything</Text>
+          </View>
+
+          {/* Bottom Section - CTA */}
+          <View style={styles.bottomSection}>
             <TouchableOpacity
               style={[
                 styles.googleButton,
@@ -119,17 +114,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               ]}
               onPress={handleSignIn}
               disabled={Platform.OS !== 'web' && !request}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
             >
-              <Text style={styles.googleIcon}>G</Text>
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
+              <Text style={styles.googleButtonText}>Sign in with Google</Text>
             </TouchableOpacity>
 
-            <View style={styles.termsContainer}>
-              <Text style={styles.termsText}>
-                By continuing, you agree to our Terms and Privacy Policy
-              </Text>
-            </View>
+            <Text style={styles.termsText}>
+              By continuing, you agree to our Terms and Privacy Policy
+            </Text>
           </View>
         </View>
       </Container>
@@ -140,110 +132,68 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.white,
   },
   content: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
-  heroSection: {
+  topSection: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingTop: Spacing.xl,
+  },
+  emoji: {
+    fontSize: 56,
+  },
+  middleSection: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.black,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  emoji: {
-    fontSize: 48,
   },
   title: {
-    ...Typography.display.large,
+    fontSize: 42,
+    fontWeight: '700',
     color: Colors.text.primary,
     marginBottom: Spacing.sm,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
-  tagline: {
-    ...Typography.body.large,
+  subtitle: {
+    fontSize: 18,
+    fontWeight: '400',
     color: Colors.text.secondary,
     textAlign: 'center',
-    marginBottom: Spacing.lg,
-    fontWeight: '600',
   },
-  divider: {
-    width: 40,
-    height: 2,
-    backgroundColor: Colors.primary,
-    marginBottom: Spacing.lg,
-  },
-  description: {
-    ...Typography.body.medium,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  ctaSection: {
-    gap: Spacing.md,
+  bottomSection: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingBottom: Spacing.lg,
+    gap: Spacing.lg,
   },
   googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    minHeight: Spacing.buttonHeight.large,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-    gap: Spacing.md,
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.black,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   googleButtonDisabled: {
     opacity: 0.5,
   },
-  googleIcon: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
   googleButtonText: {
-    ...Typography.button.medium,
-    color: Colors.text.primary,
-  },
-  termsContainer: {
-    marginTop: Spacing.md,
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.white,
+    letterSpacing: 0.3,
   },
   termsText: {
-    ...Typography.label.small,
+    fontSize: 12,
+    fontWeight: '400',
     color: Colors.text.tertiary,
     textAlign: 'center',
     lineHeight: 18,

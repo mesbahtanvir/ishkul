@@ -59,7 +59,7 @@ backend/serviceAccountKey.json
 backend/firebase-credentials.json
 *-firebase-adminsdk-*.json
 *.json.key
-
+ishkul-org*.json
 # Firebase
 .firebase/
 firebase-debug.log
