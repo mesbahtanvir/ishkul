@@ -17,7 +17,6 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write # Required for Workload Identity Federation
 
     steps:
       - name: Checkout code
@@ -26,8 +25,7 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -110,7 +108,6 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - name: Checkout code
@@ -119,8 +116,7 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -148,8 +144,6 @@ jobs:
       - name: Deploy Firestore
         working-directory: firebase
         run: firebase deploy --only firestore --project=${{ env.PROJECT_ID }} --non-interactive
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
   deploy-storage:
     name: Deploy Storage Rules
@@ -157,7 +151,6 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - name: Checkout code
@@ -166,8 +159,7 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -192,8 +184,6 @@ jobs:
       - name: Deploy Storage Rules
         working-directory: firebase
         run: firebase deploy --only storage --project=${{ env.PROJECT_ID }} --non-interactive
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
   notify-deployment:
     name: Notify Deployment Status
