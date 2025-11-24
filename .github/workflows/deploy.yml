@@ -130,12 +130,6 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Authenticate to Firebase
-        run: |
-          # Use service account JSON from GOOGLE_APPLICATION_CREDENTIALS
-          export GOOGLE_APPLICATION_CREDENTIALS="${{ env.GOOGLE_APPLICATION_CREDENTIALS }}"
-          firebase login:ci --token "$(gcloud auth application-default print-access-token)" || true
-
       - name: Check Firebase config
         working-directory: firebase
         run: |
@@ -154,6 +148,8 @@ jobs:
       - name: Deploy Firestore
         working-directory: firebase
         run: firebase deploy --only firestore --project=${{ env.PROJECT_ID }} --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
   deploy-storage:
     name: Deploy Storage Rules
@@ -181,12 +177,6 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Authenticate to Firebase
-        run: |
-          # Use service account JSON from GOOGLE_APPLICATION_CREDENTIALS
-          export GOOGLE_APPLICATION_CREDENTIALS="${{ env.GOOGLE_APPLICATION_CREDENTIALS }}"
-          firebase login:ci --token "$(gcloud auth application-default print-access-token)" || true
-
       - name: Check Firebase config
         working-directory: firebase
         run: |
@@ -202,6 +192,8 @@ jobs:
       - name: Deploy Storage Rules
         working-directory: firebase
         run: firebase deploy --only storage --project=${{ env.PROJECT_ID }} --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
   notify-deployment:
     name: Notify Deployment Status
