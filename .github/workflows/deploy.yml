@@ -161,6 +161,9 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -181,9 +184,33 @@ jobs:
           echo "=== storage.rules exists ==="
           ls -la storage.rules
 
+      - name: Verify Firebase authentication
+        run: |
+          echo "=== Checking authentication ==="
+          echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
+          echo "Project ID: ${{ env.PROJECT_ID }}"
+          echo "Credentials file exists: $(ls -la $GOOGLE_APPLICATION_CREDENTIALS 2>/dev/null || echo 'NOT FOUND')"
+          firebase projects:list 2>&1 | head -20 || echo "projects:list failed (may need specific permissions)"
+
       - name: Deploy Storage Rules
         working-directory: firebase
-        run: firebase deploy --only storage --project=${{ env.PROJECT_ID }} --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
+        run: |
+          echo "Deploying storage rules to project: ${{ env.PROJECT_ID }}"
+          # Use explicit project flag and ensure clean deployment
+          firebase deploy --only storage --project="${{ env.PROJECT_ID }}" --non-interactive --debug 2>&1 | tee deploy-output.txt
+          DEPLOY_EXIT_CODE=${PIPESTATUS[0]}
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo ""
+            echo "=== Deploy failed with exit code $DEPLOY_EXIT_CODE ==="
+            echo "=== Checking for common issues ==="
+            echo ""
+            # Check if Storage API is enabled
+            gcloud services list --enabled --filter="name:firebasestorage.googleapis.com" --project="${{ env.PROJECT_ID }}" 2>/dev/null || echo "Could not check API status"
+            exit $DEPLOY_EXIT_CODE
+          fi
+          echo "✅ Storage rules deployed successfully"
 
   notify-deployment:
     name: Notify Deployment Status
