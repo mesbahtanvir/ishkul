@@ -22,24 +22,20 @@ jobs:
           cache-dependency-path: 'frontend/package-lock.json'
 
       - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
+        working-directory: frontend
+        run: npm ci
 
       - name: TypeScript check
-        run: |
-          cd frontend
-          npx tsc --noEmit
+        working-directory: frontend
+        run: npx tsc --noEmit
 
       - name: Lint
-        run: |
-          cd frontend
-          npm run lint
+        working-directory: frontend
+        run: npm run lint
 
       - name: Build web
-        run: |
-          cd frontend
-          npm run build
+        working-directory: frontend
+        run: npm run build
         env:
           EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY || 'dummy-key' }}
           EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'dummy-domain' }}
@@ -52,9 +48,8 @@ jobs:
           EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'dummy-android-client' }}
 
       - name: Run tests
-        run: |
-          cd frontend
-          npm test
+        working-directory: frontend
+        run: npm test
 
       - name: Check bundle size
         run: |
