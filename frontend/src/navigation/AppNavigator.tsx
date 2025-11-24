@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
 
@@ -8,6 +8,9 @@ import { Text } from 'react-native';
 import { useUserStore } from '../state/userStore';
 import { subscribeToAuthChanges } from '../services/auth';
 import { getUserDocument } from '../services/memory';
+
+// Types
+import { RootStackParamList } from '../types/navigation';
 
 // Screens
 import { LoginScreen } from '../screens/LoginScreen';
@@ -21,7 +24,7 @@ import { ProgressScreen } from '../screens/ProgressScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { LoadingScreen } from '../components/LoadingScreen';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
 // Learn Stack Navigator
