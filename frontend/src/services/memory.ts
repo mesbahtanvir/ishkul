@@ -3,10 +3,9 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserDocument, HistoryEntry, NextStep, Memory } from '../types/app';
+import { UserDocument, HistoryEntry, NextStep } from '../types/app';
 
 const USERS_COLLECTION = 'users';
 
@@ -90,22 +89,6 @@ export const updateUserHistory = async (
     }
   } catch (error) {
     console.error('Error updating user history:', error);
-    throw error;
-  }
-};
-
-export const updateUserMemory = async (
-  uid: string,
-  memory: Memory
-): Promise<void> => {
-  try {
-    const userRef = doc(db, USERS_COLLECTION, uid);
-    await updateDoc(userRef, {
-      memory,
-      updatedAt: Date.now(),
-    });
-  } catch (error) {
-    console.error('Error updating user memory:', error);
     throw error;
   }
 };

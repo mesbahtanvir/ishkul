@@ -12,7 +12,6 @@ type contextKey string
 
 const (
 	UserIDKey contextKey = "userID"
-	UserKey   contextKey = "user"
 )
 
 // Auth middleware validates Firebase authentication token
@@ -44,7 +43,6 @@ func Auth(next http.Handler) http.Handler {
 
 		// Add user ID to context
 		ctx := context.WithValue(r.Context(), UserIDKey, decodedToken.UID)
-		ctx = context.WithValue(ctx, UserKey, decodedToken)
 
 		// Call next handler with updated context
 		next.ServeHTTP(w, r.WithContext(ctx))
