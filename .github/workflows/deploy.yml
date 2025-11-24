@@ -38,10 +38,10 @@ jobs:
       - name: Build and push Docker image
         run: |
           cd backend
-          docker build -t gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }} .
-          docker tag gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }} gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:latest
-          docker push gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }}
-          docker push gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:latest
+          /usr/bin/docker build -t gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }} .
+          /usr/bin/docker tag gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }} gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:latest
+          /usr/bin/docker push gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }}
+          /usr/bin/docker push gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:latest
 
       - name: Deploy to Cloud Run
         run: |
@@ -143,8 +143,23 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Check Firebase config
+        run: |
+          cd firebase
+          echo "=== firebase.json ==="
+          cat firebase.json
+          echo ""
+          echo "=== .firebaserc ==="
+          cat .firebaserc
+          echo ""
+          echo "=== firestore.rules exists ==="
+          ls -la firestore.rules
+          echo ""
+          echo "=== firestore.indexes.json exists ==="
+          ls -la firestore.indexes.json
+
       - name: Deploy Firestore
-        run: cd firebase && firebase deploy --only firestore --project=${{ env.PROJECT_ID }} --non-interactive
+        run: cd firebase && firebase deploy --only firestore --project=${{ env.PROJECT_ID }} --non-interactive 2>&1
 
   deploy-storage:
     name: Deploy Storage Rules
@@ -172,8 +187,20 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Check Firebase config
+        run: |
+          cd firebase
+          echo "=== firebase.json ==="
+          cat firebase.json
+          echo ""
+          echo "=== .firebaserc ==="
+          cat .firebaserc
+          echo ""
+          echo "=== storage.rules exists ==="
+          ls -la storage.rules
+
       - name: Deploy Storage Rules
-        run: cd firebase && firebase deploy --only storage --project=${{ env.PROJECT_ID }} --non-interactive
+        run: cd firebase && firebase deploy --only storage --project=${{ env.PROJECT_ID }} --non-interactive 2>&1
 
   notify-deployment:
     name: Notify Deployment Status
