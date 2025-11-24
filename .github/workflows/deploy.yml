@@ -39,10 +39,9 @@ jobs:
         working-directory: backend
         run: |
           set -e
-          /usr/bin/docker build -t gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }} .
-          /usr/bin/docker tag gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }} gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:latest
-          /usr/bin/docker push gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }}
-          /usr/bin/docker push gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:latest
+          docker build -t gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }} -t gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:latest .
+          docker push gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }}
+          docker push gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:latest
 
       - name: Deploy to Cloud Run
         run: |
@@ -131,6 +130,12 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Authenticate to Firebase
+        run: |
+          # Use service account JSON from GOOGLE_APPLICATION_CREDENTIALS
+          export GOOGLE_APPLICATION_CREDENTIALS="${{ env.GOOGLE_APPLICATION_CREDENTIALS }}"
+          firebase login:ci --token "$(gcloud auth application-default print-access-token)" || true
+
       - name: Check Firebase config
         working-directory: firebase
         run: |
@@ -175,6 +180,12 @@ jobs:
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
+
+      - name: Authenticate to Firebase
+        run: |
+          # Use service account JSON from GOOGLE_APPLICATION_CREDENTIALS
+          export GOOGLE_APPLICATION_CREDENTIALS="${{ env.GOOGLE_APPLICATION_CREDENTIALS }}"
+          firebase login:ci --token "$(gcloud auth application-default print-access-token)" || true
 
       - name: Check Firebase config
         working-directory: firebase
