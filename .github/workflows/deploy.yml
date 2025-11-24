@@ -26,7 +26,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -131,7 +132,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -142,7 +144,7 @@ jobs:
         run: npm install -g firebase-tools
 
       - name: Deploy Firestore
-        run: firebase deploy --only firestore --project=${{ env.PROJECT_ID }} --non-interactive
+        run: cd firebase && firebase deploy --only firestore --project=${{ env.PROJECT_ID }} --non-interactive
 
   deploy-storage:
     name: Deploy Storage Rules
@@ -159,7 +161,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -170,7 +173,7 @@ jobs:
         run: npm install -g firebase-tools
 
       - name: Deploy Storage Rules
-        run: firebase deploy --only storage --project=${{ env.PROJECT_ID }} --non-interactive
+        run: cd firebase && firebase deploy --only storage --project=${{ env.PROJECT_ID }} --non-interactive
 
   notify-deployment:
     name: Notify Deployment Status
