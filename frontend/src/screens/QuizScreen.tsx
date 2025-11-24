@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningStore } from '../state/learningStore';
 import { updateUserHistory, clearNextStep, getUserDocument } from '../services/memory';
-import { HistoryEntry } from '../types/app';
+import { HistoryEntry, NextStep } from '../types/app';
+import { RootStackParamList } from '../types/navigation';
+
+type QuizScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Quiz'>;
 
 interface QuizScreenProps {
-  navigation: any;
-  route: any;
+  navigation: QuizScreenNavigationProp;
+  route: { params: { step: NextStep } };
 }
 
 export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => {

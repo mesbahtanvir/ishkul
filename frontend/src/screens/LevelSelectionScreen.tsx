@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { createUserDocument, updateUserGoalAndLevel } from '../services/memory';
 import { LevelType } from '../types/app';
+import { RootStackParamList } from '../types/navigation';
+
+type LevelSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'LevelSelection'>;
 
 interface LevelSelectionScreenProps {
-  navigation: any;
-  route: any;
+  navigation: LevelSelectionScreenNavigationProp;
+  route: { params: { goal: string } };
 }
 
 const LEVELS = [

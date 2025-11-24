@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningStore } from '../state/learningStore';
 import { updateUserHistory, clearNextStep, getUserDocument } from '../services/memory';
-import { HistoryEntry } from '../types/app';
+import { HistoryEntry, NextStep } from '../types/app';
+import { RootStackParamList } from '../types/navigation';
+
+type LessonScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Lesson'>;
 
 interface LessonScreenProps {
-  navigation: any;
-  route: any;
+  navigation: LessonScreenNavigationProp;
+  route: { params: { step: NextStep } };
 }
 
 export const LessonScreen: React.FC<LessonScreenProps> = ({

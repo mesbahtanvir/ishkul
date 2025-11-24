@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { RootStackParamList } from '../types/navigation';
+
+type GoalSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoalSelection'>;
 
 interface GoalSelectionScreenProps {
-  navigation: any;
+  navigation: GoalSelectionScreenNavigationProp;
 }
 
 const EXAMPLE_GOALS = [

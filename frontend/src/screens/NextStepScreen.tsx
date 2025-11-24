@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { LoadingScreen } from '../components/LoadingScreen';
@@ -7,9 +8,12 @@ import { useUserStore } from '../state/userStore';
 import { useLearningStore } from '../state/learningStore';
 import { getNextStep } from '../services/llmEngine';
 import { updateNextStep } from '../services/memory';
+import { RootStackParamList } from '../types/navigation';
+
+type NextStepScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NextStep'>;
 
 interface NextStepScreenProps {
-  navigation: any;
+  navigation: NextStepScreenNavigationProp;
 }
 
 export const NextStepScreen: React.FC<NextStepScreenProps> = ({ navigation }) => {

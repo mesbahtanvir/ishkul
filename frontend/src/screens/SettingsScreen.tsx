@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Switch, Alert } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { signOut } from '../services/auth';
+import { RootStackParamList } from '../types/navigation';
+
+type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
 
 interface SettingsScreenProps {
-  navigation: any;
+  navigation: SettingsScreenNavigationProp;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
