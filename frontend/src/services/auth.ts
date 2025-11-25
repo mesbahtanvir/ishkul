@@ -46,7 +46,6 @@ export const signInWithGoogle = async (): Promise<User | null> => {
       };
     } else {
       // Mobile sign-in handled by useGoogleAuth hook in component
-      console.log('Use the Google Auth hook for mobile sign-in');
       return null;
     }
   } catch (error) {

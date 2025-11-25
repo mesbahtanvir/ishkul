@@ -7,15 +7,13 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
-	"firebase.google.com/go/v4/db"
 	"firebase.google.com/go/v4/storage"
 	"google.golang.org/api/option"
 )
 
 var (
-	app         *firebase.App
-	authClient  *auth.Client
-	dbClient    *db.Client
+	app           *firebase.App
+	authClient    *auth.Client
 	storageClient *storage.Client
 )
 
@@ -59,14 +57,6 @@ func Initialize(ctx context.Context) error {
 		return err
 	}
 
-	// Initialize Realtime Database client (if URL is provided)
-	if databaseURL != "" {
-		dbClient, err = app.Database(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
 	// Initialize Storage client (if bucket is provided)
 	if storageBucket != "" {
 		storageClient, err = app.Storage(ctx)
@@ -87,11 +77,6 @@ func Initialize(ctx context.Context) error {
 // GetAuth returns the Firebase Auth client
 func GetAuth() *auth.Client {
 	return authClient
-}
-
-// GetDB returns the Firebase Realtime Database client
-func GetDB() *db.Client {
-	return dbClient
 }
 
 // GetStorage returns the Firebase Storage client

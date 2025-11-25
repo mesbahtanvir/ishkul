@@ -111,8 +111,6 @@ export const getNextStep = async (request: LLMRequest): Promise<LLMResponse> => 
   // In production, this would call OpenAI/Anthropic API
   // For now, return mock data based on the goal
 
-  console.log('LLM Request:', request);
-
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -133,56 +131,4 @@ export const getNextStep = async (request: LLMRequest): Promise<LLMResponse> => 
   return {
     nextStep,
   };
-};
-
-// Future: Real LLM integration
-export const getNextStepFromLLM = async (request: LLMRequest): Promise<LLMResponse> => {
-  // Example structure for future OpenAI/Anthropic integration
-
-  const systemPrompt = `You are an adaptive learning tutor. Based on the user's goal, level, learning history, and current understanding, provide the next optimal learning step.
-
-Return JSON in this format:
-{
-  "nextStep": {
-    "type": "lesson" | "quiz" | "practice",
-    "topic": "string",
-    "title": "string",
-    "content": "string (for lessons)",
-    "question": "string (for quizzes)",
-    "expectedAnswer": "string (for quizzes)",
-    "task": "string (for practice)"
-  }
-}`;
-
-  const userPrompt = `Goal: ${request.goal}
-Level: ${request.level}
-History: ${JSON.stringify(request.history, null, 2)}
-Memory: ${JSON.stringify(request.memory, null, 2)}
-
-Provide the next learning step.`;
-
-  // TODO: Uncomment and configure when ready to use real LLM
-  /*
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.EXPO_PUBLIC_OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.7,
-    }),
-  });
-
-  const data = await response.json();
-  return JSON.parse(data.choices[0].message.content);
-  */
-
-  // For now, use mock implementation
-  return getNextStep(request);
 };

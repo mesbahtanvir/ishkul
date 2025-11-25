@@ -3,9 +3,9 @@
  * Centralized theme system
  */
 
-export { Colors, default as DefaultColors } from './colors';
-export { Typography, default as DefaultTypography } from './typography';
-export { Spacing, default as DefaultSpacing } from './spacing';
+export { Colors } from './colors';
+export { Typography } from './typography';
+export { Spacing } from './spacing';
 
 import Colors from './colors';
 import Typography from './typography';
