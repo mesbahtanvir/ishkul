@@ -43,41 +43,55 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Enable required APIs
+      - name: Verify and enable required APIs
         run: |
-          echo "🔧 Checking and enabling required APIs..."
+          echo "🔧 Verifying required APIs are enabled..."
 
           # List of APIs required for Cloud Run source-based deployment
           REQUIRED_APIS=(
             "cloudbuild.googleapis.com"
             "run.googleapis.com"
             "artifactregistry.googleapis.com"
-            "containerregistry.googleapis.com"
           )
+
+          MISSING_APIS=()
 
           for api in "${REQUIRED_APIS[@]}"; do
             echo "Checking $api..."
-            if gcloud services list --enabled --filter="name:$api" --project=${{ env.PROJECT_ID }} 2>/dev/null | grep -q "$api"; then
-              echo "  ✅ $api is already enabled"
+            if gcloud services list --enabled --filter="name:$api" --project=${{ env.PROJECT_ID }} --format="value(name)" 2>/dev/null | grep -q "$api"; then
+              echo "  ✅ $api is enabled"
             else
-              echo "  ⏳ Enabling $api..."
+              echo "  ⏳ Attempting to enable $api..."
               if gcloud services enable "$api" --project=${{ env.PROJECT_ID }} 2>&1; then
                 echo "  ✅ $api enabled successfully"
               else
-                echo "  ⚠️ Could not enable $api - it may already be enabled or require manual enablement"
-                echo ""
-                echo "If this fails, please ensure one of the following:"
-                echo "1. The APIs are already enabled in your GCP project, OR"
-                echo "2. The service account has 'Service Usage Admin' role to enable APIs"
-                echo ""
-                echo "To manually enable APIs, run:"
-                echo "  gcloud services enable $api --project=${{ env.PROJECT_ID }}"
+                echo "  ❌ $api is NOT enabled and could not be enabled"
+                MISSING_APIS+=("$api")
               fi
             fi
           done
 
+          if [ ${#MISSING_APIS[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ ERROR: The following APIs are not enabled and the service account lacks permission to enable them:"
+            for api in "${MISSING_APIS[@]}"; do
+              echo "  - $api"
+            done
+            echo ""
+            echo "Please enable these APIs manually by running the following commands with an account that has Owner/Editor access:"
+            echo ""
+            for api in "${MISSING_APIS[@]}"; do
+              echo "  gcloud services enable $api --project=${{ env.PROJECT_ID }}"
+            done
+            echo ""
+            echo "Or enable them via the Google Cloud Console:"
+            echo "  https://console.cloud.google.com/apis/library?project=${{ env.PROJECT_ID }}"
+            echo ""
+            exit 1
+          fi
+
           echo ""
-          echo "✅ API check complete"
+          echo "✅ All required APIs are enabled"
 
       - name: Deploy to Cloud Run (source-based)
         working-directory: backend
