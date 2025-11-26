@@ -49,6 +49,7 @@ jobs:
           set -e
           # Use source-based deployment - Cloud Build handles the container build
           # Check if secret exists
+          # Use ^;^ as delimiter since ALLOWED_ORIGINS contains commas
           if gcloud secrets describe firebase-service-account --project=${{ env.PROJECT_ID }} &>/dev/null; then
             echo "Deploying with Secret Manager..."
             gcloud run deploy ishkul-backend \
@@ -56,9 +57,7 @@ jobs:
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
-              --set-env-vars "FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.appspot.com" \
-              --set-env-vars "ALLOWED_ORIGINS=https://${{ env.PROJECT_ID }}.web.app,https://${{ env.PROJECT_ID }}.firebaseapp.com" \
-              --set-env-vars "GOOGLE_APPLICATION_CREDENTIALS=/secrets/firebase-credentials" \
+              --set-env-vars "^;^FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.appspot.com;ALLOWED_ORIGINS=https://${{ env.PROJECT_ID }}.web.app,https://${{ env.PROJECT_ID }}.firebaseapp.com;GOOGLE_APPLICATION_CREDENTIALS=/secrets/firebase-credentials" \
               --set-secrets "/secrets/firebase-credentials=firebase-service-account:latest" \
               --project ${{ env.PROJECT_ID }}
           else
@@ -68,8 +67,7 @@ jobs:
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
-              --set-env-vars "FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.appspot.com" \
-              --set-env-vars "ALLOWED_ORIGINS=https://${{ env.PROJECT_ID }}.web.app,https://${{ env.PROJECT_ID }}.firebaseapp.com" \
+              --set-env-vars "^;^FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.appspot.com;ALLOWED_ORIGINS=https://${{ env.PROJECT_ID }}.web.app,https://${{ env.PROJECT_ID }}.firebaseapp.com" \
               --project ${{ env.PROJECT_ID }}
           fi
 
