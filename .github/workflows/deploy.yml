@@ -43,24 +43,16 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure Docker for GCR
-        run: gcloud auth configure-docker
-
-      - name: Build and push Docker image
+      - name: Deploy to Cloud Run (source-based)
         working-directory: backend
         run: |
           set -e
-          docker build -t gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }} -t gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:latest .
-          docker push gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }}
-          docker push gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:latest
-
-      - name: Deploy to Cloud Run
-        run: |
+          # Use source-based deployment - Cloud Build handles the container build
           # Check if secret exists
           if gcloud secrets describe firebase-service-account --project=${{ env.PROJECT_ID }} &>/dev/null; then
             echo "Deploying with Secret Manager..."
             gcloud run deploy ishkul-backend \
-              --image gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }} \
+              --source . \
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
@@ -72,7 +64,7 @@ jobs:
           else
             echo "Deploying without Secret Manager (using default service account)..."
             gcloud run deploy ishkul-backend \
-              --image gcr.io/${{ env.PROJECT_ID }}/ishkul-backend:${{ github.sha }} \
+              --source . \
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
