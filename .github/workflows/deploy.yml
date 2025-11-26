@@ -7,7 +7,8 @@ on:
   workflow_dispatch: # Allow manual trigger
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  # Note: PROJECT_ID_RAW is used for sanitization in jobs
+  PROJECT_ID_RAW: ${{ secrets.GCP_PROJECT_ID }}
   REGION: us-central1
 
 jobs:
@@ -21,6 +22,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Sanitize Project ID
+        id: sanitize
+        run: |
+          # Remove any leading/trailing whitespace from project ID
+          PROJECT_ID=$(echo "${{ env.PROJECT_ID_RAW }}" | tr -d '[:space:]')
+          if [ -z "$PROJECT_ID" ]; then
+            echo "❌ ERROR: GCP_PROJECT_ID secret is empty or contains only whitespace"
+            exit 1
+          fi
+          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
+          echo "✅ Project ID sanitized: $PROJECT_ID"
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -113,6 +126,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Sanitize Project ID
+        run: |
+          PROJECT_ID=$(echo "${{ env.PROJECT_ID_RAW }}" | tr -d '[:space:]')
+          if [ -z "$PROJECT_ID" ]; then
+            echo "❌ ERROR: GCP_PROJECT_ID secret is empty or contains only whitespace"
+            exit 1
+          fi
+          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
+          echo "✅ Project ID sanitized: $PROJECT_ID"
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -155,6 +178,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Sanitize Project ID
+        run: |
+          PROJECT_ID=$(echo "${{ env.PROJECT_ID_RAW }}" | tr -d '[:space:]')
+          if [ -z "$PROJECT_ID" ]; then
+            echo "❌ ERROR: GCP_PROJECT_ID secret is empty or contains only whitespace"
+            exit 1
+          fi
+          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
+          echo "✅ Project ID sanitized: $PROJECT_ID"
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
