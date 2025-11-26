@@ -43,6 +43,42 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Enable required APIs
+        run: |
+          echo "🔧 Checking and enabling required APIs..."
+
+          # List of APIs required for Cloud Run source-based deployment
+          REQUIRED_APIS=(
+            "cloudbuild.googleapis.com"
+            "run.googleapis.com"
+            "artifactregistry.googleapis.com"
+            "containerregistry.googleapis.com"
+          )
+
+          for api in "${REQUIRED_APIS[@]}"; do
+            echo "Checking $api..."
+            if gcloud services list --enabled --filter="name:$api" --project=${{ env.PROJECT_ID }} 2>/dev/null | grep -q "$api"; then
+              echo "  ✅ $api is already enabled"
+            else
+              echo "  ⏳ Enabling $api..."
+              if gcloud services enable "$api" --project=${{ env.PROJECT_ID }} 2>&1; then
+                echo "  ✅ $api enabled successfully"
+              else
+                echo "  ⚠️ Could not enable $api - it may already be enabled or require manual enablement"
+                echo ""
+                echo "If this fails, please ensure one of the following:"
+                echo "1. The APIs are already enabled in your GCP project, OR"
+                echo "2. The service account has 'Service Usage Admin' role to enable APIs"
+                echo ""
+                echo "To manually enable APIs, run:"
+                echo "  gcloud services enable $api --project=${{ env.PROJECT_ID }}"
+              fi
+            fi
+          done
+
+          echo ""
+          echo "✅ API check complete"
+
       - name: Deploy to Cloud Run (source-based)
         working-directory: backend
         run: |
@@ -66,7 +102,8 @@ jobs:
               --allow-unauthenticated \
               --env-vars-file env-vars.yaml \
               --set-secrets "/secrets/firebase-credentials=firebase-service-account:latest" \
-              --project ${{ env.PROJECT_ID }}
+              --project ${{ env.PROJECT_ID }} \
+              --quiet
           else
             echo "Deploying without Secret Manager (using default service account)..."
             gcloud run deploy ishkul-backend \
@@ -75,7 +112,8 @@ jobs:
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
               --env-vars-file env-vars.yaml \
-              --project ${{ env.PROJECT_ID }}
+              --project ${{ env.PROJECT_ID }} \
+              --quiet
           fi
 
           # Clean up
