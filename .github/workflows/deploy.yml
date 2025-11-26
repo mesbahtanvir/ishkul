@@ -47,18 +47,24 @@ jobs:
         working-directory: backend
         run: |
           set -e
+          # Create env vars file to handle URLs with special characters
+          cat > env-vars.yaml << EOF
+          FIREBASE_STORAGE_BUCKET: "${{ env.PROJECT_ID }}.appspot.com"
+          ALLOWED_ORIGINS: "https://${{ env.PROJECT_ID }}.web.app,https://${{ env.PROJECT_ID }}.firebaseapp.com"
+          EOF
+
           # Use source-based deployment - Cloud Build handles the container build
           # Check if secret exists
           if gcloud secrets describe firebase-service-account --project=${{ env.PROJECT_ID }} &>/dev/null; then
             echo "Deploying with Secret Manager..."
+            # Add credentials path to env vars file
+            echo 'GOOGLE_APPLICATION_CREDENTIALS: "/secrets/firebase-credentials"' >> env-vars.yaml
             gcloud run deploy ishkul-backend \
               --source . \
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
-              --set-env-vars "FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.appspot.com" \
-              --set-env-vars "ALLOWED_ORIGINS=https://${{ env.PROJECT_ID }}.web.app,https://${{ env.PROJECT_ID }}.firebaseapp.com" \
-              --set-env-vars "GOOGLE_APPLICATION_CREDENTIALS=/secrets/firebase-credentials" \
+              --env-vars-file env-vars.yaml \
               --set-secrets "/secrets/firebase-credentials=firebase-service-account:latest" \
               --project ${{ env.PROJECT_ID }}
           else
@@ -68,10 +74,12 @@ jobs:
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
-              --set-env-vars "FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.appspot.com" \
-              --set-env-vars "ALLOWED_ORIGINS=https://${{ env.PROJECT_ID }}.web.app,https://${{ env.PROJECT_ID }}.firebaseapp.com" \
+              --env-vars-file env-vars.yaml \
               --project ${{ env.PROJECT_ID }}
           fi
+
+          # Clean up
+          rm -f env-vars.yaml
 
       - name: Get backend URL
         id: backend-url
