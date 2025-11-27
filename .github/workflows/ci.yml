@@ -34,9 +34,7 @@ jobs:
         run: npm run lint
 
       - name: Lint Markdown
-        run: |
-          npm ci --prefix frontend
-          npx markdownlint "**/*.md" --ignore "node_modules" --ignore "frontend/node_modules"
+        run: ./frontend/node_modules/.bin/markdownlint "**/*.md" --ignore "node_modules" --ignore "frontend/node_modules"
 
       - name: Build web
         working-directory: frontend
