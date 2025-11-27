@@ -1,6 +1,7 @@
 # Backend Deployment and Local Build Guide
 
-This guide explains the differences between local development and production deployment, with step-by-step instructions for both.
+This guide explains the differences between local development and production deployment,
+with step-by-step instructions for both.
 
 ## Table of Contents
 
@@ -529,10 +530,12 @@ gcloud projects add-iam-policy-binding ishkul-org \
 ## FAQ
 
 **Q: Do I need to regenerate serviceAccountKey.json regularly?**
-A: No, the key doesn't expire. Only regenerate if you suspect it's compromised or when rotating credentials for security best practices.
+A: No, the key doesn't expire. Only regenerate if you suspect it's compromised or when rotating
+credentials for security best practices.
 
 **Q: Can I use the same docker-compose.yml in production?**
-A: No. Production uses Cloud Run managed service, not Docker Compose. The Dockerfile works the same, but Cloud Run handles orchestration.
+A: No. Production uses Cloud Run managed service, not Docker Compose. The Dockerfile works the same,
+but Cloud Run handles orchestration.
 
 **Q: What if I accidentally commit serviceAccountKey.json?**
 A:
