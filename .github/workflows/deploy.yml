@@ -96,9 +96,15 @@ jobs:
           set -e
           GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
 
-          # Set environment variables for Cloud Run
-          FIREBASE_STORAGE_BUCKET="$GCP_PROJECT_ID.appspot.com"
-          ALLOWED_ORIGINS="https://$GCP_PROJECT_ID.web.app,https://$GCP_PROJECT_ID.firebaseapp.com"
+          # Create environment variables YAML file
+          # Using YAML format to handle special characters properly
+          cat > /tmp/env-vars.yaml << 'EOF'
+          FIREBASE_STORAGE_BUCKET: ${GCP_PROJECT_ID}.appspot.com
+          ALLOWED_ORIGINS: https://${GCP_PROJECT_ID}.web.app,https://${GCP_PROJECT_ID}.firebaseapp.com
+          EOF
+
+          # Substitute variables
+          sed -i "s/\${GCP_PROJECT_ID}/$GCP_PROJECT_ID/g" /tmp/env-vars.yaml
 
           # Use source-based deployment - Cloud Build handles the container build
           # Check if secret exists
@@ -110,7 +116,7 @@ jobs:
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
-              --set-env-vars FIREBASE_STORAGE_BUCKET="$FIREBASE_STORAGE_BUCKET",ALLOWED_ORIGINS="$ALLOWED_ORIGINS" \
+              --env-vars-file /tmp/env-vars.yaml \
               --set-secrets "GOOGLE_APPLICATION_CREDENTIALS=/secrets/firebase-credentials:firebase-service-account:latest" \
               --project $GCP_PROJECT_ID \
               --quiet
@@ -122,10 +128,13 @@ jobs:
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
-              --set-env-vars FIREBASE_STORAGE_BUCKET="$FIREBASE_STORAGE_BUCKET",ALLOWED_ORIGINS="$ALLOWED_ORIGINS" \
+              --env-vars-file /tmp/env-vars.yaml \
               --project $GCP_PROJECT_ID \
               --quiet
           fi
+
+          # Clean up
+          rm -f /tmp/env-vars.yaml
 
       - name: Get backend URL
         id: backend-url
