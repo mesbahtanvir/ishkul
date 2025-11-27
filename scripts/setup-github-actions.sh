@@ -30,15 +30,26 @@ print_step() {
     echo -e "${BLUE}[STEP]${NC} $1"
 }
 
-# Get project ID
-PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+# GCP Project ID
+GCP_PROJECT_ID="ishkul-org"
 
-if [ -z "$PROJECT_ID" ]; then
-    print_error "No project set. Run: gcloud config set project YOUR_PROJECT_ID"
+print_status "GCP Project ID: $GCP_PROJECT_ID"
+
+# Verify project exists
+if ! gcloud projects describe "$GCP_PROJECT_ID" &>/dev/null; then
+    print_error "Project '$GCP_PROJECT_ID' not found or you don't have access to it"
+    echo ""
+    echo "Please ensure:"
+    echo "  1. The GCP project 'ishkul-org' exists"
+    echo "  2. You have access to it"
+    echo "  3. You're authenticated with gcloud: gcloud auth login"
+    echo ""
+    echo "Available projects:"
+    gcloud projects list
     exit 1
 fi
 
-print_status "Project ID: $PROJECT_ID"
+print_status "Project verified ✓"
 
 # Get GitHub repo
 echo ""
@@ -71,18 +82,18 @@ fi
 
 # Service account name
 SA_NAME="github-actions"
-SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+SA_EMAIL="${SA_NAME}@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
 
 # Step 1: Create service account
 print_step "Creating service account..."
 
-if gcloud iam service-accounts describe $SA_EMAIL --project=$PROJECT_ID &>/dev/null; then
+if gcloud iam service-accounts describe $SA_EMAIL --project=$GCP_PROJECT_ID &>/dev/null; then
     print_warning "Service account already exists, skipping creation"
 else
     gcloud iam service-accounts create $SA_NAME \
         --display-name "GitHub Actions Deployer" \
         --description "Service account for GitHub Actions CI/CD" \
-        --project=$PROJECT_ID
+        --project=$GCP_PROJECT_ID
 
     print_status "Service account created ✓"
 fi
@@ -101,7 +112,7 @@ ROLES=(
 
 for ROLE in "${ROLES[@]}"; do
     print_status "Granting $ROLE..."
-    gcloud projects add-iam-policy-binding $PROJECT_ID \
+    gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
         --member="serviceAccount:${SA_EMAIL}" \
         --role="$ROLE" \
         --condition=None \
@@ -110,6 +121,22 @@ done
 
 print_status "Permissions granted ✓"
 
+# Step 2.5: Grant iam.serviceAccounts.actAs on the default compute service account
+print_step "Granting iam.serviceAccounts.actAs on Compute Engine default service account..."
+
+PROJECT_NUMBER=$(gcloud projects describe $GCP_PROJECT_ID --format='value(projectNumber)')
+DEFAULT_SA_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+print_status "Default service account: $DEFAULT_SA_EMAIL"
+
+gcloud iam service-accounts add-iam-policy-binding "$DEFAULT_SA_EMAIL" \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/iam.serviceAccountUser" \
+    --project="$GCP_PROJECT_ID" \
+    --quiet 2>/dev/null || true
+
+print_status "iam.serviceAccounts.actAs granted ✓"
+
 # Step 3: Create service account key
 print_step "Creating service account key..."
 
@@ -117,7 +144,7 @@ KEY_FILE="github-actions-key-$$.json"
 
 gcloud iam service-accounts keys create $KEY_FILE \
     --iam-account=$SA_EMAIL \
-    --project=$PROJECT_ID
+    --project=$GCP_PROJECT_ID
 
 print_status "Service account key created ✓"
 
@@ -133,7 +160,7 @@ if [ "$MANUAL_MODE" = true ]; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "1. GCP_PROJECT_ID"
-    echo "   Value: $PROJECT_ID"
+    echo "   Value: $GCP_PROJECT_ID"
     echo ""
     echo "2. GCP_SA_KEY"
     echo "   Value: (contents of $KEY_FILE)"
@@ -148,7 +175,7 @@ if [ "$MANUAL_MODE" = true ]; then
 else
     # Use gh CLI to set secrets
     print_status "Setting GCP_PROJECT_ID..."
-    echo "$PROJECT_ID" | gh secret set GCP_PROJECT_ID --repo $GITHUB_REPO
+    echo "$GCP_PROJECT_ID" | gh secret set GCP_PROJECT_ID --repo $GITHUB_REPO
 
     print_status "Setting GCP_SA_KEY..."
     gh secret set GCP_SA_KEY < $KEY_FILE --repo $GITHUB_REPO
@@ -174,7 +201,7 @@ APIS=(
 )
 
 for API in "${APIS[@]}"; do
-    gcloud services enable $API --project=$PROJECT_ID 2>/dev/null || true
+    gcloud services enable $API --project=$GCP_PROJECT_ID 2>/dev/null || true
 done
 
 print_status "APIs enabled ✓"
@@ -185,8 +212,15 @@ echo "╔═══════════════════════�
 echo "║   GitHub Actions Setup Complete! 🎉                        ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-print_status "Service Account: $SA_EMAIL"
-print_status "GitHub Repository: $GITHUB_REPO"
+print_status "Configuration:"
+print_status "  GCP Project: $GCP_PROJECT_ID"
+print_status "  Service Account: $SA_EMAIL"
+print_status "  GitHub Repository: $GITHUB_REPO"
+echo ""
+print_status "GitHub Secrets Created:"
+echo "  • GCP_PROJECT_ID = $GCP_PROJECT_ID"
+echo "  • GCP_SA_KEY = (service account credentials)"
+echo "  • FIREBASE_SERVICE_ACCOUNT = (service account credentials)"
 echo ""
 print_status "Next steps:"
 echo "  1. Commit and push your code to GitHub"

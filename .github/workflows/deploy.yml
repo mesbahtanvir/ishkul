@@ -7,8 +7,7 @@ on:
   workflow_dispatch: # Allow manual trigger
 
 env:
-  # Note: PROJECT_ID_RAW is used for sanitization in jobs
-  PROJECT_ID_RAW: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: us-central1
 
 jobs:
@@ -23,17 +22,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Sanitize Project ID
-        id: sanitize
+      - name: Verify Project ID
         run: |
-          # Remove any leading/trailing whitespace from project ID
-          PROJECT_ID=$(echo "${{ env.PROJECT_ID_RAW }}" | tr -d '[:space:]')
-          if [ -z "$PROJECT_ID" ]; then
+          # Verify GCP_PROJECT_ID is not empty or whitespace
+          if [ -z "$(echo "${{ env.GCP_PROJECT_ID }}" | tr -d '[:space:]')" ]; then
             echo "❌ ERROR: GCP_PROJECT_ID secret is empty or contains only whitespace"
             exit 1
           fi
-          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
-          echo "✅ Project ID sanitized: $PROJECT_ID"
+          echo "✅ GCP_PROJECT_ID is set"
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -47,6 +43,8 @@ jobs:
         run: |
           echo "🔧 Verifying required APIs are enabled..."
 
+          GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
+
           # List of APIs required for Cloud Run source-based deployment
           REQUIRED_APIS=(
             "cloudbuild.googleapis.com"
@@ -58,11 +56,11 @@ jobs:
 
           for api in "${REQUIRED_APIS[@]}"; do
             echo "Checking $api..."
-            if gcloud services list --enabled --filter="name:$api" --project=${{ env.PROJECT_ID_RAW }} --format="value(name)" 2>/dev/null | grep -q "$api"; then
+            if gcloud services list --enabled --filter="name:$api" --project=$GCP_PROJECT_ID --format="value(name)" 2>/dev/null | grep -q "$api"; then
               echo "  ✅ $api is enabled"
             else
               echo "  ⏳ Attempting to enable $api..."
-              if gcloud services enable "$api" --project=${{ env.PROJECT_ID_RAW }} 2>&1; then
+              if gcloud services enable "$api" --project=$GCP_PROJECT_ID 2>&1; then
                 echo "  ✅ $api enabled successfully"
               else
                 echo "  ❌ $api is NOT enabled and could not be enabled"
@@ -81,11 +79,11 @@ jobs:
             echo "Please enable these APIs manually by running the following commands with an account that has Owner/Editor access:"
             echo ""
             for api in "${MISSING_APIS[@]}"; do
-              echo "  gcloud services enable $api --project=${{ env.PROJECT_ID_RAW }}"
+              echo "  gcloud services enable $api --project=$GCP_PROJECT_ID"
             done
             echo ""
             echo "Or enable them via the Google Cloud Console:"
-            echo "  https://console.cloud.google.com/apis/library?project=${{ env.PROJECT_ID_RAW }}"
+            echo "  https://console.cloud.google.com/apis/library?project=$GCP_PROJECT_ID"
             echo ""
             exit 1
           fi
@@ -97,15 +95,17 @@ jobs:
         working-directory: backend
         run: |
           set -e
+          GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
+
           # Create env vars file to handle URLs with special characters
           cat > env-vars.yaml << EOF
-          FIREBASE_STORAGE_BUCKET: "${{ env.PROJECT_ID_RAW }}.appspot.com"
-          ALLOWED_ORIGINS: "https://${{ env.PROJECT_ID_RAW }}.web.app,https://${{ env.PROJECT_ID_RAW }}.firebaseapp.com"
+          FIREBASE_STORAGE_BUCKET: "$GCP_PROJECT_ID.appspot.com"
+          ALLOWED_ORIGINS: "https://$GCP_PROJECT_ID.web.app,https://$GCP_PROJECT_ID.firebaseapp.com"
           EOF
 
           # Use source-based deployment - Cloud Build handles the container build
           # Check if secret exists
-          if gcloud secrets describe firebase-service-account --project=${{ env.PROJECT_ID_RAW }} &>/dev/null; then
+          if gcloud secrets describe firebase-service-account --project=$GCP_PROJECT_ID &>/dev/null; then
             echo "Deploying with Secret Manager..."
             # Add credentials path to env vars file
             echo 'GOOGLE_APPLICATION_CREDENTIALS: "/secrets/firebase-credentials"' >> env-vars.yaml
@@ -116,7 +116,7 @@ jobs:
               --allow-unauthenticated \
               --env-vars-file env-vars.yaml \
               --set-secrets "/secrets/firebase-credentials=firebase-service-account:latest" \
-              --project ${{ env.PROJECT_ID_RAW }} \
+              --project $GCP_PROJECT_ID \
               --quiet
           else
             echo "Deploying without Secret Manager (using default service account)..."
@@ -126,7 +126,7 @@ jobs:
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
               --env-vars-file env-vars.yaml \
-              --project ${{ env.PROJECT_ID_RAW }} \
+              --project $GCP_PROJECT_ID \
               --quiet
           fi
 
@@ -137,10 +137,11 @@ jobs:
         id: backend-url
         run: |
           set -e
+          GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
           URL=$(gcloud run services describe ishkul-backend \
             --region ${{ env.REGION }} \
             --format 'value(status.url)' \
-            --project ${{ env.PROJECT_ID_RAW }})
+            --project $GCP_PROJECT_ID)
           if [ -z "$URL" ]; then
             echo "❌ Failed to retrieve backend URL"
             exit 1
@@ -178,15 +179,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Sanitize Project ID
+      - name: Verify Project ID
         run: |
-          PROJECT_ID=$(echo "${{ env.PROJECT_ID_RAW }}" | tr -d '[:space:]')
-          if [ -z "$PROJECT_ID" ]; then
+          # Verify GCP_PROJECT_ID is not empty or whitespace
+          if [ -z "$(echo "${{ env.GCP_PROJECT_ID }}" | tr -d '[:space:]')" ]; then
             echo "❌ ERROR: GCP_PROJECT_ID secret is empty or contains only whitespace"
             exit 1
           fi
-          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
-          echo "✅ Project ID sanitized: $PROJECT_ID"
+          echo "✅ GCP_PROJECT_ID is set"
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -218,7 +218,9 @@ jobs:
 
       - name: Deploy Firestore
         working-directory: firebase
-        run: firebase deploy --only firestore --project=${{ env.PROJECT_ID }} --non-interactive
+        run: |
+          GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
+          firebase deploy --only firestore --project=$GCP_PROJECT_ID --non-interactive
 
   deploy-storage:
     name: Deploy Storage Rules
@@ -231,15 +233,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Sanitize Project ID
+      - name: Verify Project ID
         run: |
-          PROJECT_ID=$(echo "${{ env.PROJECT_ID_RAW }}" | tr -d '[:space:]')
-          if [ -z "$PROJECT_ID" ]; then
+          # Verify GCP_PROJECT_ID is not empty or whitespace
+          if [ -z "$(echo "${{ env.GCP_PROJECT_ID }}" | tr -d '[:space:]')" ]; then
             echo "❌ ERROR: GCP_PROJECT_ID secret is empty or contains only whitespace"
             exit 1
           fi
-          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
-          echo "✅ Project ID sanitized: $PROJECT_ID"
+          echo "✅ GCP_PROJECT_ID is set"
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -271,20 +272,20 @@ jobs:
 
       - name: Verify Firebase authentication
         run: |
+          GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
           echo "=== Checking authentication ==="
           echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
-          echo "Project ID: ${{ env.PROJECT_ID }}"
+          echo "Project ID: $GCP_PROJECT_ID"
           echo "Credentials file exists: $(ls -la $GOOGLE_APPLICATION_CREDENTIALS 2>/dev/null || echo 'NOT FOUND')"
           firebase projects:list 2>&1 | head -20 || echo "projects:list failed (may need specific permissions)"
 
       - name: Deploy Storage Rules
         working-directory: firebase
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
-          echo "Deploying storage rules to project: ${{ env.PROJECT_ID }}"
+          GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
+          echo "Deploying storage rules to project: $GCP_PROJECT_ID"
           # Use explicit project flag and ensure clean deployment
-          firebase deploy --only storage --project="${{ env.PROJECT_ID }}" --non-interactive --debug 2>&1 | tee deploy-output.txt
+          firebase deploy --only storage --project="$GCP_PROJECT_ID" --non-interactive --debug 2>&1 | tee deploy-output.txt
           DEPLOY_EXIT_CODE=${PIPESTATUS[0]}
           if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
             echo ""
@@ -292,7 +293,7 @@ jobs:
             echo "=== Checking for common issues ==="
             echo ""
             # Check if Storage API is enabled
-            gcloud services list --enabled --filter="name:firebasestorage.googleapis.com" --project="${{ env.PROJECT_ID }}" 2>/dev/null || echo "Could not check API status"
+            gcloud services list --enabled --filter="name:firebasestorage.googleapis.com" --project="$GCP_PROJECT_ID" 2>/dev/null || echo "Could not check API status"
             exit $DEPLOY_EXIT_CODE
           fi
           echo "✅ Storage rules deployed successfully"
