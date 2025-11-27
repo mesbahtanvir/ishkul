@@ -1,13 +1,19 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { firebaseConfig } from '../config/firebase.config';
+/**
+ * Firebase Service
+ *
+ * NOTE: This file is kept for backward compatibility.
+ * The app no longer uses Firebase SDK directly - all operations
+ * go through the backend API.
+ *
+ * Firebase is only used for:
+ * - None (all functionality moved to backend)
+ *
+ * The backend handles:
+ * - User authentication (via Google ID token validation)
+ * - Firestore database operations
+ * - File storage
+ */
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// Initialize Firebase Authentication and Firestore
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-
-export default app;
+// This file intentionally exports nothing
+// All Firebase operations are now handled by the backend
+export {};

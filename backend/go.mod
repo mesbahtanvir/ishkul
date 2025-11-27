@@ -5,6 +5,7 @@ go 1.23.0
 require (
 	cloud.google.com/go/firestore v1.18.0
 	firebase.google.com/go/v4 v4.18.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	google.golang.org/api v0.231.0
 )
 

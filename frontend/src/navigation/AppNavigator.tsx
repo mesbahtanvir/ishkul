@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator, NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
 
 // Stores
 import { useUserStore } from '../state/userStore';
-import { subscribeToAuthChanges } from '../services/auth';
+import { checkAuthState, initializeAuth } from '../services/auth';
 import { getUserDocument } from '../services/memory';
 
 // Types
@@ -69,7 +69,7 @@ const MainTabs = () => {
         name="Learn"
         component={LearnStack}
         options={{
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: () => (
             <Text style={{ fontSize: 24 }}>🎓</Text>
           ),
         }}
@@ -78,7 +78,7 @@ const MainTabs = () => {
         name="Progress"
         component={ProgressScreen}
         options={{
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: () => (
             <Text style={{ fontSize: 24 }}>📊</Text>
           ),
         }}
@@ -87,7 +87,7 @@ const MainTabs = () => {
         name="Settings"
         component={SettingsScreen}
         options={{
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: () => (
             <Text style={{ fontSize: 24 }}>⚙️</Text>
           ),
         }}
@@ -128,24 +128,37 @@ export const AppNavigator: React.FC = () => {
   const { setUser, setUserDocument, setLoading } = useUserStore();
 
   useEffect(() => {
-    // Subscribe to auth state changes
-    const unsubscribe = subscribeToAuthChanges(async (user) => {
-      if (user) {
-        setUser(user);
-        try {
-          const userDoc = await getUserDocument(user.uid);
-          setUserDocument(userDoc);
-        } catch (error) {
-          console.error('Error fetching user document:', error);
+    // Check auth state on app startup
+    const checkAuth = async () => {
+      try {
+        // Initialize token storage
+        await initializeAuth();
+
+        // Check if user is authenticated
+        const user = await checkAuthState();
+
+        if (user) {
+          setUser(user);
+          try {
+            const userDoc = await getUserDocument(user.uid);
+            setUserDocument(userDoc);
+          } catch (error) {
+            console.error('Error fetching user document:', error);
+          }
+        } else {
+          setUser(null);
+          setUserDocument(null);
         }
-      } else {
+      } catch (error) {
+        console.error('Error checking auth state:', error);
         setUser(null);
         setUserDocument(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    checkAuth();
   }, []);
 
   return (

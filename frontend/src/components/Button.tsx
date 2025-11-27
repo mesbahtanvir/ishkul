@@ -6,10 +6,8 @@ import {
   ActivityIndicator,
   ViewStyle,
   TextStyle,
-  Platform,
 } from 'react-native';
 import { Colors } from '../theme/colors';
-import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 
 interface ButtonProps {

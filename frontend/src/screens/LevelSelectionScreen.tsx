@@ -4,7 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
-import { createUserDocument, updateUserGoalAndLevel } from '../services/memory';
+import { createUserDocument, getUserDocument } from '../services/memory';
 import { LevelType } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
@@ -61,7 +61,6 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
       );
 
       // Fetch and update local state
-      const { getUserDocument } = require('../services/memory');
       const userDoc = await getUserDocument(user.uid);
       setUserDocument(userDoc);
 
