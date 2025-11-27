@@ -107,7 +107,8 @@ ROLES=(
     "roles/storage.admin"
     "roles/secretmanager.secretAccessor"
     "roles/cloudbuild.builds.editor"
-    "roles/artifactregistry.writer"
+    "roles/artifactregistry.admin"
+    "roles/serviceusage.serviceUsageConsumer"
 )
 
 for ROLE in "${ROLES[@]}"; do
