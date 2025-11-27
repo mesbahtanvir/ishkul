@@ -45,7 +45,7 @@ export const NextStepScreen: React.FC<NextStepScreenProps> = ({ navigation }) =>
         });
 
         // Update Firestore with the next step
-        await updateNextStep(userDocument.uid, response.nextStep);
+        await updateNextStep(response.nextStep);
 
         // Update local state
         setCurrentStep(response.nextStep);

@@ -3,6 +3,7 @@
  *
  * This module provides functions for managing user learning data.
  * All data operations go through the backend API - no direct Firebase access.
+ * The backend determines the user from the auth token.
  */
 
 import { userApi } from './api';
@@ -10,22 +11,15 @@ import { UserDocument, HistoryEntry, NextStep, LevelType } from '../types/app';
 
 /**
  * Get user document (profile + learning data)
- * Note: uid parameter is kept for API compatibility but is no longer needed
- * as the backend determines the user from the auth token
  */
-export const getUserDocument = async (_uid?: string): Promise<UserDocument | null> => {
+export const getUserDocument = async (): Promise<UserDocument | null> => {
   return userApi.getUserDocument();
 };
 
 /**
  * Create or initialize user document with goal and level
- * Note: uid, email, displayName parameters are kept for API compatibility
- * but are no longer needed as the backend uses auth token
  */
 export const createUserDocument = async (
-  _uid: string,
-  _email: string,
-  _displayName: string,
   goal: string,
   level: LevelType
 ): Promise<void> => {
@@ -34,10 +28,8 @@ export const createUserDocument = async (
 
 /**
  * Update user's goal and level
- * Note: uid parameter is kept for API compatibility but is no longer needed
  */
 export const updateUserGoalAndLevel = async (
-  _uid: string,
   goal: string,
   level: LevelType
 ): Promise<void> => {
@@ -46,10 +38,8 @@ export const updateUserGoalAndLevel = async (
 
 /**
  * Add a history entry
- * Note: uid parameter is kept for API compatibility but is no longer needed
  */
 export const updateUserHistory = async (
-  _uid: string,
   historyEntry: HistoryEntry
 ): Promise<void> => {
   await userApi.addHistory({
@@ -61,10 +51,8 @@ export const updateUserHistory = async (
 
 /**
  * Set the next recommended step
- * Note: uid parameter is kept for API compatibility but is no longer needed
  */
 export const updateNextStep = async (
-  _uid: string,
   nextStep: NextStep
 ): Promise<void> => {
   await userApi.setNextStep({
@@ -80,9 +68,8 @@ export const updateNextStep = async (
 
 /**
  * Clear the next step
- * Note: uid parameter is kept for API compatibility but is no longer needed
  */
-export const clearNextStep = async (_uid?: string): Promise<void> => {
+export const clearNextStep = async (): Promise<void> => {
   await userApi.clearNextStep();
 };
 

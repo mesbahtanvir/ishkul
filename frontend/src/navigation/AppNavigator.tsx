@@ -140,7 +140,7 @@ export const AppNavigator: React.FC = () => {
         if (user) {
           setUser(user);
           try {
-            const userDoc = await getUserDocument(user.uid);
+            const userDoc = await getUserDocument();
             setUserDocument(userDoc);
           } catch (error) {
             console.error('Error fetching user document:', error);

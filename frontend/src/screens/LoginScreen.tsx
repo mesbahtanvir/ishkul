@@ -55,7 +55,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       setUser(user);
 
       // Fetch user document from backend
-      const userDoc = await getUserDocument(user.uid);
+      const userDoc = await getUserDocument();
       setUserDocument(userDoc);
 
       // Navigate based on whether user has completed onboarding

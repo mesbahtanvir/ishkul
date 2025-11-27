@@ -52,16 +52,10 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
       setLoading(true);
 
       // Create or update user document in Firestore
-      await createUserDocument(
-        user.uid,
-        user.email || '',
-        user.displayName || '',
-        goal,
-        selectedLevel
-      );
+      await createUserDocument(goal, selectedLevel);
 
       // Fetch and update local state
-      const userDoc = await getUserDocument(user.uid);
+      const userDoc = await getUserDocument();
       setUserDocument(userDoc);
 
       // Navigate to main app
