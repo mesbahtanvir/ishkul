@@ -82,21 +82,19 @@ if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" | grep -q
   exit 1
 fi
 
-CURRENT_PROJECT=$(gcloud config get-value project)
 echo "✅ Authenticated as: $(gcloud auth list --filter=status:ACTIVE --format='value(account)')"
-echo "📦 Current GCP Project: $CURRENT_PROJECT"
 
-# Confirm project matches
-if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
-  echo ""
-  echo "⚠️  Warning: Current project ($CURRENT_PROJECT) doesn't match target project ($PROJECT_ID)"
-  echo "Run: gcloud config set project $PROJECT_ID"
-  read -p "Continue anyway? (y/N) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    exit 1
-  fi
+# Set the project
+echo "📦 Setting GCP Project to: $PROJECT_ID"
+gcloud config set project "$PROJECT_ID"
+
+if [ $? -ne 0 ]; then
+  echo "❌ Failed to set project. Make sure the project ID is correct."
+  exit 1
 fi
+
+CURRENT_PROJECT=$(gcloud config get-value project)
+echo "✅ Project set to: $CURRENT_PROJECT"
 
 # Display values to be updated
 echo ""
