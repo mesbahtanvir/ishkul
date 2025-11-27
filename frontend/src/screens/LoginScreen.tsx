@@ -3,19 +3,15 @@ import {
   View,
   Text,
   StyleSheet,
-  Platform,
   Alert,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
-import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
-import { signInWithGoogle, signInWithGoogleMobile, useGoogleAuth } from '../services/auth';
+import { signInWithGoogleIdToken, useGoogleAuth } from '../services/auth';
 import { getUserDocument } from '../services/memory';
 import { Colors } from '../theme/colors';
-import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types/navigation';
 
@@ -25,56 +21,48 @@ interface LoginScreenProps {
   navigation: LoginScreenNavigationProp;
 }
 
-const { height } = Dimensions.get('window');
-
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { setUser, setUserDocument, setLoading } = useUserStore();
   const { request, response, promptAsync } = useGoogleAuth();
 
   useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      handleMobileSignIn(authentication?.idToken || '');
-    }
+    const handleAuthResponse = async () => {
+      if (response?.type === 'success') {
+        // Get the ID token from the response params
+        const idToken = response.params?.id_token;
+        if (idToken) {
+          await handleSignInWithIdToken(idToken);
+        } else {
+          console.error('No ID token in response');
+          Alert.alert('Error', 'Authentication failed. Please try again.');
+        }
+      } else if (response?.type === 'error') {
+        console.error('Auth error:', response.error);
+        Alert.alert('Error', 'Authentication failed. Please try again.');
+      }
+    };
+
+    handleAuthResponse();
   }, [response]);
 
-  const handleWebSignIn = async () => {
+  const handleSignInWithIdToken = async (idToken: string) => {
     try {
       setLoading(true);
-      const user = await signInWithGoogle();
-      if (user) {
-        setUser(user);
-        const userDoc = await getUserDocument(user.uid);
-        setUserDocument(userDoc);
 
-        if (!userDoc || !userDoc.goal) {
-          navigation.replace('GoalSelection');
-        } else {
-          navigation.replace('Main');
-        }
-      }
-    } catch (error) {
-      console.error('Sign in error:', error);
-      Alert.alert('Error', 'Failed to sign in. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Send ID token to backend for validation and get session tokens
+      const user = await signInWithGoogleIdToken(idToken);
 
-  const handleMobileSignIn = async (idToken: string) => {
-    try {
-      setLoading(true);
-      const user = await signInWithGoogleMobile(idToken);
-      if (user) {
-        setUser(user);
-        const userDoc = await getUserDocument(user.uid);
-        setUserDocument(userDoc);
+      setUser(user);
 
-        if (!userDoc || !userDoc.goal) {
-          navigation.replace('GoalSelection');
-        } else {
-          navigation.replace('Main');
-        }
+      // Fetch user document from backend
+      const userDoc = await getUserDocument();
+      setUserDocument(userDoc);
+
+      // Navigate based on whether user has completed onboarding
+      if (!userDoc || !userDoc.goal) {
+        navigation.replace('GoalSelection');
+      } else {
+        navigation.replace('Main');
       }
     } catch (error) {
       console.error('Sign in error:', error);
@@ -85,12 +73,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleSignIn = async () => {
-    if (Platform.OS === 'web') {
-      await handleWebSignIn();
-    } else {
-      if (request) {
-        await promptAsync();
-      }
+    if (request) {
+      await promptAsync();
     }
   };
 
@@ -114,10 +98,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TouchableOpacity
               style={[
                 styles.googleButton,
-                Platform.OS !== 'web' && !request && styles.googleButtonDisabled,
+                !request && styles.googleButtonDisabled,
               ]}
               onPress={handleSignIn}
-              disabled={Platform.OS !== 'web' && !request}
+              disabled={!request}
               activeOpacity={0.7}
             >
               <Text style={styles.googleButtonText}>Sign in with Google</Text>

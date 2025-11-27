@@ -51,11 +51,11 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
       };
 
       // Update Firestore
-      await updateUserHistory(userDocument.uid, historyEntry);
-      await clearNextStep(userDocument.uid);
+      await updateUserHistory(historyEntry);
+      await clearNextStep();
 
       // Update local state
-      const updatedDoc = await getUserDocument(userDocument.uid);
+      const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
       // Clear current step

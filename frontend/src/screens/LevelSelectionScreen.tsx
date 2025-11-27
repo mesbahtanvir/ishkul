@@ -4,7 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
-import { createUserDocument, updateUserGoalAndLevel } from '../services/memory';
+import { createUserDocument, getUserDocument } from '../services/memory';
 import { LevelType } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
@@ -52,17 +52,10 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
       setLoading(true);
 
       // Create or update user document in Firestore
-      await createUserDocument(
-        user.uid,
-        user.email || '',
-        user.displayName || '',
-        goal,
-        selectedLevel
-      );
+      await createUserDocument(goal, selectedLevel);
 
       // Fetch and update local state
-      const { getUserDocument } = require('../services/memory');
-      const userDoc = await getUserDocument(user.uid);
+      const userDoc = await getUserDocument();
       setUserDocument(userDoc);
 
       // Navigate to main app

@@ -1,4 +1,4 @@
-import { LLMRequest, LLMResponse, NextStep, StepType } from '../types/app';
+import { LLMRequest, LLMResponse, NextStep } from '../types/app';
 
 // Mock lessons database
 const mockLessons: { [key: string]: NextStep[] } = {

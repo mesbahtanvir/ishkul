@@ -25,11 +25,56 @@ func main() {
 	// Setup router
 	mux := http.NewServeMux()
 
-	// Health check endpoint
+	// Health check endpoint (no auth required)
 	mux.HandleFunc("/health", handlers.HealthCheck)
 
-	// API routes
+	// Auth routes (no auth required - these issue tokens)
+	authMux := http.NewServeMux()
+	authMux.HandleFunc("/api/auth/login", handlers.Login)
+	authMux.HandleFunc("/api/auth/refresh", handlers.Refresh)
+	authMux.HandleFunc("/api/auth/logout", handlers.Logout)
+	mux.Handle("/api/auth/", middleware.CORS(authMux))
+
+	// Protected API routes (auth required)
 	api := http.NewServeMux()
+
+	// User profile and document endpoints
+	api.HandleFunc("/api/me", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetMe(w, r)
+		case http.MethodPut, http.MethodPatch:
+			handlers.UpdateMe(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	api.HandleFunc("/api/me/document", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetMeDocument(w, r)
+		case http.MethodPost:
+			handlers.CreateMeDocument(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	api.HandleFunc("/api/me/history", handlers.AddHistory)
+	api.HandleFunc("/api/me/memory", handlers.UpdateMemory)
+	api.HandleFunc("/api/me/next-step", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetNextStep(w, r)
+		case http.MethodPut, http.MethodPost:
+			handlers.SetNextStep(w, r)
+		case http.MethodDelete:
+			handlers.ClearNextStep(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	// Legacy endpoints (keeping for compatibility)
 	api.HandleFunc("/api/users", handlers.GetUsers)
 	api.HandleFunc("/api/users/create", handlers.CreateUser)
 	api.HandleFunc("/api/progress", handlers.GetProgress)
@@ -37,8 +82,16 @@ func main() {
 	api.HandleFunc("/api/lessons", handlers.GetLessons)
 	api.HandleFunc("/api/upload", handlers.UploadFile)
 
-	// Apply middleware
-	mux.Handle("/api/", middleware.CORS(middleware.Auth(api)))
+	// Apply middleware to protected routes
+	mux.Handle("/api/me", middleware.CORS(middleware.Auth(api)))
+	mux.Handle("/api/me/", middleware.CORS(middleware.Auth(api)))
+	mux.Handle("/api/users", middleware.CORS(middleware.Auth(api)))
+	mux.Handle("/api/users/", middleware.CORS(middleware.Auth(api)))
+	mux.Handle("/api/progress", middleware.CORS(middleware.Auth(api)))
+	mux.Handle("/api/progress/", middleware.CORS(middleware.Auth(api)))
+	mux.Handle("/api/lessons", middleware.CORS(middleware.Auth(api)))
+	mux.Handle("/api/lessons/", middleware.CORS(middleware.Auth(api)))
+	mux.Handle("/api/upload", middleware.CORS(middleware.Auth(api)))
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")

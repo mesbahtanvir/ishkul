@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-// User represents a user in the system
+// User represents a user in the system (basic profile)
 type User struct {
 	ID          string    `json:"id" firestore:"id"`
 	Email       string    `json:"email" firestore:"email"`
@@ -12,6 +12,46 @@ type User struct {
 	UpdatedAt   time.Time `json:"updatedAt" firestore:"updatedAt"`
 	Goal        string    `json:"goal,omitempty" firestore:"goal,omitempty"`
 	Level       string    `json:"level,omitempty" firestore:"level,omitempty"`
+}
+
+// UserDocument represents the full user document including learning data
+type UserDocument struct {
+	User
+	Memory   *Memory     `json:"memory,omitempty" firestore:"memory,omitempty"`
+	History  []HistoryEntry `json:"history,omitempty" firestore:"history,omitempty"`
+	NextStep *NextStep   `json:"nextStep,omitempty" firestore:"nextStep,omitempty"`
+}
+
+// Memory represents the user's learning memory
+type Memory struct {
+	Topics map[string]TopicMemory `json:"topics" firestore:"topics"`
+}
+
+// TopicMemory represents memory for a specific topic
+type TopicMemory struct {
+	Confidence   float64 `json:"confidence" firestore:"confidence"`
+	LastReviewed string  `json:"lastReviewed" firestore:"lastReviewed"`
+	TimesTested  int     `json:"timesTested" firestore:"timesTested"`
+}
+
+// HistoryEntry represents a single entry in the user's learning history
+type HistoryEntry struct {
+	Type      string  `json:"type" firestore:"type"` // "lesson", "quiz", "practice"
+	Topic     string  `json:"topic" firestore:"topic"`
+	Score     float64 `json:"score,omitempty" firestore:"score,omitempty"`
+	Timestamp int64   `json:"timestamp" firestore:"timestamp"`
+}
+
+// NextStep represents the next recommended learning step
+type NextStep struct {
+	Type     string   `json:"type" firestore:"type"` // "lesson", "quiz", "practice"
+	Topic    string   `json:"topic" firestore:"topic"`
+	Title    string   `json:"title,omitempty" firestore:"title,omitempty"`
+	Content  string   `json:"content,omitempty" firestore:"content,omitempty"`
+	Question string   `json:"question,omitempty" firestore:"question,omitempty"`
+	Options  []string `json:"options,omitempty" firestore:"options,omitempty"`
+	Answer   string   `json:"answer,omitempty" firestore:"answer,omitempty"`
+	Task     string   `json:"task,omitempty" firestore:"task,omitempty"`
 }
 
 // Progress represents user's learning progress
