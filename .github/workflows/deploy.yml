@@ -110,10 +110,11 @@ jobs:
             echo 'GOOGLE_APPLICATION_CREDENTIALS: "/secrets/firebase-credentials"' >> backend/env-vars.yaml
             gcloud run deploy ishkul-backend \
               --source ./backend \
+              --build-config cloudbuild.yaml \
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
-              --env-vars-file env-vars.yaml \
+              --env-vars-file backend/env-vars.yaml \
               --set-secrets "/secrets/firebase-credentials=firebase-service-account:latest" \
               --project $GCP_PROJECT_ID \
               --quiet
@@ -121,10 +122,11 @@ jobs:
             echo "Deploying without Secret Manager (using default service account)..."
             gcloud run deploy ishkul-backend \
               --source ./backend \
+              --build-config cloudbuild.yaml \
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
-              --env-vars-file env-vars.yaml \
+              --env-vars-file backend/env-vars.yaml \
               --project $GCP_PROJECT_ID \
               --quiet
           fi
