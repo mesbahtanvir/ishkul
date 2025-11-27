@@ -1,5 +1,6 @@
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
 import { User } from '../types/app';
 import { authApi } from './api';
 
@@ -10,6 +11,19 @@ WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
+
+/**
+ * Generate the redirect URI for OAuth
+ * - On web: uses the current origin (works for localhost and production)
+ * - On native: uses the app's custom scheme from app.json
+ */
+const getRedirectUri = () => {
+  return makeRedirectUri({
+    scheme: 'learningai',
+    // On web, this will use the current window.location.origin
+    // On native, this will use the scheme (learningai://)
+  });
+};
 
 /**
  * Check if Google OAuth is properly configured
@@ -35,16 +49,24 @@ export const getGoogleAuthConfigError = (): string | null => {
  * Uses useIdTokenAuthRequest to get an ID token directly
  */
 export const useGoogleAuth = () => {
+  const redirectUri = getRedirectUri();
+
+  // Log redirect URI in development to help with Google Console setup
+  if (__DEV__) {
+    console.log('OAuth Redirect URI:', redirectUri);
+  }
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     webClientId: GOOGLE_WEB_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+    redirectUri,
   });
 
   // Check if OAuth is configured
   const configError = getGoogleAuthConfigError();
 
-  return { request, response, promptAsync, configError };
+  return { request, response, promptAsync, configError, redirectUri };
 };
 
 /**
