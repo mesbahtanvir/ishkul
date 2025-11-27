@@ -58,11 +58,11 @@ jobs:
 
           for api in "${REQUIRED_APIS[@]}"; do
             echo "Checking $api..."
-            if gcloud services list --enabled --filter="name:$api" --project=${{ env.PROJECT_ID }} --format="value(name)" 2>/dev/null | grep -q "$api"; then
+            if gcloud services list --enabled --filter="name:$api" --project=${{ env.PROJECT_ID_RAW }} --format="value(name)" 2>/dev/null | grep -q "$api"; then
               echo "  ✅ $api is enabled"
             else
               echo "  ⏳ Attempting to enable $api..."
-              if gcloud services enable "$api" --project=${{ env.PROJECT_ID }} 2>&1; then
+              if gcloud services enable "$api" --project=${{ env.PROJECT_ID_RAW }} 2>&1; then
                 echo "  ✅ $api enabled successfully"
               else
                 echo "  ❌ $api is NOT enabled and could not be enabled"
@@ -81,11 +81,11 @@ jobs:
             echo "Please enable these APIs manually by running the following commands with an account that has Owner/Editor access:"
             echo ""
             for api in "${MISSING_APIS[@]}"; do
-              echo "  gcloud services enable $api --project=${{ env.PROJECT_ID }}"
+              echo "  gcloud services enable $api --project=${{ env.PROJECT_ID_RAW }}"
             done
             echo ""
             echo "Or enable them via the Google Cloud Console:"
-            echo "  https://console.cloud.google.com/apis/library?project=${{ env.PROJECT_ID }}"
+            echo "  https://console.cloud.google.com/apis/library?project=${{ env.PROJECT_ID_RAW }}"
             echo ""
             exit 1
           fi
@@ -99,13 +99,13 @@ jobs:
           set -e
           # Create env vars file to handle URLs with special characters
           cat > env-vars.yaml << EOF
-          FIREBASE_STORAGE_BUCKET: "${{ env.PROJECT_ID }}.appspot.com"
-          ALLOWED_ORIGINS: "https://${{ env.PROJECT_ID }}.web.app,https://${{ env.PROJECT_ID }}.firebaseapp.com"
+          FIREBASE_STORAGE_BUCKET: "${{ env.PROJECT_ID_RAW }}.appspot.com"
+          ALLOWED_ORIGINS: "https://${{ env.PROJECT_ID_RAW }}.web.app,https://${{ env.PROJECT_ID_RAW }}.firebaseapp.com"
           EOF
 
           # Use source-based deployment - Cloud Build handles the container build
           # Check if secret exists
-          if gcloud secrets describe firebase-service-account --project=${{ env.PROJECT_ID }} &>/dev/null; then
+          if gcloud secrets describe firebase-service-account --project=${{ env.PROJECT_ID_RAW }} &>/dev/null; then
             echo "Deploying with Secret Manager..."
             # Add credentials path to env vars file
             echo 'GOOGLE_APPLICATION_CREDENTIALS: "/secrets/firebase-credentials"' >> env-vars.yaml
@@ -116,7 +116,7 @@ jobs:
               --allow-unauthenticated \
               --env-vars-file env-vars.yaml \
               --set-secrets "/secrets/firebase-credentials=firebase-service-account:latest" \
-              --project ${{ env.PROJECT_ID }} \
+              --project ${{ env.PROJECT_ID_RAW }} \
               --quiet
           else
             echo "Deploying without Secret Manager (using default service account)..."
@@ -126,7 +126,7 @@ jobs:
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
               --env-vars-file env-vars.yaml \
-              --project ${{ env.PROJECT_ID }} \
+              --project ${{ env.PROJECT_ID_RAW }} \
               --quiet
           fi
 
@@ -140,7 +140,7 @@ jobs:
           URL=$(gcloud run services describe ishkul-backend \
             --region ${{ env.REGION }} \
             --format 'value(status.url)' \
-            --project ${{ env.PROJECT_ID }})
+            --project ${{ env.PROJECT_ID_RAW }})
           if [ -z "$URL" ]; then
             echo "❌ Failed to retrieve backend URL"
             exit 1
