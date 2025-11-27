@@ -9,5 +9,12 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "silent": false,
+    "autoJobCancelation": true
+  },
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- . ':(exclude)backend' ':(exclude)firebase' ':(exclude)*.md' ':(exclude)docs'"
 }
