@@ -124,6 +124,57 @@ gcloud run services describe ishkul-backend  # Get backend service details
 gcloud run services delete ishkul-backend  # Delete a Cloud Run service
 ```
 
+## Quick Reference: Backend API Configuration
+
+### Current Cloud Run Service
+- **Service URL**: `https://ishkul-backend-863006625304.europe-west1.run.app/api`
+- **Service Region**: Europe (eu-west1)
+- **Status**: Active and deployed
+- **Cloud Run Dashboard**: [View metrics and logs](https://console.cloud.google.com/run/detail/europe-west1/ishkul-backend/observability/metrics?project=ishkul-org)
+
+### Quick Links (Bookmark These!)
+
+- [Cloud Run Dashboard](https://console.cloud.google.com/run/detail/europe-west1/ishkul-backend/observability/metrics?project=ishkul-org)
+  View logs, metrics, deployments
+
+- [Vercel Environment Variables](https://vercel.com/my-dream-company/ishkul/settings/environment-variables)
+  Update frontend env vars
+
+- [Firebase Console](https://console.firebase.google.com/project/ishkul-org)
+  Firestore, Auth, Storage
+
+- [GCP Console](https://console.cloud.google.com/welcome?project=ishkul-org)
+  Overall project management
+
+### Setting Up the Frontend to Use Cloud Run
+
+1. **For Local Development**:
+   ```bash
+   cd frontend
+   cp .env.example .env.local
+   # Update EXPO_PUBLIC_API_URL in .env.local with your Cloud Run URL
+   EXPO_PUBLIC_API_URL=https://ishkul-backend-863006625304.europe-west1.run.app/api
+   npm start
+   # Restart Expo dev server after changing env vars: npx expo start -c
+   ```
+
+2. **For Production Builds**:
+   - GitHub Actions automatically injects the Cloud Run URL during deployment
+   - The URL is set via environment variables in the build process
+   - No hardcoding needed - same `.env.example` template works for all environments
+   - Update via [Vercel Environment Variables](https://vercel.com/my-dream-company/ishkul/settings/environment-variables)
+
+3. **Environment Variable in Code**:
+   - Located in: [frontend/src/config/firebase.config.ts](frontend/src/config/firebase.config.ts#L40)
+   - Reads: `process.env.EXPO_PUBLIC_API_URL`
+   - Falls back to `http://localhost:8080/api` if not set
+
+4. **Important Notes**:
+   - **The Cloud Run URL is stable** - it doesn't change between deployments
+   - Only changes if you delete and recreate the service
+   - Always restart Expo dev server after changing env vars: `npx expo start -c`
+   - `.env.local` is gitignored - never commit it
+
 ## Development Guidelines
 
 ### When Working on Frontend
@@ -291,18 +342,40 @@ Setup via: `./scripts/setup-github-actions.sh`
 
 ## Environment Variables
 
-### Frontend (.env)
+### Frontend (.env and .env.local)
+
+**Note**: Always use `EXPO_PUBLIC_` prefix for frontend environment variables (Expo requirement)
 
 ```env
-EXPO_PUBLIC_FIREBASE_API_KEY=
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-EXPO_PUBLIC_FIREBASE_APP_ID=
-EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
-EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
-EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=
+# Firebase Configuration
+EXPO_PUBLIC_FIREBASE_API_KEY=your-firebase-api-key
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+EXPO_PUBLIC_FIREBASE_APP_ID=your-app-id
+
+# Google OAuth Configuration
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client-id.apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id.apps.googleusercontent.com
+
+# Backend API Configuration (IMPORTANT!)
+# Development: http://localhost:8080/api
+# Production: Your Cloud Run service URL
+EXPO_PUBLIC_API_URL=https://ishkul-backend-863006625304.europe-west1.run.app/api
+```
+
+**Files**:
+- `.env.example` - Template (commit to git)
+- `.env.local` - Local overrides (gitignored, don't commit)
+- `.env` files - Deprecated, use .env.local instead
+
+**Setup Instructions**:
+```bash
+cd frontend
+cp .env.example .env.local
+# Edit .env.local and add your Cloud Run URL
 ```
 
 ### Backend (.env)
