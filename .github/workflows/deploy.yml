@@ -11,163 +11,6 @@ env:
   REGION: us-central1
 
 jobs:
-  deploy-backend:
-    name: Deploy Backend to Cloud Run
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Verify Project ID
-        run: |
-          # Verify GCP_PROJECT_ID is not empty or whitespace
-          if [ -z "$(echo "${{ env.GCP_PROJECT_ID }}" | tr -d '[:space:]')" ]; then
-            echo "❌ ERROR: GCP_PROJECT_ID secret is empty or contains only whitespace"
-            exit 1
-          fi
-          echo "✅ GCP_PROJECT_ID is set"
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Verify and enable required APIs
-        run: |
-          echo "🔧 Verifying required APIs are enabled..."
-
-          GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
-
-          # List of APIs required for Cloud Run source-based deployment
-          REQUIRED_APIS=(
-            "cloudbuild.googleapis.com"
-            "run.googleapis.com"
-            "artifactregistry.googleapis.com"
-          )
-
-          MISSING_APIS=()
-
-          for api in "${REQUIRED_APIS[@]}"; do
-            echo "Checking $api..."
-            if gcloud services list --enabled --filter="name:$api" --project=$GCP_PROJECT_ID --format="value(name)" 2>/dev/null | grep -q "$api"; then
-              echo "  ✅ $api is enabled"
-            else
-              echo "  ⏳ Attempting to enable $api..."
-              if gcloud services enable "$api" --project=$GCP_PROJECT_ID 2>&1; then
-                echo "  ✅ $api enabled successfully"
-              else
-                echo "  ❌ $api is NOT enabled and could not be enabled"
-                MISSING_APIS+=("$api")
-              fi
-            fi
-          done
-
-          if [ ${#MISSING_APIS[@]} -gt 0 ]; then
-            echo ""
-            echo "❌ ERROR: The following APIs are not enabled and the service account lacks permission to enable them:"
-            for api in "${MISSING_APIS[@]}"; do
-              echo "  - $api"
-            done
-            echo ""
-            echo "Please enable these APIs manually by running the following commands with an account that has Owner/Editor access:"
-            echo ""
-            for api in "${MISSING_APIS[@]}"; do
-              echo "  gcloud services enable $api --project=$GCP_PROJECT_ID"
-            done
-            echo ""
-            echo "Or enable them via the Google Cloud Console:"
-            echo "  https://console.cloud.google.com/apis/library?project=$GCP_PROJECT_ID"
-            echo ""
-            exit 1
-          fi
-
-          echo ""
-          echo "✅ All required APIs are enabled"
-
-      - name: Deploy to Cloud Run (source-based)
-        run: |
-          set -e
-          GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
-
-          # Create environment variables YAML file
-          # Using YAML format to handle special characters properly
-          cat > /tmp/env-vars.yaml << EOF
-          FIREBASE_STORAGE_BUCKET: $GCP_PROJECT_ID.appspot.com
-          ALLOWED_ORIGINS: https://$GCP_PROJECT_ID.web.app,https://$GCP_PROJECT_ID.firebaseapp.com
-          EOF
-
-          # Use source-based deployment - Cloud Build handles the container build
-          # Check if secret exists
-          if gcloud secrets describe firebase-service-account --project=$GCP_PROJECT_ID &>/dev/null; then
-            echo "Deploying with Secret Manager..."
-            gcloud run deploy ishkul-backend \
-              --source ./backend \
-              --build-config cloudbuild.yaml \
-              --platform managed \
-              --region ${{ env.REGION }} \
-              --allow-unauthenticated \
-              --env-vars-file /tmp/env-vars.yaml \
-              --set-secrets "GOOGLE_APPLICATION_CREDENTIALS=/secrets/firebase-credentials:firebase-service-account:latest" \
-              --project $GCP_PROJECT_ID \
-              --quiet
-          else
-            echo "Deploying without Secret Manager (using default service account)..."
-            gcloud run deploy ishkul-backend \
-              --source ./backend \
-              --build-config cloudbuild.yaml \
-              --platform managed \
-              --region ${{ env.REGION }} \
-              --allow-unauthenticated \
-              --env-vars-file /tmp/env-vars.yaml \
-              --project $GCP_PROJECT_ID \
-              --quiet
-          fi
-
-          # Clean up
-          rm -f /tmp/env-vars.yaml
-
-      - name: Get backend URL
-        id: backend-url
-        run: |
-          set -e
-          GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
-          URL=$(gcloud run services describe ishkul-backend \
-            --region ${{ env.REGION }} \
-            --format 'value(status.url)' \
-            --project $GCP_PROJECT_ID)
-          if [ -z "$URL" ]; then
-            echo "❌ Failed to retrieve backend URL"
-            exit 1
-          fi
-          echo "url=$URL" >> $GITHUB_OUTPUT
-          echo "✅ Backend deployed to: $URL"
-
-      - name: Verify backend health
-        run: |
-          set -e
-          URL=${{ steps.backend-url.outputs.url }}
-          echo "⏳ Waiting for backend to be ready..."
-          for i in {1..30}; do
-            if curl -s -f "$URL/health" > /dev/null 2>&1 || curl -s -f "$URL/" > /dev/null 2>&1; then
-              echo "✅ Backend is healthy and responding"
-              exit 0
-            fi
-            echo "  Attempt $i/30 - Waiting..."
-            sleep 2
-          done
-          echo "❌ Backend health check failed after 30 attempts"
-          exit 1
-
-    outputs:
-      backend-url: ${{ steps.backend-url.outputs.url }}
-
   deploy-firestore:
     name: Deploy Firestore Rules & Indexes
     runs-on: ubuntu-latest
@@ -301,7 +144,7 @@ jobs:
   notify-deployment:
     name: Notify Deployment Status
     runs-on: ubuntu-latest
-    needs: [deploy-backend, deploy-firestore, deploy-storage]
+    needs: [deploy-firestore, deploy-storage]
     if: always()
 
     steps:
@@ -309,7 +152,6 @@ jobs:
         run: |
           echo "## Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Backend URL:** ${{ needs.deploy-backend.outputs.backend-url }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Firestore:** Rules and indexes deployed" >> $GITHUB_STEP_SUMMARY
           echo "- **Storage:** Rules deployed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
