@@ -74,10 +74,11 @@ ishkul/
 
 ### Infrastructure
 
-- **Hosting**: Firebase Hosting (frontend), Cloud Run (backend)
-- **CI/CD**: GitHub Actions
-- **Auth**: Firebase Authentication
-- **Storage**: Firebase Storage
+- **Hosting**: Firebase Hosting (frontend), Google Cloud Run (backend services)
+- **Container Registry**: Google Cloud Artifact Registry (stores Docker images)
+- **CI/CD**: GitHub Actions with Workload Identity Federation
+- **Auth**: Firebase Authentication (frontend), Firebase Admin SDK (backend)
+- **Storage**: Cloud Firestore (database), Firebase Storage (user uploads)
 
 ## Key Commands
 
@@ -113,9 +114,14 @@ git push origin main  # Triggers automatic deployment
 
 # Manual deployment
 ./scripts/setup-github-actions.sh  # One-time CI/CD setup
-cd backend && gcloud run deploy ishkul-backend --source .  # Deploy backend
-cd frontend && firebase deploy --only hosting  # Deploy frontend
-firebase deploy --only firestore:rules,storage  # Deploy rules
+cd backend && gcloud run deploy ishkul-backend --source .  # Deploy backend to Cloud Run
+cd frontend && firebase deploy --only hosting  # Deploy frontend to Firebase Hosting
+firebase deploy --only firestore:rules,storage  # Deploy Firestore & Storage rules
+
+# Cloud Run service management
+gcloud run services list  # List all Cloud Run services
+gcloud run services describe ishkul-backend  # Get backend service details
+gcloud run services delete ishkul-backend  # Delete a Cloud Run service
 ```
 
 ## Development Guidelines
@@ -263,15 +269,23 @@ See [frontend/DESIGN_SYSTEM.md](frontend/DESIGN_SYSTEM.md) for complete design d
 Every push to `main` triggers:
 
 1. **Build checks** - TypeScript compilation, Go build
-2. **Backend deployment** - Google Cloud Run
-3. **Frontend deployment** - Firebase Hosting
-4. **Rules deployment** - Firestore & Storage rules
+2. **Backend deployment** - Docker image build → Cloud Run service update
+3. **Frontend deployment** - Firebase Hosting deployment
+4. **Rules deployment** - Firestore & Storage rules deployment
+
+### Cloud Run Deployment Details
+
+- **Service Name**: `ishkul-backend`
+- **Region**: Configured in `.github/workflows/deploy.yml`
+- **Authentication**: Service uses Application Default Credentials (ADC)
+- **Image Registry**: Google Cloud Artifact Registry
+- **Traffic Management**: 100% traffic to latest revision
 
 ### Required GitHub Secrets
 
 - `GCP_PROJECT_ID` - Google Cloud project ID
-- `GCP_SA_KEY` - Service account JSON key
-- `FIREBASE_TOKEN` - Firebase CI token
+- `FIREBASE_TOKEN` - Firebase CLI authentication token
+- *Note: GitHub Actions uses Workload Identity Federation (no service account key needed)*
 
 Setup via: `./scripts/setup-github-actions.sh`
 
@@ -323,7 +337,9 @@ PORT=8080
 2. **Firestore permission denied** - Verify security rules
 3. **Backend 401 errors** - Check Firebase ID token in Authorization header
 4. **Build fails** - Clear caches: `npx expo start -c`, `go clean -cache`
-5. **Deploy fails** - Check GitHub secrets, Firebase quota
+5. **Cloud Run deployment fails** - Check workflow logs, GCP project ID, service quotas
+6. **Backend cannot start on Cloud Run** - Verify PORT env var, Application Default Credentials
+7. **Cloud Run service not accessible** - Check IAM permissions, service is public/private settings
 
 ## Documentation
 
@@ -415,8 +431,42 @@ Potential areas for improvement:
 
 ---
 
-**Last Updated**: 2025-11-23
-**Version**: 1.0.0
+**Last Updated**: 2025-11-27
+**Version**: 1.1.0
 **Status**: Production Ready ✅
+**Deployment**: Cloud Run Services
 
 **Note**: Update this file whenever you make significant architectural changes or add new features!
+
+## Cloud Run Service Management
+
+The backend runs as a managed Cloud Run service. Key operations:
+
+```bash
+# View service status
+gcloud run services describe ishkul-backend --region=us-central1
+
+# View recent deployments
+gcloud run revisions list --service=ishkul-backend
+
+# View service logs
+gcloud run services logs read ishkul-backend --limit=50
+
+# Set environment variables
+gcloud run services update ishkul-backend \
+  --set-env-vars KEY=value \
+  --region=us-central1
+
+# Scale configuration
+gcloud run services update ishkul-backend \
+  --min-instances=0 \
+  --max-instances=100 \
+  --region=us-central1
+```
+
+### Service Health Checks
+
+Cloud Run performs automatic health checks on the service. Ensure:
+- Service listens on PORT environment variable (default: 8080)
+- Service responds with HTTP 200 to root path or `/health` endpoint
+- Service starts within 5 minutes
