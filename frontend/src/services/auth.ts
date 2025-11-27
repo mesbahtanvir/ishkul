@@ -12,6 +12,24 @@ const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
 
 /**
+ * Check if Google OAuth is properly configured
+ * Returns true if at least one client ID is set
+ */
+export const isGoogleAuthConfigured = (): boolean => {
+  return !!(GOOGLE_WEB_CLIENT_ID || GOOGLE_IOS_CLIENT_ID || GOOGLE_ANDROID_CLIENT_ID);
+};
+
+/**
+ * Get configuration error message for developers
+ */
+export const getGoogleAuthConfigError = (): string | null => {
+  if (isGoogleAuthConfigured()) {
+    return null;
+  }
+  return 'Google OAuth is not configured. Please set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID in your .env.local file. See .env.example for reference.';
+};
+
+/**
  * Hook for Google OAuth authentication
  * Returns request, response, and promptAsync for use in components
  * Uses useIdTokenAuthRequest to get an ID token directly
@@ -23,7 +41,10 @@ export const useGoogleAuth = () => {
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
   });
 
-  return { request, response, promptAsync };
+  // Check if OAuth is configured
+  const configError = getGoogleAuthConfigError();
+
+  return { request, response, promptAsync, configError };
 };
 
 /**
