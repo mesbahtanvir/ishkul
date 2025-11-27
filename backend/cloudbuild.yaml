@@ -36,7 +36,7 @@ images:
 
 substitutions:
   _FIREBASE_DATABASE_URL: 'https://ishkul-org.firebaseio.com'
-  _FIREBASE_STORAGE_BUCKET: 'ishkul-org.appspot.com'
+  _FIREBASE_STORAGE_BUCKET: 'https://ishkul-org-default-rtdb.firebaseio.com/'
   _ENVIRONMENT: 'production'
 
 options:

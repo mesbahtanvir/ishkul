@@ -514,16 +514,25 @@ To prevent unnecessary Cloud Run builds when only frontend files change:
 
 Now Cloud Build will only trigger when `backend/` files change.
 
-### Firebase Rules Deployment (Manual)
+### Firebase Rules Deployment
 
-Deploy when you change `firebase/` files:
-
+**Current**: Manual deployment via CLI
 ```bash
 cd firebase
 firebase deploy --only firestore,storage --project=ishkul-org
 ```
 
-**Or use GitHub Actions** (see Firebase Rules job in `.github/workflows/deploy.yml`)
+**Planned**: Add conditional GitHub Actions trigger
+- **Tracking Issue**: [#71 - Refactor GitHub Actions: Add conditional triggers for Firebase deployments](https://github.com/mesbahtanvir/ishkul/issues/71)
+- **Status**: ⏳ Pending implementation
+- **Benefit**: Firebase rules will only deploy when `firebase/**` files change (save ~2 minutes per push)
+
+Once implemented, you'll see:
+```
+git push (only backend changes)
+  → Firebase Rules: ⏭️ SKIPPED (no firebase/* changes)
+  → Time saved: 2 minutes
+```
 
 ## Troubleshooting
 
