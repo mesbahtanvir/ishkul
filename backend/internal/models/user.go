@@ -17,9 +17,9 @@ type User struct {
 // UserDocument represents the full user document including learning data
 type UserDocument struct {
 	User
-	Memory   *Memory     `json:"memory,omitempty" firestore:"memory,omitempty"`
+	Memory   *Memory        `json:"memory,omitempty" firestore:"memory,omitempty"`
 	History  []HistoryEntry `json:"history,omitempty" firestore:"history,omitempty"`
-	NextStep *NextStep   `json:"nextStep,omitempty" firestore:"nextStep,omitempty"`
+	NextStep *NextStep      `json:"nextStep,omitempty" firestore:"nextStep,omitempty"`
 }
 
 // Memory represents the user's learning memory
@@ -56,13 +56,13 @@ type NextStep struct {
 
 // Progress represents user's learning progress
 type Progress struct {
-	UserID          string    `json:"userId" firestore:"userId"`
-	LessonID        string    `json:"lessonId" firestore:"lessonId"`
-	Completed       bool      `json:"completed" firestore:"completed"`
-	Score           int       `json:"score,omitempty" firestore:"score,omitempty"`
-	TimeSpentMinutes int      `json:"timeSpentMinutes,omitempty" firestore:"timeSpentMinutes,omitempty"`
-	LastAttempt     time.Time `json:"lastAttempt" firestore:"lastAttempt"`
-	Attempts        int       `json:"attempts" firestore:"attempts"`
+	UserID           string    `json:"userId" firestore:"userId"`
+	LessonID         string    `json:"lessonId" firestore:"lessonId"`
+	Completed        bool      `json:"completed" firestore:"completed"`
+	Score            int       `json:"score,omitempty" firestore:"score,omitempty"`
+	TimeSpentMinutes int       `json:"timeSpentMinutes,omitempty" firestore:"timeSpentMinutes,omitempty"`
+	LastAttempt      time.Time `json:"lastAttempt" firestore:"lastAttempt"`
+	Attempts         int       `json:"attempts" firestore:"attempts"`
 }
 
 // Lesson represents a learning lesson

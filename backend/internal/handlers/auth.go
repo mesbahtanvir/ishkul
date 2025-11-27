@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -141,14 +142,14 @@ func verifyGoogleIDToken(ctx context.Context, idToken string) (*idtoken.Payload,
 		return payload, nil
 	}
 
-	return nil, idtoken.ErrWrongAudience
+	return nil, fmt.Errorf("invalid audience: token does not match any configured client ID")
 }
 
 // getOrCreateUser gets an existing user or creates a new one
 func getOrCreateUser(ctx context.Context, userID, email, displayName, photoURL string) (*models.User, error) {
 	fs := firebase.GetFirestore()
 	if fs == nil {
-		return nil, http.ErrNoPush
+		return nil, fmt.Errorf("firestore client not available")
 	}
 
 	docRef := fs.Collection("users").Doc(userID)

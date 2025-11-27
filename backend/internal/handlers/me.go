@@ -435,9 +435,9 @@ func ClearNextStep(w http.ResponseWriter, r *http.Request) {
 
 // UpdateMemory updates the user's memory for a specific topic
 type UpdateMemoryRequest struct {
-	Topic        string  `json:"topic"`
-	Confidence   float64 `json:"confidence"`
-	TimesTested  int     `json:"timesTested"`
+	Topic       string  `json:"topic"`
+	Confidence  float64 `json:"confidence"`
+	TimesTested int     `json:"timesTested"`
 }
 
 func UpdateMemory(w http.ResponseWriter, r *http.Request) {
