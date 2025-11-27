@@ -212,6 +212,35 @@ git push origin main  # Triggers GitHub Actions deployment:frontend
 git push origin main  # Triggers GitHub Actions deployment:backend
 ```
 
+#### Updating Backend Environment Variables
+
+Update Cloud Run environment variables without redeploying:
+
+```bash
+# Quick update with defaults
+./scripts/update-backend-env.sh
+
+# Update to staging environment
+./scripts/update-backend-env.sh --environment staging
+
+# Update with custom Firebase URL
+./scripts/update-backend-env.sh --firebase-db-url https://my-db.firebaseio.com
+
+# View all options
+./scripts/update-backend-env.sh --help
+```
+
+**Environment Variables Available:**
+- `FIREBASE_DATABASE_URL` - Firebase Realtime Database URL
+- `FIREBASE_STORAGE_BUCKET` - Firebase Storage Bucket
+- `ENVIRONMENT` - Current environment (development/staging/production)
+
+**What this does:**
+- Updates Cloud Run service without rebuilding
+- Changes take effect in ~10 seconds
+- No downtime
+- No need to commit and push changes
+
 ### Updating Database Rules
 
 ```bash
