@@ -19,12 +19,6 @@ var (
 
 // Initialize initializes Firebase Admin SDK
 func Initialize(ctx context.Context) error {
-	// Get credentials from environment variable
-	credentialsPath := os.Getenv("FIREBASE_CREDENTIALS_PATH")
-	if credentialsPath == "" {
-		credentialsPath = "serviceAccountKey.json"
-	}
-
 	// Get database URL from environment
 	databaseURL := os.Getenv("FIREBASE_DATABASE_URL")
 	if databaseURL == "" {
@@ -44,9 +38,24 @@ func Initialize(ctx context.Context) error {
 	}
 
 	// Initialize app
-	opt := option.WithCredentialsFile(credentialsPath)
+	// On Cloud Run, use Application Default Credentials (no explicit key file needed)
+	// For local development, set GOOGLE_APPLICATION_CREDENTIALS environment variable
+	var opt option.ClientOption
+	credentialsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if credentialsPath != "" {
+		opt = option.WithCredentialsFile(credentialsPath)
+		log.Printf("Using credentials file: %s", credentialsPath)
+	} else {
+		log.Println("Using Application Default Credentials (Cloud Run/GCP)")
+	}
+
 	var err error
-	app, err = firebase.NewApp(ctx, conf, opt)
+	if opt != nil {
+		app, err = firebase.NewApp(ctx, conf, opt)
+	} else {
+		// Use default credentials (Cloud Run, GKE, etc.)
+		app, err = firebase.NewApp(ctx, conf)
+	}
 	if err != nil {
 		return err
 	}

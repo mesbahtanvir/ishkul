@@ -52,22 +52,27 @@ backend/
    go mod tidy
    ```
 
-2. **Configure Environment**
+2. **Download Firebase Credentials** (for local development only)
+   - Go to Firebase Console → Project Settings → Service Accounts
+   - Click "Generate New Private Key"
+   - Save as `serviceAccountKey.json` in the backend directory
+   - **IMPORTANT**: Add to `.gitignore` to prevent committing secrets
+
+3. **Configure Environment**
    ```bash
    cp .env.example .env
    ```
 
-   Update `.env` with your Firebase configuration:
-   - `FIREBASE_CREDENTIALS_PATH`: Path to your service account key JSON
+   Update `.env` with your configuration:
+   - `GOOGLE_APPLICATION_CREDENTIALS`: Path to service account key (local dev only)
    - `FIREBASE_DATABASE_URL`: Your Firebase Realtime Database URL (optional)
    - `FIREBASE_STORAGE_BUCKET`: Your Firebase Storage bucket name
    - `PORT`: Server port (default: 8080)
    - `ALLOWED_ORIGINS`: Comma-separated list of allowed origins for CORS
 
-3. **Download Firebase Credentials**
-   - Go to Firebase Console → Project Settings → Service Accounts
-   - Click "Generate New Private Key"
-   - Save as `serviceAccountKey.json` in the backend directory
+   **Note on Credentials**:
+   - **Local development**: Set `GOOGLE_APPLICATION_CREDENTIALS=serviceAccountKey.json`
+   - **Cloud Run**: Leave unset - uses Application Default Credentials automatically
 
 ## Running Locally
 
