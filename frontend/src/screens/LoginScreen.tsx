@@ -23,7 +23,7 @@ interface LoginScreenProps {
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { setUser, setUserDocument, setLoading } = useUserStore();
-  const { request, response, promptAsync } = useGoogleAuth();
+  const { request, response, promptAsync, configError } = useGoogleAuth();
 
   useEffect(() => {
     const handleAuthResponse = async () => {
@@ -73,6 +73,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleSignIn = async () => {
+    // Check if Google OAuth is properly configured
+    if (configError) {
+      Alert.alert(
+        'Configuration Error',
+        configError,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     if (request) {
       await promptAsync();
     }

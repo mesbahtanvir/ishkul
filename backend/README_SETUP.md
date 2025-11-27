@@ -224,10 +224,12 @@ Choose your path:
 ## 🤔 FAQ
 
 **Q: Why do we need `serviceAccountKey.json` for local development?**
-A: Firebase requires authentication. Locally we use an explicit credentials file. Production uses Cloud Run's service account instead.
+A: Firebase requires authentication. Locally we use an explicit credentials file.
+Production uses Cloud Run's service account instead.
 
 **Q: Can I use the same credentials in staging and production?**
-A: Recommended to create separate service account keys for each environment, but one key works for all. For security, use different keys.
+A: Recommended to create separate service account keys for each environment, but one key works
+for all. For security, use different keys.
 
 **Q: Do I need to restart the container after every code change?**
 A: Yes, you need to rebuild: `docker-compose build && docker-compose up -d`
