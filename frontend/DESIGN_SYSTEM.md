@@ -4,7 +4,8 @@ A modern, minimalist, mobile-first design system for the Ishkul adaptive learnin
 
 ## Overview
 
-The design system is built on principles of simplicity, clarity, and user-focused design. It's optimized for mobile devices first, then scales to tablets and web.
+The design system is built on principles of simplicity, clarity, and user-focused
+design. It's optimized for mobile devices first, then scales to tablets and web.
 
 **Key Features:**
 - Minimalist aesthetic

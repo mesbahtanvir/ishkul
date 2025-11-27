@@ -92,13 +92,12 @@ jobs:
           echo "✅ All required APIs are enabled"
 
       - name: Deploy to Cloud Run (source-based)
-        working-directory: backend
         run: |
           set -e
           GCP_PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
 
           # Create env vars file to handle URLs with special characters
-          cat > env-vars.yaml << EOF
+          cat > backend/env-vars.yaml << EOF
           FIREBASE_STORAGE_BUCKET: "$GCP_PROJECT_ID.appspot.com"
           ALLOWED_ORIGINS: "https://$GCP_PROJECT_ID.web.app,https://$GCP_PROJECT_ID.firebaseapp.com"
           EOF
@@ -108,9 +107,9 @@ jobs:
           if gcloud secrets describe firebase-service-account --project=$GCP_PROJECT_ID &>/dev/null; then
             echo "Deploying with Secret Manager..."
             # Add credentials path to env vars file
-            echo 'GOOGLE_APPLICATION_CREDENTIALS: "/secrets/firebase-credentials"' >> env-vars.yaml
+            echo 'GOOGLE_APPLICATION_CREDENTIALS: "/secrets/firebase-credentials"' >> backend/env-vars.yaml
             gcloud run deploy ishkul-backend \
-              --source . \
+              --source ./backend \
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
@@ -121,7 +120,7 @@ jobs:
           else
             echo "Deploying without Secret Manager (using default service account)..."
             gcloud run deploy ishkul-backend \
-              --source . \
+              --source ./backend \
               --platform managed \
               --region ${{ env.REGION }} \
               --allow-unauthenticated \
@@ -131,7 +130,7 @@ jobs:
           fi
 
           # Clean up
-          rm -f env-vars.yaml
+          rm -f backend/env-vars.yaml
 
       - name: Get backend URL
         id: backend-url

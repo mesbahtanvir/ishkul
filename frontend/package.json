@@ -13,6 +13,8 @@
     "build:production": "expo export --platform web --clear",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "lint:md": "markdownlint \"../**/*.md\" --ignore \"../node_modules\" --ignore \"../frontend/node_modules\"",
+    "lint:md:fix": "markdownlint \"../**/*.md\" --ignore \"../node_modules\" --ignore \"../frontend/node_modules\" --fix",
     "type-check": "tsc --noEmit",
     "test": "echo \"No tests configured yet\" && exit 0"
   },
@@ -42,6 +44,7 @@
     "@typescript-eslint/eslint-plugin": "^8.47.0",
     "@typescript-eslint/parser": "^8.47.0",
     "eslint": "^9.39.1",
+    "markdownlint-cli": "^0.44.0",
     "typescript": "~5.9.2"
   },
   "private": true

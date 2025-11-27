@@ -71,6 +71,8 @@ backend/
 
 ## Running Locally
 
+### Using Go directly
+
 ```bash
 # Development mode
 go run cmd/server/main.go
@@ -81,6 +83,44 @@ go build -o server cmd/server/main.go
 ```
 
 The server will start on `http://localhost:8080` (or your configured PORT).
+
+### Using Docker
+
+```bash
+# Build the Docker image
+docker build -t ishkul-backend:latest .
+
+# Run with environment variables and credentials
+docker run -p 8080:8080 \
+  -e FIREBASE_CREDENTIALS_PATH=/credentials/serviceAccountKey.json \
+  -e FIREBASE_STORAGE_BUCKET=your-project.appspot.com \
+  -v /path/to/serviceAccountKey.json:/credentials/serviceAccountKey.json:ro \
+  ishkul-backend:latest
+```
+
+#### About Firebase Warnings When Running Locally
+
+When running the backend locally (either with `go run` or Docker) without proper Firebase credentials:
+
+```
+Warning: FIREBASE_DATABASE_URL not set
+Warning: FIREBASE_STORAGE_BUCKET not set
+Failed to initialize Firebase: cannot read credentials file: open serviceAccountKey.json: no such file or directory
+```
+
+**These warnings are expected and indicate the backend is operating in local development mode.** The backend will:
+
+1. Log warnings about missing environment variables (informational only)
+2. Attempt to load credentials from the specified path
+3. Fail gracefully if credentials are not available
+4. Skip Firebase-dependent operations if credentials fail
+
+**For full local development**, you need:
+1. A Firebase service account key (download from Firebase Console)
+2. Set `FIREBASE_CREDENTIALS_PATH` to point to it
+3. Set other Firebase environment variables in `.env`
+
+**In Cloud Run (production)**, credentials are injected securely via Google Secret Manager, so these warnings will not appear.
 
 ## API Endpoints
 

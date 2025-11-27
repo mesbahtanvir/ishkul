@@ -2,7 +2,8 @@
 
 ## 🎯 Overview
 
-A complete, production-quality Expo React Native + TypeScript adaptive learning application with Firebase backend and AI-powered learning engine.
+A complete, production-quality Expo React Native + TypeScript adaptive learning
+application with Firebase backend and AI-powered learning engine.
 
 ## 📦 What's Included
 
