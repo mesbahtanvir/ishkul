@@ -20,6 +20,17 @@ export const Colors = {
   danger: '#EF4444',         // Red
   info: '#3B82F6',           // Blue
 
+  // iOS-style Accent Colors (for consistent mobile UI)
+  ios: {
+    blue: '#007AFF',
+    green: '#34C759',
+    orange: '#FF9500',
+    purple: '#5856D6',
+    gray: '#8E8E93',
+    lightGray: '#E5E5EA',
+    systemGray6: '#F2F2F7',
+  },
+
   // Neutral Palette
   white: '#FFFFFF',
   black: '#000000',
@@ -49,6 +60,44 @@ export const Colors = {
   },
   border: '#E5E7EB',
   divider: '#F3F4F6',
+
+  // UI Component Colors
+  card: {
+    default: '#F2F2F7',
+    selected: '#E3F2FF',
+    lesson: '#E7F7EF',
+    quiz: '#FFE8D6',
+    practice: '#E8E3FF',
+    stats: {
+      blue: '#E3F2FF',
+      orange: '#FFE8D6',
+      purple: '#E8E3FF',
+      green: '#E7F7EF',
+    },
+  },
+
+  // Badge Colors
+  badge: {
+    primary: '#007AFF',
+    lesson: '#34C759',
+    quiz: '#FF9500',
+    practice: '#5856D6',
+  },
+
+  // Result Colors
+  result: {
+    correct: '#E7F7EF',
+    incorrect: '#FFE8E8',
+    correctText: '#10B981',
+    incorrectText: '#EF4444',
+  },
+
+  // Switch Colors
+  switch: {
+    trackOff: '#E5E5EA',
+    trackOn: '#34C759',
+    thumb: '#FFFFFF',
+  },
 };
 
 export default Colors;

@@ -4,6 +4,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { Colors } from '../theme/colors';
+import { Typography } from '../theme/typography';
+import { Spacing } from '../theme/spacing';
+import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 
 type GoalSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoalSelection'>;
@@ -24,6 +28,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
   navigation,
 }) => {
   const [goal, setGoal] = useState('');
+  const { responsive, isSmallPhone, isTablet } = useResponsive();
 
   const handleNext = () => {
     if (goal.trim()) {
@@ -35,11 +40,22 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
     setGoal(exampleGoal);
   };
 
+  // Responsive values
+  const titleSize = responsive(
+    Typography.heading.h2.fontSize,
+    Typography.heading.h1.fontSize,
+    Typography.display.small.fontSize
+  );
+  const cardMinWidth = responsive(90, 100, 120, 140);
+  const emojiSize = responsive(28, 32, 36, 40);
+
   return (
     <Container scrollable>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>What do you want to learn?</Text>
+        <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
+          <Text style={[styles.title, { fontSize: titleSize }]}>
+            What do you want to learn?
+          </Text>
           <Text style={styles.subtitle}>
             Set your learning goal and we'll create a personalized learning path for you
           </Text>
@@ -55,17 +71,19 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
             autoFocus
           />
 
-          <View style={styles.examplesContainer}>
+          <View style={[styles.examplesContainer, isSmallPhone && styles.examplesContainerSmall]}>
             <Text style={styles.examplesLabel}>Popular Goals</Text>
-            <View style={styles.examplesGrid}>
+            <View style={[styles.examplesGrid, isTablet && styles.examplesGridTablet]}>
               {EXAMPLE_GOALS.map((example, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={styles.exampleCard}
+                  style={[styles.exampleCard, { minWidth: cardMinWidth }]}
                   onPress={() => handleExamplePress(example.title)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.exampleEmoji}>{example.emoji}</Text>
+                  <Text style={[styles.exampleEmoji, { fontSize: emojiSize }]}>
+                    {example.emoji}
+                  </Text>
                   <Text style={styles.exampleTitle}>{example.title}</Text>
                 </TouchableOpacity>
               ))}
@@ -88,54 +106,60 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    marginBottom: 32,
+    marginBottom: Spacing.xl,
+  },
+  headerSmall: {
+    marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 12,
+    ...Typography.heading.h1,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
-    fontSize: 17,
-    color: '#8E8E93',
-    lineHeight: 24,
+    ...Typography.body.medium,
+    color: Colors.ios.gray,
+    lineHeight: Typography.body.large.lineHeight,
   },
   form: {
     flex: 1,
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   examplesContainer: {
-    marginTop: 32,
+    marginTop: Spacing.xl,
+  },
+  examplesContainerSmall: {
+    marginTop: Spacing.lg,
   },
   examplesLabel: {
-    fontSize: 17,
+    ...Typography.body.medium,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 16,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
   },
   examplesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: Spacing.sm,
+  },
+  examplesGridTablet: {
+    gap: Spacing.md,
   },
   exampleCard: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: Colors.card.default,
+    borderRadius: Spacing.borderRadius.md,
+    padding: Spacing.md,
     alignItems: 'center',
-    minWidth: 100,
     flex: 1,
     maxWidth: '48%',
   },
   exampleEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   exampleTitle: {
-    fontSize: 15,
+    ...Typography.body.small,
     fontWeight: '500',
-    color: '#000000',
+    color: Colors.text.primary,
     textAlign: 'center',
   },
 });

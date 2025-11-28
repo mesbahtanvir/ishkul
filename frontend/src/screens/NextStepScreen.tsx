@@ -8,6 +8,10 @@ import { useUserStore } from '../state/userStore';
 import { useLearningStore } from '../state/learningStore';
 import { getNextStep } from '../services/llmEngine';
 import { updateNextStep } from '../services/memory';
+import { Colors } from '../theme/colors';
+import { Typography } from '../theme/typography';
+import { Spacing } from '../theme/spacing';
+import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 
 type NextStepScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NextStep'>;
@@ -20,6 +24,7 @@ export const NextStepScreen: React.FC<NextStepScreenProps> = ({ navigation }) =>
   const { userDocument } = useUserStore();
   const { currentStep, setCurrentStep, setLoading } = useLearningStore();
   const [isLoadingStep, setIsLoadingStep] = useState(true);
+  const { responsive, isSmallPhone } = useResponsive();
 
   useEffect(() => {
     loadNextStep();
@@ -32,11 +37,9 @@ export const NextStepScreen: React.FC<NextStepScreenProps> = ({ navigation }) =>
       setIsLoadingStep(true);
       setLoading(true);
 
-      // Check if there's already a next step stored
       if (userDocument.nextStep) {
         setCurrentStep(userDocument.nextStep);
       } else {
-        // Call LLM engine to get next step
         const response = await getNextStep({
           goal: userDocument.goal,
           level: userDocument.level,
@@ -44,10 +47,7 @@ export const NextStepScreen: React.FC<NextStepScreenProps> = ({ navigation }) =>
           history: userDocument.history,
         });
 
-        // Update Firestore with the next step
         await updateNextStep(response.nextStep);
-
-        // Update local state
         setCurrentStep(response.nextStep);
       }
     } catch (error) {
@@ -62,7 +62,6 @@ export const NextStepScreen: React.FC<NextStepScreenProps> = ({ navigation }) =>
   const handleStart = () => {
     if (!currentStep) return;
 
-    // Navigate to appropriate screen based on step type
     switch (currentStep.type) {
       case 'lesson':
         navigation.navigate('Lesson', { step: currentStep });
@@ -76,6 +75,15 @@ export const NextStepScreen: React.FC<NextStepScreenProps> = ({ navigation }) =>
     }
   };
 
+  // Responsive values
+  const mainEmojiSize = responsive(64, 80, 88, 96);
+  const errorEmojiSize = responsive(56, 64, 72, 80);
+  const titleSize = responsive(
+    Typography.heading.h2.fontSize,
+    Typography.heading.h1.fontSize,
+    Typography.display.small.fontSize
+  );
+
   if (isLoadingStep) {
     return <LoadingScreen />;
   }
@@ -84,7 +92,7 @@ export const NextStepScreen: React.FC<NextStepScreenProps> = ({ navigation }) =>
     return (
       <Container>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorEmoji}>⚠️</Text>
+          <Text style={[styles.errorEmoji, { fontSize: errorEmojiSize }]}>⚠️</Text>
           <Text style={styles.errorTitle}>No Step Available</Text>
           <Text style={styles.errorText}>
             Unable to load the next learning step.
@@ -125,12 +133,14 @@ export const NextStepScreen: React.FC<NextStepScreenProps> = ({ navigation }) =>
     <Container>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.emoji}>{getStepIcon()}</Text>
+          <Text style={[styles.emoji, { fontSize: mainEmojiSize }]}>{getStepIcon()}</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{getStepTypeLabel()}</Text>
           </View>
-          <Text style={styles.title}>{currentStep.title || currentStep.topic}</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { fontSize: titleSize }]}>
+            {currentStep.title || currentStep.topic}
+          </Text>
+          <Text style={[styles.subtitle, isSmallPhone && styles.subtitleSmall]}>
             Ready for your next learning step?
           </Text>
         </View>
@@ -154,59 +164,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emoji: {
-    fontSize: 80,
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   badge: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginBottom: 16,
+    backgroundColor: Colors.badge.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: Spacing.borderRadius.lg,
+    marginBottom: Spacing.md,
   },
   badgeText: {
-    color: '#FFFFFF',
-    fontSize: 15,
+    color: Colors.white,
+    ...Typography.body.small,
     fontWeight: '600',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 12,
+    ...Typography.heading.h1,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
     textAlign: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.lg,
   },
   subtitle: {
-    fontSize: 17,
-    color: '#8E8E93',
+    ...Typography.body.medium,
+    color: Colors.ios.gray,
     textAlign: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: Spacing.xxl,
+  },
+  subtitleSmall: {
+    paddingHorizontal: Spacing.lg,
   },
   buttonContainer: {
-    paddingBottom: 20,
+    paddingBottom: Spacing.lg,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: Spacing.xxl,
   },
   errorEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   errorTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 8,
+    ...Typography.heading.h2,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   errorText: {
-    fontSize: 17,
-    color: '#8E8E93',
+    ...Typography.body.medium,
+    color: Colors.ios.gray,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: Spacing.xl,
   },
 });

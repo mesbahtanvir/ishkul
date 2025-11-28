@@ -6,6 +6,10 @@ import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningStore } from '../state/learningStore';
 import { updateUserHistory, clearNextStep, getUserDocument } from '../services/memory';
+import { Colors } from '../theme/colors';
+import { Typography } from '../theme/typography';
+import { Spacing } from '../theme/spacing';
+import { useResponsive } from '../hooks/useResponsive';
 import { HistoryEntry, NextStep } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
@@ -24,6 +28,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
   const { userDocument, setUserDocument } = useUserStore();
   const { clearCurrentStep } = useLearningStore();
   const [loading, setLoading] = useState(false);
+  const { responsive, isSmallPhone } = useResponsive();
 
   const handleDone = async () => {
     if (!userDocument) return;
@@ -31,25 +36,19 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
     try {
       setLoading(true);
 
-      // Create history entry
       const historyEntry: HistoryEntry = {
         type: 'practice',
         topic: step.topic,
         timestamp: Date.now(),
       };
 
-      // Update Firestore
       await updateUserHistory(historyEntry);
       await clearNextStep();
 
-      // Update local state
       const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
-      // Clear current step
       clearCurrentStep();
-
-      // Navigate back to NextStep screen
       navigation.navigate('NextStep');
     } catch (error) {
       console.error('Error completing practice:', error);
@@ -59,15 +58,25 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
     }
   };
 
+  // Responsive values
+  const emojiSize = responsive(48, 60, 68, 76);
+  const titleSize = responsive(
+    Typography.heading.h3.fontSize,
+    Typography.heading.h2.fontSize,
+    Typography.heading.h1.fontSize
+  );
+
   return (
     <Container scrollable>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.emoji}>💪</Text>
+        <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
+          <Text style={[styles.emoji, { fontSize: emojiSize }]}>💪</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>Practice</Text>
           </View>
-          <Text style={styles.title}>{step.title || step.topic}</Text>
+          <Text style={[styles.title, { fontSize: titleSize }]}>
+            {step.title || step.topic}
+          </Text>
         </View>
 
         <View style={styles.bodyContainer}>
@@ -101,61 +110,62 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: Spacing.xl,
+  },
+  headerSmall: {
+    marginBottom: Spacing.lg,
   },
   emoji: {
-    fontSize: 60,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   badge: {
-    backgroundColor: '#5856D6',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: Colors.badge.practice,
+    paddingHorizontal: Spacing.sm + 4,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.borderRadius.md,
+    marginBottom: Spacing.sm,
   },
   badgeText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: Colors.white,
+    ...Typography.label.medium,
     fontWeight: '600',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
+    ...Typography.heading.h2,
+    color: Colors.text.primary,
     textAlign: 'center',
   },
   bodyContainer: {
     flex: 1,
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   taskLabel: {
-    fontSize: 15,
+    ...Typography.body.small,
     fontWeight: '600',
-    color: '#8E8E93',
-    marginBottom: 8,
+    color: Colors.ios.gray,
+    marginBottom: Spacing.sm,
   },
   task: {
-    fontSize: 17,
+    ...Typography.body.medium,
     lineHeight: 26,
-    color: '#000000',
+    color: Colors.text.primary,
     fontWeight: '500',
-    marginBottom: 32,
+    marginBottom: Spacing.xl,
   },
   tipsContainer: {
-    backgroundColor: '#F2F2F7',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: Colors.card.default,
+    padding: Spacing.md,
+    borderRadius: Spacing.borderRadius.md,
   },
   tipsTitle: {
-    fontSize: 17,
+    ...Typography.body.medium,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
   },
   tipsText: {
-    fontSize: 15,
+    ...Typography.body.small,
     lineHeight: 22,
-    color: '#000000',
+    color: Colors.text.primary,
   },
 });
