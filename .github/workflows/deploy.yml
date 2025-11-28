@@ -1,4 +1,4 @@
-name: Deploy to Firebase & Cloud Run
+name: Deploy Firebase Rules
 
 on:
   push:

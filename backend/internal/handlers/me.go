@@ -44,7 +44,10 @@ func GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // UpdateMeRequest represents the update profile request
@@ -115,7 +118,10 @@ func UpdateMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // GetMeDocument returns the full user document including learning data
@@ -151,7 +157,10 @@ func GetMeDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(userDoc)
+	if err := json.NewEncoder(w).Encode(userDoc); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // CreateUserDocumentRequest represents the request to create/initialize a user document
@@ -237,7 +246,10 @@ func CreateMeDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(userDoc)
+	if err := json.NewEncoder(w).Encode(userDoc); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // AddHistoryRequest represents a request to add a history entry
@@ -297,10 +309,13 @@ func AddHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"entry":   entry,
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // GetNextStep returns the user's next recommended step
@@ -337,13 +352,19 @@ func GetNextStep(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if userDoc.NextStep == nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"nextStep": nil,
-		})
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+			return
+		}
 	} else {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"nextStep": userDoc.NextStep,
-		})
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
@@ -390,10 +411,13 @@ func SetNextStep(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":  true,
 		"nextStep": nextStep,
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // ClearNextStep clears the user's next step
@@ -428,9 +452,12 @@ func ClearNextStep(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // UpdateMemory updates the user's memory for a specific topic
@@ -488,9 +515,12 @@ func UpdateMemory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"topic":   req.Topic,
 		"memory":  topicMemory,
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
