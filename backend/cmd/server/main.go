@@ -22,6 +22,9 @@ func main() {
 	}
 	defer firebase.Cleanup()
 
+	// Initialize rate limiter
+	rateLimiter := middleware.DefaultRateLimiter()
+
 	// Setup router
 	mux := http.NewServeMux()
 
@@ -29,11 +32,12 @@ func main() {
 	mux.HandleFunc("/health", handlers.HealthCheck)
 
 	// Auth routes (no auth required - these issue tokens)
+	// Rate limiting applied to prevent brute force attacks
 	authMux := http.NewServeMux()
 	authMux.HandleFunc("/api/auth/login", handlers.Login)
 	authMux.HandleFunc("/api/auth/refresh", handlers.Refresh)
 	authMux.HandleFunc("/api/auth/logout", handlers.Logout)
-	mux.Handle("/api/auth/", middleware.CORS(authMux))
+	mux.Handle("/api/auth/", rateLimiter.Limit(middleware.CORS(authMux)))
 
 	// Protected API routes (auth required)
 	api := http.NewServeMux()
@@ -82,16 +86,17 @@ func main() {
 	api.HandleFunc("/api/lessons", handlers.GetLessons)
 	api.HandleFunc("/api/upload", handlers.UploadFile)
 
-	// Apply middleware to protected routes
-	mux.Handle("/api/me", middleware.CORS(middleware.Auth(api)))
-	mux.Handle("/api/me/", middleware.CORS(middleware.Auth(api)))
-	mux.Handle("/api/users", middleware.CORS(middleware.Auth(api)))
-	mux.Handle("/api/users/", middleware.CORS(middleware.Auth(api)))
-	mux.Handle("/api/progress", middleware.CORS(middleware.Auth(api)))
-	mux.Handle("/api/progress/", middleware.CORS(middleware.Auth(api)))
-	mux.Handle("/api/lessons", middleware.CORS(middleware.Auth(api)))
-	mux.Handle("/api/lessons/", middleware.CORS(middleware.Auth(api)))
-	mux.Handle("/api/upload", middleware.CORS(middleware.Auth(api)))
+	// Apply middleware to protected routes (rate limit -> CORS -> auth)
+	protectedHandler := rateLimiter.Limit(middleware.CORS(middleware.Auth(api)))
+	mux.Handle("/api/me", protectedHandler)
+	mux.Handle("/api/me/", protectedHandler)
+	mux.Handle("/api/users", protectedHandler)
+	mux.Handle("/api/users/", protectedHandler)
+	mux.Handle("/api/progress", protectedHandler)
+	mux.Handle("/api/progress/", protectedHandler)
+	mux.Handle("/api/lessons", protectedHandler)
+	mux.Handle("/api/lessons/", protectedHandler)
+	mux.Handle("/api/upload", protectedHandler)
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")
