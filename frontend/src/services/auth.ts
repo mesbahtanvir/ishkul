@@ -16,13 +16,26 @@ const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_I
  * Generate the redirect URI for OAuth
  * - On web: uses the current origin (works for localhost and production)
  * - On native: uses the app's custom scheme from app.json
+ *
+ * IMPORTANT: The redirect URI MUST be registered in Google Cloud Console:
+ * https://console.cloud.google.com/apis/credentials?project=ishkul-org
+ *
+ * Required URIs to add:
+ * - Production: https://ishkul.vercel.app
+ * - Development: http://localhost:19006
  */
 const getRedirectUri = () => {
-  return makeRedirectUri({
+  const uri = makeRedirectUri({
     scheme: 'learningai',
-    // On web, this will use the current window.location.origin
-    // On native, this will use the scheme (learningai://)
+    // On web, this uses window.location.origin
+    // On native, this uses the scheme (learningai://)
   });
+
+  // Always log the redirect URI to help with debugging
+  console.log('[OAuth] Redirect URI:', uri);
+  console.log('[OAuth] Add this URI to Google Cloud Console if not already added');
+
+  return uri;
 };
 
 /**
@@ -50,11 +63,6 @@ export const getGoogleAuthConfigError = (): string | null => {
  */
 export const useGoogleAuth = () => {
   const redirectUri = getRedirectUri();
-
-  // Log redirect URI in development to help with Google Console setup
-  if (__DEV__) {
-    console.log('OAuth Redirect URI:', redirectUri);
-  }
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     webClientId: GOOGLE_WEB_CLIENT_ID,
