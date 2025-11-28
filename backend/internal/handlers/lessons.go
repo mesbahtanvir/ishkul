@@ -57,8 +57,11 @@ func GetLessons(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"lessons": lessons,
 		"count":   len(lessons),
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }

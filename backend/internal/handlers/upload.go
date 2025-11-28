@@ -79,10 +79,13 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 		bucket.BucketName(), filename)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":  true,
 		"filename": filename,
 		"url":      publicURL,
 		"size":     handler.Size,
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }

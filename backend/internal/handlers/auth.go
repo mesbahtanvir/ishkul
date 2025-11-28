@@ -117,7 +117,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // verifyGoogleIDToken verifies a Google ID token and returns its payload
@@ -227,7 +230,10 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // Logout handles user logout (client-side token deletion)
@@ -245,7 +251,10 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	// 3. Use short-lived access tokens only
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"message": "Logged out successfully",
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
