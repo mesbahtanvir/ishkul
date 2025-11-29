@@ -139,7 +139,6 @@ func TestUploadFilePathGeneration(t *testing.T) {
 	t.Run("filename format is correct", func(t *testing.T) {
 		// Test the expected filename format: uploads/{userID}/{timestamp}{ext}
 		userID := "user123"
-		timestamp := int64(1704067200)
 		ext := ".txt"
 
 		expectedPattern := "uploads/" + userID + "/" + "1704067200" + ext
