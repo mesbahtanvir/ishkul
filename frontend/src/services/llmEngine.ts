@@ -1,4 +1,6 @@
 import { LLMRequest, LLMResponse, NextStep } from '../types/app';
+import { apiConfig } from '../config/firebase.config';
+import { authApi } from './api';
 
 // Mock lessons database
 const mockLessons: { [key: string]: NextStep[] } = {
@@ -105,12 +107,56 @@ Let's begin with the fundamentals!`,
   ],
 };
 
-// Placeholder LLM engine
-// This simulates an AI that returns the next learning step
+// Get the next learning step using OpenAI backend
 export const getNextStep = async (request: LLMRequest): Promise<LLMResponse> => {
-  // In production, this would call OpenAI/Anthropic API
-  // For now, return mock data based on the goal
+  try {
+    // Get the current user's access token for authentication
+    const accessToken = authApi.getAccessToken();
+    if (!accessToken) {
+      throw new Error('User not authenticated');
+    }
 
+    // Call the backend API
+    const response = await fetch(`${apiConfig.baseURL}/llm/next-step`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        goal: request.goal,
+        level: request.level,
+        history: request.history.map((h) => h.topic),
+        memory: JSON.stringify(request.memory),
+        recentHistory: request.history
+          .slice(-3)
+          .map((h) => h.topic)
+          .join(', '),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend API error:', errorText);
+      throw new Error(`Failed to generate next step: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      nextStep: data.nextStep as NextStep,
+    };
+  } catch (error) {
+    console.error('Error calling OpenAI backend:', error);
+
+    // Fallback to mock data if OpenAI fails
+    console.log('Falling back to mock data...');
+    return getNextStepMock(request);
+  }
+};
+
+// Fallback mock implementation (kept for development/offline use)
+const getNextStepMock = async (request: LLMRequest): Promise<LLMResponse> => {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 

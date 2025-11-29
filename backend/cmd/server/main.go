@@ -22,6 +22,12 @@ func main() {
 	}
 	defer firebase.Cleanup()
 
+	// Initialize LLM components (OpenAI + prompt loader)
+	if err := handlers.InitializeLLM("prompts"); err != nil {
+		log.Printf("Warning: Failed to initialize LLM: %v", err)
+		log.Println("LLM endpoints will not be available")
+	}
+
 	// Initialize rate limiter
 	rateLimiter := middleware.DefaultRateLimiter()
 
@@ -78,6 +84,11 @@ func main() {
 		}
 	})
 
+	// LLM endpoints (OpenAI integration)
+	api.HandleFunc("/api/llm/generate", handlers.GenerateContent)
+	api.HandleFunc("/api/llm/next-step", handlers.GenerateNextStep)
+	api.HandleFunc("/api/llm/prompts", handlers.ListPrompts)
+
 	// Legacy endpoints (keeping for compatibility)
 	api.HandleFunc("/api/users", handlers.GetUsers)
 	api.HandleFunc("/api/users/create", handlers.CreateUser)
@@ -90,6 +101,7 @@ func main() {
 	protectedHandler := rateLimiter.Limit(middleware.CORS(middleware.Auth(api)))
 	mux.Handle("/api/me", protectedHandler)
 	mux.Handle("/api/me/", protectedHandler)
+	mux.Handle("/api/llm/", protectedHandler)
 	mux.Handle("/api/users", protectedHandler)
 	mux.Handle("/api/users/", protectedHandler)
 	mux.Handle("/api/progress", protectedHandler)

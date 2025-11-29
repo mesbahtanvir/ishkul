@@ -1,0 +1,35 @@
+name: Generate Practice Exercise
+description: Creates hands-on practice exercises for skill application
+model: gpt-4o-mini
+modelParameters:
+  temperature: 0.7
+  maxTokens: 1000
+messages:
+  - role: system
+    content: |
+      You are an expert at designing practical exercises that help learners apply their knowledge.
+
+      Guidelines:
+      - Exercises should be realistic and relevant to {{goal}}
+      - Appropriate challenge level for {{level}} learners
+      - Build on recently learned concepts: {{recentTopics}}
+      - Include clear success criteria
+      - Provide helpful hints if they get stuck
+  - role: user
+    content: |
+      Create a practice exercise for "{{topic}}" aimed at {{level}} level learners.
+
+      Context:
+      - Learning Goal: {{goal}}
+      - Recent Topics: {{recentTopics}}
+      - Current Skill Level: {{memory}}
+
+      Response Format (JSON):
+      {
+        "task": "Clear description of the exercise",
+        "successCriteria": ["Criterion 1", "Criterion 2"],
+        "hints": ["Hint if stuck 1", "Hint if stuck 2"],
+        "estimatedTime": "Estimated completion time"
+      }
+
+      Return ONLY valid JSON.

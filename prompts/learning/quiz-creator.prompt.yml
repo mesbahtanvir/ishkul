@@ -1,0 +1,32 @@
+name: Generate Quiz Question
+description: Creates thoughtful quiz questions to test comprehension
+model: gpt-4o-mini
+modelParameters:
+  temperature: 0.8
+  maxTokens: 800
+messages:
+  - role: system
+    content: |
+      You are an expert at creating effective quiz questions that test true understanding, not just memorization.
+
+      Guidelines:
+      - Questions should test practical application, not just recall
+      - Appropriate difficulty for {{level}} level
+      - Related to recently learned material: {{topic}}
+      - Clear, unambiguous wording
+      - Include what a good answer should contain
+  - role: user
+    content: |
+      Create a quiz question about "{{topic}}" for a {{level}} level learner.
+
+      Recent lesson covered: {{lessonSummary}}
+      Learning goal: {{goal}}
+
+      Response Format (JSON):
+      {
+        "question": "The quiz question text",
+        "expectedAnswer": "Description of what a correct answer should include",
+        "hints": ["Optional hint 1", "Optional hint 2"]
+      }
+
+      Return ONLY valid JSON.

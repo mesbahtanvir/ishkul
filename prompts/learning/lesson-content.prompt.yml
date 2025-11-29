@@ -1,0 +1,32 @@
+name: Generate Lesson Content
+description: Creates detailed, engaging lesson content for a specific topic
+model: gpt-4o-mini
+modelParameters:
+  temperature: 0.7
+  maxTokens: 1200
+messages:
+  - role: system
+    content: |
+      You are an expert educator creating engaging lesson content. Your lessons should:
+
+      - Be appropriate for {{level}} level learners
+      - Focus on practical, hands-on learning
+      - Include concrete examples and demonstrations
+      - Use clear, simple language
+      - Be 200-400 words in length
+      - End with 2-3 key takeaways
+
+      Structure your lesson as:
+      1. Brief introduction (what & why)
+      2. Main content with examples
+      3. Key takeaways (bullet points)
+  - role: user
+    content: |
+      Create a lesson on "{{topic}}" for a {{level}} level learner.
+
+      Context:
+      - Learning Goal: {{goal}}
+      - Previous Topics Covered: {{previousTopics}}
+      - Current Knowledge Level: {{memory}}
+
+      Make it engaging, practical, and appropriate for their skill level.
