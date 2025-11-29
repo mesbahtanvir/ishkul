@@ -15,7 +15,7 @@ interface ButtonProps {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'small' | 'medium' | 'large';
   style?: ViewStyle;
   textStyle?: TextStyle;
@@ -39,6 +39,8 @@ export const Button: React.FC<ButtonProps> = ({
         return styles.outlineButton;
       case 'ghost':
         return styles.ghostButton;
+      case 'danger':
+        return styles.dangerButton;
       default:
         return styles.primaryButton;
     }
@@ -61,14 +63,19 @@ export const Button: React.FC<ButtonProps> = ({
         return styles.outlineText;
       case 'ghost':
         return styles.ghostText;
+      case 'danger':
+        return styles.dangerText;
       default:
         return styles.buttonText;
     }
   };
 
-  const loaderColor = variant === 'outline' || variant === 'ghost'
-    ? Colors.primary
-    : Colors.white;
+  const loaderColor =
+    variant === 'outline' || variant === 'ghost'
+      ? Colors.primary
+      : variant === 'danger'
+        ? Colors.white
+        : Colors.white;
 
   return (
     <TouchableOpacity
@@ -113,6 +120,9 @@ const styles = StyleSheet.create({
   ghostButton: {
     backgroundColor: 'transparent',
   },
+  dangerButton: {
+    backgroundColor: Colors.danger,
+  },
   disabled: {
     opacity: 0.5,
   },
@@ -130,6 +140,12 @@ const styles = StyleSheet.create({
   },
   ghostText: {
     color: Colors.primary,
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  dangerText: {
+    color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.3,
