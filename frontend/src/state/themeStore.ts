@@ -75,6 +75,9 @@ export const useThemeStore = create<ThemeState>()(
           state.resolvedTheme = resolved;
           state.colors = getColors(resolved);
           state.isHydrated = true;
+        } else {
+          // First run or storage empty - mark as hydrated with defaults
+          useThemeStore.setState({ isHydrated: true });
         }
       },
     }
