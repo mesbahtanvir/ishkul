@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { Alert, TouchableOpacity } from 'react-native';
 import { SettingsScreen } from '../SettingsScreen';
 
 // Mock Alert.alert with implementation
@@ -111,13 +111,29 @@ describe('SettingsScreen', () => {
 
   describe('sign out flow', () => {
     it('should show confirmation alert when sign out is pressed', () => {
-      const { getByText } = render(
+      const { getByText, UNSAFE_getAllByType } = render(
         <SettingsScreen navigation={mockNavigation as any} />
       );
 
-      // Get the Sign Out button text and press its parent (the touchable)
-      const signOutText = getByText('Sign Out');
-      fireEvent.press(signOutText);
+      // Find the Sign Out button by finding all TouchableOpacity elements
+      // and selecting the one that contains "Sign Out" text
+      const touchables = UNSAFE_getAllByType(TouchableOpacity);
+      const signOutButton = touchables.find(touchable => {
+        try {
+          // Check if this touchable contains the "Sign Out" text
+          const textContent = JSON.stringify(touchable.props);
+          return textContent.includes('Sign Out');
+        } catch {
+          return false;
+        }
+      });
+
+      if (signOutButton) {
+        fireEvent.press(signOutButton);
+      } else {
+        // Fallback to pressing by text if TouchableOpacity not found
+        fireEvent.press(getByText('Sign Out'));
+      }
 
       // Verify the alert was shown with correct options
       expect(Alert.alert).toHaveBeenCalledWith(
@@ -131,12 +147,26 @@ describe('SettingsScreen', () => {
     });
 
     it('should sign out and navigate on confirmation', async () => {
-      const { getByText } = render(
+      const { getByText, UNSAFE_getAllByType } = render(
         <SettingsScreen navigation={mockNavigation as any} />
       );
 
-      const signOutText = getByText('Sign Out');
-      fireEvent.press(signOutText);
+      // Find and press the Sign Out button
+      const touchables = UNSAFE_getAllByType(TouchableOpacity);
+      const signOutTouchable = touchables.find(touchable => {
+        try {
+          const textContent = JSON.stringify(touchable.props);
+          return textContent.includes('Sign Out');
+        } catch {
+          return false;
+        }
+      });
+
+      if (signOutTouchable) {
+        fireEvent.press(signOutTouchable);
+      } else {
+        fireEvent.press(getByText('Sign Out'));
+      }
 
       // Get the onPress handler from the destructive button
       const alertCalls = (Alert.alert as jest.Mock).mock.calls;
@@ -166,12 +196,26 @@ describe('SettingsScreen', () => {
     it('should show error alert on sign out failure', async () => {
       mockSignOut.mockRejectedValueOnce(new Error('Sign out failed'));
 
-      const { getByText } = render(
+      const { getByText, UNSAFE_getAllByType } = render(
         <SettingsScreen navigation={mockNavigation as any} />
       );
 
-      const signOutText = getByText('Sign Out');
-      fireEvent.press(signOutText);
+      // Find and press the Sign Out button
+      const touchables = UNSAFE_getAllByType(TouchableOpacity);
+      const signOutTouchable = touchables.find(touchable => {
+        try {
+          const textContent = JSON.stringify(touchable.props);
+          return textContent.includes('Sign Out');
+        } catch {
+          return false;
+        }
+      });
+
+      if (signOutTouchable) {
+        fireEvent.press(signOutTouchable);
+      } else {
+        fireEvent.press(getByText('Sign Out'));
+      }
 
       // Get the onPress handler from the destructive button
       const alertCalls = (Alert.alert as jest.Mock).mock.calls;
