@@ -97,6 +97,10 @@ func main() {
 	api.HandleFunc("/api/lessons", handlers.GetLessons)
 	api.HandleFunc("/api/upload", handlers.UploadFile)
 
+	// Learning paths endpoints
+	api.HandleFunc("/api/learning-paths", handlers.LearningPathsHandler)
+	api.HandleFunc("/api/learning-paths/", handlers.LearningPathsHandler)
+
 	// Apply middleware to protected routes (rate limit -> CORS -> auth)
 	protectedHandler := rateLimiter.Limit(middleware.CORS(middleware.Auth(api)))
 	mux.Handle("/api/me", protectedHandler)
@@ -109,6 +113,8 @@ func main() {
 	mux.Handle("/api/lessons", protectedHandler)
 	mux.Handle("/api/lessons/", protectedHandler)
 	mux.Handle("/api/upload", protectedHandler)
+	mux.Handle("/api/learning-paths", protectedHandler)
+	mux.Handle("/api/learning-paths/", protectedHandler)
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")
