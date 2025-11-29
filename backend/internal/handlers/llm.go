@@ -225,11 +225,14 @@ func GenerateNextStep(w http.ResponseWriter, r *http.Request) {
 		// If not valid JSON, return as-is with a warning
 		log.Printf("Warning: LLM response is not valid JSON: %v", err)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"content": content,
 			"model":   completion.Model,
 			"warning": "Response was not valid JSON",
-		})
+		}); err != nil {
+			log.Printf("Failed to encode response: %v", err)
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -277,9 +280,12 @@ func ListPrompts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"directory": dir,
 		"prompts":   prompts,
 		"count":     len(prompts),
-	})
+	}); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
