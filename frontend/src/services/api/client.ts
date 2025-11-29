@@ -24,6 +24,9 @@ class ApiClient {
   }
 
   private async refreshTokens(): Promise<boolean> {
+    // Ensure token storage is initialized before refreshing
+    await tokenStorage.initialize();
+
     const refreshToken = tokenStorage.getRefreshToken();
     if (!refreshToken) {
       return false;
@@ -58,6 +61,9 @@ class ApiClient {
   }
 
   private async ensureValidToken(): Promise<string | null> {
+    // Ensure token storage is initialized before checking
+    await tokenStorage.initialize();
+
     if (!tokenStorage.hasTokens()) {
       return null;
     }

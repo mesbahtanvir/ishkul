@@ -1,7 +1,27 @@
 import { getNextStep } from '../llmEngine';
 import { LLMRequest, LLMResponse } from '../../types/app';
 
+// Mock the authApi to provide a valid token for tests
+jest.mock('../api', () => ({
+  authApi: {
+    getAccessToken: jest.fn().mockReturnValue('test-token'),
+  },
+}));
+
+// Mock the firebase config
+jest.mock('../../config/firebase.config', () => ({
+  apiConfig: {
+    baseURL: 'http://localhost:8080/api',
+  },
+}));
+
 describe('llmEngine', () => {
+  beforeEach(() => {
+    // Mock fetch to fail so it falls back to mock data
+    // The llmEngine has a fallback mechanism when the API fails
+    (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+  });
+
   describe('getNextStep', () => {
     const createRequest = (
       goal: string,

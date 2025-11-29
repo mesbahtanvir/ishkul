@@ -113,4 +113,11 @@ export const authApi = {
   hasTokens(): boolean {
     return tokenStorage.hasTokens();
   },
+
+  /**
+   * Get current access token (for direct API calls)
+   */
+  getAccessToken(): string | null {
+    return tokenStorage.getAccessToken();
+  },
 };
