@@ -14,8 +14,30 @@ class TokenStorage {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
   private expiresAt: number | null = null;
+  private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
+  /**
+   * Initialize token storage from persistent storage.
+   * Safe to call multiple times - will only run once.
+   */
   async initialize(): Promise<void> {
+    // If already initialized, return immediately
+    if (this.initialized) {
+      return;
+    }
+
+    // If initialization is in progress, wait for it
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    // Start initialization
+    this.initPromise = this.doInitialize();
+    await this.initPromise;
+  }
+
+  private async doInitialize(): Promise<void> {
     try {
       if (Platform.OS === 'web') {
         // Web: use localStorage
@@ -30,9 +52,18 @@ class TokenStorage {
         const expiresAtStr = await AsyncStorage.getItem(`${ACCESS_TOKEN_KEY}_expires`);
         this.expiresAt = expiresAtStr ? parseInt(expiresAtStr, 10) : null;
       }
+      this.initialized = true;
     } catch (error) {
       console.error('Error initializing token storage:', error);
+      this.initialized = true; // Mark as initialized even on error to avoid retries
     }
+  }
+
+  /**
+   * Check if token storage has been initialized
+   */
+  isInitialized(): boolean {
+    return this.initialized;
   }
 
   async saveTokens(tokens: TokenPair): Promise<void> {
