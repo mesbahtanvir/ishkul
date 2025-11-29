@@ -52,6 +52,7 @@ export default [
       '*.config.cjs',
       'jest.setup.cjs',
       'babel.config.cjs',
+      '__mocks__/',
     ],
   },
 ];
