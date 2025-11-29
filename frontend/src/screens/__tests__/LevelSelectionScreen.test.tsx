@@ -11,28 +11,42 @@ const mockSetUserDocument = jest.fn();
 jest.mock('../../state/userStore', () => ({
   useUserStore: () => ({
     user: { uid: 'test-user-123', email: 'test@example.com' },
+    userDocument: null,
     setUserDocument: mockSetUserDocument,
   }),
+}));
+
+// Mock learningPathsStore
+const mockAddPath = jest.fn();
+jest.mock('../../state/learningPathsStore', () => ({
+  useLearningPathsStore: () => ({
+    addPath: mockAddPath,
+  }),
+  getEmojiForGoal: () => '🐍',
+  generatePathId: () => 'test-path-id',
 }));
 
 // Mock memory service
 const mockCreateUserDocument = jest.fn();
 const mockGetUserDocument = jest.fn();
+const mockAddLearningPath = jest.fn();
 jest.mock('../../services/memory', () => ({
   createUserDocument: (...args: unknown[]) => mockCreateUserDocument(...args),
   getUserDocument: () => mockGetUserDocument(),
+  addLearningPath: (...args: unknown[]) => mockAddLearningPath(...args),
 }));
 
 // Mock navigation
 const mockReplace = jest.fn();
+const mockNavigate = jest.fn();
 const mockNavigation = {
-  navigate: jest.fn(),
+  navigate: mockNavigate,
   replace: mockReplace,
   goBack: jest.fn(),
 };
 
 const mockRoute = {
-  params: { goal: 'Learn Python' },
+  params: { goal: 'Learn Python', isCreatingNewPath: false },
 };
 
 describe('LevelSelectionScreen', () => {
@@ -43,6 +57,7 @@ describe('LevelSelectionScreen', () => {
       uid: 'test-user-123',
       goal: 'Learn Python',
       level: 'beginner',
+      learningPaths: [],
     });
   });
 
@@ -180,7 +195,15 @@ describe('LevelSelectionScreen', () => {
       fireEvent.press(getByText('Start Learning →'));
 
       await waitFor(() => {
-        expect(mockCreateUserDocument).toHaveBeenCalledWith('Learn Python', 'beginner');
+        expect(mockCreateUserDocument).toHaveBeenCalledWith(
+          'Learn Python',
+          'beginner',
+          expect.objectContaining({
+            goal: 'Learn Python',
+            level: 'beginner',
+            emoji: '🐍',
+          })
+        );
       });
 
       await waitFor(() => {
@@ -212,7 +235,7 @@ describe('LevelSelectionScreen', () => {
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
           'Error',
-          'Failed to save your profile. Please try again.'
+          'Failed to save. Please try again.'
         );
       });
     });
@@ -235,7 +258,7 @@ describe('LevelSelectionScreen', () => {
   describe('with different goals', () => {
     it('should display custom goal', () => {
       const customRoute = {
-        params: { goal: 'Master Machine Learning' },
+        params: { goal: 'Master Machine Learning', isCreatingNewPath: false },
       };
 
       const { getByText } = render(

@@ -8,33 +8,27 @@ jest.spyOn(Alert, 'alert');
 
 // Mock userStore
 const mockSetUserDocument = jest.fn();
-let mockUserDocument: any = {
-  uid: 'test-user-123',
-  goal: 'Learn Python',
-  level: 'beginner',
-};
 jest.mock('../../state/userStore', () => ({
   useUserStore: () => ({
-    userDocument: mockUserDocument,
     setUserDocument: mockSetUserDocument,
   }),
 }));
 
-// Mock learningStore
-const mockClearCurrentStep = jest.fn();
-jest.mock('../../state/learningStore', () => ({
-  useLearningStore: () => ({
-    clearCurrentStep: mockClearCurrentStep,
+// Mock learningPathsStore
+const mockUpdatePath = jest.fn();
+const mockSetCurrentStep = jest.fn();
+jest.mock('../../state/learningPathsStore', () => ({
+  useLearningPathsStore: () => ({
+    updatePath: mockUpdatePath,
+    setCurrentStep: mockSetCurrentStep,
   }),
 }));
 
 // Mock memory service
-const mockUpdateUserHistory = jest.fn();
-const mockClearNextStep = jest.fn();
+const mockCompletePathStep = jest.fn();
 const mockGetUserDocument = jest.fn();
 jest.mock('../../services/memory', () => ({
-  updateUserHistory: (entry: unknown) => mockUpdateUserHistory(entry),
-  clearNextStep: () => mockClearNextStep(),
+  completePathStep: (...args: unknown[]) => mockCompletePathStep(...args),
   getUserDocument: () => mockGetUserDocument(),
 }));
 
@@ -55,18 +49,35 @@ const mockStep = {
 };
 
 const mockRoute = {
-  params: { step: mockStep },
+  params: { step: mockStep, pathId: 'test-path-123' },
+};
+
+const mockPathResult = {
+  path: {
+    id: 'test-path-123',
+    goal: 'Learn Python',
+    level: 'beginner',
+    progress: 40,
+    lessonsCompleted: 2,
+    totalLessons: 5,
+  },
+  nextStep: {
+    type: 'practice',
+    topic: 'Practice Variables',
+    title: 'Try It Yourself',
+    task: 'Create a variable and print its value.',
+  },
 };
 
 describe('QuizScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUpdateUserHistory.mockResolvedValue(undefined);
-    mockClearNextStep.mockResolvedValue(undefined);
+    mockCompletePathStep.mockResolvedValue(mockPathResult);
     mockGetUserDocument.mockResolvedValue({
       uid: 'test-user-123',
       goal: 'Learn Python',
       level: 'beginner',
+      learningPaths: [],
     });
   });
 
@@ -196,7 +207,7 @@ describe('QuizScreen', () => {
   });
 
   describe('next step flow', () => {
-    it('should update history and navigate on Next Step', async () => {
+    it('should call completePathStep and navigate on Next Step', async () => {
       const { getByPlaceholderText, getByText } = render(
         <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
@@ -207,24 +218,23 @@ describe('QuizScreen', () => {
       fireEvent.press(getByText('Next Step →'));
 
       await waitFor(() => {
-        expect(mockUpdateUserHistory).toHaveBeenCalledWith({
+        expect(mockCompletePathStep).toHaveBeenCalledWith('test-path-123', {
           type: 'quiz',
           topic: 'Python Variables',
           score: 100, // Correct answer
-          timestamp: expect.any(Number),
         });
       });
 
       await waitFor(() => {
-        expect(mockClearNextStep).toHaveBeenCalled();
+        expect(mockUpdatePath).toHaveBeenCalledWith('test-path-123', mockPathResult.path);
       });
 
       await waitFor(() => {
-        expect(mockClearCurrentStep).toHaveBeenCalled();
+        expect(mockSetCurrentStep).toHaveBeenCalledWith('test-path-123', mockPathResult.nextStep);
       });
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('NextStep');
+        expect(mockNavigate).toHaveBeenCalledWith('LearningSession', { pathId: 'test-path-123' });
       });
     });
 
@@ -239,17 +249,16 @@ describe('QuizScreen', () => {
       fireEvent.press(getByText('Next Step →'));
 
       await waitFor(() => {
-        expect(mockUpdateUserHistory).toHaveBeenCalledWith({
+        expect(mockCompletePathStep).toHaveBeenCalledWith('test-path-123', {
           type: 'quiz',
           topic: 'Python Variables',
           score: 0, // Incorrect answer
-          timestamp: expect.any(Number),
         });
       });
     });
 
     it('should show error alert on failure', async () => {
-      mockUpdateUserHistory.mockRejectedValueOnce(new Error('Network error'));
+      mockCompletePathStep.mockRejectedValueOnce(new Error('Network error'));
 
       const { getByPlaceholderText, getByText } = render(
         <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
@@ -304,7 +313,7 @@ describe('QuizScreen', () => {
         expectedAnswer: 'programming language',
       };
 
-      const route = { params: { step: stepWithoutTitle } };
+      const route = { params: { step: stepWithoutTitle, pathId: 'test-path-123' } };
 
       const { getByText } = render(
         <QuizScreen navigation={mockNavigation as any} route={route as any} />

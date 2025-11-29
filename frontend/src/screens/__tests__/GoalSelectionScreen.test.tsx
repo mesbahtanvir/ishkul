@@ -113,7 +113,7 @@ describe('GoalSelectionScreen', () => {
       fireEvent.changeText(input, 'Learn TypeScript');
       fireEvent.press(getByText('Next →'));
 
-      expect(mockNavigate).toHaveBeenCalledWith('LevelSelection', { goal: 'Learn TypeScript' });
+      expect(mockNavigate).toHaveBeenCalledWith('LevelSelection', { goal: 'Learn TypeScript', isCreatingNewPath: false });
     });
 
     it('should trim whitespace from goal before navigating', () => {
@@ -125,7 +125,7 @@ describe('GoalSelectionScreen', () => {
       fireEvent.changeText(input, '  Learn React  ');
       fireEvent.press(getByText('Next →'));
 
-      expect(mockNavigate).toHaveBeenCalledWith('LevelSelection', { goal: 'Learn React' });
+      expect(mockNavigate).toHaveBeenCalledWith('LevelSelection', { goal: 'Learn React', isCreatingNewPath: false });
     });
 
     it('should not navigate if goal is empty', () => {
