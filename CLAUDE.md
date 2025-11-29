@@ -39,6 +39,16 @@ go test ./...               # Run tests
 gcloud run deploy ishkul-backend --source .  # Deploy to Cloud Run
 ```
 
+## 🎯 Feature Implementation Checklist
+
+When implementing a new feature, consider ALL of the following:
+
+- [ ] **Frontend changes** - UI components, screens, state management
+- [ ] **Backend changes** - API endpoints, handlers, business logic
+- [ ] **Unit tests** - Test individual functions and components
+- [ ] **Integration tests** - Test interactions between components/services
+- [ ] **Infrastructure changes** - Firebase rules, Cloud Run config, environment variables
+
 ## 📋 After Making Code Changes - CHECKLIST
 
 **Automated Pre-Commit Checks**: Hooks run automatically before each commit to ensure:
