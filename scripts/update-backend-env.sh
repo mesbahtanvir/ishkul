@@ -8,15 +8,11 @@
 #   ./scripts/update-backend-env.sh prod           # Production mode with additional checks
 #   ./scripts/update-backend-env.sh production     # Production mode (alternative)
 #
-# The script expects a backend/.env file with the following variables:
-#   - FIREBASE_DATABASE_URL
-#   - FIREBASE_STORAGE_BUCKET
-#   - ALLOWED_ORIGINS
-#   - JWT_SECRET
-#   - GOOGLE_WEB_CLIENT_ID
-#   - GOOGLE_IOS_CLIENT_ID
-#   - GOOGLE_ANDROID_CLIENT_ID
-#   - ENVIRONMENT
+# The script reads ALL variables from backend/.env dynamically
+# Special handling:
+#   - JWT_SECRET: Managed in Google Secret Manager
+#   - Variables prefixed with _: Treated as secrets (stored in Secret Manager)
+#   - All other variables: Applied as environment variables
 #
 # Features:
 #   - Validates all required environment variables
@@ -118,72 +114,82 @@ print_status "Service: $SERVICE_NAME"
 print_status "Region: $REGION"
 
 # ============================================
-# Validate required environment variables
+# Build lists from .env file dynamically
 # ============================================
 
-print_header "\n📋 Validating environment variables..."
+print_header "\n📋 Analyzing environment variables..."
 
-MISSING_VARS=()
-OPTIONAL_VARS=()
+# Create temporary files to store variable metadata
+ENV_VARS_FILE="/tmp/ishkul_env_vars_$$.txt"
+SECRET_VARS_FILE="/tmp/ishkul_secret_vars_$$.txt"
+PLACEHOLDER_VARS_FILE="/tmp/ishkul_placeholder_vars_$$.txt"
 
-# Required variables
-[ -z "$FIREBASE_DATABASE_URL" ] && MISSING_VARS+=("FIREBASE_DATABASE_URL")
-[ -z "$FIREBASE_STORAGE_BUCKET" ] && MISSING_VARS+=("FIREBASE_STORAGE_BUCKET")
-[ -z "$ALLOWED_ORIGINS" ] && MISSING_VARS+=("ALLOWED_ORIGINS")
-[ -z "$GOOGLE_WEB_CLIENT_ID" ] && MISSING_VARS+=("GOOGLE_WEB_CLIENT_ID")
+rm -f "$ENV_VARS_FILE" "$SECRET_VARS_FILE" "$PLACEHOLDER_VARS_FILE"
+touch "$ENV_VARS_FILE" "$SECRET_VARS_FILE" "$PLACEHOLDER_VARS_FILE"
 
-# Optional variables (warn but don't fail)
-[ -z "$GOOGLE_IOS_CLIENT_ID" ] && OPTIONAL_VARS+=("GOOGLE_IOS_CLIENT_ID")
-[ -z "$GOOGLE_ANDROID_CLIENT_ID" ] && OPTIONAL_VARS+=("GOOGLE_ANDROID_CLIENT_ID")
+VAR_COUNT=0
+SECRET_COUNT=0
+PLACEHOLDER_COUNT=0
+
+# Read all variables from .env file and categorize them
+while IFS='=' read -r key value; do
+    # Skip empty lines and comments
+    [[ -z "$key" || "$key" =~ ^# ]] && continue
+    # Remove leading/trailing whitespace from key
+    key=$(echo "$key" | xargs)
+    # Remove quotes from value if present
+    value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+
+    # Skip if already processed (no duplicates)
+    grep -q "^${key}=" "$ENV_VARS_FILE" 2>/dev/null && continue
+
+    # Store variable
+    echo "${key}=${value}" >> "$ENV_VARS_FILE"
+    ((VAR_COUNT++))
+
+    # Categorize: JWT_SECRET and vars starting with underscore are secrets
+    if [[ "$key" == "JWT_SECRET" ]] || [[ "$key" =~ ^_ ]]; then
+        echo "$key" >> "$SECRET_VARS_FILE"
+        ((SECRET_COUNT++))
+    fi
+
+    # Check for placeholder values
+    if [[ "$value" == *"your-"* ]] || [[ "$value" == *"your_"* ]] || [[ "$value" == "PLACEHOLDER" ]]; then
+        echo "${key}=${value}" >> "$PLACEHOLDER_VARS_FILE"
+        ((PLACEHOLDER_COUNT++))
+    fi
+done < "$ENV_FILE"
 
 # Handle ENVIRONMENT - override if in production mode
 if [[ "$PRODUCTION_MODE" == "production" ]]; then
-    ENVIRONMENT="production"
+    sed -i '' '/^ENVIRONMENT=/d' "$ENV_VARS_FILE"
+    echo "ENVIRONMENT=production" >> "$ENV_VARS_FILE"
     print_status "ENVIRONMENT overridden to 'production' (production mode)"
-elif [ -z "$ENVIRONMENT" ]; then
-    ENVIRONMENT="development"
+elif ! grep -q "^ENVIRONMENT=" "$ENV_VARS_FILE" 2>/dev/null; then
+    echo "ENVIRONMENT=development" >> "$ENV_VARS_FILE"
+    ((VAR_COUNT++))
     print_status "ENVIRONMENT defaulted to 'development'"
 fi
 
-if [ ${#MISSING_VARS[@]} -ne 0 ]; then
-    print_error "Missing required environment variables in backend/.env:"
-    for var in "${MISSING_VARS[@]}"; do
-        print_error "  - $var"
-    done
-    exit 1
-fi
+print_status "Found $VAR_COUNT total variables ($SECRET_COUNT as secrets)"
 
-if [ ${#OPTIONAL_VARS[@]} -ne 0 ]; then
-    print_warning "Optional environment variables not set (may be needed for mobile OAuth):"
-    for var in "${OPTIONAL_VARS[@]}"; do
-        print_warning "  - $var"
-    done
-    echo ""
-fi
-
-# Check for placeholder values (only in set variables)
-PLACEHOLDER_VARS=()
-[[ "$GOOGLE_WEB_CLIENT_ID" == *"your-"* ]] && PLACEHOLDER_VARS+=("GOOGLE_WEB_CLIENT_ID")
-[[ -n "$GOOGLE_IOS_CLIENT_ID" && "$GOOGLE_IOS_CLIENT_ID" == *"your-"* ]] && PLACEHOLDER_VARS+=("GOOGLE_IOS_CLIENT_ID")
-[[ -n "$GOOGLE_ANDROID_CLIENT_ID" && "$GOOGLE_ANDROID_CLIENT_ID" == *"your-"* ]] && PLACEHOLDER_VARS+=("GOOGLE_ANDROID_CLIENT_ID")
-[[ "$FIREBASE_DATABASE_URL" == *"your-project"* ]] && PLACEHOLDER_VARS+=("FIREBASE_DATABASE_URL")
-[[ "$FIREBASE_STORAGE_BUCKET" == *"your-project"* ]] && PLACEHOLDER_VARS+=("FIREBASE_STORAGE_BUCKET")
-
-if [ ${#PLACEHOLDER_VARS[@]} -ne 0 ]; then
+# Check for placeholder values
+if [ $PLACEHOLDER_COUNT -gt 0 ]; then
     print_warning "Some variables still have placeholder values:"
-    for var in "${PLACEHOLDER_VARS[@]}"; do
-        print_warning "  - $var"
-    done
+    while IFS='=' read -r key value; do
+        print_warning "  - $key = $value"
+    done < "$PLACEHOLDER_VARS_FILE"
     echo ""
     read -p "Continue anyway? (y/N) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        rm -f "$ENV_VARS_FILE" "$SECRET_VARS_FILE" "$PLACEHOLDER_VARS_FILE"
         print_error "Update backend/.env with actual values and try again."
         exit 1
     fi
 fi
 
-print_status "All required variables found"
+print_status "Configuration loaded successfully"
 
 # ============================================
 # Production Mode Additional Checks
@@ -193,20 +199,16 @@ if [[ "$PRODUCTION_MODE" == "production" ]]; then
     print_header "\n⚠️  Production Mode Detected - Running Additional Checks..."
 
     # Check for localhost in ALLOWED_ORIGINS
-    if [[ "$ALLOWED_ORIGINS" == *"localhost"* ]] || [[ "$ALLOWED_ORIGINS" == *"127.0.0.1"* ]]; then
+    ALLOWED_ORIGINS_VALUE=$(grep "^ALLOWED_ORIGINS=" "$ENV_VARS_FILE" 2>/dev/null | cut -d'=' -f2-)
+    if [[ "$ALLOWED_ORIGINS_VALUE" == *"localhost"* ]] || [[ "$ALLOWED_ORIGINS_VALUE" == *"127.0.0.1"* ]]; then
         print_warning "ALLOWED_ORIGINS contains localhost - this may not be intended for production"
         read -p "Continue anyway? (y/N) " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            rm -f "$ENV_VARS_FILE" "$SECRET_VARS_FILE" "$PLACEHOLDER_VARS_FILE"
             print_error "Update ALLOWED_ORIGINS in backend/.env for your production domain"
             exit 1
         fi
-    fi
-
-    # Warn about missing mobile OAuth client IDs
-    if [ ${#OPTIONAL_VARS[@]} -ne 0 ]; then
-        print_warning "Production mode detected but optional OAuth client IDs are missing"
-        print_warning "Mobile authentication may not work without GOOGLE_IOS_CLIENT_ID and GOOGLE_ANDROID_CLIENT_ID"
     fi
 fi
 
@@ -278,22 +280,40 @@ print_status "Granted Secret Manager access to: $COMPUTE_SERVICE_ACCOUNT"
 print_status "Secret Manager permissions configured"
 
 # ============================================
-# Update Cloud Run Environment Variables
+# Build dynamic Cloud Run update command
 # ============================================
 
 print_header "\n🚀 Updating Cloud Run service..."
 
-gcloud run services update $SERVICE_NAME \
-    --region=$REGION \
-    --project=$PROJECT_ID \
-    --set-env-vars="ENVIRONMENT=$ENVIRONMENT" \
-    --set-env-vars="FIREBASE_DATABASE_URL=$FIREBASE_DATABASE_URL" \
-    --set-env-vars="FIREBASE_STORAGE_BUCKET=$FIREBASE_STORAGE_BUCKET" \
-    --set-env-vars="ALLOWED_ORIGINS=$ALLOWED_ORIGINS" \
-    --set-env-vars="GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" \
-    --set-env-vars="GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID" \
-    --set-env-vars="GOOGLE_ANDROID_CLIENT_ID=$GOOGLE_ANDROID_CLIENT_ID" \
-    --set-secrets="JWT_SECRET=${JWT_SECRET_NAME}:latest"
+# Build environment variable flags
+ENV_FLAGS=""
+SECRETS_FLAGS=""
+
+while IFS='=' read -r key value; do
+    # Skip empty values or keys
+    [[ -z "$key" || -z "$value" ]] && continue
+
+    # Skip reserved Cloud Run env vars
+    if [[ "$key" == "PORT" ]] || [[ "$key" == "GOOGLE_APPLICATION_CREDENTIALS" ]]; then
+        continue
+    fi
+
+    if [[ "$key" == "JWT_SECRET" ]] || [[ "$key" =~ ^_ ]]; then
+        # Handle as secret (these go to Secret Manager)
+        if [[ "$key" == "JWT_SECRET" ]]; then
+            SECRETS_FLAGS="$SECRETS_FLAGS --set-secrets=\"JWT_SECRET=${JWT_SECRET_NAME}:latest\""
+        fi
+    else
+        # Handle as regular environment variable
+        # Escape special characters for gcloud
+        escaped_value=$(printf '%s\n' "$value" | sed -e 's/[\/&]/\\&/g')
+        ENV_FLAGS="$ENV_FLAGS --set-env-vars=\"${key}=${escaped_value}\""
+    fi
+done < "$ENV_VARS_FILE"
+
+# Execute the update command
+update_cmd="gcloud run services update $SERVICE_NAME --region=$REGION --project=$PROJECT_ID $ENV_FLAGS $SECRETS_FLAGS"
+eval "$update_cmd"
 
 # ============================================
 # Summary & What Has Been Applied
@@ -320,21 +340,24 @@ print_status "  Project ID: $PROJECT_ID"
 print_status "  Mode: $(echo "$PRODUCTION_MODE" | tr '[:lower:]' '[:upper:]')"
 print_status "  Source Config: $ENV_FILE"
 echo ""
-print_status "Environment Variables Applied:"
-print_status "  ✓ ENVIRONMENT = $ENVIRONMENT"
-print_status "  ✓ FIREBASE_DATABASE_URL = $FIREBASE_DATABASE_URL"
-print_status "  ✓ FIREBASE_STORAGE_BUCKET = $FIREBASE_STORAGE_BUCKET"
-print_status "  ✓ ALLOWED_ORIGINS = $ALLOWED_ORIGINS"
-print_status "  ✓ GOOGLE_WEB_CLIENT_ID = $GOOGLE_WEB_CLIENT_ID"
-[ -n "$GOOGLE_IOS_CLIENT_ID" ] && print_status "  ✓ GOOGLE_IOS_CLIENT_ID = $GOOGLE_IOS_CLIENT_ID"
-[ -n "$GOOGLE_ANDROID_CLIENT_ID" ] && print_status "  ✓ GOOGLE_ANDROID_CLIENT_ID = $GOOGLE_ANDROID_CLIENT_ID"
-[ -z "$GOOGLE_IOS_CLIENT_ID" ] || [ -z "$GOOGLE_ANDROID_CLIENT_ID" ] && print_status "  ⚠ Mobile OAuth client IDs not set (optional)"
+print_status "Environment Variables Applied ($VAR_COUNT total):"
+while IFS='=' read -r key value; do
+    [[ -z "$key" || -z "$value" ]] && continue
+    if [[ "$key" == "JWT_SECRET" ]] || [[ "$key" =~ ^_ ]]; then
+        print_status "  ✓ $key = *** (Secret Manager)"
+    else
+        print_status "  ✓ $key = $value"
+    fi
+done < "$ENV_VARS_FILE"
 echo ""
 print_status "Secrets Management:"
 print_status "  ✓ JWT_SECRET = $JWT_ACTION (Secret Manager)"
 print_status "  ✓ Secret Manager API enabled"
 print_status "  ✓ Service account permissions configured"
 echo ""
+
+# Cleanup temporary files
+rm -f "$ENV_VARS_FILE" "$SECRET_VARS_FILE" "$PLACEHOLDER_VARS_FILE"
 
 SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --project=$PROJECT_ID --format='value(status.url)' 2>/dev/null || echo 'N/A')
 print_status "Service Details:"
