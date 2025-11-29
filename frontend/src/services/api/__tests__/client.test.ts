@@ -3,6 +3,7 @@ import { ApiError, apiClient } from '../client';
 // Mock tokenStorage
 jest.mock('../tokenStorage', () => ({
   tokenStorage: {
+    initialize: jest.fn().mockResolvedValue(undefined),
     getAccessToken: jest.fn(),
     getRefreshToken: jest.fn(),
     hasTokens: jest.fn(),
