@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiConfig } from '../config/firebase.config';
-import { User, UserDocument } from '../types/app';
+import { User, UserDocument, LearningPath, NextStep, HistoryEntry } from '../types/app';
 
 // Storage keys for tokens
 const ACCESS_TOKEN_KEY = '@ishkul/accessToken';
@@ -369,6 +369,89 @@ export const userApi = {
     timesTested: number;
   }): Promise<void> {
     await api.post('/me/memory', memory);
+  },
+};
+
+/**
+ * Learning Paths API methods
+ */
+export const learningPathsApi = {
+  /**
+   * Get all learning paths for the user
+   */
+  async getPaths(): Promise<LearningPath[]> {
+    try {
+      const response = await api.get<{ paths: LearningPath[] }>('/learning-paths');
+      return response.paths || [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Get a specific learning path
+   */
+  async getPath(pathId: string): Promise<LearningPath | null> {
+    try {
+      const response = await api.get<{ path: LearningPath }>(`/learning-paths/${pathId}`);
+      return response.path;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Create a new learning path
+   */
+  async createPath(path: LearningPath): Promise<LearningPath> {
+    const response = await api.post<{ path: LearningPath }>('/learning-paths', path);
+    return response.path;
+  },
+
+  /**
+   * Update a learning path
+   */
+  async updatePath(pathId: string, updates: Partial<LearningPath>): Promise<void> {
+    await api.patch(`/learning-paths/${pathId}`, updates);
+  },
+
+  /**
+   * Delete a learning path
+   */
+  async deletePath(pathId: string): Promise<void> {
+    await api.delete(`/learning-paths/${pathId}`);
+  },
+
+  /**
+   * Start/continue a learning session - get next step
+   */
+  async getNextStep(pathId: string): Promise<NextStep> {
+    const response = await api.post<{ step: NextStep }>(`/learning-paths/${pathId}/session`);
+    return response.step;
+  },
+
+  /**
+   * Complete current step in a learning path
+   */
+  async completeStep(
+    pathId: string,
+    stepData: { type: string; topic: string; score?: number }
+  ): Promise<{ path: LearningPath; nextStep?: NextStep }> {
+    const response = await api.post<{ path: LearningPath; nextStep?: NextStep }>(
+      `/learning-paths/${pathId}/complete`,
+      stepData
+    );
+    return response;
+  },
+
+  /**
+   * Update memory for a topic in a specific learning path
+   */
+  async updatePathMemory(
+    pathId: string,
+    memory: { topic: string; confidence: number; timesTested: number }
+  ): Promise<void> {
+    await api.post(`/learning-paths/${pathId}/memory`, memory);
   },
 };
 

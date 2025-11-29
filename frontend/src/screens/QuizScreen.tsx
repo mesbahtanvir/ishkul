@@ -1,30 +1,31 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
-import { useLearningStore } from '../state/learningStore';
-import { updateUserHistory, clearNextStep, getUserDocument } from '../services/memory';
+import { useLearningPathsStore } from '../state/learningPathsStore';
+import { completePathStep, getUserDocument } from '../services/memory';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
-import { HistoryEntry, NextStep } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
 type QuizScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Quiz'>;
+type QuizScreenRouteProp = RouteProp<RootStackParamList, 'Quiz'>;
 
 interface QuizScreenProps {
   navigation: QuizScreenNavigationProp;
-  route: { params: { step: NextStep } };
+  route: QuizScreenRouteProp;
 }
 
 export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => {
-  const { step } = route.params;
-  const { userDocument, setUserDocument } = useUserStore();
-  const { clearCurrentStep } = useLearningStore();
+  const { step, pathId } = route.params;
+  const { setUserDocument } = useUserStore();
+  const { updatePath, setCurrentStep } = useLearningPathsStore();
   const [answer, setAnswer] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -41,26 +42,26 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
   };
 
   const handleNextStep = async () => {
-    if (!userDocument) return;
-
     try {
       setLoading(true);
 
-      const historyEntry: HistoryEntry = {
+      // Complete the step with score
+      const result = await completePathStep(pathId, {
         type: 'quiz',
         topic: step.topic,
         score: isCorrect ? 100 : 0,
-        timestamp: Date.now(),
-      };
+      });
 
-      await updateUserHistory(historyEntry);
-      await clearNextStep();
+      // Update local state
+      updatePath(pathId, result.path);
+      setCurrentStep(pathId, result.nextStep);
 
+      // Refresh user document
       const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
-      clearCurrentStep();
-      navigation.navigate('NextStep');
+      // Navigate back to session
+      navigation.navigate('LearningSession', { pathId });
     } catch (error) {
       console.error('Error completing quiz:', error);
       Alert.alert('Error', 'Failed to save progress. Please try again.');

@@ -23,12 +23,15 @@ export const ProgressScreen: React.FC = () => {
       };
     }
 
-    const lessons = userDocument.history.filter((h) => h.type === 'lesson').length;
-    const quizzes = userDocument.history.filter((h) => h.type === 'quiz').length;
-    const practice = userDocument.history.filter((h) => h.type === 'practice').length;
-    const topics = Object.keys(userDocument.memory.topics).length;
+    const history = userDocument.history || [];
+    const memory = userDocument.memory || { topics: {} };
 
-    const quizScores = userDocument.history
+    const lessons = history.filter((h) => h.type === 'lesson').length;
+    const quizzes = history.filter((h) => h.type === 'quiz').length;
+    const practice = history.filter((h) => h.type === 'practice').length;
+    const topics = Object.keys(memory.topics).length;
+
+    const quizScores = history
       .filter((h) => h.type === 'quiz' && h.score !== undefined)
       .map((h) => h.score || 0);
     const avgScore = quizScores.length > 0
@@ -117,10 +120,10 @@ export const ProgressScreen: React.FC = () => {
           )}
         </View>
 
-        {userDocument.history.length > 0 && (
+        {(userDocument.history?.length ?? 0) > 0 && (
           <View style={styles.recentActivity}>
             <Text style={styles.recentTitle}>Recent Activity</Text>
-            {userDocument.history.slice(-5).reverse().map((item, index) => (
+            {(userDocument.history || []).slice(-5).reverse().map((item, index) => (
               <View key={index} style={styles.activityItem}>
                 <View style={styles.activityIcon}>
                   <Text style={styles.activityEmoji}>

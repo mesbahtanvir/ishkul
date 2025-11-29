@@ -1,55 +1,56 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
-import { useLearningStore } from '../state/learningStore';
-import { updateUserHistory, clearNextStep, getUserDocument } from '../services/memory';
+import { useLearningPathsStore } from '../state/learningPathsStore';
+import { completePathStep, getUserDocument } from '../services/memory';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
-import { HistoryEntry, NextStep } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
 type PracticeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Practice'>;
+type PracticeScreenRouteProp = RouteProp<RootStackParamList, 'Practice'>;
 
 interface PracticeScreenProps {
   navigation: PracticeScreenNavigationProp;
-  route: { params: { step: NextStep } };
+  route: PracticeScreenRouteProp;
 }
 
 export const PracticeScreen: React.FC<PracticeScreenProps> = ({
   navigation,
   route,
 }) => {
-  const { step } = route.params;
-  const { userDocument, setUserDocument } = useUserStore();
-  const { clearCurrentStep } = useLearningStore();
+  const { step, pathId } = route.params;
+  const { setUserDocument } = useUserStore();
+  const { updatePath, setCurrentStep } = useLearningPathsStore();
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
 
   const handleDone = async () => {
-    if (!userDocument) return;
-
     try {
       setLoading(true);
 
-      const historyEntry: HistoryEntry = {
+      // Complete the step
+      const result = await completePathStep(pathId, {
         type: 'practice',
         topic: step.topic,
-        timestamp: Date.now(),
-      };
+      });
 
-      await updateUserHistory(historyEntry);
-      await clearNextStep();
+      // Update local state
+      updatePath(pathId, result.path);
+      setCurrentStep(pathId, result.nextStep);
 
+      // Refresh user document
       const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
-      clearCurrentStep();
-      navigation.navigate('NextStep');
+      // Navigate back to session
+      navigation.navigate('LearningSession', { pathId });
     } catch (error) {
       console.error('Error completing practice:', error);
       Alert.alert('Error', 'Failed to save progress. Please try again.');

@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
-import { createUserDocument, getUserDocument } from '../services/memory';
+import { useLearningPathsStore, getEmojiForGoal, generatePathId } from '../state/learningPathsStore';
+import { createUserDocument, getUserDocument, addLearningPath } from '../services/memory';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
-import { LevelType } from '../types/app';
+import { LevelType, LearningPath } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
 type LevelSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'LevelSelection'>;
+type LevelSelectionScreenRouteProp = RouteProp<RootStackParamList, 'LevelSelection'>;
 
 interface LevelSelectionScreenProps {
   navigation: LevelSelectionScreenNavigationProp;
-  route: { params: { goal: string } };
+  route: LevelSelectionScreenRouteProp;
 }
 
 const LEVELS = [
@@ -44,8 +47,9 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
   navigation,
   route,
 }) => {
-  const { goal } = route.params;
-  const { user, setUserDocument } = useUserStore();
+  const { goal, isCreatingNewPath } = route.params;
+  const { user, userDocument, setUserDocument } = useUserStore();
+  const { addPath } = useLearningPathsStore();
   const [selectedLevel, setSelectedLevel] = useState<LevelType | null>(null);
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
@@ -55,18 +59,69 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
 
     try {
       setLoading(true);
-      await createUserDocument(goal, selectedLevel);
 
-      const userDoc = await getUserDocument();
-      setUserDocument(userDoc);
+      if (isCreatingNewPath && userDocument) {
+        // Creating a new learning path for existing user
+        const now = Date.now();
+        const newPath: LearningPath = {
+          id: generatePathId(),
+          goal,
+          level: selectedLevel,
+          emoji: getEmojiForGoal(goal),
+          progress: 0,
+          lessonsCompleted: 0,
+          totalLessons: 10, // Initial estimate
+          memory: { topics: {} },
+          history: [],
+          createdAt: now,
+          updatedAt: now,
+          lastAccessedAt: now,
+        };
 
-      navigation.replace('Main');
+        await addLearningPath(newPath);
+        addPath(newPath);
+
+        // Refresh user document
+        const userDoc = await getUserDocument();
+        setUserDocument(userDoc);
+
+        // Navigate back to Home
+        navigation.navigate('Home');
+      } else {
+        // First-time user - create user document with first learning path
+        const now = Date.now();
+        const firstPath: LearningPath = {
+          id: generatePathId(),
+          goal,
+          level: selectedLevel,
+          emoji: getEmojiForGoal(goal),
+          progress: 0,
+          lessonsCompleted: 0,
+          totalLessons: 10,
+          memory: { topics: {} },
+          history: [],
+          createdAt: now,
+          updatedAt: now,
+          lastAccessedAt: now,
+        };
+
+        await createUserDocument(goal, selectedLevel, firstPath);
+
+        const userDoc = await getUserDocument();
+        setUserDocument(userDoc);
+
+        navigation.replace('Main');
+      }
     } catch (error) {
-      console.error('Error saving user profile:', error);
-      Alert.alert('Error', 'Failed to save your profile. Please try again.');
+      console.error('Error saving:', error);
+      Alert.alert('Error', 'Failed to save. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBack = () => {
+    navigation.goBack();
   };
 
   // Responsive values
@@ -81,6 +136,11 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
   return (
     <Container>
       <View style={styles.content}>
+        {isCreatingNewPath && (
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Text style={styles.backButtonText}>← Back</Text>
+          </TouchableOpacity>
+        )}
         <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
           <Text style={[styles.title, { fontSize: titleSize }]}>Choose your level</Text>
           <Text style={styles.subtitle}>
@@ -135,6 +195,15 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
 const styles = StyleSheet.create({
   content: {
     flex: 1,
+  },
+  backButton: {
+    marginBottom: Spacing.md,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    ...Typography.body.medium,
+    color: Colors.primary,
+    fontWeight: '600',
   },
   header: {
     marginBottom: Spacing.xl,

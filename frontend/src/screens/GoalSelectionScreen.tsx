@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
@@ -11,9 +12,11 @@ import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 
 type GoalSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoalSelection'>;
+type GoalSelectionScreenRouteProp = RouteProp<RootStackParamList, 'GoalSelection'>;
 
 interface GoalSelectionScreenProps {
   navigation: GoalSelectionScreenNavigationProp;
+  route: GoalSelectionScreenRouteProp;
 }
 
 const EXAMPLE_GOALS = [
@@ -26,14 +29,23 @@ const EXAMPLE_GOALS = [
 
 export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
   navigation,
+  route,
 }) => {
   const [goal, setGoal] = useState('');
   const { responsive, isSmallPhone, isTablet } = useResponsive();
+  const isCreatingNewPath = route.params?.isCreatingNewPath ?? false;
 
   const handleNext = () => {
     if (goal.trim()) {
-      navigation.navigate('LevelSelection', { goal: goal.trim() });
+      navigation.navigate('LevelSelection', {
+        goal: goal.trim(),
+        isCreatingNewPath,
+      });
     }
+  };
+
+  const handleBack = () => {
+    navigation.goBack();
   };
 
   const handleExamplePress = (exampleGoal: string) => {
@@ -52,6 +64,11 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
   return (
     <Container scrollable>
       <View style={styles.content}>
+        {isCreatingNewPath && (
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Text style={styles.backButtonText}>← Back</Text>
+          </TouchableOpacity>
+        )}
         <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
           <Text style={[styles.title, { fontSize: titleSize }]}>
             What do you want to learn?
@@ -104,6 +121,15 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
 const styles = StyleSheet.create({
   content: {
     flex: 1,
+  },
+  backButton: {
+    marginBottom: Spacing.md,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    ...Typography.body.medium,
+    color: Colors.primary,
+    fontWeight: '600',
   },
   header: {
     marginBottom: Spacing.xl,

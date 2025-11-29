@@ -10,6 +10,11 @@ const mockNavigation = {
   goBack: jest.fn(),
 };
 
+// Mock route
+const mockRoute = {
+  params: { isCreatingNewPath: false },
+};
+
 describe('GoalSelectionScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -18,7 +23,7 @@ describe('GoalSelectionScreen', () => {
   describe('rendering', () => {
     it('should render the title', () => {
       const { getByText } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       expect(getByText('What do you want to learn?')).toBeTruthy();
@@ -26,7 +31,7 @@ describe('GoalSelectionScreen', () => {
 
     it('should render the subtitle', () => {
       const { getByText } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       expect(getByText(/Set your learning goal/)).toBeTruthy();
@@ -34,7 +39,7 @@ describe('GoalSelectionScreen', () => {
 
     it('should render the input field with label', () => {
       const { getByText, getByPlaceholderText } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       expect(getByText('Your Learning Goal')).toBeTruthy();
@@ -43,7 +48,7 @@ describe('GoalSelectionScreen', () => {
 
     it('should render all example goals', () => {
       const { getByText } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       expect(getByText('Popular Goals')).toBeTruthy();
@@ -56,7 +61,7 @@ describe('GoalSelectionScreen', () => {
 
     it('should render the Next button', () => {
       const { getByText } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       expect(getByText('Next →')).toBeTruthy();
@@ -66,7 +71,7 @@ describe('GoalSelectionScreen', () => {
   describe('input behavior', () => {
     it('should update goal when user types', () => {
       const { getByPlaceholderText, getByDisplayValue } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       const input = getByPlaceholderText(/Learn Spanish/);
@@ -77,7 +82,7 @@ describe('GoalSelectionScreen', () => {
 
     it('should set goal when example is pressed', () => {
       const { getByText, getByDisplayValue } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       fireEvent.press(getByText('Learn Python'));
@@ -87,7 +92,7 @@ describe('GoalSelectionScreen', () => {
 
     it('should allow pressing different examples', () => {
       const { getByText, getByDisplayValue } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       fireEvent.press(getByText('Learn to Cook'));
@@ -101,31 +106,31 @@ describe('GoalSelectionScreen', () => {
   describe('navigation', () => {
     it('should navigate to LevelSelection with goal when Next is pressed', () => {
       const { getByPlaceholderText, getByText } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       const input = getByPlaceholderText(/Learn Spanish/);
       fireEvent.changeText(input, 'Learn TypeScript');
       fireEvent.press(getByText('Next →'));
 
-      expect(mockNavigate).toHaveBeenCalledWith('LevelSelection', { goal: 'Learn TypeScript' });
+      expect(mockNavigate).toHaveBeenCalledWith('LevelSelection', { goal: 'Learn TypeScript', isCreatingNewPath: false });
     });
 
     it('should trim whitespace from goal before navigating', () => {
       const { getByPlaceholderText, getByText } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       const input = getByPlaceholderText(/Learn Spanish/);
       fireEvent.changeText(input, '  Learn React  ');
       fireEvent.press(getByText('Next →'));
 
-      expect(mockNavigate).toHaveBeenCalledWith('LevelSelection', { goal: 'Learn React' });
+      expect(mockNavigate).toHaveBeenCalledWith('LevelSelection', { goal: 'Learn React', isCreatingNewPath: false });
     });
 
     it('should not navigate if goal is empty', () => {
       const { getByText } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       fireEvent.press(getByText('Next →'));
@@ -135,7 +140,7 @@ describe('GoalSelectionScreen', () => {
 
     it('should not navigate if goal is only whitespace', () => {
       const { getByPlaceholderText, getByText } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       const input = getByPlaceholderText(/Learn Spanish/);
@@ -149,7 +154,7 @@ describe('GoalSelectionScreen', () => {
   describe('button state', () => {
     it('should disable button when goal is empty', () => {
       const { getByText } = render(
-        <GoalSelectionScreen navigation={mockNavigation as any} />
+        <GoalSelectionScreen navigation={mockNavigation as any} route={mockRoute as any} />
       );
 
       // Button should be rendered but disabled state is handled by the Button component
