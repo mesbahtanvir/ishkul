@@ -562,11 +562,35 @@ Always keep these files synchronized:
 
 ### Before Committing
 
-1. Run type checks: `npm run type-check`
-2. Run linter: `npm run lint`
-3. Test on at least one platform (web easiest)
-4. Update CLAUDE.md if architecture changed
-5. Write clear commit messages
+Run these CI checks locally before committing to catch issues early:
+
+**Frontend (from `frontend/` directory):**
+```bash
+npm run lint                 # ESLint - must pass with no errors (warnings OK)
+npm run type-check           # TypeScript - must pass
+npm test -- --watchAll=false # Jest tests - all must pass
+```
+
+**Backend (from `backend/` directory):**
+```bash
+gofmt -l .                                    # Check formatting (no output = OK)
+go test ./internal/... ./pkg/...              # Run tests
+golangci-lint run --path-prefix=backend       # Linting (if available)
+```
+
+**Quick All-in-One Check:**
+```bash
+# Frontend
+cd frontend && npm run lint && npm run type-check && npm test -- --watchAll=false
+
+# Backend
+cd backend && gofmt -l . && go test ./internal/... ./pkg/...
+```
+
+**Additional Guidelines:**
+1. Test on at least one platform (web easiest)
+2. Update CLAUDE.md if architecture changed
+3. Write clear commit messages
 
 ### Before Deploying
 

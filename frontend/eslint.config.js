@@ -49,6 +49,10 @@ export default [
       'android/',
       '*.config.js',
       '*.config.ts',
+      '*.config.cjs',
+      'jest.setup.cjs',
+      'babel.config.cjs',
+      '__mocks__/',
     ],
   },
 ];
