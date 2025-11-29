@@ -69,13 +69,17 @@ export const useThemeStore = create<ThemeState>()(
       // Only persist the themeMode, not the resolved values
       partialize: (state) => ({ themeMode: state.themeMode }),
       onRehydrateStorage: () => (state) => {
+        // Always set hydrated to true after rehydration attempt
+        // This handles both cases: when persisted data exists and when it doesn't (first load)
         if (state) {
           // Recalculate resolved theme after hydration
           const resolved = resolveTheme(state.themeMode);
           state.resolvedTheme = resolved;
           state.colors = getColors(resolved);
-          state.isHydrated = true;
         }
+        // IMPORTANT: Set hydrated even if state is null (first app load)
+        // Otherwise the app will show loading screen forever
+        useThemeStore.setState({ isHydrated: true });
       },
     }
   )
