@@ -5,7 +5,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
@@ -33,6 +33,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
 }) => {
   const [goal, setGoal] = useState('');
   const { responsive, isSmallPhone, isTablet } = useResponsive();
+  const { colors } = useTheme();
   const isCreatingNewPath = route.params?.isCreatingNewPath ?? false;
 
   const handleNext = () => {
@@ -66,14 +67,14 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
       <View style={styles.content}>
         {isCreatingNewPath && (
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Back</Text>
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
           </TouchableOpacity>
         )}
         <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
-          <Text style={[styles.title, { fontSize: titleSize }]}>
+          <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
             What do you want to learn?
           </Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: colors.ios.gray }]}>
             Set your learning goal and we'll create a personalized learning path for you
           </Text>
         </View>
@@ -89,19 +90,19 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
           />
 
           <View style={[styles.examplesContainer, isSmallPhone && styles.examplesContainerSmall]}>
-            <Text style={styles.examplesLabel}>Popular Goals</Text>
+            <Text style={[styles.examplesLabel, { color: colors.text.primary }]}>Popular Goals</Text>
             <View style={[styles.examplesGrid, isTablet && styles.examplesGridTablet]}>
               {EXAMPLE_GOALS.map((example, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={[styles.exampleCard, { minWidth: cardMinWidth }]}
+                  style={[styles.exampleCard, { minWidth: cardMinWidth, backgroundColor: colors.card.default }]}
                   onPress={() => handleExamplePress(example.title)}
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.exampleEmoji, { fontSize: emojiSize }]}>
                     {example.emoji}
                   </Text>
-                  <Text style={styles.exampleTitle}>{example.title}</Text>
+                  <Text style={[styles.exampleTitle, { color: colors.text.primary }]}>{example.title}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -128,7 +129,6 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     ...Typography.body.medium,
-    color: Colors.primary,
     fontWeight: '600',
   },
   header: {
@@ -139,12 +139,10 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.heading.h1,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     ...Typography.body.medium,
-    color: Colors.ios.gray,
     lineHeight: Typography.body.large.lineHeight,
   },
   form: {
@@ -160,7 +158,6 @@ const styles = StyleSheet.create({
   examplesLabel: {
     ...Typography.body.medium,
     fontWeight: '600',
-    color: Colors.text.primary,
     marginBottom: Spacing.md,
   },
   examplesGrid: {
@@ -172,7 +169,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   exampleCard: {
-    backgroundColor: Colors.card.default,
     borderRadius: Spacing.borderRadius.md,
     padding: Spacing.md,
     alignItems: 'center',
@@ -185,7 +181,6 @@ const styles = StyleSheet.create({
   exampleTitle: {
     ...Typography.body.small,
     fontWeight: '500',
-    color: Colors.text.primary,
     textAlign: 'center',
   },
 });

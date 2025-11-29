@@ -7,7 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Spacing } from '../theme/spacing';
 
 interface ButtonProps {
@@ -31,18 +31,20 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
 }) => {
-  const getButtonStyle = () => {
+  const { colors } = useTheme();
+
+  const getButtonStyle = (): ViewStyle => {
     switch (variant) {
       case 'secondary':
-        return styles.secondaryButton;
+        return { backgroundColor: colors.gray100 };
       case 'outline':
-        return styles.outlineButton;
+        return { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.gray300 };
       case 'ghost':
-        return styles.ghostButton;
+        return { backgroundColor: 'transparent' };
       case 'danger':
-        return styles.dangerButton;
+        return { backgroundColor: colors.danger };
       default:
-        return styles.primaryButton;
+        return { backgroundColor: colors.primary };
     }
   };
 
@@ -57,25 +59,23 @@ export const Button: React.FC<ButtonProps> = ({
     }
   };
 
-  const getTextStyle = () => {
+  const getTextStyle = (): TextStyle => {
     switch (variant) {
       case 'outline':
-        return styles.outlineText;
+        return { color: colors.text.primary };
       case 'ghost':
-        return styles.ghostText;
+        return { color: colors.primary };
       case 'danger':
-        return styles.dangerText;
+        return { color: colors.white };
       default:
-        return styles.buttonText;
+        return { color: colors.white };
     }
   };
 
   const loaderColor =
     variant === 'outline' || variant === 'ghost'
-      ? Colors.primary
-      : variant === 'danger'
-        ? Colors.white
-        : Colors.white;
+      ? colors.primary
+      : colors.white;
 
   return (
     <TouchableOpacity
@@ -93,7 +93,7 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator color={loaderColor} size="small" />
       ) : (
-        <Text style={[getTextStyle(), textStyle]}>{title}</Text>
+        <Text style={[styles.buttonText, getTextStyle(), textStyle]}>{title}</Text>
       )}
     </TouchableOpacity>
   );
@@ -106,46 +106,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryButton: {
-    backgroundColor: Colors.primary,
-  },
-  secondaryButton: {
-    backgroundColor: Colors.gray100,
-  },
-  outlineButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.gray300,
-  },
-  ghostButton: {
-    backgroundColor: 'transparent',
-  },
-  dangerButton: {
-    backgroundColor: Colors.danger,
-  },
   disabled: {
     opacity: 0.5,
   },
   buttonText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-  outlineText: {
-    color: Colors.text.primary,
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-  ghostText: {
-    color: Colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-  dangerText: {
-    color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.3,

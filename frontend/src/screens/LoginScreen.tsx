@@ -11,7 +11,7 @@ import { Container } from '../components/Container';
 import { useUserStore } from '../state/userStore';
 import { signInWithGoogleIdToken, useGoogleAuth } from '../services/auth';
 import { getUserDocument } from '../services/memory';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
@@ -27,6 +27,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { setUser, setUserDocument, setLoading } = useUserStore();
   const { request, response, promptAsync, configError } = useGoogleAuth();
   const { responsive, isSmallPhone } = useResponsive();
+  const { colors } = useTheme();
 
   useEffect(() => {
     const handleAuthResponse = async () => {
@@ -83,7 +84,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const subtitleSize = responsive(16, 18, 20, 22);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background.primary }]}>
       <Container padding="none" scrollable>
         <View style={styles.content}>
           <View style={styles.topSection}>
@@ -91,24 +92,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           </View>
 
           <View style={styles.middleSection}>
-            <Text style={[styles.title, { fontSize: titleSize }]}>Ishkul</Text>
-            <Text style={[styles.subtitle, { fontSize: subtitleSize }]}>Learn anything</Text>
+            <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>Ishkul</Text>
+            <Text style={[styles.subtitle, { fontSize: subtitleSize, color: colors.text.secondary }]}>Learn anything</Text>
           </View>
 
           <View style={[styles.bottomSection, isSmallPhone && styles.bottomSectionSmall]}>
             <TouchableOpacity
               style={[
                 styles.googleButton,
+                { backgroundColor: colors.primary },
                 !request && styles.googleButtonDisabled,
               ]}
               onPress={handleSignIn}
               disabled={!request}
               activeOpacity={0.7}
             >
-              <Text style={styles.googleButtonText}>Sign in with Google</Text>
+              <Text style={[styles.googleButtonText, { color: colors.white }]}>Sign in with Google</Text>
             </TouchableOpacity>
 
-            <Text style={styles.termsText}>
+            <Text style={[styles.termsText, { color: colors.text.tertiary }]}>
               By continuing, you agree to our Terms and Privacy Policy
             </Text>
           </View>
@@ -121,7 +123,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   content: {
     flex: 1,
@@ -145,14 +146,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '700',
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
   subtitle: {
     fontWeight: '400',
-    color: Colors.text.secondary,
     textAlign: 'center',
   },
   bottomSection: {
@@ -166,7 +165,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   googleButton: {
-    backgroundColor: Colors.primary,
     borderRadius: Spacing.borderRadius.md,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
@@ -179,13 +177,11 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     ...Typography.button.medium,
-    color: Colors.white,
     letterSpacing: 0.3,
   },
   termsText: {
     ...Typography.label.medium,
     fontWeight: '400',
-    color: Colors.text.tertiary,
     textAlign: 'center',
   },
 });

@@ -7,7 +7,7 @@ import {
   ScrollViewProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Spacing } from '../theme/spacing';
 
 interface ContainerProps extends ScrollViewProps {
@@ -24,6 +24,8 @@ export const Container: React.FC<ContainerProps> = ({
   padding = 'medium',
   ...scrollViewProps
 }) => {
+  const { colors } = useTheme();
+
   const getPaddingValue = () => {
     switch (padding) {
       case 'none':
@@ -47,7 +49,7 @@ export const Container: React.FC<ContainerProps> = ({
 
   if (scrollable) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background.primary }]} edges={['top']}>
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
@@ -64,7 +66,7 @@ export const Container: React.FC<ContainerProps> = ({
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background.primary }]} edges={['top']}>
       {content}
     </SafeAreaView>
   );
@@ -73,7 +75,6 @@ export const Container: React.FC<ContainerProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
   },
   container: {
     flex: 1,

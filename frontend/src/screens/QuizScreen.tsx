@@ -8,10 +8,10 @@ import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 import { completePathStep, getUserDocument } from '../services/memory';
-import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
+import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
 
 type QuizScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Quiz'>;
@@ -31,6 +31,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
   const [isCorrect, setIsCorrect] = useState(false);
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
+  const { colors } = useTheme();
 
   const handleSubmit = () => {
     const userAnswer = answer.trim().toLowerCase();
@@ -83,16 +84,16 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
       <View style={styles.content}>
         <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
           <Text style={[styles.emoji, { fontSize: emojiSize }]}>❓</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Quiz</Text>
+          <View style={[styles.badge, { backgroundColor: colors.badge.quiz }]}>
+            <Text style={[styles.badgeText, { color: colors.white }]}>Quiz</Text>
           </View>
-          <Text style={[styles.title, { fontSize: titleSize }]}>
+          <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
             {step.title || step.topic}
           </Text>
         </View>
 
         <View style={styles.bodyContainer}>
-          <Text style={styles.question}>{step.question}</Text>
+          <Text style={[styles.question, { color: colors.text.primary }]}>{step.question}</Text>
 
           <Input
             placeholder="Type your answer here..."
@@ -105,9 +106,9 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
           />
 
           {isSubmitted && (
-            <View style={[styles.resultContainer, isCorrect ? styles.correct : styles.incorrect]}>
+            <View style={[styles.resultContainer, { backgroundColor: isCorrect ? colors.result.correct : colors.result.incorrect }]}>
               <Text style={styles.resultIcon}>{isCorrect ? '✔️' : '✖️'}</Text>
-              <Text style={styles.resultText}>
+              <Text style={[styles.resultText, { color: colors.text.primary }]}>
                 {isCorrect
                   ? 'Correct! Well done!'
                   : `Not quite. Expected: ${step.expectedAnswer}`}
@@ -149,20 +150,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   badge: {
-    backgroundColor: Colors.badge.quiz,
     paddingHorizontal: Spacing.sm + 4,
     paddingVertical: Spacing.xs,
     borderRadius: Spacing.borderRadius.md,
     marginBottom: Spacing.sm,
   },
   badgeText: {
-    color: Colors.white,
     ...Typography.label.medium,
     fontWeight: '600',
   },
   title: {
     ...Typography.heading.h2,
-    color: Colors.text.primary,
     textAlign: 'center',
   },
   bodyContainer: {
@@ -172,7 +170,6 @@ const styles = StyleSheet.create({
   question: {
     ...Typography.body.medium,
     lineHeight: 26,
-    color: Colors.text.primary,
     marginBottom: Spacing.lg,
     fontWeight: '500',
   },
@@ -185,12 +182,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  correct: {
-    backgroundColor: Colors.result.correct,
-  },
-  incorrect: {
-    backgroundColor: Colors.result.incorrect,
-  },
   resultIcon: {
     fontSize: Spacing.lg,
     marginRight: Spacing.sm,
@@ -199,6 +190,5 @@ const styles = StyleSheet.create({
     flex: 1,
     ...Typography.body.small,
     fontWeight: '500',
-    color: Colors.text.primary,
   },
 });
