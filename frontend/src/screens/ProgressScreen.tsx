@@ -2,14 +2,15 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Container } from '../components/Container';
 import { useUserStore } from '../state/userStore';
-import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
+import { useTheme } from '../hooks/useTheme';
 
 export const ProgressScreen: React.FC = () => {
   const { userDocument } = useUserStore();
   const { responsive, isSmallPhone, isTablet } = useResponsive();
+  const { colors } = useTheme();
 
   const stats = useMemo(() => {
     if (!userDocument) {
@@ -63,7 +64,7 @@ export const ProgressScreen: React.FC = () => {
       <Container>
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyEmoji, { fontSize: emptyEmojiSize }]}>📊</Text>
-          <Text style={styles.emptyText}>No progress data yet</Text>
+          <Text style={[styles.emptyText, { color: colors.ios.gray }]}>No progress data yet</Text>
         </View>
       </Container>
     );
@@ -73,66 +74,66 @@ export const ProgressScreen: React.FC = () => {
     <Container>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
-          <Text style={[styles.title, { fontSize: titleSize }]}>Your Progress</Text>
-          <Text style={styles.subtitle}>Keep up the great work!</Text>
+          <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>Your Progress</Text>
+          <Text style={[styles.subtitle, { color: colors.ios.gray }]}>Keep up the great work!</Text>
         </View>
 
-        <View style={[styles.goalCard, { padding: cardPadding }]}>
-          <Text style={styles.goalLabel}>Learning Goal</Text>
-          <Text style={styles.goalText}>{userDocument.goal}</Text>
-          <View style={styles.levelBadge}>
-            <Text style={styles.levelText}>{userDocument.level}</Text>
+        <View style={[styles.goalCard, { padding: cardPadding, backgroundColor: colors.card.default }]}>
+          <Text style={[styles.goalLabel, { color: colors.ios.gray }]}>Learning Goal</Text>
+          <Text style={[styles.goalText, { color: colors.text.primary }]}>{userDocument.goal}</Text>
+          <View style={[styles.levelBadge, { backgroundColor: colors.badge.primary }]}>
+            <Text style={[styles.levelText, { color: colors.white }]}>{userDocument.level}</Text>
           </View>
         </View>
 
         <View style={[styles.statsGrid, isTablet && styles.statsGridTablet]}>
-          <View style={[styles.statCard, { backgroundColor: Colors.card.stats.blue, padding: cardPadding }]}>
-            <Text style={[styles.statValue, { fontSize: statValueSize }]}>{stats.lessonsCompleted}</Text>
-            <Text style={styles.statLabel}>Lessons Completed</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.card.stats.blue, padding: cardPadding }]}>
+            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.lessonsCompleted}</Text>
+            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Lessons Completed</Text>
           </View>
 
-          <View style={[styles.statCard, { backgroundColor: Colors.card.stats.orange, padding: cardPadding }]}>
-            <Text style={[styles.statValue, { fontSize: statValueSize }]}>{stats.quizzesCompleted}</Text>
-            <Text style={styles.statLabel}>Quizzes Completed</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.card.stats.orange, padding: cardPadding }]}>
+            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.quizzesCompleted}</Text>
+            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Quizzes Completed</Text>
           </View>
 
-          <View style={[styles.statCard, { backgroundColor: Colors.card.stats.purple, padding: cardPadding }]}>
-            <Text style={[styles.statValue, { fontSize: statValueSize }]}>{stats.practiceCompleted}</Text>
-            <Text style={styles.statLabel}>Practice Tasks</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.card.stats.purple, padding: cardPadding }]}>
+            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.practiceCompleted}</Text>
+            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Practice Tasks</Text>
           </View>
 
-          <View style={[styles.statCard, { backgroundColor: Colors.card.stats.green, padding: cardPadding }]}>
-            <Text style={[styles.statValue, { fontSize: statValueSize }]}>{stats.topicsMastered}</Text>
-            <Text style={styles.statLabel}>Topics Explored</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.card.stats.green, padding: cardPadding }]}>
+            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.topicsMastered}</Text>
+            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Topics Explored</Text>
           </View>
         </View>
 
-        <View style={[styles.summaryCard, { padding: cardPadding }]}>
+        <View style={[styles.summaryCard, { padding: cardPadding, backgroundColor: colors.card.default }]}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total Activities</Text>
-            <Text style={styles.summaryValue}>{stats.totalActivities}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>Total Activities</Text>
+            <Text style={[styles.summaryValue, { color: colors.ios.blue }]}>{stats.totalActivities}</Text>
           </View>
           {stats.quizzesCompleted > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Average Quiz Score</Text>
-              <Text style={styles.summaryValue}>{stats.averageQuizScore}%</Text>
+              <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>Average Quiz Score</Text>
+              <Text style={[styles.summaryValue, { color: colors.ios.blue }]}>{stats.averageQuizScore}%</Text>
             </View>
           )}
         </View>
 
         {(userDocument.history?.length ?? 0) > 0 && (
           <View style={styles.recentActivity}>
-            <Text style={styles.recentTitle}>Recent Activity</Text>
+            <Text style={[styles.recentTitle, { color: colors.text.primary }]}>Recent Activity</Text>
             {(userDocument.history || []).slice(-5).reverse().map((item, index) => (
-              <View key={index} style={styles.activityItem}>
-                <View style={styles.activityIcon}>
+              <View key={index} style={[styles.activityItem, { backgroundColor: colors.card.default }]}>
+                <View style={[styles.activityIcon, { backgroundColor: colors.white }]}>
                   <Text style={styles.activityEmoji}>
                     {item.type === 'lesson' ? '📖' : item.type === 'quiz' ? '❓' : '💪'}
                   </Text>
                 </View>
                 <View style={styles.activityInfo}>
-                  <Text style={styles.activityTopic}>{item.topic}</Text>
-                  <Text style={styles.activityType}>
+                  <Text style={[styles.activityTopic, { color: colors.text.primary }]}>{item.topic}</Text>
+                  <Text style={[styles.activityType, { color: colors.ios.gray }]}>
                     {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
                     {item.score !== undefined && ` • ${item.score}%`}
                   </Text>
@@ -155,22 +156,18 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.display.medium,
-    color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   subtitle: {
     ...Typography.body.medium,
-    color: Colors.ios.gray,
   },
   goalCard: {
-    backgroundColor: Colors.card.default,
     borderRadius: Spacing.borderRadius.lg,
     marginBottom: Spacing.lg,
   },
   goalLabel: {
     ...Typography.label.medium,
     fontWeight: '600',
-    color: Colors.ios.gray,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: Spacing.sm,
@@ -178,18 +175,15 @@ const styles = StyleSheet.create({
   goalText: {
     ...Typography.heading.h2,
     fontWeight: '600',
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
   levelBadge: {
-    backgroundColor: Colors.badge.primary,
     paddingHorizontal: Spacing.sm + 4,
     paddingVertical: Spacing.xs + 2,
     borderRadius: Spacing.borderRadius.md,
     alignSelf: 'flex-start',
   },
   levelText: {
-    color: Colors.white,
     ...Typography.label.medium,
     fontWeight: '600',
     textTransform: 'capitalize',
@@ -211,17 +205,14 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontWeight: '700',
-    color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   statLabel: {
     ...Typography.body.small,
     fontWeight: '500',
-    color: Colors.text.primary,
     textAlign: 'center',
   },
   summaryCard: {
-    backgroundColor: Colors.card.default,
     borderRadius: Spacing.borderRadius.lg,
     marginBottom: Spacing.lg,
   },
@@ -234,12 +225,10 @@ const styles = StyleSheet.create({
   summaryLabel: {
     ...Typography.body.medium,
     fontWeight: '500',
-    color: Colors.text.primary,
   },
   summaryValue: {
     ...Typography.heading.h3,
     fontWeight: '600',
-    color: Colors.ios.blue,
   },
   recentActivity: {
     marginBottom: Spacing.lg,
@@ -247,13 +236,11 @@ const styles = StyleSheet.create({
   recentTitle: {
     ...Typography.heading.h3,
     fontWeight: '600',
-    color: Colors.text.primary,
     marginBottom: Spacing.md,
   },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.card.default,
     padding: Spacing.md,
     borderRadius: Spacing.borderRadius.md,
     marginBottom: Spacing.sm,
@@ -262,7 +249,6 @@ const styles = StyleSheet.create({
     width: Spacing.icon.xl,
     height: Spacing.icon.xl,
     borderRadius: Spacing.borderRadius.full,
-    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.sm,
@@ -276,12 +262,10 @@ const styles = StyleSheet.create({
   activityTopic: {
     ...Typography.body.medium,
     fontWeight: '600',
-    color: Colors.text.primary,
     marginBottom: 2,
   },
   activityType: {
     ...Typography.body.small,
-    color: Colors.ios.gray,
   },
   emptyContainer: {
     flex: 1,
@@ -293,6 +277,5 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...Typography.body.medium,
-    color: Colors.ios.gray,
   },
 });

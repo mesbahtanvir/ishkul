@@ -7,7 +7,7 @@ import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore, getEmojiForGoal, generatePathId } from '../state/learningPathsStore';
 import { createUserDocument, getUserDocument, addLearningPath } from '../services/memory';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
@@ -53,6 +53,7 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
   const [selectedLevel, setSelectedLevel] = useState<LevelType | null>(null);
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
+  const { colors } = useTheme();
 
   const handleConfirm = async () => {
     if (!selectedLevel || !user) return;
@@ -138,13 +139,13 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
       <View style={styles.content}>
         {isCreatingNewPath && (
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Back</Text>
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
           </TouchableOpacity>
         )}
         <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
-          <Text style={[styles.title, { fontSize: titleSize }]}>Choose your level</Text>
-          <Text style={styles.subtitle}>
-            For: <Text style={styles.goal}>{goal}</Text>
+          <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>Choose your level</Text>
+          <Text style={[styles.subtitle, { color: colors.ios.gray }]}>
+            For: <Text style={[styles.goal, { color: colors.ios.blue }]}>{goal}</Text>
           </Text>
         </View>
 
@@ -154,26 +155,27 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
               key={level.id}
               style={[
                 styles.levelCard,
-                { padding: cardPadding },
-                selectedLevel === level.id && styles.levelCardSelected,
+                { padding: cardPadding, backgroundColor: colors.card.default },
+                selectedLevel === level.id && { borderColor: colors.ios.blue, backgroundColor: colors.card.selected },
               ]}
               onPress={() => setSelectedLevel(level.id)}
               activeOpacity={0.7}
             >
               <Text style={[styles.levelEmoji, { fontSize: emojiSize }]}>{level.emoji}</Text>
               <View style={styles.levelInfo}>
-                <Text style={styles.levelTitle}>{level.title}</Text>
-                <Text style={styles.levelDescription}>{level.description}</Text>
+                <Text style={[styles.levelTitle, { color: colors.text.primary }]}>{level.title}</Text>
+                <Text style={[styles.levelDescription, { color: colors.ios.gray }]}>{level.description}</Text>
               </View>
               <View style={styles.radioContainer}>
                 <View
                   style={[
                     styles.radio,
-                    selectedLevel === level.id && styles.radioSelected,
+                    { borderColor: colors.ios.gray },
+                    selectedLevel === level.id && { borderColor: colors.ios.blue },
                   ]}
                 >
                   {selectedLevel === level.id && (
-                    <View style={styles.radioInner} />
+                    <View style={[styles.radioInner, { backgroundColor: colors.ios.blue }]} />
                   )}
                 </View>
               </View>
@@ -202,7 +204,6 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     ...Typography.body.medium,
-    color: Colors.primary,
     fontWeight: '600',
   },
   header: {
@@ -213,16 +214,13 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.heading.h1,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     ...Typography.body.medium,
-    color: Colors.ios.gray,
   },
   goal: {
     fontWeight: '600',
-    color: Colors.ios.blue,
   },
   levelsContainer: {
     flex: 1,
@@ -233,16 +231,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   levelCard: {
-    backgroundColor: Colors.card.default,
     borderRadius: Spacing.borderRadius.lg,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-  },
-  levelCardSelected: {
-    borderColor: Colors.ios.blue,
-    backgroundColor: Colors.card.selected,
   },
   levelEmoji: {
     marginRight: Spacing.md,
@@ -253,12 +246,10 @@ const styles = StyleSheet.create({
   levelTitle: {
     ...Typography.heading.h3,
     fontWeight: '600',
-    color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   levelDescription: {
     ...Typography.body.small,
-    color: Colors.ios.gray,
   },
   radioContainer: {
     marginLeft: Spacing.sm,
@@ -268,17 +259,12 @@ const styles = StyleSheet.create({
     height: Spacing.lg,
     borderRadius: Spacing.borderRadius.full,
     borderWidth: 2,
-    borderColor: Colors.ios.gray,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  radioSelected: {
-    borderColor: Colors.ios.blue,
   },
   radioInner: {
     width: Spacing.sm + 4,
     height: Spacing.sm + 4,
     borderRadius: Spacing.borderRadius.full,
-    backgroundColor: Colors.ios.blue,
   },
 });

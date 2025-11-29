@@ -7,10 +7,10 @@ import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 import { completePathStep, getUserDocument } from '../services/memory';
-import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
+import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
 
 type LessonScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Lesson'>;
@@ -30,6 +30,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
   const { updatePath, setCurrentStep } = useLearningPathsStore();
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
+  const { colors } = useTheme();
 
   const handleUnderstand = async () => {
     try {
@@ -72,16 +73,16 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
       <View style={styles.content}>
         <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
           <Text style={[styles.emoji, { fontSize: emojiSize }]}>📖</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Lesson</Text>
+          <View style={[styles.badge, { backgroundColor: colors.badge.lesson }]}>
+            <Text style={[styles.badgeText, { color: colors.white }]}>Lesson</Text>
           </View>
-          <Text style={[styles.title, { fontSize: titleSize }]}>
+          <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
             {step.title || step.topic}
           </Text>
         </View>
 
         <View style={styles.bodyContainer}>
-          <Text style={styles.body}>{step.content}</Text>
+          <Text style={[styles.body, { color: colors.text.primary }]}>{step.content}</Text>
         </View>
 
         <Button
@@ -109,20 +110,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   badge: {
-    backgroundColor: Colors.badge.lesson,
     paddingHorizontal: Spacing.sm + 4,
     paddingVertical: Spacing.xs,
     borderRadius: Spacing.borderRadius.md,
     marginBottom: Spacing.sm,
   },
   badgeText: {
-    color: Colors.white,
     ...Typography.label.medium,
     fontWeight: '600',
   },
   title: {
     ...Typography.heading.h2,
-    color: Colors.text.primary,
     textAlign: 'center',
   },
   bodyContainer: {
@@ -132,6 +130,5 @@ const styles = StyleSheet.create({
   body: {
     ...Typography.body.medium,
     lineHeight: 26,
-    color: Colors.text.primary,
   },
 });

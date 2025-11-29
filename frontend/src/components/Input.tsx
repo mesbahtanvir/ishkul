@@ -8,7 +8,7 @@ import {
   ViewStyle,
   Platform,
 } from 'react-native';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 
@@ -26,21 +26,34 @@ export const Input: React.FC<InputProps> = ({
   containerStyle,
   ...textInputProps
 }) => {
+  const { colors } = useTheme();
+
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, { color: colors.text.primary }]}>{label}</Text>}
       <TextInput
         style={[
           styles.input,
-          error && styles.inputError,
+          {
+            backgroundColor: colors.background.tertiary,
+            color: colors.text.primary,
+            borderColor: colors.border,
+            ...Platform.select({
+              ios: {
+                shadowColor: colors.black,
+              },
+              android: {},
+            }),
+          },
+          error && { borderColor: colors.danger, backgroundColor: `${colors.danger}08` },
         ]}
-        placeholderTextColor={Colors.gray400}
+        placeholderTextColor={colors.gray400}
         {...textInputProps}
       />
       {error ? (
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
       ) : hint ? (
-        <Text style={styles.hintText}>{hint}</Text>
+        <Text style={[styles.hintText, { color: colors.text.tertiary }]}>{hint}</Text>
       ) : null}
     </View>
   );
@@ -52,21 +65,16 @@ const styles = StyleSheet.create({
   },
   label: {
     ...Typography.label.large,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
   input: {
-    backgroundColor: Colors.background.tertiary,
     borderRadius: 10,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     ...Typography.body.medium,
-    color: Colors.text.primary,
     borderWidth: 1,
-    borderColor: Colors.border,
     ...Platform.select({
       ios: {
-        shadowColor: Colors.black,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
@@ -76,18 +84,12 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  inputError: {
-    borderColor: Colors.danger,
-    backgroundColor: `${Colors.danger}08`,
-  },
   errorText: {
     ...Typography.label.small,
-    color: Colors.danger,
     marginTop: Spacing.xs,
   },
   hintText: {
     ...Typography.label.small,
-    color: Colors.text.tertiary,
     marginTop: Spacing.xs,
   },
 });

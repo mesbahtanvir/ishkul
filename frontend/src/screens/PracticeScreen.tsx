@@ -7,10 +7,10 @@ import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 import { completePathStep, getUserDocument } from '../services/memory';
-import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
+import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
 
 type PracticeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Practice'>;
@@ -30,6 +30,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
   const { updatePath, setCurrentStep } = useLearningPathsStore();
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
+  const { colors } = useTheme();
 
   const handleDone = async () => {
     try {
@@ -72,21 +73,21 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
       <View style={styles.content}>
         <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
           <Text style={[styles.emoji, { fontSize: emojiSize }]}>💪</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Practice</Text>
+          <View style={[styles.badge, { backgroundColor: colors.badge.practice }]}>
+            <Text style={[styles.badgeText, { color: colors.white }]}>Practice</Text>
           </View>
-          <Text style={[styles.title, { fontSize: titleSize }]}>
+          <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
             {step.title || step.topic}
           </Text>
         </View>
 
         <View style={styles.bodyContainer}>
-          <Text style={styles.taskLabel}>Your Task:</Text>
-          <Text style={styles.task}>{step.task}</Text>
+          <Text style={[styles.taskLabel, { color: colors.ios.gray }]}>Your Task:</Text>
+          <Text style={[styles.task, { color: colors.text.primary }]}>{step.task}</Text>
 
-          <View style={styles.tipsContainer}>
-            <Text style={styles.tipsTitle}>💡 Tips:</Text>
-            <Text style={styles.tipsText}>
+          <View style={[styles.tipsContainer, { backgroundColor: colors.card.default }]}>
+            <Text style={[styles.tipsTitle, { color: colors.text.primary }]}>💡 Tips:</Text>
+            <Text style={[styles.tipsText, { color: colors.text.primary }]}>
               • Take your time{'\n'}
               • Try it yourself first{'\n'}
               • Don't worry about making mistakes{'\n'}
@@ -120,20 +121,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   badge: {
-    backgroundColor: Colors.badge.practice,
     paddingHorizontal: Spacing.sm + 4,
     paddingVertical: Spacing.xs,
     borderRadius: Spacing.borderRadius.md,
     marginBottom: Spacing.sm,
   },
   badgeText: {
-    color: Colors.white,
     ...Typography.label.medium,
     fontWeight: '600',
   },
   title: {
     ...Typography.heading.h2,
-    color: Colors.text.primary,
     textAlign: 'center',
   },
   bodyContainer: {
@@ -143,30 +141,25 @@ const styles = StyleSheet.create({
   taskLabel: {
     ...Typography.body.small,
     fontWeight: '600',
-    color: Colors.ios.gray,
     marginBottom: Spacing.sm,
   },
   task: {
     ...Typography.body.medium,
     lineHeight: 26,
-    color: Colors.text.primary,
     fontWeight: '500',
     marginBottom: Spacing.xl,
   },
   tipsContainer: {
-    backgroundColor: Colors.card.default,
     padding: Spacing.md,
     borderRadius: Spacing.borderRadius.md,
   },
   tipsTitle: {
     ...Typography.body.medium,
     fontWeight: '600',
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
   tipsText: {
     ...Typography.body.small,
     lineHeight: 22,
-    color: Colors.text.primary,
   },
 });

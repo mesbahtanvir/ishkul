@@ -11,7 +11,7 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 
-import { Colors } from '../theme/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 
@@ -27,6 +27,7 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { user, userDocument } = useUserStore();
   const { paths, setPaths, setActivePath, loading } = useLearningPathsStore();
+  const { colors } = useTheme();
 
   // Load learning paths from userDocument
   useEffect(() => {
@@ -54,8 +55,8 @@ export const HomeScreen: React.FC = () => {
     <Container scrollable padding="medium">
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>Welcome back, {firstName}</Text>
-        <Text style={styles.subtitle}>Continue your learning journey</Text>
+        <Text style={[styles.greeting, { color: colors.text.primary }]}>Welcome back, {firstName}</Text>
+        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>Continue your learning journey</Text>
       </View>
 
       {/* Create New Path Card */}
@@ -64,7 +65,7 @@ export const HomeScreen: React.FC = () => {
       {/* Learning Paths Section */}
       {paths.length > 0 ? (
         <View style={styles.pathsSection}>
-          <Text style={styles.sectionTitle}>My Learning Paths</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>My Learning Paths</Text>
           {paths.map((path) => (
             <LearningPathCard
               key={path.id}
@@ -76,8 +77,8 @@ export const HomeScreen: React.FC = () => {
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>📚</Text>
-          <Text style={styles.emptyTitle}>Start Your Learning Journey</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>Start Your Learning Journey</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.text.secondary }]}>
             Create your first learning path and begin mastering new skills!
           </Text>
         </View>
@@ -93,19 +94,16 @@ const styles = StyleSheet.create({
   },
   greeting: {
     ...Typography.heading.h2,
-    color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   subtitle: {
     ...Typography.body.medium,
-    color: Colors.text.secondary,
   },
   pathsSection: {
     flex: 1,
   },
   sectionTitle: {
     ...Typography.heading.h4,
-    color: Colors.text.primary,
     marginBottom: Spacing.md,
   },
   emptyState: {
@@ -120,13 +118,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...Typography.heading.h3,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   emptySubtitle: {
     ...Typography.body.medium,
-    color: Colors.text.secondary,
     textAlign: 'center',
     paddingHorizontal: Spacing.xl,
   },

@@ -8,7 +8,7 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { ProgressBar } from '../components/ProgressBar';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 import { getPathNextStep, getLearningPath, updateLearningPath } from '../services/memory';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
@@ -35,6 +35,7 @@ export const LearningSessionScreen: React.FC<LearningSessionScreenProps> = ({
   const [isLoadingStep, setIsLoadingStep] = useState(true);
   const [currentStep, setLocalCurrentStep] = useState<NextStep | null>(null);
   const { responsive, isSmallPhone } = useResponsive();
+  const { colors } = useTheme();
 
   useEffect(() => {
     loadPathAndStep();
@@ -118,8 +119,8 @@ export const LearningSessionScreen: React.FC<LearningSessionScreenProps> = ({
       <Container>
         <View style={styles.errorContainer}>
           <Text style={[styles.errorEmoji, { fontSize: errorEmojiSize }]}>⚠️</Text>
-          <Text style={styles.errorTitle}>No Step Available</Text>
-          <Text style={styles.errorText}>
+          <Text style={[styles.errorTitle, { color: colors.text.primary }]}>No Step Available</Text>
+          <Text style={[styles.errorText, { color: colors.ios.gray }]}>
             Unable to load the next learning step.
           </Text>
           <Button title="Try Again" onPress={loadPathAndStep} />
@@ -157,13 +158,13 @@ export const LearningSessionScreen: React.FC<LearningSessionScreenProps> = ({
   const getBadgeColor = () => {
     switch (currentStep.type) {
       case 'lesson':
-        return Colors.badge.lesson;
+        return colors.badge.lesson;
       case 'quiz':
-        return Colors.badge.quiz;
+        return colors.badge.quiz;
       case 'practice':
-        return Colors.badge.practice;
+        return colors.badge.practice;
       default:
-        return Colors.badge.primary;
+        return colors.badge.primary;
     }
   };
 
@@ -173,14 +174,14 @@ export const LearningSessionScreen: React.FC<LearningSessionScreenProps> = ({
         {/* Back button and path info */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Back</Text>
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
           </TouchableOpacity>
         </View>
 
         {/* Path progress header */}
-        <View style={styles.pathHeader}>
+        <View style={[styles.pathHeader, { backgroundColor: colors.background.secondary }]}>
           <Text style={styles.pathEmoji}>{activePath.emoji}</Text>
-          <Text style={styles.pathGoal} numberOfLines={1}>
+          <Text style={[styles.pathGoal, { color: colors.text.primary }]} numberOfLines={1}>
             {activePath.goal}
           </Text>
           <View style={styles.progressRow}>
@@ -189,7 +190,7 @@ export const LearningSessionScreen: React.FC<LearningSessionScreenProps> = ({
               height={6}
               style={styles.progressBar}
             />
-            <Text style={styles.progressText}>{Math.round(activePath.progress)}%</Text>
+            <Text style={[styles.progressText, { color: colors.text.secondary }]}>{Math.round(activePath.progress)}%</Text>
           </View>
         </View>
 
@@ -197,12 +198,12 @@ export const LearningSessionScreen: React.FC<LearningSessionScreenProps> = ({
         <View style={styles.header}>
           <Text style={[styles.emoji, { fontSize: mainEmojiSize }]}>{getStepIcon()}</Text>
           <View style={[styles.badge, { backgroundColor: getBadgeColor() }]}>
-            <Text style={styles.badgeText}>{getStepTypeLabel()}</Text>
+            <Text style={[styles.badgeText, { color: colors.white }]}>{getStepTypeLabel()}</Text>
           </View>
-          <Text style={[styles.title, { fontSize: titleSize }]}>
+          <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
             {currentStep.title || currentStep.topic}
           </Text>
-          <Text style={[styles.subtitle, isSmallPhone && styles.subtitleSmall]}>
+          <Text style={[styles.subtitle, { color: colors.ios.gray }, isSmallPhone && styles.subtitleSmall]}>
             Ready for your next learning step?
           </Text>
         </View>
@@ -229,11 +230,9 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     ...Typography.body.medium,
-    color: Colors.primary,
     fontWeight: '600',
   },
   pathHeader: {
-    backgroundColor: Colors.gray50,
     borderRadius: Spacing.borderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
@@ -244,7 +243,6 @@ const styles = StyleSheet.create({
   },
   pathGoal: {
     ...Typography.heading.h4,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
   progressRow: {
@@ -256,7 +254,6 @@ const styles = StyleSheet.create({
   },
   progressText: {
     ...Typography.label.medium,
-    color: Colors.text.secondary,
     marginLeft: Spacing.sm,
   },
   header: {
@@ -274,20 +271,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   badgeText: {
-    color: Colors.white,
     ...Typography.body.small,
     fontWeight: '600',
   },
   title: {
     ...Typography.heading.h1,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
     textAlign: 'center',
     paddingHorizontal: Spacing.lg,
   },
   subtitle: {
     ...Typography.body.medium,
-    color: Colors.ios.gray,
     textAlign: 'center',
     paddingHorizontal: Spacing.xxl,
   },
@@ -308,13 +302,11 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     ...Typography.heading.h2,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   errorText: {
     ...Typography.body.medium,
-    color: Colors.ios.gray,
     textAlign: 'center',
     marginBottom: Spacing.xl,
   },

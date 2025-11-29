@@ -7,7 +7,8 @@ import {
   ViewStyle,
 } from 'react-native';
 import { LearningPath } from '../types/app';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../hooks/useTheme';
+import { ThemeColors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { ProgressBar } from './ProgressBar';
@@ -31,11 +32,11 @@ const getLevelLabel = (level: string): string => {
   }
 };
 
-const getProgressColor = (progress: number): string => {
-  if (progress >= 75) return Colors.success;
-  if (progress >= 50) return Colors.ios.blue;
-  if (progress >= 25) return Colors.ios.orange;
-  return Colors.gray400;
+const getProgressColor = (progress: number, colors: ThemeColors): string => {
+  if (progress >= 75) return colors.success;
+  if (progress >= 50) return colors.ios.blue;
+  if (progress >= 25) return colors.ios.orange;
+  return colors.gray400;
 };
 
 export const LearningPathCard: React.FC<LearningPathCardProps> = ({
@@ -43,7 +44,8 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
   onPress,
   style,
 }) => {
-  const progressColor = getProgressColor(path.progress);
+  const { colors } = useTheme();
+  const progressColor = getProgressColor(path.progress, colors);
   const statsText =
     path.lessonsCompleted === 0
       ? 'Not started'
@@ -51,20 +53,20 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
 
   return (
     <TouchableOpacity
-      style={[styles.container, style]}
+      style={[styles.container, { backgroundColor: colors.background.secondary, borderColor: colors.border }, style]}
       onPress={() => onPress(path)}
       activeOpacity={0.7}
     >
       <View style={styles.header}>
         <Text style={styles.emoji}>{path.emoji}</Text>
         <View style={styles.titleContainer}>
-          <Text style={styles.title} numberOfLines={2}>
+          <Text style={[styles.title, { color: colors.text.primary }]} numberOfLines={2}>
             {path.goal}
           </Text>
           <View style={styles.metaRow}>
-            <Text style={styles.level}>{getLevelLabel(path.level)}</Text>
-            <Text style={styles.separator}>•</Text>
-            <Text style={styles.stats}>{statsText}</Text>
+            <Text style={[styles.level, { color: colors.text.secondary }]}>{getLevelLabel(path.level)}</Text>
+            <Text style={[styles.separator, { color: colors.text.tertiary }]}>•</Text>
+            <Text style={[styles.stats, { color: colors.text.secondary }]}>{statsText}</Text>
           </View>
         </View>
       </View>
@@ -81,8 +83,8 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
       </View>
 
       <View style={styles.footer}>
-        <View style={styles.startButton}>
-          <Text style={styles.startButtonText}>
+        <View style={[styles.startButton, { backgroundColor: colors.primaryLight }]}>
+          <Text style={[styles.startButtonText, { color: colors.primary }]}>
             {path.lessonsCompleted === 0 ? 'Start' : 'Continue'} →
           </Text>
         </View>
@@ -93,12 +95,10 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.white,
     borderRadius: Spacing.borderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   header: {
     flexDirection: 'row',
@@ -114,7 +114,6 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.heading.h4,
-    color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   metaRow: {
@@ -123,16 +122,13 @@ const styles = StyleSheet.create({
   },
   level: {
     ...Typography.label.medium,
-    color: Colors.text.secondary,
   },
   separator: {
     ...Typography.label.medium,
-    color: Colors.text.tertiary,
     marginHorizontal: Spacing.xs,
   },
   stats: {
     ...Typography.label.medium,
-    color: Colors.text.secondary,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -149,14 +145,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   startButton: {
-    backgroundColor: Colors.primaryLight,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.borderRadius.md,
   },
   startButtonText: {
     ...Typography.button.small,
-    color: Colors.primary,
   },
 });
 
