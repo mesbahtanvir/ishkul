@@ -74,8 +74,11 @@ func TestUploadFileMultipart(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		part.Write([]byte(content))
-		writer.Close()
+		_, err = part.Write([]byte(content))
+		if err != nil {
+			return nil, err
+		}
+		_ = writer.Close()
 
 		req := httptest.NewRequest(http.MethodPost, "/api/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -120,8 +123,9 @@ func TestUploadFileSizeLimit(t *testing.T) {
 		writer := multipart.NewWriter(body)
 		part, err := writer.CreateFormFile("file", "large.txt")
 		assert.NoError(t, err)
-		part.Write(largeContent)
-		writer.Close()
+		_, err = part.Write(largeContent)
+		assert.NoError(t, err)
+		_ = writer.Close()
 
 		req := httptest.NewRequest(http.MethodPost, "/api/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
