@@ -16,7 +16,8 @@ import { RootStackParamList } from '../types/navigation';
 import { LoginScreen } from '../screens/LoginScreen';
 import { GoalSelectionScreen } from '../screens/GoalSelectionScreen';
 import { LevelSelectionScreen } from '../screens/LevelSelectionScreen';
-import { NextStepScreen } from '../screens/NextStepScreen';
+import { HomeScreen } from '../screens/HomeScreen';
+import { LearningSessionScreen } from '../screens/LearningSessionScreen';
 import { LessonScreen } from '../screens/LessonScreen';
 import { QuizScreen } from '../screens/QuizScreen';
 import { PracticeScreen } from '../screens/PracticeScreen';
@@ -35,7 +36,10 @@ const LearnStack = () => {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="NextStep" component={NextStepScreen} />
+      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
+      <Stack.Screen name="LevelSelection" component={LevelSelectionScreen} />
+      <Stack.Screen name="LearningSession" component={LearningSessionScreen} />
       <Stack.Screen name="Lesson" component={LessonScreen} />
       <Stack.Screen name="Quiz" component={QuizScreen} />
       <Stack.Screen name="Practice" component={PracticeScreen} />
@@ -111,11 +115,7 @@ const RootNavigator = () => {
       }}
     >
       {!user ? (
-        <>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
-          <Stack.Screen name="LevelSelection" component={LevelSelectionScreen} />
-        </>
+        <Stack.Screen name="Login" component={LoginScreen} />
       ) : (
         <Stack.Screen name="Main" component={MainTabs} />
       )}

@@ -73,6 +73,7 @@ describe('userStore', () => {
         level: 'beginner',
         memory: { topics: {} },
         history: [],
+        learningPaths: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -89,6 +90,7 @@ describe('userStore', () => {
         level: 'beginner',
         memory: { topics: {} },
         history: [],
+        learningPaths: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -145,6 +147,7 @@ describe('userStore', () => {
         level: 'beginner',
         memory: { topics: {} },
         history: [],
+        learningPaths: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };

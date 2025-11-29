@@ -1,55 +1,56 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
-import { useLearningStore } from '../state/learningStore';
-import { updateUserHistory, clearNextStep, getUserDocument } from '../services/memory';
+import { useLearningPathsStore } from '../state/learningPathsStore';
+import { completePathStep, getUserDocument } from '../services/memory';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
-import { HistoryEntry, NextStep } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
 type LessonScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Lesson'>;
+type LessonScreenRouteProp = RouteProp<RootStackParamList, 'Lesson'>;
 
 interface LessonScreenProps {
   navigation: LessonScreenNavigationProp;
-  route: { params: { step: NextStep } };
+  route: LessonScreenRouteProp;
 }
 
 export const LessonScreen: React.FC<LessonScreenProps> = ({
   navigation,
   route,
 }) => {
-  const { step } = route.params;
-  const { userDocument, setUserDocument } = useUserStore();
-  const { clearCurrentStep } = useLearningStore();
+  const { step, pathId } = route.params;
+  const { setUserDocument } = useUserStore();
+  const { updatePath, setCurrentStep } = useLearningPathsStore();
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
 
   const handleUnderstand = async () => {
-    if (!userDocument) return;
-
     try {
       setLoading(true);
 
-      const historyEntry: HistoryEntry = {
+      // Complete the step and get updated path
+      const result = await completePathStep(pathId, {
         type: 'lesson',
         topic: step.topic,
-        timestamp: Date.now(),
-      };
+      });
 
-      await updateUserHistory(historyEntry);
-      await clearNextStep();
+      // Update local state
+      updatePath(pathId, result.path);
+      setCurrentStep(pathId, result.nextStep);
 
+      // Refresh user document
       const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
-      clearCurrentStep();
-      navigation.navigate('NextStep');
+      // Navigate back to session
+      navigation.navigate('LearningSession', { pathId });
     } catch (error) {
       console.error('Error completing lesson:', error);
       Alert.alert('Error', 'Failed to save progress. Please try again.');

@@ -32,14 +32,33 @@ export interface NextStep {
   task?: string;
 }
 
+// Learning Path - represents a single learning journey
+export interface LearningPath {
+  id: string;
+  goal: string;
+  level: LevelType;
+  emoji: string;
+  progress: number; // 0-100
+  lessonsCompleted: number;
+  totalLessons: number;
+  currentStep?: NextStep;
+  memory: Memory;
+  history: HistoryEntry[];
+  createdAt: number;
+  updatedAt: number;
+  lastAccessedAt: number;
+}
+
 export interface UserDocument {
   uid: string;
   email?: string;
   displayName?: string;
-  goal: string;
-  level: LevelType;
-  memory: Memory;
-  history: HistoryEntry[];
+  learningPaths: LearningPath[];
+  // Legacy fields for backward compatibility (will be migrated)
+  goal?: string;
+  level?: LevelType;
+  memory?: Memory;
+  history?: HistoryEntry[];
   nextStep?: NextStep;
   createdAt: number;
   updatedAt: number;

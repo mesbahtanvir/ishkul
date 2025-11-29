@@ -56,11 +56,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       const userDoc = await getUserDocument();
       setUserDocument(userDoc);
 
-      if (!userDoc || !userDoc.goal) {
-        navigation.replace('GoalSelection');
-      } else {
-        navigation.replace('Main');
-      }
+      // Always navigate to Main - the Home screen will show empty state for new users
+      navigation.replace('Main');
     } catch (error) {
       console.error('Sign in error:', error);
       Alert.alert('Error', 'Failed to sign in. Please try again.');
