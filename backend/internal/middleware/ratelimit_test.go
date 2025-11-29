@@ -391,7 +391,12 @@ func TestRateLimiterGetVisitor(t *testing.T) {
 
 		limiter := rl.getVisitor("192.168.1.1")
 		assert.NotNil(t, limiter)
-		assert.Len(t, rl.visitors, 1)
+
+		// Access visitors map with lock to avoid race
+		rl.mu.Lock()
+		visitorCount := len(rl.visitors)
+		rl.mu.Unlock()
+		assert.Equal(t, 1, visitorCount)
 	})
 
 	t.Run("returns existing visitor for same IP", func(t *testing.T) {
@@ -401,7 +406,12 @@ func TestRateLimiterGetVisitor(t *testing.T) {
 		limiter2 := rl.getVisitor("192.168.1.1")
 
 		assert.Same(t, limiter1, limiter2)
-		assert.Len(t, rl.visitors, 1)
+
+		// Access visitors map with lock to avoid race
+		rl.mu.Lock()
+		visitorCount := len(rl.visitors)
+		rl.mu.Unlock()
+		assert.Equal(t, 1, visitorCount)
 	})
 
 	t.Run("creates separate visitors for different IPs", func(t *testing.T) {
@@ -411,18 +421,29 @@ func TestRateLimiterGetVisitor(t *testing.T) {
 		rl.getVisitor("192.168.1.2")
 		rl.getVisitor("192.168.1.3")
 
-		assert.Len(t, rl.visitors, 3)
+		// Access visitors map with lock to avoid race
+		rl.mu.Lock()
+		visitorCount := len(rl.visitors)
+		rl.mu.Unlock()
+		assert.Equal(t, 3, visitorCount)
 	})
 
 	t.Run("updates lastSeen time", func(t *testing.T) {
 		rl := NewRateLimiter(10.0, 5)
 
 		rl.getVisitor("192.168.1.1")
+
+		// Access visitors map with lock to avoid race
+		rl.mu.Lock()
 		firstSeen := rl.visitors["192.168.1.1"].lastSeen
+		rl.mu.Unlock()
 
 		time.Sleep(10 * time.Millisecond)
 		rl.getVisitor("192.168.1.1")
+
+		rl.mu.Lock()
 		secondSeen := rl.visitors["192.168.1.1"].lastSeen
+		rl.mu.Unlock()
 
 		assert.True(t, secondSeen.After(firstSeen) || secondSeen.Equal(firstSeen))
 	})
