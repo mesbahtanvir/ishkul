@@ -1,6 +1,3 @@
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 // Create a fresh instance of tokenStorage for each test
 const createTokenStorage = () => {
   // Reset the module to get fresh instance

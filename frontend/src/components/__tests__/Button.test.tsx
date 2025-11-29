@@ -11,7 +11,7 @@ describe('Button', () => {
     });
 
     it('should render with loading indicator', () => {
-      const { queryByText, getByTestId } = render(
+      const { queryByText } = render(
         <Button title="Loading" onPress={() => {}} loading />
       );
 
@@ -43,9 +43,7 @@ describe('Button', () => {
 
     it('should not call onPress when loading', () => {
       const onPressMock = jest.fn();
-      const { getByRole } = render(
-        <Button title="Loading" onPress={onPressMock} loading />
-      );
+      render(<Button title="Loading" onPress={onPressMock} loading />);
 
       // Button should not be pressable when loading
       expect(onPressMock).not.toHaveBeenCalled();
