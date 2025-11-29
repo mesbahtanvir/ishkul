@@ -2,9 +2,14 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Container } from '../components/Container';
 import { useUserStore } from '../state/userStore';
+import { Colors } from '../theme/colors';
+import { Typography } from '../theme/typography';
+import { Spacing } from '../theme/spacing';
+import { useResponsive } from '../hooks/useResponsive';
 
 export const ProgressScreen: React.FC = () => {
   const { userDocument } = useUserStore();
+  const { responsive, isSmallPhone, isTablet } = useResponsive();
 
   const stats = useMemo(() => {
     if (!userDocument) {
@@ -40,11 +45,21 @@ export const ProgressScreen: React.FC = () => {
     };
   }, [userDocument]);
 
+  // Responsive values
+  const titleSize = responsive(
+    Typography.display.small.fontSize,
+    Typography.display.medium.fontSize,
+    Typography.display.large.fontSize
+  );
+  const statValueSize = responsive(32, 40, 44, 48);
+  const cardPadding = responsive(Spacing.md, Spacing.lg, Spacing.lg, Spacing.xl);
+  const emptyEmojiSize = responsive(56, 64, 72, 80);
+
   if (!userDocument) {
     return (
       <Container>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>📊</Text>
+          <Text style={[styles.emptyEmoji, { fontSize: emptyEmojiSize }]}>📊</Text>
           <Text style={styles.emptyText}>No progress data yet</Text>
         </View>
       </Container>
@@ -54,12 +69,12 @@ export const ProgressScreen: React.FC = () => {
   return (
     <Container>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Your Progress</Text>
+        <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
+          <Text style={[styles.title, { fontSize: titleSize }]}>Your Progress</Text>
           <Text style={styles.subtitle}>Keep up the great work!</Text>
         </View>
 
-        <View style={styles.goalCard}>
+        <View style={[styles.goalCard, { padding: cardPadding }]}>
           <Text style={styles.goalLabel}>Learning Goal</Text>
           <Text style={styles.goalText}>{userDocument.goal}</Text>
           <View style={styles.levelBadge}>
@@ -67,29 +82,29 @@ export const ProgressScreen: React.FC = () => {
           </View>
         </View>
 
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { backgroundColor: '#E3F2FF' }]}>
-            <Text style={styles.statValue}>{stats.lessonsCompleted}</Text>
+        <View style={[styles.statsGrid, isTablet && styles.statsGridTablet]}>
+          <View style={[styles.statCard, { backgroundColor: Colors.card.stats.blue, padding: cardPadding }]}>
+            <Text style={[styles.statValue, { fontSize: statValueSize }]}>{stats.lessonsCompleted}</Text>
             <Text style={styles.statLabel}>Lessons Completed</Text>
           </View>
 
-          <View style={[styles.statCard, { backgroundColor: '#FFE8D6' }]}>
-            <Text style={styles.statValue}>{stats.quizzesCompleted}</Text>
+          <View style={[styles.statCard, { backgroundColor: Colors.card.stats.orange, padding: cardPadding }]}>
+            <Text style={[styles.statValue, { fontSize: statValueSize }]}>{stats.quizzesCompleted}</Text>
             <Text style={styles.statLabel}>Quizzes Completed</Text>
           </View>
 
-          <View style={[styles.statCard, { backgroundColor: '#E8E3FF' }]}>
-            <Text style={styles.statValue}>{stats.practiceCompleted}</Text>
+          <View style={[styles.statCard, { backgroundColor: Colors.card.stats.purple, padding: cardPadding }]}>
+            <Text style={[styles.statValue, { fontSize: statValueSize }]}>{stats.practiceCompleted}</Text>
             <Text style={styles.statLabel}>Practice Tasks</Text>
           </View>
 
-          <View style={[styles.statCard, { backgroundColor: '#E7F7EF' }]}>
-            <Text style={styles.statValue}>{stats.topicsMastered}</Text>
+          <View style={[styles.statCard, { backgroundColor: Colors.card.stats.green, padding: cardPadding }]}>
+            <Text style={[styles.statValue, { fontSize: statValueSize }]}>{stats.topicsMastered}</Text>
             <Text style={styles.statLabel}>Topics Explored</Text>
           </View>
         </View>
 
-        <View style={styles.summaryCard}>
+        <View style={[styles.summaryCard, { padding: cardPadding }]}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Activities</Text>
             <Text style={styles.summaryValue}>{stats.totalActivities}</Text>
@@ -130,139 +145,140 @@ export const ProgressScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
+  },
+  headerSmall: {
+    marginBottom: Spacing.md,
   },
   title: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 4,
+    ...Typography.display.medium,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    fontSize: 17,
-    color: '#8E8E93',
+    ...Typography.body.medium,
+    color: Colors.ios.gray,
   },
   goalCard: {
-    backgroundColor: '#F2F2F7',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 24,
+    backgroundColor: Colors.card.default,
+    borderRadius: Spacing.borderRadius.lg,
+    marginBottom: Spacing.lg,
   },
   goalLabel: {
-    fontSize: 13,
+    ...Typography.label.medium,
     fontWeight: '600',
-    color: '#8E8E93',
+    color: Colors.ios.gray,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   goalText: {
-    fontSize: 24,
+    ...Typography.heading.h2,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
   },
   levelBadge: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: Colors.badge.primary,
+    paddingHorizontal: Spacing.sm + 4,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: Spacing.borderRadius.md,
     alignSelf: 'flex-start',
   },
   levelText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: Colors.white,
+    ...Typography.label.medium,
     fontWeight: '600',
     textTransform: 'capitalize',
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  statsGridTablet: {
+    gap: Spacing.md,
   },
   statCard: {
     flex: 1,
     minWidth: '47%',
-    padding: 20,
-    borderRadius: 16,
+    borderRadius: Spacing.borderRadius.lg,
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 40,
     fontWeight: '700',
-    color: '#000000',
-    marginBottom: 4,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
   },
   statLabel: {
-    fontSize: 15,
+    ...Typography.body.small,
     fontWeight: '500',
-    color: '#000000',
+    color: Colors.text.primary,
     textAlign: 'center',
   },
   summaryCard: {
-    backgroundColor: '#F2F2F7',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 24,
+    backgroundColor: Colors.card.default,
+    borderRadius: Spacing.borderRadius.lg,
+    marginBottom: Spacing.lg,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: Spacing.sm,
   },
   summaryLabel: {
-    fontSize: 17,
+    ...Typography.body.medium,
     fontWeight: '500',
-    color: '#000000',
+    color: Colors.text.primary,
   },
   summaryValue: {
-    fontSize: 20,
+    ...Typography.heading.h3,
     fontWeight: '600',
-    color: '#007AFF',
+    color: Colors.ios.blue,
   },
   recentActivity: {
-    marginBottom: 20,
+    marginBottom: Spacing.lg,
   },
   recentTitle: {
-    fontSize: 20,
+    ...Typography.heading.h3,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 16,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
   },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    backgroundColor: Colors.card.default,
+    padding: Spacing.md,
+    borderRadius: Spacing.borderRadius.md,
+    marginBottom: Spacing.sm,
   },
   activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    width: Spacing.icon.xl,
+    height: Spacing.icon.xl,
+    borderRadius: Spacing.borderRadius.full,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: Spacing.sm,
   },
   activityEmoji: {
-    fontSize: 20,
+    fontSize: Spacing.icon.sm,
   },
   activityInfo: {
     flex: 1,
   },
   activityTopic: {
-    fontSize: 17,
+    ...Typography.body.medium,
     fontWeight: '600',
-    color: '#000000',
+    color: Colors.text.primary,
     marginBottom: 2,
   },
   activityType: {
-    fontSize: 15,
-    color: '#8E8E93',
+    ...Typography.body.small,
+    color: Colors.ios.gray,
   },
   emptyContainer: {
     flex: 1,
@@ -270,11 +286,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   emptyText: {
-    fontSize: 17,
-    color: '#8E8E93',
+    ...Typography.body.medium,
+    color: Colors.ios.gray,
   },
 });

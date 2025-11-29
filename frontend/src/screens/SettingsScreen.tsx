@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, Switch, Alert, ScrollView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { signOut } from '../services/auth';
+import { Colors } from '../theme/colors';
+import { Typography } from '../theme/typography';
+import { Spacing } from '../theme/spacing';
+import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
@@ -18,6 +22,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   const [darkMode, setDarkMode] = useState(false);
   const [dailyReminder, setDailyReminder] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { responsive, isSmallPhone } = useResponsive();
 
   const handleLogout = () => {
     Alert.alert(
@@ -49,14 +54,21 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
     );
   };
 
+  // Responsive values
+  const titleSize = responsive(
+    Typography.display.small.fontSize,
+    Typography.display.medium.fontSize,
+    Typography.display.large.fontSize
+  );
+
   return (
     <Container>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
+          <Text style={[styles.title, { fontSize: titleSize }]}>Settings</Text>
         </View>
 
-        <View style={styles.section}>
+        <View style={[styles.section, isSmallPhone && styles.sectionSmall]}>
           <Text style={styles.sectionTitle}>Account</Text>
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>Email</Text>
@@ -70,7 +82,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
           )}
         </View>
 
-        <View style={styles.section}>
+        <View style={[styles.section, isSmallPhone && styles.sectionSmall]}>
           <Text style={styles.sectionTitle}>Preferences</Text>
 
           <View style={styles.settingRow}>
@@ -83,8 +95,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
             <Switch
               value={darkMode}
               onValueChange={setDarkMode}
-              trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-              thumbColor="#FFFFFF"
+              trackColor={{ false: Colors.switch.trackOff, true: Colors.switch.trackOn }}
+              thumbColor={Colors.switch.thumb}
             />
           </View>
 
@@ -98,13 +110,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
             <Switch
               value={dailyReminder}
               onValueChange={setDailyReminder}
-              trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-              thumbColor="#FFFFFF"
+              trackColor={{ false: Colors.switch.trackOff, true: Colors.switch.trackOn }}
+              thumbColor={Colors.switch.thumb}
             />
           </View>
         </View>
 
-        <View style={styles.section}>
+        <View style={[styles.section, isSmallPhone && styles.sectionSmall]}>
           <Text style={styles.sectionTitle}>About</Text>
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>Version</Text>
@@ -120,76 +132,82 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
             loading={loading}
           />
         </View>
-      </View>
+      </ScrollView>
     </Container>
   );
 };
 
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
-    marginBottom: 32,
+    marginBottom: Spacing.xl,
+  },
+  headerSmall: {
+    marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: '#000000',
+    ...Typography.display.medium,
+    color: Colors.text.primary,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: Spacing.xl,
+  },
+  sectionSmall: {
+    marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: 13,
+    ...Typography.label.medium,
     fontWeight: '600',
-    color: '#8E8E93',
+    color: Colors.ios.gray,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 12,
+    marginBottom: Spacing.sm,
   },
   infoCard: {
-    backgroundColor: '#F2F2F7',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    backgroundColor: Colors.card.default,
+    padding: Spacing.md,
+    borderRadius: Spacing.borderRadius.md,
+    marginBottom: Spacing.sm,
   },
   infoLabel: {
-    fontSize: 13,
+    ...Typography.label.medium,
     fontWeight: '500',
-    color: '#8E8E93',
-    marginBottom: 4,
+    color: Colors.ios.gray,
+    marginBottom: Spacing.xs,
   },
   infoValue: {
-    fontSize: 17,
+    ...Typography.body.medium,
     fontWeight: '500',
-    color: '#000000',
+    color: Colors.text.primary,
   },
   settingRow: {
-    backgroundColor: '#F2F2F7',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    backgroundColor: Colors.card.default,
+    padding: Spacing.md,
+    borderRadius: Spacing.borderRadius.md,
+    marginBottom: Spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   settingInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: Spacing.sm,
   },
   settingLabel: {
-    fontSize: 17,
+    ...Typography.body.medium,
     fontWeight: '500',
-    color: '#000000',
-    marginBottom: 4,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
   },
   settingDescription: {
-    fontSize: 13,
-    color: '#8E8E93',
+    ...Typography.label.medium,
+    color: Colors.ios.gray,
   },
   buttonContainer: {
     marginTop: 'auto',
-    paddingTop: 20,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
 });

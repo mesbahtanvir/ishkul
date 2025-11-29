@@ -12,7 +12,9 @@ import { useUserStore } from '../state/userStore';
 import { signInWithGoogleIdToken, useGoogleAuth } from '../services/auth';
 import { getUserDocument } from '../services/memory';
 import { Colors } from '../theme/colors';
+import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
+import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -24,11 +26,11 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { setUser, setUserDocument, setLoading } = useUserStore();
   const { request, response, promptAsync, configError } = useGoogleAuth();
+  const { responsive, isSmallPhone } = useResponsive();
 
   useEffect(() => {
     const handleAuthResponse = async () => {
       if (response?.type === 'success') {
-        // Get the ID token from the response params
         const idToken = response.params?.id_token;
         if (idToken) {
           await handleSignInWithIdToken(idToken);
@@ -48,17 +50,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const handleSignInWithIdToken = async (idToken: string) => {
     try {
       setLoading(true);
-
-      // Send ID token to backend for validation and get session tokens
       const user = await signInWithGoogleIdToken(idToken);
-
       setUser(user);
 
-      // Fetch user document from backend
       const userDoc = await getUserDocument();
       setUserDocument(userDoc);
 
-      // Navigate based on whether user has completed onboarding
       if (!userDoc || !userDoc.goal) {
         navigation.replace('GoalSelection');
       } else {
@@ -73,13 +70,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleSignIn = async () => {
-    // Check if Google OAuth is properly configured
     if (configError) {
-      Alert.alert(
-        'Configuration Error',
-        configError,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Configuration Error', configError, [{ text: 'OK' }]);
       return;
     }
 
@@ -88,23 +80,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   };
 
+  // Responsive values
+  const emojiSize = responsive(48, 56, 64, 72);
+  const titleSize = responsive(36, 42, 48, 52);
+  const subtitleSize = responsive(16, 18, 20, 22);
+
   return (
     <View style={styles.container}>
       <Container padding="none" scrollable>
         <View style={styles.content}>
-          {/* Top Section - Logo */}
           <View style={styles.topSection}>
-            <Text style={styles.emoji}>🎓</Text>
+            <Text style={[styles.emoji, { fontSize: emojiSize }]}>🎓</Text>
           </View>
 
-          {/* Middle Section - Content */}
           <View style={styles.middleSection}>
-            <Text style={styles.title}>Ishkul</Text>
-            <Text style={styles.subtitle}>Learn anything</Text>
+            <Text style={[styles.title, { fontSize: titleSize }]}>Ishkul</Text>
+            <Text style={[styles.subtitle, { fontSize: subtitleSize }]}>Learn anything</Text>
           </View>
 
-          {/* Bottom Section - CTA */}
-          <View style={styles.bottomSection}>
+          <View style={[styles.bottomSection, isSmallPhone && styles.bottomSectionSmall]}>
             <TouchableOpacity
               style={[
                 styles.googleButton,
@@ -136,6 +130,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
+    minHeight: '100%',
   },
   topSection: {
     flex: 1,
@@ -144,7 +139,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xl,
   },
   emoji: {
-    fontSize: 56,
+    // fontSize set dynamically
   },
   middleSection: {
     flex: 1,
@@ -152,7 +147,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 42,
     fontWeight: '700',
     color: Colors.text.primary,
     marginBottom: Spacing.sm,
@@ -160,7 +154,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 18,
     fontWeight: '400',
     color: Colors.text.secondary,
     textAlign: 'center',
@@ -171,12 +164,16 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
     gap: Spacing.lg,
   },
+  bottomSectionSmall: {
+    paddingBottom: Spacing.md,
+    gap: Spacing.md,
+  },
   googleButton: {
     backgroundColor: Colors.primary,
-    borderRadius: 12,
+    borderRadius: Spacing.borderRadius.md,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    minHeight: 56,
+    minHeight: Spacing.buttonHeight.large,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -184,16 +181,14 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   googleButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.button.medium,
     color: Colors.white,
     letterSpacing: 0.3,
   },
   termsText: {
-    fontSize: 12,
+    ...Typography.label.medium,
     fontWeight: '400',
     color: Colors.text.tertiary,
     textAlign: 'center',
-    lineHeight: 18,
   },
 });

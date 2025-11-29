@@ -46,6 +46,30 @@ export const Spacing = {
     medium: 48,
     large: 56,
   },
+
+  // Border radius
+  borderRadius: {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 20,
+    full: 9999,
+  },
+
+  // Icon sizes
+  icon: {
+    sm: 20,
+    md: 24,
+    lg: 32,
+    xl: 40,
+  },
+
+  // Touch targets (minimum 44px for accessibility)
+  touchTarget: {
+    min: 44,
+    default: 48,
+  },
 };
 
 export default Spacing;

@@ -6,6 +6,10 @@ import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningStore } from '../state/learningStore';
 import { updateUserHistory, clearNextStep, getUserDocument } from '../services/memory';
+import { Colors } from '../theme/colors';
+import { Typography } from '../theme/typography';
+import { Spacing } from '../theme/spacing';
+import { useResponsive } from '../hooks/useResponsive';
 import { HistoryEntry, NextStep } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
@@ -24,6 +28,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
   const { userDocument, setUserDocument } = useUserStore();
   const { clearCurrentStep } = useLearningStore();
   const [loading, setLoading] = useState(false);
+  const { responsive, isSmallPhone } = useResponsive();
 
   const handleUnderstand = async () => {
     if (!userDocument) return;
@@ -31,25 +36,19 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
     try {
       setLoading(true);
 
-      // Create history entry
       const historyEntry: HistoryEntry = {
         type: 'lesson',
         topic: step.topic,
         timestamp: Date.now(),
       };
 
-      // Update Firestore
       await updateUserHistory(historyEntry);
       await clearNextStep();
 
-      // Update local state
       const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
-      // Clear current step
       clearCurrentStep();
-
-      // Navigate back to NextStep screen
       navigation.navigate('NextStep');
     } catch (error) {
       console.error('Error completing lesson:', error);
@@ -59,15 +58,25 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
     }
   };
 
+  // Responsive values
+  const emojiSize = responsive(48, 60, 68, 76);
+  const titleSize = responsive(
+    Typography.heading.h3.fontSize,
+    Typography.heading.h2.fontSize,
+    Typography.heading.h1.fontSize
+  );
+
   return (
     <Container scrollable>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.emoji}>📖</Text>
+        <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
+          <Text style={[styles.emoji, { fontSize: emojiSize }]}>📖</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>Lesson</Text>
           </View>
-          <Text style={styles.title}>{step.title || step.topic}</Text>
+          <Text style={[styles.title, { fontSize: titleSize }]}>
+            {step.title || step.topic}
+          </Text>
         </View>
 
         <View style={styles.bodyContainer}>
@@ -90,37 +99,38 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: Spacing.xl,
+  },
+  headerSmall: {
+    marginBottom: Spacing.lg,
   },
   emoji: {
-    fontSize: 60,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   badge: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: Colors.badge.lesson,
+    paddingHorizontal: Spacing.sm + 4,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.borderRadius.md,
+    marginBottom: Spacing.sm,
   },
   badgeText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: Colors.white,
+    ...Typography.label.medium,
     fontWeight: '600',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
+    ...Typography.heading.h2,
+    color: Colors.text.primary,
     textAlign: 'center',
   },
   bodyContainer: {
     flex: 1,
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   body: {
-    fontSize: 17,
+    ...Typography.body.medium,
     lineHeight: 26,
-    color: '#000000',
+    color: Colors.text.primary,
   },
 });

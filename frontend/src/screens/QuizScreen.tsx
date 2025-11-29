@@ -7,6 +7,10 @@ import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningStore } from '../state/learningStore';
 import { updateUserHistory, clearNextStep, getUserDocument } from '../services/memory';
+import { Colors } from '../theme/colors';
+import { Typography } from '../theme/typography';
+import { Spacing } from '../theme/spacing';
+import { useResponsive } from '../hooks/useResponsive';
 import { HistoryEntry, NextStep } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
@@ -25,9 +29,9 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { responsive, isSmallPhone } = useResponsive();
 
   const handleSubmit = () => {
-    // Simple answer checking (case-insensitive, trimmed)
     const userAnswer = answer.trim().toLowerCase();
     const expectedAnswer = (step.expectedAnswer || '').trim().toLowerCase();
     const correct = userAnswer.includes(expectedAnswer) || expectedAnswer.includes(userAnswer);
@@ -42,7 +46,6 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
     try {
       setLoading(true);
 
-      // Create history entry
       const historyEntry: HistoryEntry = {
         type: 'quiz',
         topic: step.topic,
@@ -50,18 +53,13 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
         timestamp: Date.now(),
       };
 
-      // Update Firestore
       await updateUserHistory(historyEntry);
       await clearNextStep();
 
-      // Update local state
       const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
-      // Clear current step
       clearCurrentStep();
-
-      // Navigate back to NextStep screen
       navigation.navigate('NextStep');
     } catch (error) {
       console.error('Error completing quiz:', error);
@@ -71,15 +69,25 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
     }
   };
 
+  // Responsive values
+  const emojiSize = responsive(48, 60, 68, 76);
+  const titleSize = responsive(
+    Typography.heading.h3.fontSize,
+    Typography.heading.h2.fontSize,
+    Typography.heading.h1.fontSize
+  );
+
   return (
     <Container scrollable>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.emoji}>❓</Text>
+        <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
+          <Text style={[styles.emoji, { fontSize: emojiSize }]}>❓</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>Quiz</Text>
           </View>
-          <Text style={styles.title}>{step.title || step.topic}</Text>
+          <Text style={[styles.title, { fontSize: titleSize }]}>
+            {step.title || step.topic}
+          </Text>
         </View>
 
         <View style={styles.bodyContainer}>
@@ -131,64 +139,65 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: Spacing.xl,
+  },
+  headerSmall: {
+    marginBottom: Spacing.lg,
   },
   emoji: {
-    fontSize: 60,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   badge: {
-    backgroundColor: '#FF9500',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: Colors.badge.quiz,
+    paddingHorizontal: Spacing.sm + 4,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.borderRadius.md,
+    marginBottom: Spacing.sm,
   },
   badgeText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: Colors.white,
+    ...Typography.label.medium,
     fontWeight: '600',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
+    ...Typography.heading.h2,
+    color: Colors.text.primary,
     textAlign: 'center',
   },
   bodyContainer: {
     flex: 1,
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   question: {
-    fontSize: 17,
+    ...Typography.body.medium,
     lineHeight: 26,
-    color: '#000000',
-    marginBottom: 24,
+    color: Colors.text.primary,
+    marginBottom: Spacing.lg,
     fontWeight: '500',
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   resultContainer: {
-    padding: 16,
-    borderRadius: 12,
+    padding: Spacing.md,
+    borderRadius: Spacing.borderRadius.md,
     flexDirection: 'row',
     alignItems: 'center',
   },
   correct: {
-    backgroundColor: '#E7F7EF',
+    backgroundColor: Colors.result.correct,
   },
   incorrect: {
-    backgroundColor: '#FFE8E8',
+    backgroundColor: Colors.result.incorrect,
   },
   resultIcon: {
-    fontSize: 24,
-    marginRight: 12,
+    fontSize: Spacing.lg,
+    marginRight: Spacing.sm,
   },
   resultText: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body.small,
     fontWeight: '500',
-    color: '#000000',
+    color: Colors.text.primary,
   },
 });

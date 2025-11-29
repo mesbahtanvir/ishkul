@@ -5,6 +5,10 @@ import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { createUserDocument, getUserDocument } from '../services/memory';
+import { Colors } from '../theme/colors';
+import { Typography } from '../theme/typography';
+import { Spacing } from '../theme/spacing';
+import { useResponsive } from '../hooks/useResponsive';
 import { LevelType } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
@@ -44,21 +48,18 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
   const { user, setUserDocument } = useUserStore();
   const [selectedLevel, setSelectedLevel] = useState<LevelType | null>(null);
   const [loading, setLoading] = useState(false);
+  const { responsive, isSmallPhone } = useResponsive();
 
   const handleConfirm = async () => {
     if (!selectedLevel || !user) return;
 
     try {
       setLoading(true);
-
-      // Create or update user document in Firestore
       await createUserDocument(goal, selectedLevel);
 
-      // Fetch and update local state
       const userDoc = await getUserDocument();
       setUserDocument(userDoc);
 
-      // Navigate to main app
       navigation.replace('Main');
     } catch (error) {
       console.error('Error saving user profile:', error);
@@ -68,28 +69,38 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
     }
   };
 
+  // Responsive values
+  const titleSize = responsive(
+    Typography.heading.h2.fontSize,
+    Typography.heading.h1.fontSize,
+    Typography.display.small.fontSize
+  );
+  const emojiSize = responsive(32, 40, 44, 48);
+  const cardPadding = responsive(Spacing.md, Spacing.lg, Spacing.lg, Spacing.xl);
+
   return (
     <Container>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Choose your level</Text>
+        <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
+          <Text style={[styles.title, { fontSize: titleSize }]}>Choose your level</Text>
           <Text style={styles.subtitle}>
             For: <Text style={styles.goal}>{goal}</Text>
           </Text>
         </View>
 
-        <View style={styles.levelsContainer}>
+        <View style={[styles.levelsContainer, isSmallPhone && styles.levelsContainerSmall]}>
           {LEVELS.map((level) => (
             <TouchableOpacity
               key={level.id}
               style={[
                 styles.levelCard,
+                { padding: cardPadding },
                 selectedLevel === level.id && styles.levelCardSelected,
               ]}
               onPress={() => setSelectedLevel(level.id)}
               activeOpacity={0.7}
             >
-              <Text style={styles.levelEmoji}>{level.emoji}</Text>
+              <Text style={[styles.levelEmoji, { fontSize: emojiSize }]}>{level.emoji}</Text>
               <View style={styles.levelInfo}>
                 <Text style={styles.levelTitle}>{level.title}</Text>
                 <Text style={styles.levelDescription}>{level.description}</Text>
@@ -126,76 +137,79 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    marginBottom: 32,
+    marginBottom: Spacing.xl,
+  },
+  headerSmall: {
+    marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 8,
+    ...Typography.heading.h1,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
-    fontSize: 17,
-    color: '#8E8E93',
+    ...Typography.body.medium,
+    color: Colors.ios.gray,
   },
   goal: {
     fontWeight: '600',
-    color: '#007AFF',
+    color: Colors.ios.blue,
   },
   levelsContainer: {
     flex: 1,
-    gap: 16,
-    marginBottom: 24,
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  levelsContainerSmall: {
+    gap: Spacing.sm,
   },
   levelCard: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: Colors.card.default,
+    borderRadius: Spacing.borderRadius.lg,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   levelCardSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#E3F2FF',
+    borderColor: Colors.ios.blue,
+    backgroundColor: Colors.card.selected,
   },
   levelEmoji: {
-    fontSize: 40,
-    marginRight: 16,
+    marginRight: Spacing.md,
   },
   levelInfo: {
     flex: 1,
   },
   levelTitle: {
-    fontSize: 20,
+    ...Typography.heading.h3,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
   },
   levelDescription: {
-    fontSize: 15,
-    color: '#8E8E93',
+    ...Typography.body.small,
+    color: Colors.ios.gray,
   },
   radioContainer: {
-    marginLeft: 12,
+    marginLeft: Spacing.sm,
   },
   radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: Spacing.lg,
+    height: Spacing.lg,
+    borderRadius: Spacing.borderRadius.full,
     borderWidth: 2,
-    borderColor: '#8E8E93',
+    borderColor: Colors.ios.gray,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioSelected: {
-    borderColor: '#007AFF',
+    borderColor: Colors.ios.blue,
   },
   radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#007AFF',
+    width: Spacing.sm + 4,
+    height: Spacing.sm + 4,
+    borderRadius: Spacing.borderRadius.full,
+    backgroundColor: Colors.ios.blue,
   },
 });
