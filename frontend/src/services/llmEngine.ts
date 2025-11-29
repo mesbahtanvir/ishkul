@@ -1,6 +1,6 @@
 import { LLMRequest, LLMResponse, NextStep } from '../types/app';
 import { apiConfig } from '../config/firebase.config';
-import { auth } from './auth';
+import { authApi } from './api';
 
 // Mock lessons database
 const mockLessons: { [key: string]: NextStep[] } = {
@@ -110,29 +110,27 @@ Let's begin with the fundamentals!`,
 // Get the next learning step using OpenAI backend
 export const getNextStep = async (request: LLMRequest): Promise<LLMResponse> => {
   try {
-    // Get the current user's ID token for authentication
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
+    // Get the current user's access token for authentication
+    const accessToken = authApi.getAccessToken();
+    if (!accessToken) {
       throw new Error('User not authenticated');
     }
-
-    const idToken = await currentUser.getIdToken();
 
     // Call the backend API
     const response = await fetch(`${apiConfig.baseURL}/llm/next-step`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         goal: request.goal,
         level: request.level,
-        history: request.history.map((h) => h.title || h.topic || 'Completed step'),
-        memory: request.memory,
+        history: request.history.map((h) => h.topic),
+        memory: JSON.stringify(request.memory),
         recentHistory: request.history
           .slice(-3)
-          .map((h) => h.title || h.topic)
+          .map((h) => h.topic)
           .join(', '),
       }),
     });
