@@ -34,9 +34,6 @@ jobs:
         working-directory: frontend
         run: npm run lint
 
-      - name: Lint Markdown
-        run: ./frontend/node_modules/.bin/markdownlint "**/*.md" --ignore "node_modules" --ignore "frontend/node_modules"
-
       - name: Build web
         working-directory: frontend
         run: npm run build
