@@ -39,10 +39,12 @@ export const useTheme = (): UseThemeReturn => {
   const colors = useThemeStore((state) => state.colors);
   const themeMode = useThemeStore((state) => state.themeMode);
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
-  const isHydrated = useThemeStore((state) => state.isHydrated);
+  const _hasHydrated = useThemeStore((state) => state._hasHydrated);
   const setThemeMode = useThemeStore((state) => state.setThemeMode);
 
   const isDark = resolvedTheme === 'dark';
+  // Convert number to boolean for API compatibility
+  const isHydrated = _hasHydrated === 1;
 
   const toggleTheme = () => {
     // Toggle between light and dark directly (not system)

@@ -11,12 +11,11 @@ interface ThemeState {
   resolvedTheme: 'light' | 'dark';
   // Current colors based on resolved theme
   colors: ThemeColors;
-  // Whether the store has been hydrated from AsyncStorage
-  isHydrated: boolean;
+  // Whether the store has been hydrated from AsyncStorage (stored as 0 or 1 for new arch compatibility)
+  _hasHydrated: number;
 
   // Actions
   setThemeMode: (mode: ThemeMode) => void;
-  setIsHydrated: (hydrated: boolean) => void;
 }
 
 /**
@@ -48,7 +47,7 @@ export const useThemeStore = create<ThemeState>()(
       themeMode: initialMode,
       resolvedTheme: initialResolved,
       colors: initialColors,
-      isHydrated: false,
+      _hasHydrated: 0, // 0 = false, 1 = true (for new arch compatibility)
 
       setThemeMode: (mode: ThemeMode) => {
         const resolved = resolveTheme(mode);
@@ -58,31 +57,23 @@ export const useThemeStore = create<ThemeState>()(
           colors: getColors(resolved),
         });
       },
-
-      setIsHydrated: (hydrated: boolean) => {
-        set({ isHydrated: hydrated });
-      },
     }),
     {
       name: 'ishkul-theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
       // Only persist the themeMode, not the resolved values
       partialize: (state) => ({ themeMode: state.themeMode }),
-      onRehydrateStorage: () => (state) => {
-        // Recalculate resolved theme and set hydrated flag after rehydration
-        if (state) {
-          // Recalculate resolved theme based on persisted preference
-          const resolved = resolveTheme(state.themeMode);
-          state.resolvedTheme = resolved;
-          state.colors = getColors(resolved);
-          state.isHydrated = true;
-        } else {
-          // First load - no persisted data
-          // Defer setState to avoid calling it during store initialization
-          setTimeout(() => {
-            useThemeStore.setState({ isHydrated: true });
-          }, 0);
-        }
+      onRehydrateStorage: () => {
+        return (state, error) => {
+          if (!error && state) {
+            // Recalculate resolved theme based on persisted themeMode
+            const resolved = resolveTheme(state.themeMode);
+            state.resolvedTheme = resolved;
+            state.colors = getColors(resolved);
+            // Set hydrated using number instead of boolean for new arch compatibility
+            state._hasHydrated = 1;
+          }
+        };
       },
     }
   )
