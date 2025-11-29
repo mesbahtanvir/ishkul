@@ -1,0 +1,136 @@
+#!/bin/sh
+
+# Pre-commit hook to enforce code quality checks before commits
+# This prevents Claude (or any developer) from committing broken code
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+echo ""
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+FRONTEND_CHANGED=false
+BACKEND_CHANGED=false
+EXIT_CODE=0
+
+# Check if files were staged for commit
+if git diff --cached --quiet; then
+    echo "⚠️  No staged changes to check"
+    exit 0
+fi
+
+# Check which parts of the project changed
+if git diff --cached --name-only | grep -q '^frontend/'; then
+    FRONTEND_CHANGED=true
+fi
+
+if git diff --cached --name-only | grep -q '^backend/'; then
+    BACKEND_CHANGED=true
+fi
+
+# ============================================
+# Frontend Checks
+# ============================================
+
+if [ "$FRONTEND_CHANGED" = true ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📦 FRONTEND: Running checks..."
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    cd frontend
+
+    # Run linting
+    echo "  🔍 Linting TypeScript..."
+    if ! npm run lint 2>&1 | grep -v "npm notice" | head -20; then
+        echo ""
+        echo -e "${RED}❌ Linting failed!${NC}"
+        echo "   Fix with: npm run lint -- --fix"
+        EXIT_CODE=1
+    fi
+
+    # Run type checking
+    echo "  📝 Type checking..."
+    if ! npm run type-check 2>&1 | head -20; then
+        echo ""
+        echo -e "${RED}❌ Type check failed!${NC}"
+        echo "   Fix TypeScript errors before committing"
+        EXIT_CODE=1
+    fi
+
+    # Run tests
+    echo "  🧪 Running tests..."
+    if ! npm test -- --watchAll=false --passWithNoTests 2>&1 | tail -30; then
+        echo ""
+        echo -e "${RED}❌ Tests failed!${NC}"
+        echo "   Fix failing tests before committing"
+        echo "   Run: npm test -- --watchAll=false"
+        EXIT_CODE=1
+    fi
+
+    cd ..
+fi
+
+# ============================================
+# Backend Checks
+# ============================================
+
+if [ "$BACKEND_CHANGED" = true ]; then
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🚀 BACKEND: Running checks..."
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    cd backend
+
+    # Check formatting
+    echo "  🔍 Checking Go formatting..."
+    if ! gofmt -l . 2>&1 | grep -q "^"; then
+        # gofmt output means there are formatting issues
+        echo ""
+        echo -e "${RED}❌ Go formatting issues found!${NC}"
+        echo "   Fix with: gofmt -w ."
+        EXIT_CODE=1
+    else
+        echo "  ✓ Formatting OK"
+    fi
+
+    # Run tests
+    echo "  🧪 Running Go tests..."
+    if ! go test ./... 2>&1 | tail -20; then
+        echo ""
+        echo -e "${RED}❌ Go tests failed!${NC}"
+        echo "   Fix failing tests before committing"
+        EXIT_CODE=1
+    fi
+
+    cd ..
+fi
+
+# ============================================
+# Results
+# ============================================
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+if [ $EXIT_CODE -eq 0 ]; then
+    echo -e "${GREEN}✅ All checks passed! Ready to commit${NC}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 0
+else
+    echo -e "${RED}❌ Some checks failed. Please fix the issues above.${NC}"
+    echo ""
+    echo "🚫 Commit blocked until all checks pass"
+    echo ""
+    echo "If you need to bypass this (NOT RECOMMENDED):"
+    echo "  git commit --no-verify"
+    echo ""
+    echo "⚠️  Use --no-verify only for urgent hotfixes, not regular development!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 1
+fi

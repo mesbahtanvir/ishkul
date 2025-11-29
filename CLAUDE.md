@@ -41,32 +41,29 @@ gcloud run deploy ishkul-backend --source .  # Deploy to Cloud Run
 
 ## 📋 After Making Code Changes - CHECKLIST
 
-**Before every commit**, run:
+**Automated Pre-Commit Checks**: Hooks run automatically before each commit to ensure:
+- ✅ Frontend linting, type-checking, and tests pass
+- ✅ Backend formatting and tests pass
+- ❌ If any fail, commit is blocked until fixed
 
-1. **Frontend**:
-   ```bash
-   cd frontend
-   npm run lint          # Fix style issues
-   npm run type-check    # Catch type errors
-   npm test              # Run tests
-   ```
+**Manual Review Checklist**:
 
-2. **Backend**:
-   ```bash
-   cd backend
-   gofmt -l .            # Check formatting
-   go test ./...         # Run tests
-   ```
-
-3. **Documentation**:
+1. **Documentation**:
    - [ ] Updated CLAUDE.md if architecture changed
-   - [ ] Updated relevant guide (DEPLOYMENT_GUIDE.md, DEVELOPMENT_SETUP.md, etc.)
+   - [ ] Updated relevant guide (in `docs/` folder)
    - [ ] Clear commit message explaining changes
 
-4. **For Deployment Changes**:
-   - [ ] Test locally first
-   - [ ] Verify all environment variables
+2. **For Deployment Changes**:
+   - [ ] Test locally first: `npm start` (frontend) or `go run cmd/server/main.go` (backend)
+   - [ ] Verify all environment variables set correctly
    - [ ] Check CI logs after push
+
+**Need to bypass checks?** (⚠️ Last resort only)
+```bash
+git commit --no-verify  # Skips pre-commit hooks (use for urgent hotfixes only)
+```
+
+See [docs/PRE_COMMIT_HOOKS.md](docs/PRE_COMMIT_HOOKS.md) for detailed testing enforcement info.
 
 ## 📌 When to Update Documentation
 
