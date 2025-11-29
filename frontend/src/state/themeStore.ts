@@ -72,9 +72,12 @@ export const useThemeStore = create<ThemeState>()(
         if (state) {
           // Recalculate resolved theme after hydration
           const resolved = resolveTheme(state.themeMode);
-          state.resolvedTheme = resolved;
-          state.colors = getColors(resolved);
-          state.isHydrated = true;
+          // Must use setState to trigger React re-renders (direct mutation won't work)
+          useThemeStore.setState({
+            resolvedTheme: resolved,
+            colors: getColors(resolved),
+            isHydrated: true,
+          });
         }
       },
     }
