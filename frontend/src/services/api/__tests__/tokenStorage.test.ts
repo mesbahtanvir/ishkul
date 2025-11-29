@@ -1,7 +1,22 @@
+// Mock Platform to use web for localStorage tests
+jest.mock('react-native', () => ({
+  Platform: {
+    OS: 'web',
+    select: jest.fn((obj: Record<string, unknown>) => obj.web || obj.default),
+  },
+}));
+
 // Create a fresh instance of tokenStorage for each test
 const createTokenStorage = () => {
   // Reset the module to get fresh instance
   jest.resetModules();
+  // Re-apply the Platform mock after module reset
+  jest.doMock('react-native', () => ({
+    Platform: {
+      OS: 'web',
+      select: jest.fn((obj: Record<string, unknown>) => obj.web || obj.default),
+    },
+  }));
   return require('../tokenStorage').tokenStorage;
 };
 

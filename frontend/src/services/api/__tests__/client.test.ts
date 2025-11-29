@@ -310,7 +310,7 @@ describe('ApiClient', () => {
         // Retry call
         .mockResolvedValueOnce({
           ok: true,
-          text: () => Promise.resolve(JSON.stringify({ success: true })),
+          json: () => Promise.resolve({ success: true }),
           status: 200,
         });
 
