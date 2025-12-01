@@ -1,4 +1,4 @@
-import { NextStep, LearningPath } from './app';
+import { NextStep, Step } from './app';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -7,11 +7,17 @@ export type RootStackParamList = {
   Main: undefined;
   Learn: undefined;
   Home: undefined;
+  // New: Main learning path timeline view
+  LearningPath: { pathId: string };
+  // Legacy: Old session screen (redirect to LearningPath)
   LearningSession: { pathId: string };
   NextStep: undefined; // Legacy - keep for backward compatibility
-  Lesson: { step: NextStep; pathId: string };
-  Quiz: { step: NextStep; pathId: string };
-  Practice: { step: NextStep; pathId: string };
+  // Step screens - now accept Step instead of NextStep
+  Lesson: { step: Step; pathId: string };
+  Quiz: { step: Step; pathId: string };
+  Practice: { step: Step; pathId: string };
+  // New: Read-only step detail view for reviewing past steps
+  StepDetail: { step: Step; pathId: string };
   Progress: undefined;
   Settings: undefined;
 };

@@ -6,12 +6,13 @@ import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
-import { completePathStep, getUserDocument } from '../services/memory';
+import { completeStep, getUserDocument } from '../services/memory';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
+import { StepType } from '../types/app';
 
 type LessonScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Lesson'>;
 type LessonScreenRouteProp = RouteProp<RootStackParamList, 'Lesson'>;
@@ -21,13 +22,39 @@ interface LessonScreenProps {
   route: LessonScreenRouteProp;
 }
 
+const getStepIcon = (type: StepType): string => {
+  switch (type) {
+    case 'lesson':
+      return '📖';
+    case 'review':
+      return '🔄';
+    case 'summary':
+      return '📋';
+    default:
+      return '📖';
+  }
+};
+
+const getStepTypeLabel = (type: StepType): string => {
+  switch (type) {
+    case 'lesson':
+      return 'Lesson';
+    case 'review':
+      return 'Review';
+    case 'summary':
+      return 'Summary';
+    default:
+      return 'Lesson';
+  }
+};
+
 export const LessonScreen: React.FC<LessonScreenProps> = ({
   navigation,
   route,
 }) => {
   const { step, pathId } = route.params;
   const { setUserDocument } = useUserStore();
-  const { updatePath, setCurrentStep } = useLearningPathsStore();
+  const { updatePath, setActivePath } = useLearningPathsStore();
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
   const { colors } = useTheme();
@@ -37,21 +64,18 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
       setLoading(true);
 
       // Complete the step and get updated path
-      const result = await completePathStep(pathId, {
-        type: 'lesson',
-        topic: step.topic,
-      });
+      const result = await completeStep(pathId, step.id);
 
       // Update local state
       updatePath(pathId, result.path);
-      setCurrentStep(pathId, result.nextStep);
+      setActivePath(result.path);
 
       // Refresh user document
       const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
-      // Navigate back to session
-      navigation.navigate('LearningSession', { pathId });
+      // Navigate back to learning path timeline
+      navigation.navigate('LearningPath', { pathId });
     } catch (error) {
       console.error('Error completing lesson:', error);
       Alert.alert('Error', 'Failed to save progress. Please try again.');
@@ -68,13 +92,30 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
     Typography.heading.h1.fontSize
   );
 
+  // Get badge color based on step type
+  const getBadgeColor = () => {
+    switch (step.type) {
+      case 'lesson':
+        return colors.badge.lesson;
+      case 'review':
+      case 'summary':
+        return colors.badge.primary;
+      default:
+        return colors.badge.lesson;
+    }
+  };
+
   return (
     <Container scrollable>
       <View style={styles.content}>
         <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
-          <Text style={[styles.emoji, { fontSize: emojiSize }]}>📖</Text>
-          <View style={[styles.badge, { backgroundColor: colors.badge.lesson }]}>
-            <Text style={[styles.badgeText, { color: colors.white }]}>Lesson</Text>
+          <Text style={[styles.emoji, { fontSize: emojiSize }]}>
+            {getStepIcon(step.type)}
+          </Text>
+          <View style={[styles.badge, { backgroundColor: getBadgeColor() }]}>
+            <Text style={[styles.badgeText, { color: colors.white }]}>
+              {getStepTypeLabel(step.type)}
+            </Text>
           </View>
           <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
             {step.title || step.topic}

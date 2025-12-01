@@ -22,8 +22,9 @@ func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the path to determine the action
 	// /api/learning-paths -> list/create
 	// /api/learning-paths/{id} -> get/update/delete
-	// /api/learning-paths/{id}/session -> get next step
-	// /api/learning-paths/{id}/complete -> complete step
+	// /api/learning-paths/{id}/next -> get/generate next step
+	// /api/learning-paths/{id}/steps/{stepId}/complete -> complete step
+	// /api/learning-paths/{id}/steps/{stepId}/view -> view step (updates lastReviewed)
 	// /api/learning-paths/{id}/memory -> update memory
 
 	path := strings.TrimPrefix(r.URL.Path, "/api/learning-paths")
@@ -65,21 +66,44 @@ func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
 	if len(segments) == 2 {
 		action := segments[1]
 		switch action {
-		case "session":
+		case "next", "session": // "session" kept for backward compatibility
 			if r.Method == http.MethodPost {
 				getPathNextStep(w, r, pathID)
 			} else {
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
-		case "complete":
+		case "complete": // Legacy endpoint - complete the current step
 			if r.Method == http.MethodPost {
-				completePathStep(w, r, pathID)
+				completeCurrentStep(w, r, pathID)
 			} else {
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
 		case "memory":
 			if r.Method == http.MethodPost {
 				updatePathMemory(w, r, pathID)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		default:
+			http.Error(w, "Not found", http.StatusNotFound)
+		}
+		return
+	}
+
+	// /api/learning-paths/{id}/steps/{stepId}/{action}
+	if len(segments) == 4 && segments[1] == "steps" {
+		stepID := segments[2]
+		action := segments[3]
+		switch action {
+		case "complete":
+			if r.Method == http.MethodPost {
+				completeStep(w, r, pathID, stepID)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		case "view":
+			if r.Method == http.MethodPost {
+				viewStep(w, r, pathID, stepID)
 			} else {
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
@@ -225,10 +249,10 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		Progress:         0,
 		LessonsCompleted: 0,
 		TotalLessons:     10, // Default estimate
+		Steps:            []models.Step{},
 		Memory: &models.Memory{
 			Topics: make(map[string]models.TopicMemory),
 		},
-		History:        []models.HistoryEntry{},
 		CreatedAt:      now,
 		UpdatedAt:      now,
 		LastAccessedAt: now,
@@ -312,9 +336,6 @@ func updateLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 	if req.TotalLessons != nil {
 		updates = append(updates, firestore.Update{Path: "totalLessons", Value: *req.TotalLessons})
 	}
-	if req.CurrentStep != nil {
-		updates = append(updates, firestore.Update{Path: "currentStep", Value: req.CurrentStep})
-	}
 
 	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
 		http.Error(w, fmt.Sprintf("Error updating learning path: %v", err), http.StatusInternalServerError)
@@ -390,7 +411,17 @@ func deleteLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 	}
 }
 
-// getPathNextStep generates or returns the next step for a learning path
+// getCurrentStep finds the current (incomplete) step or returns nil if all complete
+func getCurrentStep(steps []models.Step) *models.Step {
+	for i := range steps {
+		if !steps[i].Completed {
+			return &steps[i]
+		}
+	}
+	return nil
+}
+
+// getPathNextStep returns the current incomplete step or generates a new one
 func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
@@ -428,11 +459,13 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		{Path: "lastAccessedAt", Value: now},
 	})
 
-	// Return current step if exists
-	if path.CurrentStep != nil {
+	// Check for existing incomplete step
+	currentStep := getCurrentStep(path.Steps)
+	if currentStep != nil {
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(map[string]interface{}{
-			"step": path.CurrentStep,
+			"step":      currentStep,
+			"stepIndex": currentStep.Index,
 		}); err != nil {
 			http.Error(w, "Error encoding response", http.StatusInternalServerError)
 			return
@@ -447,19 +480,23 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
-	// Save the generated step to Firestore
+	// Append the new step to the Steps array
+	path.Steps = append(path.Steps, *nextStep)
+
+	// Save the updated path to Firestore
 	_, err = fs.Collection("learning_paths").Doc(pathID).Update(ctx, []firestore.Update{
-		{Path: "currentStep", Value: nextStep},
+		{Path: "steps", Value: path.Steps},
 		{Path: "updatedAt", Value: time.Now().UnixMilli()},
 	})
 	if err != nil {
 		// Log but don't fail - we can still return the step
-		fmt.Printf("Warning: failed to cache generated step: %v\n", err)
+		fmt.Printf("Warning: failed to save generated step: %v\n", err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"step": nextStep,
+		"step":      nextStep,
+		"stepIndex": nextStep.Index,
 	}); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
@@ -467,42 +504,38 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 }
 
 // generateNextStepForPath generates the next learning step using the LLM
-func generateNextStepForPath(path *models.LearningPath) (*models.NextStep, error) {
+func generateNextStepForPath(path *models.LearningPath) (*models.Step, error) {
 	// Check if LLM is initialized
 	if openaiClient == nil || promptLoader == nil {
 		return nil, fmt.Errorf("LLM not initialized")
 	}
 
-	// Extract history topics
-	historyTopics := make([]string, 0, len(path.History))
-	for _, h := range path.History {
-		historyTopics = append(historyTopics, h.Topic)
-	}
+	// Determine which steps to include (only since last compaction)
+	recentSteps := getRecentSteps(path)
 
-	// Get recent history (last 3 topics)
+	// Build recent history string from recent steps
 	recentHistory := ""
-	if len(historyTopics) > 0 {
-		start := len(historyTopics) - 3
+	if len(recentSteps) > 0 {
+		topics := make([]string, 0, len(recentSteps))
+		for _, s := range recentSteps {
+			topics = append(topics, s.Topic)
+		}
+		// Get last 5 topics for context
+		start := len(topics) - 5
 		if start < 0 {
 			start = 0
 		}
-		recentHistory = strings.Join(historyTopics[start:], ", ")
+		recentHistory = strings.Join(topics[start:], ", ")
 	}
 
-	// Prepare memory summary
-	memorySummary := ""
-	if path.Memory != nil && len(path.Memory.Topics) > 0 {
-		memoryBytes, err := json.Marshal(path.Memory)
-		if err == nil {
-			memorySummary = string(memoryBytes)
-		}
-	}
+	// Build memory context (compaction summary + topics)
+	memorySummary := buildMemoryContext(path)
 
 	// Prepare variables for the prompt
 	vars := prompts.Variables{
 		"goal":          path.Goal,
 		"level":         path.Level,
-		"historyCount":  strconv.Itoa(len(historyTopics)),
+		"historyCount":  strconv.Itoa(len(path.Steps)),
 		"memory":        memorySummary,
 		"recentHistory": recentHistory,
 	}
@@ -531,34 +564,101 @@ func generateNextStepForPath(path *models.LearningPath) (*models.NextStep, error
 
 	content := completion.Choices[0].Message.Content
 
-	// Parse the JSON response into NextStep
-	var nextStep models.NextStep
-	if err := json.Unmarshal([]byte(content), &nextStep); err != nil {
+	// Parse the JSON response into a temporary struct
+	var stepData struct {
+		Type           string   `json:"type"`
+		Topic          string   `json:"topic"`
+		Title          string   `json:"title"`
+		Content        string   `json:"content,omitempty"`
+		Question       string   `json:"question,omitempty"`
+		Options        []string `json:"options,omitempty"`
+		ExpectedAnswer string   `json:"expectedAnswer,omitempty"`
+		Task           string   `json:"task,omitempty"`
+		Hints          []string `json:"hints,omitempty"`
+	}
+	if err := json.Unmarshal([]byte(content), &stepData); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM response as JSON: %w (content: %s)", err, content)
 	}
 
-	return &nextStep, nil
+	// Truncate content if too long
+	if len(stepData.Content) > models.MaxStepContentLength {
+		stepData.Content = stepData.Content[:models.MaxStepContentLength]
+	}
+
+	// Create the Step
+	now := time.Now().UnixMilli()
+	step := &models.Step{
+		ID:             uuid.New().String(),
+		Index:          len(path.Steps),
+		Type:           stepData.Type,
+		Topic:          stepData.Topic,
+		Title:          stepData.Title,
+		Content:        stepData.Content,
+		Question:       stepData.Question,
+		Options:        stepData.Options,
+		ExpectedAnswer: stepData.ExpectedAnswer,
+		Task:           stepData.Task,
+		Hints:          stepData.Hints,
+		Completed:      false,
+		CreatedAt:      now,
+	}
+
+	return step, nil
 }
 
-// CompleteStepRequest represents the request to complete a step
-type CompleteStepRequest struct {
-	Type  string  `json:"type"`
-	Topic string  `json:"topic"`
-	Score float64 `json:"score,omitempty"`
+// getRecentSteps returns steps since the last compaction (or all if no compaction)
+func getRecentSteps(path *models.LearningPath) []models.Step {
+	if path.Memory == nil || path.Memory.Compaction == nil {
+		return path.Steps
+	}
+
+	lastCompactedIndex := path.Memory.Compaction.LastStepIndex
+	if lastCompactedIndex >= len(path.Steps) {
+		return []models.Step{}
+	}
+
+	return path.Steps[lastCompactedIndex+1:]
 }
 
-// completePathStep marks the current step as complete and updates progress
-func completePathStep(w http.ResponseWriter, r *http.Request, pathID string) {
+// buildMemoryContext creates a string summary of the user's memory for the LLM
+func buildMemoryContext(path *models.LearningPath) string {
+	if path.Memory == nil {
+		return ""
+	}
+
+	var parts []string
+
+	// Include compaction summary if available
+	if path.Memory.Compaction != nil {
+		parts = append(parts, fmt.Sprintf("Learning Summary: %s", path.Memory.Compaction.Summary))
+		if len(path.Memory.Compaction.Strengths) > 0 {
+			parts = append(parts, fmt.Sprintf("Strengths: %s", strings.Join(path.Memory.Compaction.Strengths, ", ")))
+		}
+		if len(path.Memory.Compaction.Weaknesses) > 0 {
+			parts = append(parts, fmt.Sprintf("Weaknesses: %s", strings.Join(path.Memory.Compaction.Weaknesses, ", ")))
+		}
+	}
+
+	// Include topic confidence scores
+	if len(path.Memory.Topics) > 0 {
+		topicScores := make([]string, 0)
+		for topic, mem := range path.Memory.Topics {
+			topicScores = append(topicScores, fmt.Sprintf("%s: %.0f%%", topic, mem.Confidence*100))
+		}
+		if len(topicScores) > 0 {
+			parts = append(parts, fmt.Sprintf("Topic Confidence: %s", strings.Join(topicScores, ", ")))
+		}
+	}
+
+	return strings.Join(parts, "\n")
+}
+
+// completeCurrentStep completes the current (first incomplete) step - legacy endpoint
+func completeCurrentStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
 	if userID == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	var req CompleteStepRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -585,32 +685,155 @@ func completePathStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
+	// Find current step
+	currentStep := getCurrentStep(path.Steps)
+	if currentStep == nil {
+		http.Error(w, "No active step to complete", http.StatusBadRequest)
+		return
+	}
+
+	// Parse request body for completion data
+	var req models.StepComplete
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		// Allow empty body for simple completion
+		req = models.StepComplete{}
+	}
+
+	// Complete the step
+	completeStepInternal(w, r, pathID, currentStep.ID, &path, &req)
+}
+
+// completeStep marks a specific step as complete
+func completeStep(w http.ResponseWriter, r *http.Request, pathID string, stepID string) {
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
+		return
+	}
+
+	var path models.LearningPath
+	if err := doc.DataTo(&path); err != nil {
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if path.UserID != userID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	var req models.StepComplete
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		// Allow empty body for simple completion
+		req = models.StepComplete{}
+	}
+
+	completeStepInternal(w, r, pathID, stepID, &path, &req)
+}
+
+// completeStepInternal handles the internal logic for completing a step
+func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string, stepID string, path *models.LearningPath, req *models.StepComplete) {
+	ctx := r.Context()
+	fs := firebase.GetFirestore()
+
+	// Find the step
+	stepIndex := -1
+	for i := range path.Steps {
+		if path.Steps[i].ID == stepID {
+			stepIndex = i
+			break
+		}
+	}
+
+	if stepIndex == -1 {
+		http.Error(w, "Step not found", http.StatusNotFound)
+		return
+	}
+
+	if path.Steps[stepIndex].Completed {
+		http.Error(w, "Step already completed", http.StatusBadRequest)
+		return
+	}
+
 	now := time.Now().UnixMilli()
 
-	// Add history entry
-	entry := models.HistoryEntry{
-		Type:      req.Type,
-		Topic:     req.Topic,
-		Score:     req.Score,
-		Timestamp: now,
+	// Update step
+	path.Steps[stepIndex].Completed = true
+	path.Steps[stepIndex].CompletedAt = now
+	if req.UserAnswer != "" {
+		path.Steps[stepIndex].UserAnswer = req.UserAnswer
+	}
+	if req.Score > 0 {
+		path.Steps[stepIndex].Score = req.Score
 	}
 
 	// Calculate new progress
-	newLessonsCompleted := path.LessonsCompleted + 1
+	completedCount := 0
+	for _, s := range path.Steps {
+		if s.Completed {
+			completedCount++
+		}
+	}
+
 	newProgress := 0
 	if path.TotalLessons > 0 {
-		newProgress = (newLessonsCompleted * 100) / path.TotalLessons
+		newProgress = (completedCount * 100) / path.TotalLessons
 		if newProgress > 100 {
 			newProgress = 100
 		}
 	}
 
-	// Update the path
+	// Update memory for this topic
+	if path.Memory == nil {
+		path.Memory = &models.Memory{Topics: make(map[string]models.TopicMemory)}
+	}
+	topic := path.Steps[stepIndex].Topic
+	topicMem := path.Memory.Topics[topic]
+	topicMem.TimesTested++
+	topicMem.LastReviewed = time.Now().Format(time.RFC3339)
+	// Update confidence based on score
+	if req.Score > 0 {
+		// Weighted average with existing confidence
+		if topicMem.Confidence == 0 {
+			topicMem.Confidence = req.Score / 100.0
+		} else {
+			topicMem.Confidence = (topicMem.Confidence + (req.Score / 100.0)) / 2
+		}
+	}
+	path.Memory.Topics[topic] = topicMem
+
+	// Check if compaction is needed
+	stepsSinceCompaction := completedCount
+	if path.Memory.Compaction != nil {
+		stepsSinceCompaction = completedCount - path.Memory.Compaction.LastStepIndex - 1
+	}
+
+	if stepsSinceCompaction >= models.CompactionInterval {
+		// Trigger compaction
+		if err := compactMemory(path, completedCount-1); err != nil {
+			fmt.Printf("Warning: memory compaction failed: %v\n", err)
+		}
+	}
+
+	// Update the path in Firestore
 	updates := []firestore.Update{
-		{Path: "history", Value: firestore.ArrayUnion(entry)},
-		{Path: "lessonsCompleted", Value: newLessonsCompleted},
+		{Path: "steps", Value: path.Steps},
+		{Path: "lessonsCompleted", Value: completedCount},
 		{Path: "progress", Value: newProgress},
-		{Path: "currentStep", Value: nil}, // Clear current step
+		{Path: "memory", Value: path.Memory},
 		{Path: "updatedAt", Value: now},
 		{Path: "lastAccessedAt", Value: now},
 	}
@@ -621,25 +844,185 @@ func completePathStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	}
 
 	// Fetch updated path
-	doc, err = fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error fetching updated path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	if err := doc.DataTo(&path); err != nil {
+	if err := doc.DataTo(path); err != nil {
 		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"path":     path,
-		"nextStep": nil, // Frontend should request next step separately
+		"path":           path,
+		"completedStep":  path.Steps[stepIndex],
+		"nextStepNeeded": true,
 	}); err != nil {
 		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
 		return
 	}
+}
+
+// viewStep records that a user viewed a completed step (updates lastReviewed)
+func viewStep(w http.ResponseWriter, r *http.Request, pathID string, stepID string) {
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
+		return
+	}
+
+	var path models.LearningPath
+	if err := doc.DataTo(&path); err != nil {
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if path.UserID != userID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Find the step
+	var step *models.Step
+	for i := range path.Steps {
+		if path.Steps[i].ID == stepID {
+			step = &path.Steps[i]
+			break
+		}
+	}
+
+	if step == nil {
+		http.Error(w, "Step not found", http.StatusNotFound)
+		return
+	}
+
+	// Update memory lastReviewed for this topic
+	if path.Memory == nil {
+		path.Memory = &models.Memory{Topics: make(map[string]models.TopicMemory)}
+	}
+
+	now := time.Now()
+	topicMem := path.Memory.Topics[step.Topic]
+	topicMem.LastReviewed = now.Format(time.RFC3339)
+	path.Memory.Topics[step.Topic] = topicMem
+
+	updates := []firestore.Update{
+		{Path: "memory.topics." + step.Topic, Value: topicMem},
+		{Path: "lastAccessedAt", Value: now.UnixMilli()},
+	}
+
+	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
+		http.Error(w, fmt.Sprintf("Error updating memory: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"step":    step,
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// compactMemory uses LLM to summarize learning progress
+func compactMemory(path *models.LearningPath, upToStepIndex int) error {
+	if openaiClient == nil || promptLoader == nil {
+		return fmt.Errorf("LLM not initialized")
+	}
+
+	// Gather steps to compact
+	stepsToCompact := path.Steps[:upToStepIndex+1]
+
+	// Build step summaries
+	stepSummaries := make([]string, 0, len(stepsToCompact))
+	for _, s := range stepsToCompact {
+		summary := fmt.Sprintf("- %s (%s): %s", s.Type, s.Topic, s.Title)
+		if s.Score > 0 {
+			summary += fmt.Sprintf(" [Score: %.0f%%]", s.Score)
+		}
+		stepSummaries = append(stepSummaries, summary)
+	}
+
+	// Previous compaction summary (if any)
+	previousSummary := ""
+	if path.Memory != nil && path.Memory.Compaction != nil {
+		previousSummary = path.Memory.Compaction.Summary
+	}
+
+	vars := prompts.Variables{
+		"goal":            path.Goal,
+		"level":           path.Level,
+		"previousSummary": previousSummary,
+		"steps":           strings.Join(stepSummaries, "\n"),
+		"stepCount":       strconv.Itoa(len(stepsToCompact)),
+	}
+
+	// Load the compact-memory prompt template
+	template, err := promptLoader.LoadByName("learning/compact-memory")
+	if err != nil {
+		return fmt.Errorf("failed to load compact-memory prompt: %w", err)
+	}
+
+	openaiReq, err := promptRenderer.RenderToRequest(template, vars)
+	if err != nil {
+		return fmt.Errorf("failed to render prompt: %w", err)
+	}
+
+	completion, err := openaiClient.CreateChatCompletion(*openaiReq)
+	if err != nil {
+		return fmt.Errorf("OpenAI API error: %w", err)
+	}
+
+	if len(completion.Choices) == 0 {
+		return fmt.Errorf("no completion returned from OpenAI")
+	}
+
+	content := completion.Choices[0].Message.Content
+
+	// Parse the compaction result
+	var compactionResult struct {
+		Summary         string   `json:"summary"`
+		Strengths       []string `json:"strengths"`
+		Weaknesses      []string `json:"weaknesses"`
+		Recommendations []string `json:"recommendations"`
+	}
+	if err := json.Unmarshal([]byte(content), &compactionResult); err != nil {
+		return fmt.Errorf("failed to parse compaction response: %w (content: %s)", err, content)
+	}
+
+	// Update memory with compaction
+	if path.Memory == nil {
+		path.Memory = &models.Memory{Topics: make(map[string]models.TopicMemory)}
+	}
+
+	path.Memory.Compaction = &models.Compaction{
+		Summary:         compactionResult.Summary,
+		Strengths:       compactionResult.Strengths,
+		Weaknesses:      compactionResult.Weaknesses,
+		Recommendations: compactionResult.Recommendations,
+		LastStepIndex:   upToStepIndex,
+		CompactedAt:     time.Now().UnixMilli(),
+	}
+
+	return nil
 }
 
 // UpdatePathMemoryRequest represents the request to update path memory

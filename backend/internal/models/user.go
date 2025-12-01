@@ -24,7 +24,18 @@ type UserDocument struct {
 
 // Memory represents the user's learning memory
 type Memory struct {
-	Topics map[string]TopicMemory `json:"topics" firestore:"topics"`
+	Topics     map[string]TopicMemory `json:"topics" firestore:"topics"`
+	Compaction *Compaction            `json:"compaction,omitempty" firestore:"compaction,omitempty"`
+}
+
+// Compaction represents the compacted learning history summary
+type Compaction struct {
+	Summary         string   `json:"summary" firestore:"summary"`                 // LLM-generated narrative summary
+	Strengths       []string `json:"strengths" firestore:"strengths"`             // What user demonstrates mastery in
+	Weaknesses      []string `json:"weaknesses" firestore:"weaknesses"`           // Areas needing reinforcement
+	Recommendations []string `json:"recommendations" firestore:"recommendations"` // What to focus on next
+	LastStepIndex   int      `json:"lastStepIndex" firestore:"lastStepIndex"`     // Compacted up to step N
+	CompactedAt     int64    `json:"compactedAt" firestore:"compactedAt"`         // Timestamp
 }
 
 // TopicMemory represents memory for a specific topic

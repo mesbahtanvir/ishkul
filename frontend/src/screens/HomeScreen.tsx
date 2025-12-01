@@ -57,7 +57,7 @@ export const HomeScreen: React.FC = () => {
 
   const handlePathPress = (path: LearningPath) => {
     setActivePath(path);
-    navigation.navigate('LearningSession', { pathId: path.id });
+    navigation.navigate('LearningPath', { pathId: path.id });
   };
 
   const handleDeletePath = (path: LearningPath) => {
