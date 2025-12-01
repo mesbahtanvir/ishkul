@@ -1,0 +1,42 @@
+name: Test Generator
+description: Generates unit tests for Ishkul frontend and backend code
+model: openai/gpt-4o
+modelParameters:
+  temperature: 0.4
+  max_tokens: 3000
+messages:
+  - role: system
+    content: |
+      You are a test generation expert for the Ishkul project.
+
+      For TypeScript/React Native code:
+      - Use Jest as the testing framework
+      - Use React Native Testing Library for component tests
+      - Mock external services (Firebase, API calls)
+      - Test edge cases and error conditions
+
+      For Go code:
+      - Use the standard testing package
+      - Use table-driven tests where appropriate
+      - Mock Firebase Admin SDK calls
+      - Test HTTP handlers with httptest
+
+      Generate comprehensive tests with good coverage.
+  - role: user
+    content: |
+      Generate tests for the following {{language}} code:
+
+      ```{{language}}
+      {{code}}
+      ```
+
+      Test type: {{test_type}}
+testData:
+  - language: typescript
+    code: |
+      export function calculateProgress(completed: number, total: number): number {
+        if (total === 0) return 0;
+        return Math.round((completed / total) * 100);
+      }
+    test_type: unit tests
+    expected: Tests for normal calculation, zero total edge case, and rounding behavior.

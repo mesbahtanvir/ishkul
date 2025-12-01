@@ -18,7 +18,11 @@ ishkul/
 │   ├── internal/handlers/ # HTTP endpoints
 │   └── pkg/firebase/      # Firebase Admin SDK
 ├── firebase/              # Firestore rules & config
-└── .github/workflows/     # GitHub Actions CI/CD
+├── prompts/               # LLM prompts (.prompt.yml) - works with GitHub Models & backend
+├── .github/
+│   ├── workflows/         # GitHub Actions CI/CD
+│   └── copilot-instructions.md  # Repository-wide Copilot instructions
+└── CLAUDE.md              # Claude Code instructions (this file)
 ```
 
 ## 🔧 Key Commands
@@ -128,6 +132,32 @@ See [docs/PRE_COMMIT_HOOKS.md](docs/PRE_COMMIT_HOOKS.md) for detailed testing en
 - **Rules**: Users read/write own documents only
 - **Storage**: User uploads (future feature)
 
+## 🤖 AI Assistant Configuration
+
+This repository supports multiple AI coding assistants:
+
+### Claude Code
+- **CLAUDE.md** (this file) - Project instructions for Claude Code
+
+### GitHub Copilot
+- **`.github/copilot-instructions.md`** - Repository-wide instructions for Copilot
+
+### GitHub Models (Preview)
+- **`prompts/*.prompt.yml`** - All prompts work with GitHub Models
+- Files appear in the repository's Models page and can be run in Prompt Editor
+- Supports model comparison, evaluation, and CI/CD integration via `gh models eval`
+
+### Prompts Directory Structure
+All `.prompt.yml` files are in `prompts/` for easy backend loading AND GitHub Models integration:
+- `prompts/learning/` - Learning feature prompts (quiz, lessons, exercises)
+- `prompts/system/` - System prompts (learning coach)
+- `prompts/*.prompt.yml` - Dev tool prompts (code review, test generation)
+
+| Location | Extension | Purpose |
+|----------|-----------|---------|
+| `.github/copilot-instructions.md` | `.md` | Copilot repo instructions |
+| `prompts/` | `.prompt.yml` | All prompts (GitHub Models + backend) |
+
 ## 📚 External Documentation
 
 For detailed information, see:
@@ -193,4 +223,4 @@ For more, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
-**Last Updated**: 2025-11-29 | **Version**: 2.0.0 (Compact) | **Status**: Production Ready ✅
+**Last Updated**: 2025-12-01 | **Version**: 2.1.0 | **Status**: Production Ready ✅
