@@ -82,12 +82,8 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
         await addLearningPath(newPath);
         addPath(newPath);
 
-        // Refresh user document
-        const userDoc = await getUserDocument();
-        setUserDocument(userDoc);
-
-        // Navigate back to Home
-        navigation.navigate('Home');
+        // Navigate directly to LearningSession to start the new path
+        navigation.navigate('LearningSession', { pathId: newPath.id });
       } else {
         // First-time user - create user document with first learning path
         const now = Date.now();
@@ -107,11 +103,17 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
         };
 
         await createUserDocument(goal, selectedLevel, firstPath);
+        addPath(firstPath);
 
         const userDoc = await getUserDocument();
         setUserDocument(userDoc);
 
+        // Navigate to Main first, then to LearningSession
         navigation.replace('Main');
+        // Use setTimeout to ensure Main is mounted before navigating to LearningSession
+        setTimeout(() => {
+          navigation.navigate('LearningSession', { pathId: firstPath.id });
+        }, 100);
       }
     } catch (error) {
       console.error('Error saving:', error);
