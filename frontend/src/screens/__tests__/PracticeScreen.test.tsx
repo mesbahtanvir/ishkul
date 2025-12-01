@@ -1,7 +1,16 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { PracticeScreen } from '../PracticeScreen';
+import { RootStackParamList } from '../../types/navigation';
+
+type MockNavigation = Pick<
+  NativeStackNavigationProp<RootStackParamList, 'Practice'>,
+  'navigate' | 'replace' | 'goBack'
+>;
+type MockRoute = RouteProp<RootStackParamList, 'Practice'>;
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');
@@ -34,7 +43,7 @@ jest.mock('../../services/memory', () => ({
 
 // Mock navigation
 const mockNavigate = jest.fn();
-const mockNavigation = {
+const mockNavigation: MockNavigation = {
   navigate: mockNavigate,
   replace: jest.fn(),
   goBack: jest.fn(),
@@ -47,7 +56,9 @@ const mockStep = {
   task: 'Create a function called greet that takes a name parameter and returns a greeting message.',
 };
 
-const mockRoute = {
+const mockRoute: MockRoute = {
+  key: 'Practice-test',
+  name: 'Practice',
   params: { step: mockStep, pathId: 'test-path-123' },
 };
 
@@ -83,7 +94,7 @@ describe('PracticeScreen', () => {
   describe('rendering', () => {
     it('should render the practice emoji', () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('💪')).toBeTruthy();
@@ -91,7 +102,7 @@ describe('PracticeScreen', () => {
 
     it('should render the Practice badge', () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('Practice')).toBeTruthy();
@@ -99,7 +110,7 @@ describe('PracticeScreen', () => {
 
     it('should render the practice title', () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('Write Your First Function')).toBeTruthy();
@@ -107,7 +118,7 @@ describe('PracticeScreen', () => {
 
     it('should render Your Task label', () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('Your Task:')).toBeTruthy();
@@ -115,7 +126,7 @@ describe('PracticeScreen', () => {
 
     it('should render the task description', () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText(/Create a function called greet/)).toBeTruthy();
@@ -123,7 +134,7 @@ describe('PracticeScreen', () => {
 
     it('should render tips section', () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('💡 Tips:')).toBeTruthy();
@@ -135,7 +146,7 @@ describe('PracticeScreen', () => {
 
     it('should render I\'m Done button', () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText("I'm Done →")).toBeTruthy();
@@ -145,7 +156,7 @@ describe('PracticeScreen', () => {
   describe('done flow', () => {
     it('should call completePathStep when Done is pressed', async () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText("I'm Done →"));
@@ -160,7 +171,7 @@ describe('PracticeScreen', () => {
 
     it('should update path in store after completing', async () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText("I'm Done →"));
@@ -172,7 +183,7 @@ describe('PracticeScreen', () => {
 
     it('should set current step in store after completing', async () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText("I'm Done →"));
@@ -184,7 +195,7 @@ describe('PracticeScreen', () => {
 
     it('should refresh user document after done', async () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText("I'm Done →"));
@@ -200,7 +211,7 @@ describe('PracticeScreen', () => {
 
     it('should navigate to LearningSession after done', async () => {
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText("I'm Done →"));
@@ -216,7 +227,7 @@ describe('PracticeScreen', () => {
       mockCompletePathStep.mockRejectedValueOnce(new Error('Network error'));
 
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText("I'm Done →"));
@@ -238,10 +249,14 @@ describe('PracticeScreen', () => {
         task: 'Practice advanced concepts.',
       };
 
-      const route = { params: { step: stepWithoutTitle, pathId: 'test-path-123' } };
+      const route: MockRoute = {
+        key: 'Practice-test',
+        name: 'Practice',
+        params: { step: stepWithoutTitle, pathId: 'test-path-123' },
+      };
 
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={route as any} />
+        <PracticeScreen navigation={mockNavigation} route={route} />
       );
 
       expect(getByText('Advanced Python')).toBeTruthy();
@@ -257,10 +272,14 @@ describe('PracticeScreen', () => {
         task: 'Build a reusable button component with props for variant and size.',
       };
 
-      const route = { params: { step: differentStep, pathId: 'test-path-123' } };
+      const route: MockRoute = {
+        key: 'Practice-test',
+        name: 'Practice',
+        params: { step: differentStep, pathId: 'test-path-123' },
+      };
 
       const { getByText } = render(
-        <PracticeScreen navigation={mockNavigation as any} route={route as any} />
+        <PracticeScreen navigation={mockNavigation} route={route} />
       );
 
       expect(getByText('Create a Component')).toBeTruthy();

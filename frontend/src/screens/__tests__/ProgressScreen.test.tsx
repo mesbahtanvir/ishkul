@@ -1,9 +1,10 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { ProgressScreen } from '../ProgressScreen';
+import { UserDocument } from '../../types/app';
 
 // Mock userStore
-let mockUserDocument: any = null;
+let mockUserDocument: UserDocument | null = null;
 jest.mock('../../state/userStore', () => ({
   useUserStore: () => ({
     userDocument: mockUserDocument,
@@ -31,6 +32,9 @@ describe('ProgressScreen', () => {
         uid: 'test-user-123',
         goal: 'Learn Python',
         level: 'beginner',
+        learningPaths: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         memory: {
           topics: {
             'variables': { mastery: 0.8, lastSeen: Date.now() },
@@ -126,6 +130,9 @@ describe('ProgressScreen', () => {
         uid: 'test-user-123',
         goal: 'Learn React',
         level: 'intermediate',
+        learningPaths: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         memory: {
           topics: {},
         },
@@ -153,6 +160,9 @@ describe('ProgressScreen', () => {
         uid: 'test-user-123',
         goal: 'Learn React',
         level: 'intermediate',
+        learningPaths: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         memory: {
           topics: {},
         },
@@ -175,8 +185,11 @@ describe('ProgressScreen', () => {
         uid: 'test-user-123',
         goal: 'Learn Go',
         level: 'advanced',
+        learningPaths: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         memory: {
-          topics: { 'topic1': {}, 'topic2': {}, 'topic3': {} },
+          topics: { 'topic1': { mastery: 0, lastSeen: 0 }, 'topic2': { mastery: 0, lastSeen: 0 }, 'topic3': { mastery: 0, lastSeen: 0 } },
         },
         history: [
           { type: 'lesson', topic: 'A', timestamp: 1 },
@@ -199,6 +212,9 @@ describe('ProgressScreen', () => {
         uid: 'test-user-123',
         goal: 'Test',
         level: 'beginner',
+        learningPaths: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         memory: { topics: {} },
         history: [
           { type: 'quiz', topic: 'Test Quiz', timestamp: Date.now() },
