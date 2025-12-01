@@ -1,5 +1,5 @@
 steps:
-  # Build the Docker image
+  # Build the Docker image from root context to include prompts/
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
@@ -8,9 +8,8 @@ steps:
       - '-t'
       - 'gcr.io/$PROJECT_ID/ishkul-backend:latest'
       - '-f'
-      - 'Dockerfile'
+      - 'backend/Dockerfile'
       - '.'
-    dir: 'backend'
 
   # Push the image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
