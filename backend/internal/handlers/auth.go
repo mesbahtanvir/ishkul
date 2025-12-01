@@ -1,13 +1,16 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
 
+	firebaseauth "firebase.google.com/go/v4/auth"
 	"github.com/mesbahtanvir/ishkul/backend/internal/auth"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
@@ -16,7 +19,16 @@ import (
 
 // LoginRequest represents the login request body
 type LoginRequest struct {
-	GoogleIDToken string `json:"googleIdToken"`
+	GoogleIDToken string `json:"googleIdToken,omitempty"`
+	Email         string `json:"email,omitempty"`
+	Password      string `json:"password,omitempty"`
+}
+
+// RegisterRequest represents the registration request body
+type RegisterRequest struct {
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	DisplayName string `json:"displayName"`
 }
 
 // LoginResponse represents the login response
@@ -61,7 +73,7 @@ func getGoogleClientIDs() []string {
 	return clientIDs
 }
 
-// Login handles user authentication via Google ID token
+// Login handles user authentication via Google ID token or email/password
 func Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -74,25 +86,37 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.GoogleIDToken == "" {
-		http.Error(w, "Google ID token is required", http.StatusBadRequest)
-		return
-	}
-
 	ctx := r.Context()
+	var userID, email, name, picture string
 
-	// Verify Google ID token
-	payload, err := verifyGoogleIDToken(ctx, req.GoogleIDToken)
-	if err != nil {
-		http.Error(w, "Invalid Google ID token: "+err.Error(), http.StatusUnauthorized)
+	// Handle Google ID token login
+	if req.GoogleIDToken != "" {
+		payload, err := verifyGoogleIDToken(ctx, req.GoogleIDToken)
+		if err != nil {
+			http.Error(w, "Invalid Google ID token: "+err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		userID = payload.Subject
+		email, _ = payload.Claims["email"].(string)
+		name, _ = payload.Claims["name"].(string)
+		picture, _ = payload.Claims["picture"].(string)
+	} else if req.Email != "" && req.Password != "" {
+		// Handle email/password login
+		firebaseUser, err := signInWithEmailPassword(ctx, req.Email, req.Password)
+		if err != nil {
+			http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+			return
+		}
+
+		userID = firebaseUser.UID
+		email = firebaseUser.Email
+		name = firebaseUser.DisplayName
+		picture = firebaseUser.PhotoURL
+	} else {
+		http.Error(w, "Either googleIdToken or email/password is required", http.StatusBadRequest)
 		return
 	}
-
-	// Extract user info from token payload
-	userID := payload.Subject
-	email, _ := payload.Claims["email"].(string)
-	name, _ := payload.Claims["name"].(string)
-	picture, _ := payload.Claims["picture"].(string)
 
 	// Get or create user in Firestore
 	user, err := getOrCreateUser(ctx, userID, email, name, picture)
@@ -121,6 +145,163 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
+}
+
+// Register handles new user registration with email/password
+func Register(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Email == "" || req.Password == "" {
+		http.Error(w, "Email and password are required", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Password) < 6 {
+		http.Error(w, "Password must be at least 6 characters", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+
+	// Create user in Firebase Auth
+	authClient := firebase.GetAuth()
+	if authClient == nil {
+		http.Error(w, "Auth service not available", http.StatusInternalServerError)
+		return
+	}
+
+	params := (&firebaseauth.UserToCreate{}).
+		Email(req.Email).
+		Password(req.Password).
+		DisplayName(req.DisplayName).
+		EmailVerified(false)
+
+	firebaseUser, err := authClient.CreateUser(ctx, params)
+	if err != nil {
+		if firebaseauth.IsEmailAlreadyExists(err) {
+			http.Error(w, "Email already registered", http.StatusConflict)
+			return
+		}
+		http.Error(w, "Error creating user: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Create user in Firestore
+	user, err := getOrCreateUser(ctx, firebaseUser.UID, req.Email, req.DisplayName, "")
+	if err != nil {
+		http.Error(w, "Error creating user profile: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate JWT token pair
+	tokenPair, err := auth.GenerateTokenPair(firebaseUser.UID, req.Email)
+	if err != nil {
+		http.Error(w, "Error generating tokens", http.StatusInternalServerError)
+		return
+	}
+
+	// Send response
+	response := LoginResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    tokenPair.ExpiresIn,
+		User:         user,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// FirebaseAuthResponse represents the response from Firebase Auth REST API
+type FirebaseAuthResponse struct {
+	IDToken      string `json:"idToken"`
+	Email        string `json:"email"`
+	RefreshToken string `json:"refreshToken"`
+	ExpiresIn    string `json:"expiresIn"`
+	LocalID      string `json:"localId"`
+	Registered   bool   `json:"registered"`
+}
+
+// FirebaseAuthError represents an error from Firebase Auth REST API
+type FirebaseAuthError struct {
+	Error struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
+// signInWithEmailPassword verifies email/password via Firebase Auth REST API
+func signInWithEmailPassword(ctx context.Context, email, password string) (*firebaseauth.UserRecord, error) {
+	apiKey := os.Getenv("FIREBASE_API_KEY")
+	if apiKey == "" {
+		return nil, fmt.Errorf("FIREBASE_API_KEY not configured")
+	}
+
+	// Use Firebase Auth REST API to verify credentials
+	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=%s", apiKey)
+
+	payload := map[string]interface{}{
+		"email":             email,
+		"password":          password,
+		"returnSecureToken": true,
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var authErr FirebaseAuthError
+		if err := json.Unmarshal(body, &authErr); err == nil {
+			return nil, fmt.Errorf(authErr.Error.Message)
+		}
+		return nil, fmt.Errorf("authentication failed")
+	}
+
+	var authResp FirebaseAuthResponse
+	if err := json.Unmarshal(body, &authResp); err != nil {
+		return nil, err
+	}
+
+	// Get the full user record from Firebase Admin SDK
+	authClient := firebase.GetAuth()
+	if authClient == nil {
+		return nil, fmt.Errorf("auth service not available")
+	}
+
+	return authClient.GetUser(ctx, authResp.LocalID)
 }
 
 // verifyGoogleIDToken verifies a Google ID token and returns its payload

@@ -41,6 +41,7 @@ func main() {
 	// Rate limiting applied to prevent brute force attacks
 	authMux := http.NewServeMux()
 	authMux.HandleFunc("/api/auth/login", handlers.Login)
+	authMux.HandleFunc("/api/auth/register", handlers.Register)
 	authMux.HandleFunc("/api/auth/refresh", handlers.Refresh)
 	authMux.HandleFunc("/api/auth/logout", handlers.Logout)
 	mux.Handle("/api/auth/", rateLimiter.Limit(middleware.CORS(authMux)))

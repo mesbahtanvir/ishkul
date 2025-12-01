@@ -174,6 +174,80 @@ export const authApi = {
   },
 
   /**
+   * Login with email and password
+   */
+  async loginWithEmail(email: string, password: string): Promise<{ user: User }> {
+    const response = await fetch(`${apiConfig.baseURL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Login failed');
+    }
+
+    const data: LoginResponse = await response.json();
+
+    // Store tokens using tokenStorage
+    await tokenStorage.saveTokens({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      expiresIn: data.expiresIn,
+    });
+
+    // Convert backend user to frontend user format
+    const user: User = {
+      uid: data.user.uid || (data.user as unknown as { id: string }).id,
+      email: data.user.email,
+      displayName: data.user.displayName,
+      photoURL: data.user.photoURL,
+    };
+
+    return { user };
+  },
+
+  /**
+   * Register a new user with email and password
+   */
+  async register(email: string, password: string, displayName: string): Promise<{ user: User }> {
+    const response = await fetch(`${apiConfig.baseURL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password, displayName }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Registration failed');
+    }
+
+    const data: LoginResponse = await response.json();
+
+    // Store tokens using tokenStorage
+    await tokenStorage.saveTokens({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      expiresIn: data.expiresIn,
+    });
+
+    // Convert backend user to frontend user format
+    const user: User = {
+      uid: data.user.uid || (data.user as unknown as { id: string }).id,
+      email: data.user.email,
+      displayName: data.user.displayName,
+      photoURL: data.user.photoURL,
+    };
+
+    return { user };
+  },
+
+  /**
    * Logout - clear local tokens and notify backend
    */
   async logout(): Promise<void> {
@@ -212,15 +286,21 @@ export const authApi = {
 
     // If we have tokens, try to validate by making a request
     try {
-      const response = await apiRequest<{ user: User }>('/me', {
+      // Backend returns user directly, not wrapped in { user: ... }
+      const response = await apiRequest<{
+        id: string;
+        email: string;
+        displayName: string;
+        photoUrl?: string;
+      }>('/me', {
         method: 'GET',
       });
 
       const user: User = {
-        uid: response.user.uid || (response.user as unknown as { id: string }).id,
-        email: response.user.email,
-        displayName: response.user.displayName,
-        photoURL: response.user.photoURL,
+        uid: response.id,
+        email: response.email,
+        displayName: response.displayName,
+        photoURL: response.photoUrl || null,
       };
 
       return { user, isAuthenticated: true };
