@@ -6,12 +6,12 @@ WORKDIR /app
 # Install build dependencies
 RUN apk add --no-cache git
 
-# Copy go mod files
-COPY go.mod go.sum ./
+# Copy go mod files (from backend/ since build context is now project root)
+COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
-# Copy source code
-COPY . .
+# Copy backend source code
+COPY backend/ ./
 
 # Build the application with verbose output
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -a -installsuffix cgo -o server ./cmd/server
@@ -28,6 +28,9 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /app/server /app/server
+
+# Copy prompts directory (from project root since build context is now root)
+COPY prompts/ /app/prompts/
 
 # Give executable permissions
 RUN chmod +x /app/server
