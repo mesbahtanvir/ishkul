@@ -1,7 +1,13 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { QuizScreen } from '../QuizScreen';
+import type { RootStackParamList } from '../../types/navigation';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Quiz'>;
+type ScreenRouteProp = RouteProp<RootStackParamList, 'Quiz'>;
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');
@@ -38,7 +44,7 @@ const mockNavigation = {
   navigate: mockNavigate,
   replace: jest.fn(),
   goBack: jest.fn(),
-};
+} as unknown as NavigationProp;
 
 const mockStep = {
   type: 'quiz' as const,
@@ -49,8 +55,10 @@ const mockStep = {
 };
 
 const mockRoute = {
+  key: 'Quiz-test',
+  name: 'Quiz',
   params: { step: mockStep, pathId: 'test-path-123' },
-};
+} as unknown as ScreenRouteProp;
 
 const mockPathResult = {
   path: {
@@ -84,7 +92,7 @@ describe('QuizScreen', () => {
   describe('rendering', () => {
     it('should render the quiz emoji', () => {
       const { getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('❓')).toBeTruthy();
@@ -92,7 +100,7 @@ describe('QuizScreen', () => {
 
     it('should render the Quiz badge', () => {
       const { getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('Quiz')).toBeTruthy();
@@ -100,7 +108,7 @@ describe('QuizScreen', () => {
 
     it('should render the question title', () => {
       const { getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('Variables Quiz')).toBeTruthy();
@@ -108,7 +116,7 @@ describe('QuizScreen', () => {
 
     it('should render the question text', () => {
       const { getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('What is a variable in Python?')).toBeTruthy();
@@ -116,7 +124,7 @@ describe('QuizScreen', () => {
 
     it('should render answer input', () => {
       const { getByPlaceholderText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByPlaceholderText('Type your answer here...')).toBeTruthy();
@@ -124,7 +132,7 @@ describe('QuizScreen', () => {
 
     it('should render Submit button', () => {
       const { getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('Submit')).toBeTruthy();
@@ -134,7 +142,7 @@ describe('QuizScreen', () => {
   describe('answer input', () => {
     it('should allow typing an answer', () => {
       const { getByPlaceholderText, getByDisplayValue } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       const input = getByPlaceholderText('Type your answer here...');
@@ -145,7 +153,7 @@ describe('QuizScreen', () => {
 
     it('should disable Submit button when answer is empty', () => {
       const { getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       // Submit should be present but disabled functionality
@@ -156,7 +164,7 @@ describe('QuizScreen', () => {
   describe('answer submission', () => {
     it('should show correct result for correct answer', () => {
       const { getByPlaceholderText, getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       const input = getByPlaceholderText('Type your answer here...');
@@ -169,7 +177,7 @@ describe('QuizScreen', () => {
 
     it('should show incorrect result for wrong answer', () => {
       const { getByPlaceholderText, getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       const input = getByPlaceholderText('Type your answer here...');
@@ -182,7 +190,7 @@ describe('QuizScreen', () => {
 
     it('should show Next Step button after submission', () => {
       const { getByPlaceholderText, getByText, queryByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       const input = getByPlaceholderText('Type your answer here...');
@@ -195,7 +203,7 @@ describe('QuizScreen', () => {
 
     it('should disable input after submission', () => {
       const { getByPlaceholderText, getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       const input = getByPlaceholderText('Type your answer here...');
@@ -209,7 +217,7 @@ describe('QuizScreen', () => {
   describe('next step flow', () => {
     it('should call completePathStep and navigate on Next Step', async () => {
       const { getByPlaceholderText, getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       const input = getByPlaceholderText('Type your answer here...');
@@ -240,7 +248,7 @@ describe('QuizScreen', () => {
 
     it('should record score 0 for incorrect answer', async () => {
       const { getByPlaceholderText, getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       const input = getByPlaceholderText('Type your answer here...');
@@ -261,7 +269,7 @@ describe('QuizScreen', () => {
       mockCompletePathStep.mockRejectedValueOnce(new Error('Network error'));
 
       const { getByPlaceholderText, getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       const input = getByPlaceholderText('Type your answer here...');
@@ -281,7 +289,7 @@ describe('QuizScreen', () => {
   describe('answer matching', () => {
     it('should be case-insensitive', () => {
       const { getByPlaceholderText, getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       const input = getByPlaceholderText('Type your answer here...');
@@ -293,7 +301,7 @@ describe('QuizScreen', () => {
 
     it('should accept partial match', () => {
       const { getByPlaceholderText, getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       const input = getByPlaceholderText('Type your answer here...');
@@ -313,10 +321,14 @@ describe('QuizScreen', () => {
         expectedAnswer: 'programming language',
       };
 
-      const route = { params: { step: stepWithoutTitle, pathId: 'test-path-123' } };
+      const route = {
+        key: 'Quiz-test',
+        name: 'Quiz',
+        params: { step: stepWithoutTitle, pathId: 'test-path-123' },
+      } as unknown as ScreenRouteProp;
 
       const { getByText } = render(
-        <QuizScreen navigation={mockNavigation as any} route={route as any} />
+        <QuizScreen navigation={mockNavigation} route={route} />
       );
 
       expect(getByText('Python Basics')).toBeTruthy();

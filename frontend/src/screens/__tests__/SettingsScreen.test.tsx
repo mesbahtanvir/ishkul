@@ -1,6 +1,10 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SettingsScreen } from '../SettingsScreen';
+import type { RootStackParamList } from '../../types/navigation';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
 
 // Mock userStore
 const mockClearUser = jest.fn();
@@ -59,7 +63,7 @@ const mockNavigation = {
   navigate: jest.fn(),
   replace: mockReplace,
   goBack: jest.fn(),
-};
+} as unknown as NavigationProp;
 
 describe('SettingsScreen', () => {
   beforeEach(() => {
@@ -70,7 +74,7 @@ describe('SettingsScreen', () => {
   describe('rendering', () => {
     it('should render the title', () => {
       const { getByText } = render(
-        <SettingsScreen navigation={mockNavigation as any} />
+        <SettingsScreen navigation={mockNavigation} />
       );
 
       expect(getByText('Settings')).toBeTruthy();
@@ -78,7 +82,7 @@ describe('SettingsScreen', () => {
 
     it('should render user email', () => {
       const { getByText } = render(
-        <SettingsScreen navigation={mockNavigation as any} />
+        <SettingsScreen navigation={mockNavigation} />
       );
 
       // User email should be displayed
@@ -87,7 +91,7 @@ describe('SettingsScreen', () => {
 
     it('should render user display name', () => {
       const { getByText } = render(
-        <SettingsScreen navigation={mockNavigation as any} />
+        <SettingsScreen navigation={mockNavigation} />
       );
 
       // Display name should be shown
@@ -96,7 +100,7 @@ describe('SettingsScreen', () => {
 
     it('should render appearance section with theme selector', () => {
       const { getByText } = render(
-        <SettingsScreen navigation={mockNavigation as any} />
+        <SettingsScreen navigation={mockNavigation} />
       );
 
       expect(getByText('Appearance')).toBeTruthy();
@@ -110,7 +114,7 @@ describe('SettingsScreen', () => {
 
     it('should render about section', () => {
       const { getByText } = render(
-        <SettingsScreen navigation={mockNavigation as any} />
+        <SettingsScreen navigation={mockNavigation} />
       );
 
       expect(getByText('About')).toBeTruthy();
@@ -120,7 +124,7 @@ describe('SettingsScreen', () => {
 
     it('should render sign out button', () => {
       const { getByText } = render(
-        <SettingsScreen navigation={mockNavigation as any} />
+        <SettingsScreen navigation={mockNavigation} />
       );
 
       expect(getByText('Sign Out')).toBeTruthy();
@@ -130,7 +134,7 @@ describe('SettingsScreen', () => {
   describe('theme selector', () => {
     it('should render daily reminder switch', () => {
       const { UNSAFE_getAllByType } = render(
-        <SettingsScreen navigation={mockNavigation as any} />
+        <SettingsScreen navigation={mockNavigation} />
       );
 
       // There should be 1 switch (daily reminder only, theme uses button selector)
@@ -140,7 +144,7 @@ describe('SettingsScreen', () => {
 
     it('should call setThemeMode when theme option is pressed', () => {
       const { getByText } = render(
-        <SettingsScreen navigation={mockNavigation as any} />
+        <SettingsScreen navigation={mockNavigation} />
       );
 
       fireEvent.press(getByText('Dark'));
@@ -154,7 +158,7 @@ describe('SettingsScreen', () => {
   describe('sign out flow', () => {
     it('should render sign out button that can be pressed', () => {
       const { getByText } = render(
-        <SettingsScreen navigation={mockNavigation as any} />
+        <SettingsScreen navigation={mockNavigation} />
       );
 
       // Verify the sign out button exists and is pressable
@@ -210,7 +214,7 @@ describe('SettingsScreen without display name', () => {
     // The mock already provides email, so we verify it renders
     // The actual component shows the email from the mocked store
     const { getByText } = render(
-      <SettingsScreen navigation={mockNavigation as any} />
+      <SettingsScreen navigation={mockNavigation} />
     );
 
     // Email should be shown from the store

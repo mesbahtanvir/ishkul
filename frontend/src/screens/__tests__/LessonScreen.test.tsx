@@ -1,7 +1,13 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { LessonScreen } from '../LessonScreen';
+import type { RootStackParamList } from '../../types/navigation';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Lesson'>;
+type ScreenRouteProp = RouteProp<RootStackParamList, 'Lesson'>;
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');
@@ -38,7 +44,7 @@ const mockNavigation = {
   navigate: mockNavigate,
   replace: jest.fn(),
   goBack: jest.fn(),
-};
+} as unknown as NavigationProp;
 
 const mockStep = {
   type: 'lesson' as const,
@@ -48,8 +54,10 @@ const mockStep = {
 };
 
 const mockRoute = {
+  key: 'Lesson-test',
+  name: 'Lesson',
   params: { step: mockStep, pathId: 'test-path-123' },
-};
+} as unknown as ScreenRouteProp;
 
 const mockPathResult = {
   path: {
@@ -84,7 +92,7 @@ describe('LessonScreen', () => {
   describe('rendering', () => {
     it('should render the lesson emoji', () => {
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('📖')).toBeTruthy();
@@ -92,7 +100,7 @@ describe('LessonScreen', () => {
 
     it('should render the Lesson badge', () => {
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('Lesson')).toBeTruthy();
@@ -100,7 +108,7 @@ describe('LessonScreen', () => {
 
     it('should render the lesson title', () => {
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('Introduction to Variables')).toBeTruthy();
@@ -108,7 +116,7 @@ describe('LessonScreen', () => {
 
     it('should render the lesson content', () => {
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText(/Variables in Python are containers/)).toBeTruthy();
@@ -116,7 +124,7 @@ describe('LessonScreen', () => {
 
     it('should render I Understand button', () => {
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       expect(getByText('I Understand →')).toBeTruthy();
@@ -126,7 +134,7 @@ describe('LessonScreen', () => {
   describe('understanding flow', () => {
     it('should call completePathStep when I Understand is pressed', async () => {
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText('I Understand →'));
@@ -141,7 +149,7 @@ describe('LessonScreen', () => {
 
     it('should update path in store after completing step', async () => {
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText('I Understand →'));
@@ -153,7 +161,7 @@ describe('LessonScreen', () => {
 
     it('should set current step in store after completing', async () => {
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText('I Understand →'));
@@ -165,7 +173,7 @@ describe('LessonScreen', () => {
 
     it('should refresh user document after understanding', async () => {
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText('I Understand →'));
@@ -181,7 +189,7 @@ describe('LessonScreen', () => {
 
     it('should navigate to LearningSession after understanding', async () => {
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText('I Understand →'));
@@ -197,7 +205,7 @@ describe('LessonScreen', () => {
       mockCompletePathStep.mockRejectedValueOnce(new Error('Network error'));
 
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
       fireEvent.press(getByText('I Understand →'));
@@ -219,10 +227,14 @@ describe('LessonScreen', () => {
         content: 'Python is a programming language.',
       };
 
-      const route = { params: { step: stepWithoutTitle, pathId: 'test-path-123' } };
+      const route = {
+        key: 'Lesson-test',
+        name: 'Lesson',
+        params: { step: stepWithoutTitle, pathId: 'test-path-123' },
+      } as unknown as ScreenRouteProp;
 
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={route as any} />
+        <LessonScreen navigation={mockNavigation} route={route} />
       );
 
       expect(getByText('Python Basics')).toBeTruthy();
@@ -238,10 +250,14 @@ describe('LessonScreen', () => {
         content: 'This is a very long content that spans multiple paragraphs. '.repeat(10),
       };
 
-      const route = { params: { step: longContentStep, pathId: 'test-path-123' } };
+      const route = {
+        key: 'Lesson-test',
+        name: 'Lesson',
+        params: { step: longContentStep, pathId: 'test-path-123' },
+      } as unknown as ScreenRouteProp;
 
       const { getByText } = render(
-        <LessonScreen navigation={mockNavigation as any} route={route as any} />
+        <LessonScreen navigation={mockNavigation} route={route} />
       );
 
       expect(getByText('A Very Long Lesson')).toBeTruthy();

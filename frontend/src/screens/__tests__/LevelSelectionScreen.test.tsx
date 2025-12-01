@@ -1,7 +1,13 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { LevelSelectionScreen } from '../LevelSelectionScreen';
+import type { RootStackParamList } from '../../types/navigation';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'LevelSelection'>;
+type ScreenRouteProp = RouteProp<RootStackParamList, 'LevelSelection'>;
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');
@@ -43,11 +49,13 @@ const mockNavigation = {
   navigate: mockNavigate,
   replace: mockReplace,
   goBack: jest.fn(),
-};
+} as unknown as NavigationProp;
 
 const mockRoute = {
+  key: 'LevelSelection-test',
+  name: 'LevelSelection',
   params: { goal: 'Learn Python', isCreatingNewPath: false },
-};
+} as unknown as ScreenRouteProp;
 
 describe('LevelSelectionScreen', () => {
   beforeEach(() => {
@@ -65,8 +73,8 @@ describe('LevelSelectionScreen', () => {
     it('should render the title', () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -76,8 +84,8 @@ describe('LevelSelectionScreen', () => {
     it('should display the goal from route params', () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -87,8 +95,8 @@ describe('LevelSelectionScreen', () => {
     it('should render all level options', () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -105,8 +113,8 @@ describe('LevelSelectionScreen', () => {
     it('should render the start button', () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -116,8 +124,8 @@ describe('LevelSelectionScreen', () => {
     it('should render level emojis', () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -131,8 +139,8 @@ describe('LevelSelectionScreen', () => {
     it('should allow selecting beginner level', () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -144,8 +152,8 @@ describe('LevelSelectionScreen', () => {
     it('should allow selecting intermediate level', () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -156,8 +164,8 @@ describe('LevelSelectionScreen', () => {
     it('should allow selecting advanced level', () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -168,8 +176,8 @@ describe('LevelSelectionScreen', () => {
     it('should allow changing selection', () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -186,8 +194,8 @@ describe('LevelSelectionScreen', () => {
     it('should call createUserDocument and navigate on confirm', async () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -224,8 +232,8 @@ describe('LevelSelectionScreen', () => {
 
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -243,8 +251,8 @@ describe('LevelSelectionScreen', () => {
     it('should not navigate if no level is selected', () => {
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={mockRoute as any}
+          navigation={mockNavigation}
+          route={mockRoute}
         />
       );
 
@@ -258,13 +266,15 @@ describe('LevelSelectionScreen', () => {
   describe('with different goals', () => {
     it('should display custom goal', () => {
       const customRoute = {
+        key: 'LevelSelection-test',
+        name: 'LevelSelection',
         params: { goal: 'Master Machine Learning', isCreatingNewPath: false },
-      };
+      } as unknown as ScreenRouteProp;
 
       const { getByText } = render(
         <LevelSelectionScreen
-          navigation={mockNavigation as any}
-          route={customRoute as any}
+          navigation={mockNavigation}
+          route={customRoute}
         />
       );
 
