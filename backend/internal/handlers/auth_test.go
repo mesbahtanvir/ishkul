@@ -19,7 +19,7 @@ func resetJWTSecret() {
 }
 
 func TestLoginRequest(t *testing.T) {
-	t.Run("struct has correct JSON tags", func(t *testing.T) {
+	t.Run("struct has correct JSON tags for Google login", func(t *testing.T) {
 		req := LoginRequest{
 			GoogleIDToken: "test-token",
 		}
@@ -32,6 +32,44 @@ func TestLoginRequest(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, parsed, "googleIdToken")
+	})
+
+	t.Run("struct has correct JSON tags for email login", func(t *testing.T) {
+		req := LoginRequest{
+			Email:    "test@example.com",
+			Password: "password123",
+		}
+
+		jsonBytes, err := json.Marshal(req)
+		require.NoError(t, err)
+
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
+		assert.Contains(t, parsed, "email")
+		assert.Contains(t, parsed, "password")
+	})
+}
+
+func TestRegisterRequest(t *testing.T) {
+	t.Run("struct has correct JSON tags", func(t *testing.T) {
+		req := RegisterRequest{
+			Email:       "test@example.com",
+			Password:    "password123",
+			DisplayName: "Test User",
+		}
+
+		jsonBytes, err := json.Marshal(req)
+		require.NoError(t, err)
+
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
+		assert.Contains(t, parsed, "email")
+		assert.Contains(t, parsed, "password")
+		assert.Contains(t, parsed, "displayName")
 	})
 }
 
@@ -129,10 +167,10 @@ func TestLogin(t *testing.T) {
 		Login(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Google ID token is required")
+		assert.Contains(t, rr.Body.String(), "Either googleIdToken or email/password is required")
 	})
 
-	t.Run("rejects missing googleIdToken", func(t *testing.T) {
+	t.Run("rejects missing credentials", func(t *testing.T) {
 		body := `{"googleIdToken": ""}`
 		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(body))
 		rr := httptest.NewRecorder()
@@ -140,7 +178,90 @@ func TestLogin(t *testing.T) {
 		Login(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Google ID token is required")
+		assert.Contains(t, rr.Body.String(), "Either googleIdToken or email/password is required")
+	})
+
+	t.Run("rejects email without password", func(t *testing.T) {
+		body := `{"email": "test@example.com"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(body))
+		rr := httptest.NewRecorder()
+
+		Login(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "Either googleIdToken or email/password is required")
+	})
+
+	t.Run("rejects password without email", func(t *testing.T) {
+		body := `{"password": "secret123"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(body))
+		rr := httptest.NewRecorder()
+
+		Login(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "Either googleIdToken or email/password is required")
+	})
+}
+
+func TestRegister(t *testing.T) {
+	t.Run("rejects non-POST methods", func(t *testing.T) {
+		methods := []string{http.MethodGet, http.MethodPut, http.MethodDelete, http.MethodPatch}
+
+		for _, method := range methods {
+			t.Run(method, func(t *testing.T) {
+				req := httptest.NewRequest(method, "/api/auth/register", nil)
+				rr := httptest.NewRecorder()
+
+				Register(rr, req)
+
+				assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
+				assert.Contains(t, rr.Body.String(), "Method not allowed")
+			})
+		}
+	})
+
+	t.Run("rejects invalid JSON body", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewBufferString("invalid json"))
+		rr := httptest.NewRecorder()
+
+		Register(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "Invalid request body")
+	})
+
+	t.Run("rejects missing email", func(t *testing.T) {
+		body := `{"password": "password123", "displayName": "Test User"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewBufferString(body))
+		rr := httptest.NewRecorder()
+
+		Register(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "Email and password are required")
+	})
+
+	t.Run("rejects missing password", func(t *testing.T) {
+		body := `{"email": "test@example.com", "displayName": "Test User"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewBufferString(body))
+		rr := httptest.NewRecorder()
+
+		Register(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "Email and password are required")
+	})
+
+	t.Run("rejects password shorter than 6 characters", func(t *testing.T) {
+		body := `{"email": "test@example.com", "password": "12345", "displayName": "Test User"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewBufferString(body))
+		rr := httptest.NewRecorder()
+
+		Register(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "Password must be at least 6 characters")
 	})
 }
 
