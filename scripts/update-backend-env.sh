@@ -301,16 +301,23 @@ while IFS='=' read -r key value; do
         continue
     fi
 
-    if [[ "$key" == "JWT_SECRET" ]] || [[ "$key" =~ ^_ ]]; then
-        # Handle as secret (these go to Secret Manager)
-        if [[ "$key" == "JWT_SECRET" ]]; then
-            SECRETS_FLAGS="$SECRETS_FLAGS --set-secrets=JWT_SECRET=${JWT_SECRET_NAME}:latest"
-        fi
+    # Skip JWT_SECRET here - we always mount it from Secret Manager below
+    if [[ "$key" == "JWT_SECRET" ]]; then
+        continue
+    fi
+
+    if [[ "$key" =~ ^_ ]]; then
+        # Handle underscore-prefixed vars as secrets (future use)
+        continue
     else
         # Write to YAML file (properly handles URLs and special characters)
         echo "${key}: \"${value}\"" >> "$ENV_YAML_FILE"
     fi
 done < "$ENV_VARS_FILE"
+
+# Always mount JWT_SECRET from Secret Manager (regardless of whether it's in .env)
+# This ensures the secret is available even if user didn't add it to .env
+SECRETS_FLAGS="--set-secrets=JWT_SECRET=${JWT_SECRET_NAME}:latest"
 
 # Execute the update command using env-vars-file for proper handling of special chars
 gcloud run services update $SERVICE_NAME \
