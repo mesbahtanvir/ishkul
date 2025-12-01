@@ -116,6 +116,28 @@ func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Not found", http.StatusNotFound)
 }
 
+// normalizeLearningPath ensures the learning path has valid defaults for nil slices/maps
+// This handles legacy data that may have nil steps or memory
+func normalizeLearningPath(path *models.LearningPath) {
+	if path == nil {
+		return
+	}
+	// Ensure Steps is never nil (Go serializes nil slices as null in JSON)
+	if path.Steps == nil {
+		path.Steps = []models.Step{}
+	}
+	// Ensure Memory is never nil
+	if path.Memory == nil {
+		path.Memory = &models.Memory{
+			Topics: make(map[string]models.TopicMemory),
+		}
+	}
+	// Ensure Topics map is never nil
+	if path.Memory.Topics == nil {
+		path.Memory.Topics = make(map[string]models.TopicMemory)
+	}
+}
+
 // listLearningPaths returns all learning paths for the authenticated user
 func listLearningPaths(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -150,6 +172,7 @@ func listLearningPaths(w http.ResponseWriter, r *http.Request) {
 		if err := doc.DataTo(&path); err != nil {
 			continue // Skip malformed documents
 		}
+		normalizeLearningPath(&path)
 		paths = append(paths, path)
 	}
 
@@ -201,6 +224,9 @@ func getLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 		{Path: "lastAccessedAt", Value: now},
 	})
 	path.LastAccessedAt = now
+
+	// Normalize to ensure valid defaults
+	normalizeLearningPath(&path)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
@@ -355,6 +381,9 @@ func updateLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
+	// Normalize to ensure valid defaults
+	normalizeLearningPath(&path)
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"path": path,
@@ -452,6 +481,9 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
+
+	// Normalize to ensure valid defaults
+	normalizeLearningPath(&path)
 
 	// Update last accessed (intentionally ignoring error for non-critical update)
 	now := time.Now().UnixMilli()
@@ -854,6 +886,9 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
+
+	// Normalize to ensure valid defaults
+	normalizeLearningPath(path)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
