@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -54,10 +54,27 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('LearningSession', { pathId: path.id });
   };
 
-  const handleDeletePath = (path: LearningPath) => {
+  const handleDeletePath = async (path: LearningPath) => {
+    const confirmMessage = `Are you sure you want to delete "${path.goal}"? This action cannot be undone.`;
+
+    // Use window.confirm on web since Alert.alert doesn't work
+    if (Platform.OS === 'web') {
+      if (window.confirm(confirmMessage)) {
+        try {
+          await learningPathsApi.deletePath(path.id);
+          deletePath(path.id);
+        } catch (error) {
+          console.error('Error deleting path:', error);
+          window.alert('Failed to delete learning path. Please try again.');
+        }
+      }
+      return;
+    }
+
+    // Use Alert.alert on native platforms
     Alert.alert(
       'Delete Learning Path',
-      `Are you sure you want to delete "${path.goal}"? This action cannot be undone.`,
+      confirmMessage,
       [
         {
           text: 'Cancel',
