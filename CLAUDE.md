@@ -21,7 +21,7 @@ ishkul/
 ├── prompts/               # Application LLM prompts (.prompt.yml) for learning features
 ├── .github/
 │   ├── workflows/         # GitHub Actions CI/CD
-│   ├── prompts/           # GitHub Copilot prompt files (.prompt.md)
+│   ├── prompts/           # GitHub Models prompt files (.prompt.yml)
 │   └── copilot-instructions.md  # Repository-wide Copilot instructions
 └── CLAUDE.md              # Claude Code instructions (this file)
 ```
@@ -141,17 +141,21 @@ This repository supports multiple AI coding assistants:
 - **CLAUDE.md** (this file) - Project instructions for Claude Code
 
 ### GitHub Copilot
-- **`.github/copilot-instructions.md`** - Repository-wide instructions
-- **`.github/prompts/*.prompt.md`** - Reusable prompt templates (Markdown with YAML frontmatter)
+- **`.github/copilot-instructions.md`** - Repository-wide instructions for Copilot
+
+### GitHub Models (Preview)
+- **`.github/prompts/*.prompt.yml`** - Reusable prompts for GitHub Models
+- Files appear in the repository's Models page and can be run in Prompt Editor
+- Supports model comparison, evaluation, and CI/CD integration via `gh models eval`
 
 ### Application LLM Prompts
-- **`prompts/*.prompt.yml`** - Application-specific prompts for Ishkul's learning features (quiz generation, lessons, etc.)
-- These are NOT GitHub Copilot prompts - they're used by the app's LLM service
+- **`prompts/*.prompt.yml`** - Application-specific prompts for Ishkul's learning features
+- Used by the app's LLM service (quiz generation, lessons, etc.)
 
 | Location | Extension | Purpose |
 |----------|-----------|---------|
 | `.github/copilot-instructions.md` | `.md` | Copilot repo instructions |
-| `.github/prompts/` | `.prompt.md` | Copilot reusable prompts |
+| `.github/prompts/` | `.prompt.yml` | GitHub Models prompts |
 | `prompts/` | `.prompt.yml` | App LLM prompts (learning features) |
 
 ## 📚 External Documentation

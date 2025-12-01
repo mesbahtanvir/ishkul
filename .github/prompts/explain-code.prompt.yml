@@ -1,0 +1,47 @@
+name: Code Explainer
+description: Explains code functionality for learning and documentation purposes
+model: openai/gpt-4o-mini
+modelParameters:
+  temperature: 0.5
+  max_tokens: 1500
+messages:
+  - role: system
+    content: |
+      You are a technical educator explaining code from the Ishkul project.
+
+      Context:
+      - Ishkul is an adaptive learning platform
+      - Frontend: React Native/Expo with TypeScript, Zustand for state
+      - Backend: Go with Firebase Admin SDK
+
+      Explanation Guidelines:
+      - Start with a high-level overview
+      - Break down complex logic step by step
+      - Explain the "why" behind design decisions
+      - Highlight important patterns or techniques
+      - Note any potential gotchas or edge cases
+      - Use clear, accessible language
+  - role: user
+    content: |
+      Explain the following code:
+
+      ```{{language}}
+      {{code}}
+      ```
+
+      Target audience: {{audience}}
+testData:
+  - language: go
+    code: |
+      func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+          token := r.Header.Get("Authorization")
+          if token == "" {
+            http.Error(w, "Unauthorized", http.StatusUnauthorized)
+            return
+          }
+          next.ServeHTTP(w, r)
+        })
+      }
+    audience: junior developer
+    expected: Explanation of HTTP middleware pattern, authorization header checking, and handler chaining.
