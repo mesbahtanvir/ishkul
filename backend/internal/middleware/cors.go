@@ -8,7 +8,7 @@ import (
 )
 
 // Default allowed origins for development and production
-const defaultAllowedOrigins = "http://localhost:3000,http://localhost:8081,http://localhost:19006,https://ishkul.vercel.app"
+const defaultAllowedOrigins = "http://localhost:3000,http://localhost:8081,http://localhost:19006,https://ishkul.vercel.app,https://www.ishkul.org,https://ishkul.org"
 
 // isVercelDomain checks if the origin is a Vercel deployment (production or preview)
 func isVercelDomain(origin string) bool {
