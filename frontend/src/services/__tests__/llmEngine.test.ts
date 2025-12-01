@@ -40,6 +40,9 @@ const mockDefaultStep = {
 describe('llmEngine', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset authApi mock to return valid token for each test
+    const { authApi } = require('../api');
+    authApi.getAccessToken.mockReturnValue('test-token');
   });
 
   describe('getNextStep', () => {
