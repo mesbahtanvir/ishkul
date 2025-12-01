@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -36,7 +37,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if err != nil {
-			http.Error(w, "Error fetching users", http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("Error fetching users: %v", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -74,7 +75,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -99,7 +100,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Save user
 	if _, err := docRef.Set(ctx, user); err != nil {
-		http.Error(w, "Error saving user", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error saving user: %v", err), http.StatusInternalServerError)
 		return
 	}
 

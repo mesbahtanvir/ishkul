@@ -137,8 +137,7 @@ export const getNextStep = async (request: LLMRequest): Promise<LLMResponse> => 
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Backend API error:', errorText);
-      throw new Error(`Failed to generate next step: ${response.statusText}`);
+      throw new Error(errorText || `Failed to generate next step: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -148,10 +147,7 @@ export const getNextStep = async (request: LLMRequest): Promise<LLMResponse> => 
     };
   } catch (error) {
     console.error('Error calling OpenAI backend:', error);
-
-    // Fallback to mock data if OpenAI fails
-    console.log('Falling back to mock data...');
-    return getNextStepMock(request);
+    throw error;
   }
 };
 
