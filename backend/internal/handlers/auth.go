@@ -173,7 +173,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	// Generate JWT token pair
 	tokenPair, err := auth.GenerateTokenPair(userID, email)
 	if err != nil {
-		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to complete sign-in. Please try again.")
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, fmt.Sprintf("Unable to complete sign-in: %v", err))
 		return
 	}
 
@@ -256,7 +256,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	// Generate JWT token pair
 	tokenPair, err := auth.GenerateTokenPair(firebaseUser.UID, req.Email)
 	if err != nil {
-		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to create account. Please try again.")
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, fmt.Sprintf("Unable to create account: %v", err))
 		return
 	}
 
@@ -480,7 +480,7 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 		case auth.ErrInvalidToken, auth.ErrInvalidTokenType:
 			sendErrorResponse(w, http.StatusUnauthorized, ErrCodeInvalidToken, "Session expired. Please sign in again.")
 		default:
-			sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to refresh session. Please sign in again.")
+			sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, fmt.Sprintf("Unable to refresh session: %v", err))
 		}
 		return
 	}

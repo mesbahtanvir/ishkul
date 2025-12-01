@@ -191,7 +191,7 @@ func GenerateNextStep(w http.ResponseWriter, r *http.Request) {
 	template, err := promptLoader.LoadByName("learning/next-step")
 	if err != nil {
 		log.Printf("Failed to load next-step prompt: %v", err)
-		http.Error(w, "Failed to load prompt template", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to load prompt template: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -207,7 +207,7 @@ func GenerateNextStep(w http.ResponseWriter, r *http.Request) {
 	completion, err := openaiClient.CreateChatCompletion(*openaiReq)
 	if err != nil {
 		log.Printf("OpenAI API error: %v", err)
-		http.Error(w, "Failed to generate next step", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to generate next step: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -275,7 +275,7 @@ func ListPrompts(w http.ResponseWriter, r *http.Request) {
 	prompts, err := promptLoader.List(dir)
 	if err != nil {
 		log.Printf("Failed to list prompts in %s: %v", dir, err)
-		http.Error(w, "Failed to list prompts", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to list prompts: %v", err), http.StatusInternalServerError)
 		return
 	}
 

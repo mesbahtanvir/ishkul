@@ -176,7 +176,8 @@ async function tryRefreshToken(): Promise<boolean> {
       expiresIn: data.expiresIn,
     });
     return true;
-  } catch {
+  } catch (error) {
+    console.error('Error refreshing token:', error);
     return false;
   }
 }
@@ -386,8 +387,9 @@ export const authApi = {
       };
 
       return { user, isAuthenticated: true };
-    } catch {
+    } catch (error) {
       // Token validation failed
+      console.error('Error validating auth token:', error);
       await tokenStorage.clearTokens();
       return { user: null, isAuthenticated: false };
     }
@@ -432,12 +434,8 @@ export const userApi = {
    * Get user document (profile + learning data)
    */
   async getUserDocument(): Promise<UserDocument | null> {
-    try {
-      const response = await api.get<{ document: UserDocument }>('/me/document');
-      return response.document;
-    } catch {
-      return null;
-    }
+    const response = await api.get<{ document: UserDocument }>('/me/document');
+    return response.document;
   },
 
   /**
@@ -503,24 +501,16 @@ export const learningPathsApi = {
    * Get all learning paths for the user
    */
   async getPaths(): Promise<LearningPath[]> {
-    try {
-      const response = await api.get<{ paths: LearningPath[] }>('/learning-paths');
-      return response.paths || [];
-    } catch {
-      return [];
-    }
+    const response = await api.get<{ paths: LearningPath[] }>('/learning-paths');
+    return response.paths || [];
   },
 
   /**
    * Get a specific learning path
    */
   async getPath(pathId: string): Promise<LearningPath | null> {
-    try {
-      const response = await api.get<{ path: LearningPath }>(`/learning-paths/${pathId}`);
-      return response.path;
-    } catch {
-      return null;
-    }
+    const response = await api.get<{ path: LearningPath }>(`/learning-paths/${pathId}`);
+    return response.path;
   },
 
   /**

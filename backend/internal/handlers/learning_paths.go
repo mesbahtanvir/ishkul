@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -115,7 +116,7 @@ func listLearningPaths(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if err != nil {
-			http.Error(w, "Error fetching learning paths", http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("Error fetching learning paths: %v", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -152,13 +153,13 @@ func getLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
-		http.Error(w, "Learning path not found", http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
 		return
 	}
 
 	var path models.LearningPath
 	if err := doc.DataTo(&path); err != nil {
-		http.Error(w, "Error reading learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -168,7 +169,7 @@ func getLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
-	// Update last accessed time
+	// Update last accessed time (intentionally ignoring error for non-critical update)
 	now := time.Now().UnixMilli()
 	_, _ = fs.Collection("learning_paths").Doc(pathID).Update(ctx, []firestore.Update{
 		{Path: "lastAccessedAt", Value: now},
@@ -195,7 +196,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 
 	var req models.LearningPathCreate
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -232,7 +233,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := fs.Collection("learning_paths").Doc(pathID).Set(ctx, path); err != nil {
-		http.Error(w, "Error creating learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error creating learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -264,13 +265,13 @@ func updateLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 	// First verify ownership
 	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
-		http.Error(w, "Learning path not found", http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
 		return
 	}
 
 	var existing models.LearningPath
 	if err := doc.DataTo(&existing); err != nil {
-		http.Error(w, "Error reading learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -281,7 +282,7 @@ func updateLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	var req models.LearningPathUpdate
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -314,20 +315,20 @@ func updateLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 	}
 
 	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
-		http.Error(w, "Error updating learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error updating learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// Fetch updated document
 	doc, err = fs.Collection("learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
-		http.Error(w, "Error fetching updated path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error fetching updated path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	var path models.LearningPath
 	if err := doc.DataTo(&path); err != nil {
-		http.Error(w, "Error reading learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -358,13 +359,13 @@ func deleteLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 	// First verify ownership
 	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
-		http.Error(w, "Learning path not found", http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
 		return
 	}
 
 	var existing models.LearningPath
 	if err := doc.DataTo(&existing); err != nil {
-		http.Error(w, "Error reading learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -374,7 +375,7 @@ func deleteLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 	}
 
 	if _, err := fs.Collection("learning_paths").Doc(pathID).Delete(ctx); err != nil {
-		http.Error(w, "Error deleting learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error deleting learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -404,13 +405,13 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
-		http.Error(w, "Learning path not found", http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
 		return
 	}
 
 	var path models.LearningPath
 	if err := doc.DataTo(&path); err != nil {
-		http.Error(w, "Error reading learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -419,7 +420,7 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
-	// Update last accessed
+	// Update last accessed (intentionally ignoring error for non-critical update)
 	now := time.Now().UnixMilli()
 	_, _ = fs.Collection("learning_paths").Doc(pathID).Update(ctx, []firestore.Update{
 		{Path: "lastAccessedAt", Value: now},
@@ -465,7 +466,7 @@ func completePathStep(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	var req CompleteStepRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -477,13 +478,13 @@ func completePathStep(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
-		http.Error(w, "Learning path not found", http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
 		return
 	}
 
 	var path models.LearningPath
 	if err := doc.DataTo(&path); err != nil {
-		http.Error(w, "Error reading learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -523,19 +524,19 @@ func completePathStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	}
 
 	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
-		http.Error(w, "Error updating learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error updating learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// Fetch updated path
 	doc, err = fs.Collection("learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
-		http.Error(w, "Error fetching updated path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error fetching updated path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	if err := doc.DataTo(&path); err != nil {
-		http.Error(w, "Error reading learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -544,7 +545,7 @@ func completePathStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		"path":     path,
 		"nextStep": nil, // Frontend should request next step separately
 	}); err != nil {
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
 		return
 	}
 }
@@ -567,7 +568,7 @@ func updatePathMemory(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	var req UpdatePathMemoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -585,13 +586,13 @@ func updatePathMemory(w http.ResponseWriter, r *http.Request, pathID string) {
 	// Verify ownership
 	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
-		http.Error(w, "Learning path not found", http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
 		return
 	}
 
 	var path models.LearningPath
 	if err := doc.DataTo(&path); err != nil {
-		http.Error(w, "Error reading learning path", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -614,7 +615,7 @@ func updatePathMemory(w http.ResponseWriter, r *http.Request, pathID string) {
 	}
 
 	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
-		http.Error(w, "Error updating memory", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error updating memory: %v", err), http.StatusInternalServerError)
 		return
 	}
 

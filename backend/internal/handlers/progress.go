@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -45,7 +46,7 @@ func GetProgress(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if err != nil {
-			http.Error(w, "Error fetching progress", http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("Error fetching progress: %v", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -83,7 +84,7 @@ func UpdateProgress(w http.ResponseWriter, r *http.Request) {
 
 	var progress models.Progress
 	if err := json.NewDecoder(r.Body).Decode(&progress); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -114,7 +115,7 @@ func UpdateProgress(w http.ResponseWriter, r *http.Request) {
 
 	// Save progress
 	if _, err := docRef.Set(ctx, progress); err != nil {
-		http.Error(w, "Error saving progress", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error saving progress: %v", err), http.StatusInternalServerError)
 		return
 	}
 
