@@ -153,7 +153,7 @@ backend/
 ├── pkg/firebase/               # Firebase integration
 ├── Dockerfile                  # Container definition
 ├── docker-compose.yml          # Local dev setup
-├── cloudbuild.yaml             # Production build
+├── # Note: cloudbuild.yaml is in project root
 ├── .env.example                # Environment template
 ├── .dockerignore                # Files excluded from image
 ├── README_SETUP.md             # This file

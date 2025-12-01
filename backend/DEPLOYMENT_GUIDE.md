@@ -567,7 +567,7 @@ go run cmd/server/main.go
 
 - [Dockerfile](backend/Dockerfile) - Container configuration
 - [docker-compose.yml](backend/docker-compose.yml) - Local development setup
-- [cloudbuild.yaml](backend/cloudbuild.yaml) - Production build pipeline
+- [cloudbuild.yaml](../cloudbuild.yaml) - Production build pipeline (in project root)
 - [Firebase Admin SDK Setup](https://firebase.google.com/docs/admin/setup)
 - [Cloud Run Credentials](https://cloud.google.com/docs/authentication)
 

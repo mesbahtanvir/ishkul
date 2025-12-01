@@ -218,7 +218,7 @@ gcloud run services logs read ishkul-backend --limit=50 --follow
 ### Should be committed to git
 - ✅ `Dockerfile`
 - ✅ `docker-compose.yml`
-- ✅ `cloudbuild.yaml`
+- ✅ `cloudbuild.yaml` (in project root)
 - ✅ `.dockerignore`
 - ✅ `.env.example`
 - ✅ `*.go` files

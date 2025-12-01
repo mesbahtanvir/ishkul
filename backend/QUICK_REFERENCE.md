@@ -41,7 +41,7 @@ curl http://localhost:8080/health
 | `serviceAccountKey.json` | Firebase credentials | ❌ No (gitignored) |
 | `Dockerfile` | Container image definition | ✅ Yes |
 | `docker-compose.yml` | Local development setup | ✅ Yes |
-| `cloudbuild.yaml` | Production build pipeline | ✅ Yes |
+| `../cloudbuild.yaml` | Production build pipeline (project root) | ✅ Yes |
 
 ---
 
