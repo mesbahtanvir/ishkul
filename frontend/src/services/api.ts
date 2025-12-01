@@ -1,15 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiConfig } from '../config/firebase.config';
-import { User, UserDocument, LearningPath, NextStep, HistoryEntry } from '../types/app';
-
-// Storage keys for tokens
-const ACCESS_TOKEN_KEY = '@ishkul/accessToken';
-const REFRESH_TOKEN_KEY = '@ishkul/refreshToken';
-const USER_KEY = '@ishkul/user';
-
-// Token state (in-memory cache for quick access)
-let accessToken: string | null = null;
-let refreshToken: string | null = null;
+import { User, UserDocument, LearningPath, NextStep } from '../types/app';
+import { tokenStorage } from './api/tokenStorage';
 
 /**
  * API Response types
@@ -34,7 +25,11 @@ async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  // Ensure tokens are initialized before making request
+  await tokenStorage.initialize();
+
   const url = `${apiConfig.baseURL}${endpoint}`;
+  const accessToken = tokenStorage.getAccessToken();
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -52,11 +47,12 @@ async function apiRequest<T>(
   });
 
   // Handle 401 - try to refresh token
-  if (response.status === 401 && refreshToken) {
+  if (response.status === 401 && tokenStorage.getRefreshToken()) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
       // Retry with new token
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${accessToken}`;
+      const newAccessToken = tokenStorage.getAccessToken();
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${newAccessToken}`;
       const retryResponse = await fetch(url, {
         ...options,
         headers,
@@ -71,7 +67,7 @@ async function apiRequest<T>(
     }
 
     // Refresh failed - clear tokens and throw
-    await clearTokens();
+    await tokenStorage.clearTokens();
     throw new Error('Session expired. Please login again.');
   }
 
@@ -87,7 +83,8 @@ async function apiRequest<T>(
  * Try to refresh the access token
  */
 async function tryRefreshToken(): Promise<boolean> {
-  if (!refreshToken) return false;
+  const currentRefreshToken = tokenStorage.getRefreshToken();
+  if (!currentRefreshToken) return false;
 
   try {
     const response = await fetch(`${apiConfig.baseURL}/auth/refresh`, {
@@ -95,7 +92,7 @@ async function tryRefreshToken(): Promise<boolean> {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({ refreshToken: currentRefreshToken }),
     });
 
     if (!response.ok) {
@@ -103,55 +100,14 @@ async function tryRefreshToken(): Promise<boolean> {
     }
 
     const data: RefreshResponse = await response.json();
-    await storeTokens(data.accessToken, data.refreshToken);
+    await tokenStorage.saveTokens({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      expiresIn: data.expiresIn,
+    });
     return true;
   } catch {
     return false;
-  }
-}
-
-/**
- * Store tokens in memory and persistent storage
- */
-async function storeTokens(access: string, refresh: string): Promise<void> {
-  accessToken = access;
-  refreshToken = refresh;
-
-  await AsyncStorage.multiSet([
-    [ACCESS_TOKEN_KEY, access],
-    [REFRESH_TOKEN_KEY, refresh],
-  ]);
-}
-
-/**
- * Store user in persistent storage
- */
-async function storeUser(user: User): Promise<void> {
-  await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
-}
-
-/**
- * Clear all tokens and user data
- */
-async function clearTokens(): Promise<void> {
-  accessToken = null;
-  refreshToken = null;
-
-  await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
-}
-
-/**
- * Load tokens from persistent storage into memory
- */
-async function loadTokensFromStorage(): Promise<void> {
-  try {
-    const [[, storedAccessToken], [, storedRefreshToken]] =
-      await AsyncStorage.multiGet([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY]);
-
-    accessToken = storedAccessToken;
-    refreshToken = storedRefreshToken;
-  } catch (error) {
-    console.error('Error loading tokens from storage:', error);
   }
 }
 
@@ -163,21 +119,21 @@ export const authApi = {
    * Initialize the auth system - load tokens from storage
    */
   async initialize(): Promise<void> {
-    await loadTokensFromStorage();
+    await tokenStorage.initialize();
   },
 
   /**
    * Check if user has stored tokens
    */
   hasTokens(): boolean {
-    return !!(accessToken && refreshToken);
+    return tokenStorage.hasTokens();
   },
 
   /**
    * Get current access token (for manual use if needed)
    */
   getAccessToken(): string | null {
-    return accessToken;
+    return tokenStorage.getAccessToken();
   },
 
   /**
@@ -199,8 +155,12 @@ export const authApi = {
 
     const data: LoginResponse = await response.json();
 
-    // Store tokens and user
-    await storeTokens(data.accessToken, data.refreshToken);
+    // Store tokens using tokenStorage
+    await tokenStorage.saveTokens({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      expiresIn: data.expiresIn,
+    });
 
     // Convert backend user to frontend user format
     const user: User = {
@@ -209,8 +169,6 @@ export const authApi = {
       displayName: data.user.displayName,
       photoURL: data.user.photoURL,
     };
-
-    await storeUser(user);
 
     return { user };
   },
@@ -221,6 +179,7 @@ export const authApi = {
   async logout(): Promise<void> {
     try {
       // Notify backend (ignore errors - we're logging out anyway)
+      const accessToken = tokenStorage.getAccessToken();
       if (accessToken) {
         await fetch(`${apiConfig.baseURL}/auth/logout`, {
           method: 'POST',
@@ -234,7 +193,7 @@ export const authApi = {
       }
     } finally {
       // Always clear local tokens
-      await clearTokens();
+      await tokenStorage.clearTokens();
     }
   },
 
@@ -243,12 +202,15 @@ export const authApi = {
    * Returns the current user if tokens are valid
    */
   async checkAuth(): Promise<{ user: User | null; isAuthenticated: boolean }> {
+    // Ensure tokens are initialized
+    await tokenStorage.initialize();
+
     // No tokens - not authenticated
-    if (!accessToken || !refreshToken) {
+    if (!tokenStorage.hasTokens()) {
       return { user: null, isAuthenticated: false };
     }
 
-    // If we have a cached user, try to validate by making a request
+    // If we have tokens, try to validate by making a request
     try {
       const response = await apiRequest<{ user: User }>('/me', {
         method: 'GET',
@@ -261,11 +223,10 @@ export const authApi = {
         photoURL: response.user.photoURL,
       };
 
-      await storeUser(user);
       return { user, isAuthenticated: true };
     } catch {
       // Token validation failed
-      await clearTokens();
+      await tokenStorage.clearTokens();
       return { user: null, isAuthenticated: false };
     }
   },

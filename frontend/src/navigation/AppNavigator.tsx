@@ -127,21 +127,27 @@ const RootNavigator = () => {
 
 // App Navigator with Auth State Management
 export const AppNavigator: React.FC = () => {
-  const { setUser, setUserDocument, setLoading } = useUserStore();
+  const { _hasHydrated, setUser, setUserDocument, setLoading } = useUserStore();
   const { setPaths, setLoading: setPathsLoading } = useLearningPathsStore();
 
   useEffect(() => {
+    // Wait for store to be hydrated before checking auth
+    if (_hasHydrated === 0) {
+      return;
+    }
+
     // Check auth state on app startup
     const checkAuth = async () => {
       try {
         // Initialize token storage
         await initializeAuth();
 
-        // Check if user is authenticated
-        const user = await checkAuthState();
+        // If we have a hydrated user, validate with backend
+        // Otherwise check if we have stored tokens
+        const validatedUser = await checkAuthState();
 
-        if (user) {
-          setUser(user);
+        if (validatedUser) {
+          setUser(validatedUser);
           try {
             // Fetch user document and learning paths in parallel
             const [userDoc, paths] = await Promise.all([
@@ -154,6 +160,7 @@ export const AppNavigator: React.FC = () => {
             console.error('Error fetching user data:', error);
           }
         } else {
+          // No valid session - clear persisted user
           setUser(null);
           setUserDocument(null);
           setPaths([]);
@@ -170,7 +177,7 @@ export const AppNavigator: React.FC = () => {
     };
 
     checkAuth();
-  }, []);
+  }, [_hasHydrated]);
 
   return (
     <NavigationContainer>
