@@ -40,7 +40,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   route,
 }) => {
   const { pathId } = route.params;
-  const { activePath, setActivePath, updatePath, addStep } = useLearningPathsStore();
+  const { activePath, setActivePath, addStep } = useLearningPathsStore();
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingNextStep, setIsLoadingNextStep] = useState(false);
   const [refreshing, setRefreshing] = useState(false);

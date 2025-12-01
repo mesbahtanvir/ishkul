@@ -5,8 +5,9 @@ import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
-import { useLearningPathsStore, getEmojiForGoal, generatePathId } from '../state/learningPathsStore';
+import { useLearningPathsStore, getEmojiForGoal } from '../state/learningPathsStore';
 import { createUserDocument, getUserDocument, addLearningPath } from '../services/memory';
+import { learningPathsApi } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -88,7 +89,6 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
         setUserDocument(userDoc);
 
         // Fetch the created path from the user document
-        const { learningPathsApi } = await import('../services/api');
         const paths = await learningPathsApi.getPaths();
         if (paths.length > 0) {
           const createdPath = paths[0];

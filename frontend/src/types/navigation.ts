@@ -1,4 +1,4 @@
-import { NextStep, Step } from './app';
+import { Step } from './app';
 
 export type RootStackParamList = {
   Login: undefined;

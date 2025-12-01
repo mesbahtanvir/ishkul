@@ -22,19 +22,19 @@ jest.mock('../../state/userStore', () => ({
 
 // Mock learningPathsStore
 const mockUpdatePath = jest.fn();
-const mockSetCurrentStep = jest.fn();
+const mockSetActivePath = jest.fn();
 jest.mock('../../state/learningPathsStore', () => ({
   useLearningPathsStore: () => ({
     updatePath: mockUpdatePath,
-    setCurrentStep: mockSetCurrentStep,
+    setActivePath: mockSetActivePath,
   }),
 }));
 
 // Mock memory service
-const mockCompletePathStep = jest.fn();
+const mockCompleteStep = jest.fn();
 const mockGetUserDocument = jest.fn();
 jest.mock('../../services/memory', () => ({
-  completePathStep: (...args: unknown[]) => mockCompletePathStep(...args),
+  completeStep: (...args: unknown[]) => mockCompleteStep(...args),
   getUserDocument: () => mockGetUserDocument(),
 }));
 
@@ -47,6 +47,7 @@ const mockNavigation = {
 } as unknown as NavigationProp;
 
 const mockStep = {
+  id: 'step-1',
   type: 'quiz' as const,
   topic: 'Python Variables',
   title: 'Variables Quiz',
@@ -68,19 +69,14 @@ const mockPathResult = {
     progress: 40,
     lessonsCompleted: 2,
     totalLessons: 5,
-  },
-  nextStep: {
-    type: 'practice',
-    topic: 'Practice Variables',
-    title: 'Try It Yourself',
-    task: 'Create a variable and print its value.',
+    steps: [{ ...mockStep, completed: true }],
   },
 };
 
 describe('QuizScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCompletePathStep.mockResolvedValue(mockPathResult);
+    mockCompleteStep.mockResolvedValue(mockPathResult);
     mockGetUserDocument.mockResolvedValue({
       uid: 'test-user-123',
       goal: 'Learn Python',
@@ -188,7 +184,7 @@ describe('QuizScreen', () => {
       expect(getByText(/Not quite. Expected:/)).toBeTruthy();
     });
 
-    it('should show Next Step button after submission', () => {
+    it('should show Continue button after submission', () => {
       const { getByPlaceholderText, getByText, queryByText } = render(
         <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -198,7 +194,7 @@ describe('QuizScreen', () => {
       fireEvent.press(getByText('Submit'));
 
       expect(queryByText('Submit')).toBeNull();
-      expect(getByText('Next Step →')).toBeTruthy();
+      expect(getByText('Continue →')).toBeTruthy();
     });
 
     it('should disable input after submission', () => {
@@ -215,7 +211,7 @@ describe('QuizScreen', () => {
   });
 
   describe('next step flow', () => {
-    it('should call completePathStep and navigate on Next Step', async () => {
+    it('should call completePathStep and navigate on Continue', async () => {
       const { getByPlaceholderText, getByText } = render(
         <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -223,12 +219,11 @@ describe('QuizScreen', () => {
       const input = getByPlaceholderText('Type your answer here...');
       fireEvent.changeText(input, 'container for storing data');
       fireEvent.press(getByText('Submit'));
-      fireEvent.press(getByText('Next Step →'));
+      fireEvent.press(getByText('Continue →'));
 
       await waitFor(() => {
-        expect(mockCompletePathStep).toHaveBeenCalledWith('test-path-123', {
-          type: 'quiz',
-          topic: 'Python Variables',
+        expect(mockCompleteStep).toHaveBeenCalledWith('test-path-123', 'step-1', {
+          userAnswer: 'container for storing data',
           score: 100, // Correct answer
         });
       });
@@ -238,11 +233,7 @@ describe('QuizScreen', () => {
       });
 
       await waitFor(() => {
-        expect(mockSetCurrentStep).toHaveBeenCalledWith('test-path-123', mockPathResult.nextStep);
-      });
-
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('LearningSession', { pathId: 'test-path-123' });
+        expect(mockNavigate).toHaveBeenCalledWith('LearningPath', { pathId: 'test-path-123' });
       });
     });
 
@@ -254,19 +245,18 @@ describe('QuizScreen', () => {
       const input = getByPlaceholderText('Type your answer here...');
       fireEvent.changeText(input, 'wrong answer');
       fireEvent.press(getByText('Submit'));
-      fireEvent.press(getByText('Next Step →'));
+      fireEvent.press(getByText('Continue →'));
 
       await waitFor(() => {
-        expect(mockCompletePathStep).toHaveBeenCalledWith('test-path-123', {
-          type: 'quiz',
-          topic: 'Python Variables',
+        expect(mockCompleteStep).toHaveBeenCalledWith('test-path-123', 'step-1', {
+          userAnswer: 'wrong answer',
           score: 0, // Incorrect answer
         });
       });
     });
 
     it('should show error alert on failure', async () => {
-      mockCompletePathStep.mockRejectedValueOnce(new Error('Network error'));
+      mockCompleteStep.mockRejectedValueOnce(new Error('Network error'));
 
       const { getByPlaceholderText, getByText } = render(
         <QuizScreen navigation={mockNavigation} route={mockRoute} />
@@ -275,7 +265,7 @@ describe('QuizScreen', () => {
       const input = getByPlaceholderText('Type your answer here...');
       fireEvent.changeText(input, 'answer');
       fireEvent.press(getByText('Submit'));
-      fireEvent.press(getByText('Next Step →'));
+      fireEvent.press(getByText('Continue →'));
 
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
@@ -315,6 +305,7 @@ describe('QuizScreen', () => {
   describe('step with topic as title fallback', () => {
     it('should use topic when title is not provided', () => {
       const stepWithoutTitle = {
+        id: 'step-2',
         type: 'quiz' as const,
         topic: 'Python Basics',
         question: 'What is Python?',
