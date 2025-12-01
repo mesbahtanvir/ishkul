@@ -687,15 +687,15 @@ func TestLearningPathJSON(t *testing.T) {
 func TestStepJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
 		step := models.Step{
-			ID:             "step-123",
-			Index:          0,
-			Type:           "lesson",
-			Topic:          "Go basics",
-			Title:          "Introduction to Go",
-			Content:        "Go is a programming language...",
-			Completed:      true,
-			CompletedAt:    1234567890,
-			CreatedAt:      1234567890,
+			ID:          "step-123",
+			Index:       0,
+			Type:        "lesson",
+			Topic:       "Go basics",
+			Title:       "Introduction to Go",
+			Content:     "Go is a programming language...",
+			Completed:   true,
+			CompletedAt: 1234567890,
+			CreatedAt:   1234567890,
 		}
 
 		jsonBytes, err := json.Marshal(step)
