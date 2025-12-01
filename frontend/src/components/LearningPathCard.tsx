@@ -16,6 +16,7 @@ import { ProgressBar } from './ProgressBar';
 interface LearningPathCardProps {
   path: LearningPath;
   onPress: (path: LearningPath) => void;
+  onDelete?: (path: LearningPath) => void;
   style?: ViewStyle;
 }
 
@@ -42,6 +43,7 @@ const getProgressColor = (progress: number, colors: ThemeColors): string => {
 export const LearningPathCard: React.FC<LearningPathCardProps> = ({
   path,
   onPress,
+  onDelete,
   style,
 }) => {
   const { colors } = useTheme();
@@ -69,6 +71,18 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
             <Text style={[styles.stats, { color: colors.text.secondary }]}>{statsText}</Text>
           </View>
         </View>
+        {onDelete && (
+          <TouchableOpacity
+            style={[styles.deleteButton, { backgroundColor: colors.background.tertiary }]}
+            onPress={(e) => {
+              e.stopPropagation();
+              onDelete(path);
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={[styles.deleteIcon, { color: colors.danger }]}>🗑️</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.progressContainer}>
@@ -151,6 +165,17 @@ const styles = StyleSheet.create({
   },
   startButtonText: {
     ...Typography.button.small,
+  },
+  deleteButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: Spacing.sm,
+  },
+  deleteIcon: {
+    fontSize: 16,
   },
 });
 

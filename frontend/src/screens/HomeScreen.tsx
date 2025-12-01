@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -27,7 +27,7 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { user } = useUserStore();
-  const { paths, setPaths, setActivePath, loading } = useLearningPathsStore();
+  const { paths, setPaths, setActivePath, deletePath, loading } = useLearningPathsStore();
   const { colors } = useTheme();
 
   // Refresh learning paths when screen comes into focus
@@ -52,6 +52,32 @@ export const HomeScreen: React.FC = () => {
   const handlePathPress = (path: LearningPath) => {
     setActivePath(path);
     navigation.navigate('LearningSession', { pathId: path.id });
+  };
+
+  const handleDeletePath = (path: LearningPath) => {
+    Alert.alert(
+      'Delete Learning Path',
+      `Are you sure you want to delete "${path.goal}"? This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await learningPathsApi.deletePath(path.id);
+              deletePath(path.id);
+            } catch (error) {
+              console.error('Error deleting path:', error);
+              Alert.alert('Error', 'Failed to delete learning path. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const firstName = user?.displayName?.split(' ')[0] || 'there';
@@ -80,6 +106,7 @@ export const HomeScreen: React.FC = () => {
               key={path.id}
               path={path}
               onPress={handlePathPress}
+              onDelete={handleDeletePath}
             />
           ))}
         </View>
