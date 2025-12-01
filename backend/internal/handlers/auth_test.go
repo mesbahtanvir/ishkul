@@ -157,7 +157,7 @@ func TestLogin(t *testing.T) {
 		Login(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Invalid request body")
+		assert.Contains(t, rr.Body.String(), "Invalid request format")
 	})
 
 	t.Run("rejects empty request body", func(t *testing.T) {
@@ -167,7 +167,7 @@ func TestLogin(t *testing.T) {
 		Login(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Either googleIdToken or email/password is required")
+		assert.Contains(t, rr.Body.String(), "Please enter your email and password")
 	})
 
 	t.Run("rejects missing credentials", func(t *testing.T) {
@@ -178,7 +178,7 @@ func TestLogin(t *testing.T) {
 		Login(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Either googleIdToken or email/password is required")
+		assert.Contains(t, rr.Body.String(), "Please enter your email and password")
 	})
 
 	t.Run("rejects email without password", func(t *testing.T) {
@@ -189,7 +189,7 @@ func TestLogin(t *testing.T) {
 		Login(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Either googleIdToken or email/password is required")
+		assert.Contains(t, rr.Body.String(), "Please enter your email and password")
 	})
 
 	t.Run("rejects password without email", func(t *testing.T) {
@@ -200,7 +200,7 @@ func TestLogin(t *testing.T) {
 		Login(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Either googleIdToken or email/password is required")
+		assert.Contains(t, rr.Body.String(), "Please enter your email and password")
 	})
 }
 
@@ -228,7 +228,7 @@ func TestRegister(t *testing.T) {
 		Register(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Invalid request body")
+		assert.Contains(t, rr.Body.String(), "Invalid request format")
 	})
 
 	t.Run("rejects missing email", func(t *testing.T) {
@@ -239,7 +239,7 @@ func TestRegister(t *testing.T) {
 		Register(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Email and password are required")
+		assert.Contains(t, rr.Body.String(), "Please enter your email and password")
 	})
 
 	t.Run("rejects missing password", func(t *testing.T) {
@@ -250,7 +250,7 @@ func TestRegister(t *testing.T) {
 		Register(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Email and password are required")
+		assert.Contains(t, rr.Body.String(), "Please enter your email and password")
 	})
 
 	t.Run("rejects password shorter than 6 characters", func(t *testing.T) {
@@ -292,7 +292,7 @@ func TestRefresh(t *testing.T) {
 		Refresh(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Invalid request body")
+		assert.Contains(t, rr.Body.String(), "Invalid request format")
 	})
 
 	t.Run("rejects empty refresh token", func(t *testing.T) {
@@ -303,7 +303,7 @@ func TestRefresh(t *testing.T) {
 		Refresh(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Refresh token is required")
+		assert.Contains(t, rr.Body.String(), "Session expired")
 	})
 
 	t.Run("rejects invalid refresh token", func(t *testing.T) {
@@ -327,7 +327,7 @@ func TestRefresh(t *testing.T) {
 		Refresh(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Invalid refresh token")
+		assert.Contains(t, rr.Body.String(), "Session expired")
 	})
 
 	t.Run("accepts valid refresh token", func(t *testing.T) {

@@ -39,6 +39,40 @@ type LoginResponse struct {
 	User         *models.User `json:"user"`
 }
 
+// ErrorResponse represents a structured error response
+type ErrorResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+// Error codes for authentication
+const (
+	ErrCodeInvalidRequest     = "INVALID_REQUEST"
+	ErrCodeInvalidCredentials = "INVALID_CREDENTIALS"
+	ErrCodeEmailExists        = "EMAIL_EXISTS"
+	ErrCodeWeakPassword       = "WEAK_PASSWORD"
+	ErrCodeInvalidEmail       = "INVALID_EMAIL"
+	ErrCodeUserNotFound       = "USER_NOT_FOUND"
+	ErrCodeTooManyRequests    = "TOO_MANY_REQUESTS"
+	ErrCodeServiceUnavailable = "SERVICE_UNAVAILABLE"
+	ErrCodeInternalError      = "INTERNAL_ERROR"
+	ErrCodeInvalidToken       = "INVALID_TOKEN"
+	ErrCodeTokenExpired       = "TOKEN_EXPIRED"
+	ErrCodeMissingCredentials = "MISSING_CREDENTIALS"
+)
+
+// sendErrorResponse sends a structured JSON error response
+func sendErrorResponse(w http.ResponseWriter, statusCode int, code string, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	// Error is intentionally not handled - we're already in an error path
+	// and can't do much if encoding fails after headers are written
+	_ = json.NewEncoder(w).Encode(ErrorResponse{
+		Code:    code,
+		Message: message,
+	})
+}
+
 // RefreshRequest represents the refresh token request body
 type RefreshRequest struct {
 	RefreshToken string `json:"refreshToken"`
@@ -76,13 +110,13 @@ func getGoogleClientIDs() []string {
 // Login handles user authentication via Google ID token or email/password
 func Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		sendErrorResponse(w, http.StatusMethodNotAllowed, ErrCodeInvalidRequest, "Method not allowed")
 		return
 	}
 
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodeInvalidRequest, "Invalid request format")
 		return
 	}
 
@@ -93,7 +127,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	if req.GoogleIDToken != "" {
 		payload, err := verifyGoogleIDToken(ctx, req.GoogleIDToken)
 		if err != nil {
-			http.Error(w, "Invalid Google ID token: "+err.Error(), http.StatusUnauthorized)
+			sendErrorResponse(w, http.StatusUnauthorized, ErrCodeInvalidToken, "Unable to verify Google sign-in. Please try again.")
 			return
 		}
 
@@ -105,7 +139,18 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		// Handle email/password login
 		firebaseUser, err := signInWithEmailPassword(ctx, req.Email, req.Password)
 		if err != nil {
-			http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+			// Map Firebase errors to user-friendly messages
+			errMsg := err.Error()
+			switch {
+			case errMsg == "EMAIL_NOT_FOUND" || errMsg == "INVALID_PASSWORD" || errMsg == "INVALID_LOGIN_CREDENTIALS":
+				sendErrorResponse(w, http.StatusUnauthorized, ErrCodeInvalidCredentials, "Incorrect email or password. Please check and try again.")
+			case errMsg == "USER_DISABLED":
+				sendErrorResponse(w, http.StatusUnauthorized, ErrCodeInvalidCredentials, "This account has been disabled. Please contact support.")
+			case errMsg == "TOO_MANY_ATTEMPTS_TRY_LATER":
+				sendErrorResponse(w, http.StatusTooManyRequests, ErrCodeTooManyRequests, "Too many failed attempts. Please try again later.")
+			default:
+				sendErrorResponse(w, http.StatusUnauthorized, ErrCodeInvalidCredentials, "Incorrect email or password. Please check and try again.")
+			}
 			return
 		}
 
@@ -114,21 +159,21 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		name = firebaseUser.DisplayName
 		picture = firebaseUser.PhotoURL
 	} else {
-		http.Error(w, "Either googleIdToken or email/password is required", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodeMissingCredentials, "Please enter your email and password")
 		return
 	}
 
 	// Get or create user in Firestore
 	user, err := getOrCreateUser(ctx, userID, email, name, picture)
 	if err != nil {
-		http.Error(w, "Error creating user: "+err.Error(), http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to complete sign-in. Please try again.")
 		return
 	}
 
 	// Generate JWT token pair
 	tokenPair, err := auth.GenerateTokenPair(userID, email)
 	if err != nil {
-		http.Error(w, "Error generating tokens", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to complete sign-in. Please try again.")
 		return
 	}
 
@@ -142,7 +187,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to complete sign-in. Please try again.")
 		return
 	}
 }
@@ -150,23 +195,23 @@ func Login(w http.ResponseWriter, r *http.Request) {
 // Register handles new user registration with email/password
 func Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		sendErrorResponse(w, http.StatusMethodNotAllowed, ErrCodeInvalidRequest, "Method not allowed")
 		return
 	}
 
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodeInvalidRequest, "Invalid request format")
 		return
 	}
 
 	if req.Email == "" || req.Password == "" {
-		http.Error(w, "Email and password are required", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodeMissingCredentials, "Please enter your email and password")
 		return
 	}
 
 	if len(req.Password) < 6 {
-		http.Error(w, "Password must be at least 6 characters", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodeWeakPassword, "Password must be at least 6 characters")
 		return
 	}
 
@@ -175,7 +220,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	// Create user in Firebase Auth
 	authClient := firebase.GetAuth()
 	if authClient == nil {
-		http.Error(w, "Auth service not available", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeServiceUnavailable, "Unable to create account. Please try again later.")
 		return
 	}
 
@@ -188,24 +233,30 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	firebaseUser, err := authClient.CreateUser(ctx, params)
 	if err != nil {
 		if firebaseauth.IsEmailAlreadyExists(err) {
-			http.Error(w, "Email already registered", http.StatusConflict)
+			sendErrorResponse(w, http.StatusConflict, ErrCodeEmailExists, "This email is already registered. Try signing in instead.")
 			return
 		}
-		http.Error(w, "Error creating user: "+err.Error(), http.StatusInternalServerError)
+		// Check for invalid email format
+		errMsg := err.Error()
+		if contains(errMsg, "email") && contains(errMsg, "invalid") {
+			sendErrorResponse(w, http.StatusBadRequest, ErrCodeInvalidEmail, "Please enter a valid email address")
+			return
+		}
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to create account. Please try again.")
 		return
 	}
 
 	// Create user in Firestore
 	user, err := getOrCreateUser(ctx, firebaseUser.UID, req.Email, req.DisplayName, "")
 	if err != nil {
-		http.Error(w, "Error creating user profile: "+err.Error(), http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to create account. Please try again.")
 		return
 	}
 
 	// Generate JWT token pair
 	tokenPair, err := auth.GenerateTokenPair(firebaseUser.UID, req.Email)
 	if err != nil {
-		http.Error(w, "Error generating tokens", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to create account. Please try again.")
 		return
 	}
 
@@ -220,9 +271,39 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to create account. Please try again.")
 		return
 	}
+}
+
+// contains checks if a string contains a substring (case-insensitive)
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsLower(s, substr))
+}
+
+func containsLower(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if equalFoldSubstr(s[i:i+len(substr)], substr) {
+			return true
+		}
+	}
+	return false
+}
+
+func equalFoldSubstr(a, b string) bool {
+	for i := 0; i < len(a); i++ {
+		ca, cb := a[i], b[i]
+		if ca >= 'A' && ca <= 'Z' {
+			ca += 'a' - 'A'
+		}
+		if cb >= 'A' && cb <= 'Z' {
+			cb += 'a' - 'A'
+		}
+		if ca != cb {
+			return false
+		}
+	}
+	return true
 }
 
 // FirebaseAuthResponse represents the response from Firebase Auth REST API
@@ -375,18 +456,18 @@ func getOrCreateUser(ctx context.Context, userID, email, displayName, photoURL s
 // Refresh handles token refresh
 func Refresh(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		sendErrorResponse(w, http.StatusMethodNotAllowed, ErrCodeInvalidRequest, "Method not allowed")
 		return
 	}
 
 	var req RefreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodeInvalidRequest, "Invalid request format")
 		return
 	}
 
 	if req.RefreshToken == "" {
-		http.Error(w, "Refresh token is required", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodeInvalidToken, "Session expired. Please sign in again.")
 		return
 	}
 
@@ -395,11 +476,11 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case auth.ErrExpiredToken:
-			http.Error(w, "Refresh token expired", http.StatusUnauthorized)
+			sendErrorResponse(w, http.StatusUnauthorized, ErrCodeTokenExpired, "Session expired. Please sign in again.")
 		case auth.ErrInvalidToken, auth.ErrInvalidTokenType:
-			http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+			sendErrorResponse(w, http.StatusUnauthorized, ErrCodeInvalidToken, "Session expired. Please sign in again.")
 		default:
-			http.Error(w, "Error refreshing tokens", http.StatusInternalServerError)
+			sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to refresh session. Please sign in again.")
 		}
 		return
 	}
@@ -412,7 +493,7 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to refresh session. Please sign in again.")
 		return
 	}
 }

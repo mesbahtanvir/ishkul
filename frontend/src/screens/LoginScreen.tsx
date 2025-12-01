@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Alert,
   TouchableOpacity,
   TextInput,
   KeyboardAvoidingView,
@@ -19,6 +18,8 @@ import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
+import { ErrorBanner } from '../components/ErrorBanner';
+import { ApiError, ErrorCodes } from '../services/api';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -27,6 +28,9 @@ interface LoginScreenProps {
 }
 
 type AuthMode = 'login' | 'register';
+
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { setUser, setUserDocument, setLoading } = useUserStore();
@@ -39,6 +43,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Error states
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  // Refs for input focus
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+
+  // Clear errors when switching modes
+  useEffect(() => {
+    setErrorMessage(null);
+    setEmailError(null);
+    setPasswordError(null);
+    setNameError(null);
+  }, [authMode]);
 
   useEffect(() => {
     const handleAuthResponse = async () => {
@@ -48,11 +71,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           await handleSignInWithIdToken(idToken);
         } else {
           console.error('No ID token in response');
-          Alert.alert('Error', 'Authentication failed. Please try again.');
+          setErrorMessage('Unable to complete Google sign-in. Please try again.');
         }
       } else if (response?.type === 'error') {
         console.error('Auth error:', response.error);
-        Alert.alert('Error', 'Authentication failed. Please try again.');
+        setErrorMessage('Google sign-in failed. Please try again.');
       }
     };
 
@@ -62,6 +85,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const handleSignInWithIdToken = async (idToken: string) => {
     try {
       setLoading(true);
+      setErrorMessage(null);
       const user = await signInWithGoogleIdToken(idToken);
       setUser(user);
 
@@ -71,7 +95,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       navigation.replace('Main');
     } catch (error) {
       console.error('Sign in error:', error);
-      Alert.alert('Error', 'Failed to sign in. Please try again.');
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage('Unable to sign in. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -79,28 +107,87 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const handleGoogleSignIn = async () => {
     if (configError) {
-      Alert.alert('Configuration Error', configError, [{ text: 'OK' }]);
+      setErrorMessage(configError);
       return;
     }
 
+    setErrorMessage(null);
     if (request) {
       await promptAsync();
     }
   };
 
+  // Validate email format on blur
+  const validateEmail = () => {
+    if (!email.trim()) {
+      setEmailError(null);
+      return false;
+    }
+    if (!EMAIL_REGEX.test(email.trim())) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    setEmailError(null);
+    return true;
+  };
+
+  // Validate password on blur
+  const validatePassword = () => {
+    if (!password) {
+      setPasswordError(null);
+      return false;
+    }
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return false;
+    }
+    setPasswordError(null);
+    return true;
+  };
+
+  // Validate name on blur (only for register)
+  const validateName = () => {
+    if (authMode !== 'register') return true;
+    if (!displayName.trim()) {
+      setNameError(null);
+      return false;
+    }
+    setNameError(null);
+    return true;
+  };
+
   const handleEmailAuth = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter email and password');
-      return;
+    // Clear previous errors
+    setErrorMessage(null);
+    setEmailError(null);
+    setPasswordError(null);
+    setNameError(null);
+
+    // Validate all fields
+    let hasError = false;
+
+    if (!email.trim()) {
+      setEmailError('Email is required');
+      hasError = true;
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      setEmailError('Please enter a valid email address');
+      hasError = true;
+    }
+
+    if (!password) {
+      setPasswordError('Password is required');
+      hasError = true;
+    } else if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      hasError = true;
     }
 
     if (authMode === 'register' && !displayName.trim()) {
-      Alert.alert('Error', 'Please enter your name');
-      return;
+      setNameError('Name is required');
+      hasError = true;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    if (hasError) {
       return;
     }
 
@@ -122,8 +209,32 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       navigation.replace('Main');
     } catch (error) {
       console.error('Email auth error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
-      Alert.alert('Error', errorMessage);
+
+      if (error instanceof ApiError) {
+        // Handle specific error codes with field-specific errors
+        switch (error.code) {
+          case ErrorCodes.INVALID_EMAIL:
+            setEmailError(error.message);
+            break;
+          case ErrorCodes.WEAK_PASSWORD:
+            setPasswordError(error.message);
+            break;
+          case ErrorCodes.EMAIL_EXISTS:
+            // Show as banner with suggestion to sign in
+            setErrorMessage(error.message);
+            break;
+          case ErrorCodes.INVALID_CREDENTIALS:
+          case ErrorCodes.TOO_MANY_REQUESTS:
+          case ErrorCodes.NETWORK_ERROR:
+          default:
+            setErrorMessage(error.message);
+            break;
+        }
+      } else if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage('Something went wrong. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
       setLoading(false);
@@ -132,15 +243,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const toggleAuthMode = () => {
     setAuthMode(authMode === 'login' ? 'register' : 'login');
-    setEmail('');
-    setPassword('');
-    setDisplayName('');
+    // Don't clear the email/password - preserve user input
+  };
+
+  const dismissError = () => {
+    setErrorMessage(null);
   };
 
   // Responsive values
   const emojiSize = responsive(36, 42, 48, 52);
   const titleSize = responsive(28, 32, 36, 40);
   const subtitleSize = responsive(14, 16, 18, 20);
+
+  // Get input border color based on error state
+  const getInputBorderColor = (hasError: boolean) => {
+    return hasError ? colors.danger : colors.border;
+  };
 
   return (
     <KeyboardAvoidingView
@@ -161,62 +279,117 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             </Text>
           </View>
 
+          {/* Error Banner */}
+          <ErrorBanner
+            message={errorMessage}
+            type="error"
+            onDismiss={dismissError}
+            showDismiss={true}
+          />
+
           <View style={styles.formSection}>
             {authMode === 'register' && (
+              <View>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background.secondary,
+                      color: colors.text.primary,
+                      borderColor: getInputBorderColor(!!nameError),
+                    }
+                  ]}
+                  placeholder="Full Name"
+                  placeholderTextColor={colors.text.tertiary}
+                  value={displayName}
+                  onChangeText={(text) => {
+                    setDisplayName(text);
+                    if (nameError) setNameError(null);
+                  }}
+                  onBlur={validateName}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  returnKeyType="next"
+                  onSubmitEditing={() => emailInputRef.current?.focus()}
+                />
+                {nameError && (
+                  <Text style={[styles.fieldError, { color: colors.danger }]}>{nameError}</Text>
+                )}
+              </View>
+            )}
+
+            <View>
               <TextInput
+                ref={emailInputRef}
                 style={[
                   styles.input,
                   {
                     backgroundColor: colors.background.secondary,
                     color: colors.text.primary,
-                    borderColor: colors.border,
+                    borderColor: getInputBorderColor(!!emailError),
                   }
                 ]}
-                placeholder="Full Name"
+                placeholder="Email"
                 placeholderTextColor={colors.text.tertiary}
-                value={displayName}
-                onChangeText={setDisplayName}
-                autoCapitalize="words"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (emailError) setEmailError(null);
+                }}
+                onBlur={validateEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="email"
+                returnKeyType="next"
+                onSubmitEditing={() => passwordInputRef.current?.focus()}
               />
-            )}
+              {emailError && (
+                <Text style={[styles.fieldError, { color: colors.danger }]}>{emailError}</Text>
+              )}
+            </View>
 
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: colors.background.secondary,
-                  color: colors.text.primary,
-                  borderColor: colors.border,
-                }
-              ]}
-              placeholder="Email"
-              placeholderTextColor={colors.text.tertiary}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-            />
-
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: colors.background.secondary,
-                  color: colors.text.primary,
-                  borderColor: colors.border,
-                }
-              ]}
-              placeholder="Password"
-              placeholderTextColor={colors.text.tertiary}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoComplete="password"
-            />
+            <View>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  ref={passwordInputRef}
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    {
+                      backgroundColor: colors.background.secondary,
+                      color: colors.text.primary,
+                      borderColor: getInputBorderColor(!!passwordError),
+                    }
+                  ]}
+                  placeholder="Password"
+                  placeholderTextColor={colors.text.tertiary}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (passwordError) setPasswordError(null);
+                  }}
+                  onBlur={validatePassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleEmailAuth}
+                />
+                <TouchableOpacity
+                  style={styles.passwordToggle}
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={[styles.passwordToggleText, { color: colors.text.tertiary }]}>
+                    {showPassword ? 'Hide' : 'Show'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {passwordError && (
+                <Text style={[styles.fieldError, { color: colors.danger }]}>{passwordError}</Text>
+              )}
+            </View>
 
             <TouchableOpacity
               style={[
@@ -319,6 +492,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     fontSize: 16,
     minHeight: 52,
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 60, // Space for toggle button
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: Spacing.md,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  passwordToggleText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  fieldError: {
+    ...Typography.label.small,
+    marginTop: Spacing.xs,
+    marginLeft: Spacing.xs,
   },
   primaryButton: {
     borderRadius: Spacing.borderRadius.md,

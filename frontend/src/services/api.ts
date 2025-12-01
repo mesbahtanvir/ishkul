@@ -19,6 +19,68 @@ interface RefreshResponse {
 }
 
 /**
+ * API Error Response from backend
+ */
+interface ApiErrorResponse {
+  code: string;
+  message: string;
+}
+
+/**
+ * Error codes from backend (kept in sync with backend/internal/handlers/auth.go)
+ */
+export const ErrorCodes = {
+  INVALID_REQUEST: 'INVALID_REQUEST',
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  EMAIL_EXISTS: 'EMAIL_EXISTS',
+  WEAK_PASSWORD: 'WEAK_PASSWORD',
+  INVALID_EMAIL: 'INVALID_EMAIL',
+  USER_NOT_FOUND: 'USER_NOT_FOUND',
+  TOO_MANY_REQUESTS: 'TOO_MANY_REQUESTS',
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+  INVALID_TOKEN: 'INVALID_TOKEN',
+  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+  MISSING_CREDENTIALS: 'MISSING_CREDENTIALS',
+  NETWORK_ERROR: 'NETWORK_ERROR',
+} as const;
+
+export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
+
+/**
+ * Custom API Error class with error code support
+ */
+export class ApiError extends Error {
+  code: ErrorCode;
+  statusCode?: number;
+
+  constructor(code: ErrorCode, message: string, statusCode?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.statusCode = statusCode;
+  }
+}
+
+/**
+ * Parse error response from backend
+ */
+async function parseErrorResponse(response: Response): Promise<ApiError> {
+  try {
+    const text = await response.text();
+    // Try to parse as JSON error response
+    const errorData: ApiErrorResponse = JSON.parse(text);
+    if (errorData.code && errorData.message) {
+      return new ApiError(errorData.code as ErrorCode, errorData.message, response.status);
+    }
+    // Fallback to plain text error
+    return new ApiError(ErrorCodes.INTERNAL_ERROR, text || `HTTP ${response.status}`, response.status);
+  } catch {
+    return new ApiError(ErrorCodes.INTERNAL_ERROR, `HTTP ${response.status}`, response.status);
+  }
+}
+
+/**
  * Make an authenticated API request
  */
 async function apiRequest<T>(
@@ -41,10 +103,15 @@ async function apiRequest<T>(
     (headers as Record<string, string>)['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new ApiError(ErrorCodes.NETWORK_ERROR, 'Unable to connect. Please check your internet connection.');
+  }
 
   // Handle 401 - try to refresh token
   if (response.status === 401 && tokenStorage.getRefreshToken()) {
@@ -53,14 +120,18 @@ async function apiRequest<T>(
       // Retry with new token
       const newAccessToken = tokenStorage.getAccessToken();
       (headers as Record<string, string>)['Authorization'] = `Bearer ${newAccessToken}`;
-      const retryResponse = await fetch(url, {
-        ...options,
-        headers,
-      });
+      let retryResponse: Response;
+      try {
+        retryResponse = await fetch(url, {
+          ...options,
+          headers,
+        });
+      } catch {
+        throw new ApiError(ErrorCodes.NETWORK_ERROR, 'Unable to connect. Please check your internet connection.');
+      }
 
       if (!retryResponse.ok) {
-        const errorText = await retryResponse.text();
-        throw new Error(errorText || `HTTP ${retryResponse.status}`);
+        throw await parseErrorResponse(retryResponse);
       }
 
       return retryResponse.json();
@@ -68,12 +139,11 @@ async function apiRequest<T>(
 
     // Refresh failed - clear tokens and throw
     await tokenStorage.clearTokens();
-    throw new Error('Session expired. Please login again.');
+    throw new ApiError(ErrorCodes.TOKEN_EXPIRED, 'Session expired. Please sign in again.');
   }
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || `HTTP ${response.status}`);
+    throw await parseErrorResponse(response);
   }
 
   return response.json();
@@ -140,17 +210,21 @@ export const authApi = {
    * Login with Google ID token
    */
   async loginWithGoogle(googleIdToken: string): Promise<{ user: User }> {
-    const response = await fetch(`${apiConfig.baseURL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ googleIdToken }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${apiConfig.baseURL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ googleIdToken }),
+      });
+    } catch {
+      throw new ApiError(ErrorCodes.NETWORK_ERROR, 'Unable to connect. Please check your internet connection.');
+    }
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Login failed');
+      throw await parseErrorResponse(response);
     }
 
     const data: LoginResponse = await response.json();
@@ -177,17 +251,21 @@ export const authApi = {
    * Login with email and password
    */
   async loginWithEmail(email: string, password: string): Promise<{ user: User }> {
-    const response = await fetch(`${apiConfig.baseURL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${apiConfig.baseURL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch {
+      throw new ApiError(ErrorCodes.NETWORK_ERROR, 'Unable to connect. Please check your internet connection.');
+    }
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Login failed');
+      throw await parseErrorResponse(response);
     }
 
     const data: LoginResponse = await response.json();
@@ -214,17 +292,21 @@ export const authApi = {
    * Register a new user with email and password
    */
   async register(email: string, password: string, displayName: string): Promise<{ user: User }> {
-    const response = await fetch(`${apiConfig.baseURL}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, displayName }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${apiConfig.baseURL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, displayName }),
+      });
+    } catch {
+      throw new ApiError(ErrorCodes.NETWORK_ERROR, 'Unable to connect. Please check your internet connection.');
+    }
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Registration failed');
+      throw await parseErrorResponse(response);
     }
 
     const data: LoginResponse = await response.json();
