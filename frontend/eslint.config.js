@@ -53,6 +53,7 @@ export default [
       'jest.setup.cjs',
       'babel.config.cjs',
       '__mocks__/',
+      'scripts/', // Build scripts use Node.js CommonJS
     ],
   },
 ];
