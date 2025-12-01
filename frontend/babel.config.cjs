@@ -11,23 +11,8 @@ module.exports = function (api) {
         },
       ],
     ],
-    plugins: [
-      // Apply import.meta transformation globally for all packages
-      // This catches cases where import.meta.env is used (like in Zustand devtools)
-      'transform-import-meta',
-    ],
-    // Additional override for packages specifically using import.meta
-    // Based on workaround from https://github.com/expo/expo/issues/30323
-    overrides: [
-      {
-        test: /node_modules\/(zustand|@payloadcms)/,
-        plugins: [
-          ['transform-import-meta', {
-            // Transform import.meta.env.MODE to process.env.NODE_ENV
-            env: { MODE: process.env.NODE_ENV || 'production' }
-          }],
-        ],
-      },
-    ],
+    // Note: Not using babel-plugin-transform-import-meta due to build issues
+    // Instead, we handle import.meta removal via post-build script
+    // See scripts/fix-import-meta.js
   };
 };
