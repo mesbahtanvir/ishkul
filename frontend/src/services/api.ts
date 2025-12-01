@@ -494,6 +494,19 @@ export const userApi = {
 };
 
 /**
+ * Normalize a learning path to ensure steps is always an array
+ * This handles legacy data that may have null/undefined steps or old 'history' field
+ */
+const normalizeLearningPath = (path: LearningPath | null): LearningPath | null => {
+  if (!path) return null;
+  return {
+    ...path,
+    steps: Array.isArray(path.steps) ? path.steps : [],
+    memory: path.memory || { topics: {} },
+  };
+};
+
+/**
  * Learning Paths API methods
  */
 export const learningPathsApi = {
@@ -502,7 +515,8 @@ export const learningPathsApi = {
    */
   async getPaths(): Promise<LearningPath[]> {
     const response = await api.get<{ paths: LearningPath[] }>('/learning-paths');
-    return response.paths || [];
+    const paths = response.paths || [];
+    return paths.map((p) => normalizeLearningPath(p)!);
   },
 
   /**
@@ -510,7 +524,7 @@ export const learningPathsApi = {
    */
   async getPath(pathId: string): Promise<LearningPath | null> {
     const response = await api.get<{ path: LearningPath }>(`/learning-paths/${pathId}`);
-    return response.path;
+    return normalizeLearningPath(response.path);
   },
 
   /**
@@ -518,7 +532,7 @@ export const learningPathsApi = {
    */
   async createPath(path: Partial<LearningPath>): Promise<LearningPath> {
     const response = await api.post<{ path: LearningPath }>('/learning-paths', path);
-    return response.path;
+    return normalizeLearningPath(response.path)!;
   },
 
   /**
@@ -557,7 +571,10 @@ export const learningPathsApi = {
       completedStep: Step;
       nextStepNeeded: boolean;
     }>(`/learning-paths/${pathId}/complete`, data || {});
-    return response;
+    return {
+      ...response,
+      path: normalizeLearningPath(response.path)!,
+    };
   },
 
   /**
@@ -573,7 +590,10 @@ export const learningPathsApi = {
       completedStep: Step;
       nextStepNeeded: boolean;
     }>(`/learning-paths/${pathId}/steps/${stepId}/complete`, data || {});
-    return response;
+    return {
+      ...response,
+      path: normalizeLearningPath(response.path)!,
+    };
   },
 
   /**
