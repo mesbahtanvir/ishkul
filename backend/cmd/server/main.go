@@ -85,19 +85,6 @@ func main() {
 		}
 	})
 
-	// LLM endpoints (OpenAI integration)
-	api.HandleFunc("/api/llm/generate", handlers.GenerateContent)
-	api.HandleFunc("/api/llm/next-step", handlers.GenerateNextStep)
-	api.HandleFunc("/api/llm/prompts", handlers.ListPrompts)
-
-	// Legacy endpoints (keeping for compatibility)
-	api.HandleFunc("/api/users", handlers.GetUsers)
-	api.HandleFunc("/api/users/create", handlers.CreateUser)
-	api.HandleFunc("/api/progress", handlers.GetProgress)
-	api.HandleFunc("/api/progress/update", handlers.UpdateProgress)
-	api.HandleFunc("/api/lessons", handlers.GetLessons)
-	api.HandleFunc("/api/upload", handlers.UploadFile)
-
 	// Learning paths endpoints
 	api.HandleFunc("/api/learning-paths", handlers.LearningPathsHandler)
 	api.HandleFunc("/api/learning-paths/", handlers.LearningPathsHandler)
@@ -106,14 +93,6 @@ func main() {
 	protectedHandler := rateLimiter.Limit(middleware.CORS(middleware.Auth(api)))
 	mux.Handle("/api/me", protectedHandler)
 	mux.Handle("/api/me/", protectedHandler)
-	mux.Handle("/api/llm/", protectedHandler)
-	mux.Handle("/api/users", protectedHandler)
-	mux.Handle("/api/users/", protectedHandler)
-	mux.Handle("/api/progress", protectedHandler)
-	mux.Handle("/api/progress/", protectedHandler)
-	mux.Handle("/api/lessons", protectedHandler)
-	mux.Handle("/api/lessons/", protectedHandler)
-	mux.Handle("/api/upload", protectedHandler)
 	mux.Handle("/api/learning-paths", protectedHandler)
 	mux.Handle("/api/learning-paths/", protectedHandler)
 
