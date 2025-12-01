@@ -285,8 +285,11 @@ print_status "Secret Manager permissions configured"
 
 print_header "\n🚀 Updating Cloud Run service..."
 
-# Build environment variable flags
-ENV_FLAGS=""
+# Create a temporary YAML file for environment variables (handles special chars like URLs)
+ENV_YAML_FILE="/tmp/ishkul_env_vars_$$.yaml"
+rm -f "$ENV_YAML_FILE"
+touch "$ENV_YAML_FILE"
+
 SECRETS_FLAGS=""
 
 while IFS='=' read -r key value; do
@@ -301,19 +304,23 @@ while IFS='=' read -r key value; do
     if [[ "$key" == "JWT_SECRET" ]] || [[ "$key" =~ ^_ ]]; then
         # Handle as secret (these go to Secret Manager)
         if [[ "$key" == "JWT_SECRET" ]]; then
-            SECRETS_FLAGS="$SECRETS_FLAGS --set-secrets=\"JWT_SECRET=${JWT_SECRET_NAME}:latest\""
+            SECRETS_FLAGS="$SECRETS_FLAGS --set-secrets=JWT_SECRET=${JWT_SECRET_NAME}:latest"
         fi
     else
-        # Handle as regular environment variable
-        # Escape special characters for gcloud
-        escaped_value=$(printf '%s\n' "$value" | sed -e 's/[\/&]/\\&/g')
-        ENV_FLAGS="$ENV_FLAGS --set-env-vars=\"${key}=${escaped_value}\""
+        # Write to YAML file (properly handles URLs and special characters)
+        echo "${key}: \"${value}\"" >> "$ENV_YAML_FILE"
     fi
 done < "$ENV_VARS_FILE"
 
-# Execute the update command
-update_cmd="gcloud run services update $SERVICE_NAME --region=$REGION --project=$PROJECT_ID $ENV_FLAGS $SECRETS_FLAGS"
-eval "$update_cmd"
+# Execute the update command using env-vars-file for proper handling of special chars
+gcloud run services update $SERVICE_NAME \
+    --region=$REGION \
+    --project=$PROJECT_ID \
+    --env-vars-file="$ENV_YAML_FILE" \
+    $SECRETS_FLAGS
+
+# Cleanup temp YAML file
+rm -f "$ENV_YAML_FILE"
 
 # ============================================
 # Summary & What Has Been Applied
