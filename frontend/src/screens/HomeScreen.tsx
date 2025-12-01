@@ -1,9 +1,10 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Container } from '../components/Container';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { CreatePathCard } from '../components/CreatePathCard';
 import { LearningPathCard } from '../components/LearningPathCard';
 import { LoadingScreen } from '../components/LoadingScreen';
@@ -30,6 +31,11 @@ export const HomeScreen: React.FC = () => {
   const { paths, setPaths, setActivePath, deletePath, loading } = useLearningPathsStore();
   const { colors } = useTheme();
 
+  // Delete dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [pathToDelete, setPathToDelete] = useState<LearningPath | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   // Refresh learning paths when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -54,47 +60,36 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('LearningSession', { pathId: path.id });
   };
 
-  const handleDeletePath = async (path: LearningPath) => {
-    const confirmMessage = `Are you sure you want to delete "${path.goal}"? This action cannot be undone.`;
+  const handleDeletePath = (path: LearningPath) => {
+    setPathToDelete(path);
+    setShowDeleteDialog(true);
+  };
 
-    // Use window.confirm on web since Alert.alert doesn't work
-    if (Platform.OS === 'web') {
-      if (window.confirm(confirmMessage)) {
-        try {
-          await learningPathsApi.deletePath(path.id);
-          deletePath(path.id);
-        } catch (error) {
-          console.error('Error deleting path:', error);
-          window.alert('Failed to delete learning path. Please try again.');
-        }
+  const confirmDelete = async () => {
+    if (!pathToDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      await learningPathsApi.deletePath(pathToDelete.id);
+      deletePath(pathToDelete.id);
+      setShowDeleteDialog(false);
+      setPathToDelete(null);
+    } catch (error) {
+      console.error('Error deleting path:', error);
+      // Show error using platform-appropriate method
+      if (Platform.OS === 'web') {
+        window.alert('Failed to delete learning path. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to delete learning path. Please try again.');
       }
-      return;
+    } finally {
+      setDeleteLoading(false);
     }
+  };
 
-    // Use Alert.alert on native platforms
-    Alert.alert(
-      'Delete Learning Path',
-      confirmMessage,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await learningPathsApi.deletePath(path.id);
-              deletePath(path.id);
-            } catch (error) {
-              console.error('Error deleting path:', error);
-              Alert.alert('Error', 'Failed to delete learning path. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+  const cancelDelete = () => {
+    setShowDeleteDialog(false);
+    setPathToDelete(null);
   };
 
   const firstName = user?.displayName?.split(' ')[0] || 'there';
@@ -136,6 +131,19 @@ export const HomeScreen: React.FC = () => {
           </Text>
         </View>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        visible={showDeleteDialog}
+        title="Delete Learning Path"
+        message={pathToDelete ? `Are you sure you want to delete "${pathToDelete.goal}"? This action cannot be undone.` : ''}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        destructive
+        loading={deleteLoading}
+      />
     </Container>
   );
 };
