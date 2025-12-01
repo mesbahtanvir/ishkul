@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Container } from '../components/Container';
@@ -10,6 +10,7 @@ import { LoadingScreen } from '../components/LoadingScreen';
 
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
+import { learningPathsApi } from '../services/api';
 
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
@@ -25,16 +26,24 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const { user, userDocument } = useUserStore();
+  const { user } = useUserStore();
   const { paths, setPaths, setActivePath, loading } = useLearningPathsStore();
   const { colors } = useTheme();
 
-  // Load learning paths from userDocument
-  useEffect(() => {
-    if (userDocument?.learningPaths) {
-      setPaths(userDocument.learningPaths);
-    }
-  }, [userDocument?.learningPaths]);
+  // Refresh learning paths when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const refreshPaths = async () => {
+        try {
+          const fetchedPaths = await learningPathsApi.getPaths();
+          setPaths(fetchedPaths);
+        } catch (error) {
+          console.error('Error refreshing paths:', error);
+        }
+      };
+      refreshPaths();
+    }, [setPaths])
+  );
 
   const handleCreatePath = () => {
     navigation.navigate('GoalSelection', { isCreatingNewPath: true });

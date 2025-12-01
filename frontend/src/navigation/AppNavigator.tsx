@@ -6,8 +6,10 @@ import { Text } from 'react-native';
 
 // Stores
 import { useUserStore } from '../state/userStore';
+import { useLearningPathsStore } from '../state/learningPathsStore';
 import { checkAuthState, initializeAuth } from '../services/auth';
 import { getUserDocument } from '../services/memory';
+import { learningPathsApi } from '../services/api';
 
 // Types
 import { RootStackParamList } from '../types/navigation';
@@ -126,6 +128,7 @@ const RootNavigator = () => {
 // App Navigator with Auth State Management
 export const AppNavigator: React.FC = () => {
   const { setUser, setUserDocument, setLoading } = useUserStore();
+  const { setPaths, setLoading: setPathsLoading } = useLearningPathsStore();
 
   useEffect(() => {
     // Check auth state on app startup
@@ -140,21 +143,29 @@ export const AppNavigator: React.FC = () => {
         if (user) {
           setUser(user);
           try {
-            const userDoc = await getUserDocument();
+            // Fetch user document and learning paths in parallel
+            const [userDoc, paths] = await Promise.all([
+              getUserDocument(),
+              learningPathsApi.getPaths(),
+            ]);
             setUserDocument(userDoc);
+            setPaths(paths);
           } catch (error) {
-            console.error('Error fetching user document:', error);
+            console.error('Error fetching user data:', error);
           }
         } else {
           setUser(null);
           setUserDocument(null);
+          setPaths([]);
         }
       } catch (error) {
         console.error('Error checking auth state:', error);
         setUser(null);
         setUserDocument(null);
+        setPaths([]);
       } finally {
         setLoading(false);
+        setPathsLoading(false);
       }
     };
 
