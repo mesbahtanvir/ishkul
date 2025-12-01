@@ -93,6 +93,32 @@ export const signInWithGoogleIdToken = async (idToken: string): Promise<User> =>
 };
 
 /**
+ * Sign in with email and password
+ */
+export const signInWithEmail = async (email: string, password: string): Promise<User> => {
+  try {
+    const { user } = await authApi.loginWithEmail(email, password);
+    return user;
+  } catch (error) {
+    console.error('Error signing in with email:', error);
+    throw error;
+  }
+};
+
+/**
+ * Register a new user with email and password
+ */
+export const registerWithEmail = async (email: string, password: string, displayName: string): Promise<User> => {
+  try {
+    const { user } = await authApi.register(email, password, displayName);
+    return user;
+  } catch (error) {
+    console.error('Error registering:', error);
+    throw error;
+  }
+};
+
+/**
  * Sign out - clears local tokens and notifies backend
  */
 export const signOut = async (): Promise<void> => {
