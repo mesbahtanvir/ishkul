@@ -212,15 +212,21 @@ export const authApi = {
 
     // If we have tokens, try to validate by making a request
     try {
-      const response = await apiRequest<{ user: User }>('/me', {
+      // Backend returns user directly, not wrapped in { user: ... }
+      const response = await apiRequest<{
+        id: string;
+        email: string;
+        displayName: string;
+        photoUrl?: string;
+      }>('/me', {
         method: 'GET',
       });
 
       const user: User = {
-        uid: response.user.uid || (response.user as unknown as { id: string }).id,
-        email: response.user.email,
-        displayName: response.user.displayName,
-        photoURL: response.user.photoURL,
+        uid: response.id,
+        email: response.email,
+        displayName: response.displayName,
+        photoURL: response.photoUrl || null,
       };
 
       return { user, isAuthenticated: true };
