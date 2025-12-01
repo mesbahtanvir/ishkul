@@ -42,6 +42,14 @@ jest.mock('../../services/memory', () => ({
   addLearningPath: (...args: unknown[]) => mockAddLearningPath(...args),
 }));
 
+// Mock api service
+const mockGetPaths = jest.fn();
+jest.mock('../../services/api', () => ({
+  learningPathsApi: {
+    getPaths: () => mockGetPaths(),
+  },
+}));
+
 // Mock navigation
 const mockReplace = jest.fn();
 const mockNavigate = jest.fn();
@@ -67,6 +75,18 @@ describe('LevelSelectionScreen', () => {
       level: 'beginner',
       learningPaths: [],
     });
+    mockGetPaths.mockResolvedValue([
+      {
+        id: 'created-path-123',
+        goal: 'Learn Python',
+        level: 'beginner',
+        emoji: '🐍',
+        progress: 0,
+        lessonsCompleted: 0,
+        totalLessons: 10,
+        steps: [],
+      },
+    ]);
   });
 
   describe('rendering', () => {

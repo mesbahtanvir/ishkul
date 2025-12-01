@@ -1,5 +1,5 @@
 import { apiConfig } from '../config/firebase.config';
-import { User, UserDocument, LearningPath, NextStep } from '../types/app';
+import { User, UserDocument, LearningPath, Step, StepCompleteRequest } from '../types/app';
 import { tokenStorage } from './api/tokenStorage';
 
 /**
@@ -516,7 +516,7 @@ export const learningPathsApi = {
   /**
    * Create a new learning path
    */
-  async createPath(path: LearningPath): Promise<LearningPath> {
+  async createPath(path: Partial<LearningPath>): Promise<LearningPath> {
     const response = await api.post<{ path: LearningPath }>('/learning-paths', path);
     return response.path;
   },
@@ -536,23 +536,55 @@ export const learningPathsApi = {
   },
 
   /**
-   * Start/continue a learning session - get next step
+   * Get next step - returns existing incomplete step or generates new one
    */
-  async getNextStep(pathId: string): Promise<NextStep> {
-    const response = await api.post<{ step: NextStep }>(`/learning-paths/${pathId}/session`);
-    return response.step;
+  async getNextStep(pathId: string): Promise<{ step: Step; stepIndex: number }> {
+    const response = await api.post<{ step: Step; stepIndex: number }>(
+      `/learning-paths/${pathId}/next`
+    );
+    return response;
   },
 
   /**
-   * Complete current step in a learning path
+   * Complete current step (legacy endpoint - completes first incomplete step)
+   */
+  async completeCurrentStep(
+    pathId: string,
+    data?: StepCompleteRequest
+  ): Promise<{ path: LearningPath; completedStep: Step; nextStepNeeded: boolean }> {
+    const response = await api.post<{
+      path: LearningPath;
+      completedStep: Step;
+      nextStepNeeded: boolean;
+    }>(`/learning-paths/${pathId}/complete`, data || {});
+    return response;
+  },
+
+  /**
+   * Complete a specific step by ID
    */
   async completeStep(
     pathId: string,
-    stepData: { type: string; topic: string; score?: number }
-  ): Promise<{ path: LearningPath; nextStep?: NextStep }> {
-    const response = await api.post<{ path: LearningPath; nextStep?: NextStep }>(
-      `/learning-paths/${pathId}/complete`,
-      stepData
+    stepId: string,
+    data?: StepCompleteRequest
+  ): Promise<{ path: LearningPath; completedStep: Step; nextStepNeeded: boolean }> {
+    const response = await api.post<{
+      path: LearningPath;
+      completedStep: Step;
+      nextStepNeeded: boolean;
+    }>(`/learning-paths/${pathId}/steps/${stepId}/complete`, data || {});
+    return response;
+  },
+
+  /**
+   * View a step (records the view and updates lastReviewed in memory)
+   */
+  async viewStep(
+    pathId: string,
+    stepId: string
+  ): Promise<{ success: boolean; step: Step }> {
+    const response = await api.post<{ success: boolean; step: Step }>(
+      `/learning-paths/${pathId}/steps/${stepId}/view`
     );
     return response;
   },

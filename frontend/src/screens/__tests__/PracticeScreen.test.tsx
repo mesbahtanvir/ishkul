@@ -22,19 +22,19 @@ jest.mock('../../state/userStore', () => ({
 
 // Mock learningPathsStore
 const mockUpdatePath = jest.fn();
-const mockSetCurrentStep = jest.fn();
+const mockSetActivePath = jest.fn();
 jest.mock('../../state/learningPathsStore', () => ({
   useLearningPathsStore: () => ({
     updatePath: mockUpdatePath,
-    setCurrentStep: mockSetCurrentStep,
+    setActivePath: mockSetActivePath,
   }),
 }));
 
 // Mock memory service
-const mockCompletePathStep = jest.fn();
+const mockCompleteStep = jest.fn();
 const mockGetUserDocument = jest.fn();
 jest.mock('../../services/memory', () => ({
-  completePathStep: (...args: unknown[]) => mockCompletePathStep(...args),
+  completeStep: (...args: unknown[]) => mockCompleteStep(...args),
   getUserDocument: () => mockGetUserDocument(),
 }));
 
@@ -47,6 +47,7 @@ const mockNavigation = {
 } as unknown as NavigationProp;
 
 const mockStep = {
+  id: 'step-1',
   type: 'practice' as const,
   topic: 'Python Functions',
   title: 'Write Your First Function',
@@ -67,19 +68,14 @@ const mockPathResult = {
     progress: 60,
     lessonsCompleted: 3,
     totalLessons: 5,
-  },
-  nextStep: {
-    type: 'lesson',
-    topic: 'Advanced Functions',
-    title: 'Function Arguments',
-    content: 'Learn about different types of function arguments.',
+    steps: [{ ...mockStep, completed: true }],
   },
 };
 
 describe('PracticeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCompletePathStep.mockResolvedValue(mockPathResult);
+    mockCompleteStep.mockResolvedValue(mockPathResult);
     mockGetUserDocument.mockResolvedValue({
       uid: 'test-user-123',
       goal: 'Learn Python',
@@ -151,7 +147,7 @@ describe('PracticeScreen', () => {
   });
 
   describe('done flow', () => {
-    it('should call completePathStep when Done is pressed', async () => {
+    it('should call completeStep when Done is pressed', async () => {
       const { getByText } = render(
         <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -159,10 +155,7 @@ describe('PracticeScreen', () => {
       fireEvent.press(getByText("I'm Done →"));
 
       await waitFor(() => {
-        expect(mockCompletePathStep).toHaveBeenCalledWith('test-path-123', {
-          type: 'practice',
-          topic: 'Python Functions',
-        });
+        expect(mockCompleteStep).toHaveBeenCalledWith('test-path-123', 'step-1');
       });
     });
 
@@ -178,7 +171,7 @@ describe('PracticeScreen', () => {
       });
     });
 
-    it('should set current step in store after completing', async () => {
+    it('should set active path in store after completing', async () => {
       const { getByText } = render(
         <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -186,7 +179,7 @@ describe('PracticeScreen', () => {
       fireEvent.press(getByText("I'm Done →"));
 
       await waitFor(() => {
-        expect(mockSetCurrentStep).toHaveBeenCalledWith('test-path-123', mockPathResult.nextStep);
+        expect(mockUpdatePath).toHaveBeenCalledWith('test-path-123', mockPathResult.path);
       });
     });
 
@@ -206,7 +199,7 @@ describe('PracticeScreen', () => {
       });
     });
 
-    it('should navigate to LearningSession after done', async () => {
+    it('should navigate to LearningPath after done', async () => {
       const { getByText } = render(
         <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -214,14 +207,14 @@ describe('PracticeScreen', () => {
       fireEvent.press(getByText("I'm Done →"));
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('LearningSession', { pathId: 'test-path-123' });
+        expect(mockNavigate).toHaveBeenCalledWith('LearningPath', { pathId: 'test-path-123' });
       });
     });
   });
 
   describe('error handling', () => {
     it('should show error alert on failure', async () => {
-      mockCompletePathStep.mockRejectedValueOnce(new Error('Network error'));
+      mockCompleteStep.mockRejectedValueOnce(new Error('Network error'));
 
       const { getByText } = render(
         <PracticeScreen navigation={mockNavigation} route={mockRoute} />
@@ -241,6 +234,7 @@ describe('PracticeScreen', () => {
   describe('step with topic as title fallback', () => {
     it('should use topic when title is not provided', () => {
       const stepWithoutTitle = {
+        id: 'step-2',
         type: 'practice' as const,
         topic: 'Advanced Python',
         task: 'Practice advanced concepts.',

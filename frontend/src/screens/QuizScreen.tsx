@@ -7,7 +7,7 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
-import { completePathStep, getUserDocument } from '../services/memory';
+import { completeStep, getUserDocument } from '../services/memory';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
@@ -25,7 +25,7 @@ interface QuizScreenProps {
 export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => {
   const { step, pathId } = route.params;
   const { setUserDocument } = useUserStore();
-  const { updatePath, setCurrentStep } = useLearningPathsStore();
+  const { updatePath, setActivePath } = useLearningPathsStore();
   const [answer, setAnswer] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -46,23 +46,22 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
     try {
       setLoading(true);
 
-      // Complete the step with score
-      const result = await completePathStep(pathId, {
-        type: 'quiz',
-        topic: step.topic,
+      // Complete the step with score and user answer
+      const result = await completeStep(pathId, step.id, {
+        userAnswer: answer,
         score: isCorrect ? 100 : 0,
       });
 
       // Update local state
       updatePath(pathId, result.path);
-      setCurrentStep(pathId, result.nextStep);
+      setActivePath(result.path);
 
       // Refresh user document
       const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
-      // Navigate back to session
-      navigation.navigate('LearningSession', { pathId });
+      // Navigate back to learning path timeline
+      navigation.navigate('LearningPath', { pathId });
     } catch (error) {
       console.error('Error completing quiz:', error);
       Alert.alert('Error', 'Failed to save progress. Please try again.');
@@ -125,7 +124,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
           />
         ) : (
           <Button
-            title="Next Step →"
+            title="Continue →"
             onPress={handleNextStep}
             loading={loading}
           />

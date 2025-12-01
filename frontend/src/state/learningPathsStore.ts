@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { LearningPath, NextStep } from '../types/app';
+import { LearningPath, Step } from '../types/app';
 
 interface LearningPathsState {
   paths: LearningPath[];
@@ -13,11 +13,22 @@ interface LearningPathsState {
   addPath: (path: LearningPath) => void;
   updatePath: (pathId: string, updates: Partial<LearningPath>) => void;
   deletePath: (pathId: string) => void;
-  setCurrentStep: (pathId: string, step: NextStep | undefined) => void;
+  addStep: (pathId: string, step: Step) => void;
+  updateStep: (pathId: string, stepId: string, updates: Partial<Step>) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearPaths: () => void;
 }
+
+// Helper to find current (incomplete) step
+export const getCurrentStep = (steps: Step[]): Step | null => {
+  return steps.find((s) => !s.completed) || null;
+};
+
+// Helper to get completed steps
+export const getCompletedSteps = (steps: Step[]): Step[] => {
+  return steps.filter((s) => s.completed);
+};
 
 export const useLearningPathsStore = create<LearningPathsState>((set, get) => ({
   paths: [],
@@ -64,16 +75,40 @@ export const useLearningPathsStore = create<LearningPathsState>((set, get) => ({
     });
   },
 
-  setCurrentStep: (pathId, step) => {
+  addStep: (pathId, step) => {
     const { paths, activePath } = get();
-    const updatedPaths = paths.map((p) =>
-      p.id === pathId ? { ...p, currentStep: step } : p
-    );
+    const updatedPaths = paths.map((p) => {
+      if (p.id === pathId) {
+        return { ...p, steps: [...p.steps, step] };
+      }
+      return p;
+    });
     set({
       paths: updatedPaths,
       activePath:
         activePath?.id === pathId
-          ? { ...activePath, currentStep: step }
+          ? { ...activePath, steps: [...activePath.steps, step] }
+          : activePath,
+    });
+  },
+
+  updateStep: (pathId, stepId, updates) => {
+    const { paths, activePath } = get();
+    const updateSteps = (steps: Step[]) =>
+      steps.map((s) => (s.id === stepId ? { ...s, ...updates } : s));
+
+    const updatedPaths = paths.map((p) => {
+      if (p.id === pathId) {
+        return { ...p, steps: updateSteps(p.steps) };
+      }
+      return p;
+    });
+
+    set({
+      paths: updatedPaths,
+      activePath:
+        activePath?.id === pathId
+          ? { ...activePath, steps: updateSteps(activePath.steps) }
           : activePath,
     });
   },

@@ -19,7 +19,9 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { GoalSelectionScreen } from '../screens/GoalSelectionScreen';
 import { LevelSelectionScreen } from '../screens/LevelSelectionScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { LearningPathScreen } from '../screens/LearningPathScreen';
 import { LearningSessionScreen } from '../screens/LearningSessionScreen';
+import { StepDetailScreen } from '../screens/StepDetailScreen';
 import { LessonScreen } from '../screens/LessonScreen';
 import { QuizScreen } from '../screens/QuizScreen';
 import { PracticeScreen } from '../screens/PracticeScreen';
@@ -41,7 +43,13 @@ const LearnStack = () => {
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
       <Stack.Screen name="LevelSelection" component={LevelSelectionScreen} />
+      {/* New: Main timeline view for learning path */}
+      <Stack.Screen name="LearningPath" component={LearningPathScreen} />
+      {/* Legacy: Redirect to LearningPath for backward compatibility */}
       <Stack.Screen name="LearningSession" component={LearningSessionScreen} />
+      {/* New: Read-only view for completed steps */}
+      <Stack.Screen name="StepDetail" component={StepDetailScreen} />
+      {/* Step interaction screens */}
       <Stack.Screen name="Lesson" component={LessonScreen} />
       <Stack.Screen name="Quiz" component={QuizScreen} />
       <Stack.Screen name="Practice" component={PracticeScreen} />

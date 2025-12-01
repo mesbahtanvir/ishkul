@@ -6,7 +6,7 @@ import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
-import { completePathStep, getUserDocument } from '../services/memory';
+import { completeStep, getUserDocument } from '../services/memory';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
@@ -27,7 +27,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
 }) => {
   const { step, pathId } = route.params;
   const { setUserDocument } = useUserStore();
-  const { updatePath, setCurrentStep } = useLearningPathsStore();
+  const { updatePath, setActivePath } = useLearningPathsStore();
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
   const { colors } = useTheme();
@@ -37,21 +37,18 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
       setLoading(true);
 
       // Complete the step
-      const result = await completePathStep(pathId, {
-        type: 'practice',
-        topic: step.topic,
-      });
+      const result = await completeStep(pathId, step.id);
 
       // Update local state
       updatePath(pathId, result.path);
-      setCurrentStep(pathId, result.nextStep);
+      setActivePath(result.path);
 
       // Refresh user document
       const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
-      // Navigate back to session
-      navigation.navigate('LearningSession', { pathId });
+      // Navigate back to learning path timeline
+      navigation.navigate('LearningPath', { pathId });
     } catch (error) {
       console.error('Error completing practice:', error);
       Alert.alert('Error', 'Failed to save progress. Please try again.');
@@ -85,15 +82,30 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
           <Text style={[styles.taskLabel, { color: colors.ios.gray }]}>Your Task:</Text>
           <Text style={[styles.task, { color: colors.text.primary }]}>{step.task}</Text>
 
-          <View style={[styles.tipsContainer, { backgroundColor: colors.card.default }]}>
-            <Text style={[styles.tipsTitle, { color: colors.text.primary }]}>💡 Tips:</Text>
-            <Text style={[styles.tipsText, { color: colors.text.primary }]}>
-              • Take your time{'\n'}
-              • Try it yourself first{'\n'}
-              • Don't worry about making mistakes{'\n'}
-              • Mark as done when you've practiced
-            </Text>
-          </View>
+          {/* Show hints if available */}
+          {step.hints && step.hints.length > 0 && (
+            <View style={[styles.hintsContainer, { backgroundColor: colors.card.default }]}>
+              <Text style={[styles.hintsTitle, { color: colors.text.primary }]}>💡 Hints:</Text>
+              {step.hints.map((hint, index) => (
+                <Text key={index} style={[styles.hintText, { color: colors.text.primary }]}>
+                  • {hint}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          {/* Default tips if no hints */}
+          {(!step.hints || step.hints.length === 0) && (
+            <View style={[styles.tipsContainer, { backgroundColor: colors.card.default }]}>
+              <Text style={[styles.tipsTitle, { color: colors.text.primary }]}>💡 Tips:</Text>
+              <Text style={[styles.tipsText, { color: colors.text.primary }]}>
+                • Take your time{'\n'}
+                • Try it yourself first{'\n'}
+                • Don't worry about making mistakes{'\n'}
+                • Mark as done when you've practiced
+              </Text>
+            </View>
+          )}
         </View>
 
         <Button
@@ -148,6 +160,20 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontWeight: '500',
     marginBottom: Spacing.xl,
+  },
+  hintsContainer: {
+    padding: Spacing.md,
+    borderRadius: Spacing.borderRadius.md,
+  },
+  hintsTitle: {
+    ...Typography.body.medium,
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
+  },
+  hintText: {
+    ...Typography.body.small,
+    lineHeight: 22,
+    marginBottom: Spacing.xs,
   },
   tipsContainer: {
     padding: Spacing.md,

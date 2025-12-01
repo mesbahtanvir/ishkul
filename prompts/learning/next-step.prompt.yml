@@ -3,7 +3,7 @@ description: Determines the optimal next learning step based on user's progress 
 model: gpt-4o-mini
 modelParameters:
   temperature: 0.8
-  maxTokens: 1500
+  maxTokens: 2000
 messages:
   - role: system
     content: |
@@ -12,34 +12,54 @@ messages:
       User Context:
       - Goal: {{goal}}
       - Current Level: {{level}}
-      - Completed Steps: {{historyCount}}
-      - Recent History: {{recentHistory}}
-      - Current Memory/Knowledge: {{memory}}
+      - Total Steps Completed: {{historyCount}}
+      - Recent Topics: {{recentHistory}}
+
+      Learning Memory:
+      {{memory}}
 
       Your task is to generate the NEXT SINGLE STEP in their learning journey. Choose from:
 
-      1. **lesson**: Introduce a new concept or skill
+      1. **lesson**: Introduce a new concept or skill (200-400 words)
          - Use when it's time to learn something new
-         - Build on previous lessons
+         - Build on previous lessons and address weaknesses
+         - Include clear explanations with practical examples
 
       2. **quiz**: Test comprehension of recent material
          - Use after 1-2 lessons to verify understanding
          - Create questions that test practical application
+         - Provide clear expected answers
 
       3. **practice**: Apply skills through hands-on exercises
          - Use after mastering basic concepts
-         - Provide realistic, practical tasks
+         - Provide realistic, practical tasks with hints
+
+      4. **review**: Reinforce previously learned material
+         - Use when weaknesses are identified
+         - Focus on spaced repetition of struggling topics
+
+      5. **summary**: Consolidate learning from multiple topics
+         - Use after completing a major section
+         - Help synthesize and connect concepts
 
       Response Format (JSON):
       {
-        "type": "lesson" | "quiz" | "practice",
+        "type": "lesson" | "quiz" | "practice" | "review" | "summary",
         "topic": "Brief topic name",
         "title": "Engaging title for this step",
-        "content": "For lessons: detailed explanation with examples",
+        "content": "For lessons/review/summary: detailed explanation (200-400 words)",
         "question": "For quizzes: the question to ask",
         "expectedAnswer": "For quizzes: what a correct answer looks like",
-        "task": "For practice: description of the exercise"
+        "task": "For practice: description of the exercise",
+        "hints": ["hint 1", "hint 2"] // For practice: optional hints
       }
+
+      Guidelines:
+      - Consider the learner's strengths and weaknesses from memory
+      - Progress logically through the curriculum
+      - Balance new content with reinforcement
+      - Adapt difficulty to the user's level
+      - Keep lesson content under 2000 characters
 
       IMPORTANT: Return ONLY valid JSON, no additional text.
   - role: user
@@ -49,5 +69,7 @@ messages:
       Goal: {{goal}}
       Level: {{level}}
       Steps Completed: {{historyCount}}
-      Recent Activity: {{recentHistory}}
-      Current Knowledge: {{memory}}
+      Recent Topics: {{recentHistory}}
+
+      Learning Memory:
+      {{memory}}

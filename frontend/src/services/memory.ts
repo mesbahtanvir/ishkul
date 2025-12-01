@@ -7,7 +7,15 @@
  */
 
 import { userApi, learningPathsApi } from './api';
-import { UserDocument, HistoryEntry, NextStep, LevelType, LearningPath } from '../types/app';
+import {
+  UserDocument,
+  HistoryEntry,
+  NextStep,
+  LevelType,
+  LearningPath,
+  Step,
+  StepCompleteRequest,
+} from '../types/app';
 
 /**
  * Get user document (profile + learning data)
@@ -23,7 +31,7 @@ export const getUserDocument = async (): Promise<UserDocument | null> => {
 export const createUserDocument = async (
   goal: string,
   level: LevelType,
-  firstPath?: LearningPath
+  firstPath?: Partial<LearningPath>
 ): Promise<void> => {
   await userApi.createUserDocument(goal, level);
 
@@ -36,7 +44,9 @@ export const createUserDocument = async (
 /**
  * Add a new learning path
  */
-export const addLearningPath = async (path: LearningPath): Promise<LearningPath> => {
+export const addLearningPath = async (
+  path: Partial<LearningPath>
+): Promise<LearningPath> => {
   return learningPathsApi.createPath(path);
 };
 
@@ -50,7 +60,9 @@ export const getLearningPaths = async (): Promise<LearningPath[]> => {
 /**
  * Get a specific learning path
  */
-export const getLearningPath = async (pathId: string): Promise<LearningPath | null> => {
+export const getLearningPath = async (
+  pathId: string
+): Promise<LearningPath | null> => {
   return learningPathsApi.getPath(pathId);
 };
 
@@ -72,20 +84,60 @@ export const deleteLearningPath = async (pathId: string): Promise<void> => {
 };
 
 /**
- * Start/continue learning session - get next step for a path
+ * Get next step - returns existing incomplete step or generates new one
  */
-export const getPathNextStep = async (pathId: string): Promise<NextStep> => {
+export const getPathNextStep = async (
+  pathId: string
+): Promise<{ step: Step; stepIndex: number }> => {
   return learningPathsApi.getNextStep(pathId);
 };
 
 /**
- * Complete a step in a learning path
+ * Complete current step (first incomplete step)
+ */
+export const completeCurrentStep = async (
+  pathId: string,
+  data?: StepCompleteRequest
+): Promise<{ path: LearningPath; completedStep: Step; nextStepNeeded: boolean }> => {
+  return learningPathsApi.completeCurrentStep(pathId, data);
+};
+
+/**
+ * Complete a specific step by ID
+ */
+export const completeStep = async (
+  pathId: string,
+  stepId: string,
+  data?: StepCompleteRequest
+): Promise<{ path: LearningPath; completedStep: Step; nextStepNeeded: boolean }> => {
+  return learningPathsApi.completeStep(pathId, stepId, data);
+};
+
+/**
+ * View a step (records the view and updates lastReviewed)
+ */
+export const viewStep = async (
+  pathId: string,
+  stepId: string
+): Promise<{ success: boolean; step: Step }> => {
+  return learningPathsApi.viewStep(pathId, stepId);
+};
+
+/**
+ * Legacy: Complete a step in a learning path (backward compatibility)
+ * @deprecated Use completeStep or completeCurrentStep instead
  */
 export const completePathStep = async (
   pathId: string,
   stepData: { type: string; topic: string; score?: number }
 ): Promise<{ path: LearningPath; nextStep?: NextStep }> => {
-  return learningPathsApi.completeStep(pathId, stepData);
+  const result = await learningPathsApi.completeCurrentStep(pathId, {
+    score: stepData.score,
+  });
+  return {
+    path: result.path,
+    nextStep: undefined, // New API doesn't return next step
+  };
 };
 
 /**
@@ -114,9 +166,7 @@ export const updateUserHistory = async (
 /**
  * Set the next recommended step
  */
-export const updateNextStep = async (
-  nextStep: NextStep
-): Promise<void> => {
+export const updateNextStep = async (nextStep: NextStep): Promise<void> => {
   await userApi.setNextStep({
     type: nextStep.type,
     topic: nextStep.topic,
@@ -144,6 +194,22 @@ export const updateTopicMemory = async (
   timesTested: number
 ): Promise<void> => {
   await userApi.updateMemory({
+    topic,
+    confidence,
+    timesTested,
+  });
+};
+
+/**
+ * Update memory for a topic in a specific learning path
+ */
+export const updatePathTopicMemory = async (
+  pathId: string,
+  topic: string,
+  confidence: number,
+  timesTested: number
+): Promise<void> => {
+  await learningPathsApi.updatePathMemory(pathId, {
     topic,
     confidence,
     timesTested,

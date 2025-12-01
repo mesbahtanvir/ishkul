@@ -5,13 +5,14 @@ import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
-import { useLearningPathsStore, getEmojiForGoal, generatePathId } from '../state/learningPathsStore';
+import { useLearningPathsStore, getEmojiForGoal } from '../state/learningPathsStore';
 import { createUserDocument, getUserDocument, addLearningPath } from '../services/memory';
+import { learningPathsApi } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
-import { LevelType, LearningPath } from '../types/app';
+import { LevelType } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
 
 type LevelSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'LevelSelection'>;
@@ -63,57 +64,46 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
 
       if (isCreatingNewPath && userDocument) {
         // Creating a new learning path for existing user
-        const now = Date.now();
-        const newPath: LearningPath = {
-          id: generatePathId(),
+        const newPathData = {
           goal,
           level: selectedLevel,
           emoji: getEmojiForGoal(goal),
-          progress: 0,
-          lessonsCompleted: 0,
-          totalLessons: 10, // Initial estimate
-          memory: { topics: {} },
-          history: [],
-          createdAt: now,
-          updatedAt: now,
-          lastAccessedAt: now,
         };
 
-        await addLearningPath(newPath);
-        addPath(newPath);
+        const createdPath = await addLearningPath(newPathData);
+        addPath(createdPath);
 
-        // Navigate directly to LearningSession to start the new path
-        navigation.navigate('LearningSession', { pathId: newPath.id });
+        // Navigate directly to LearningPath to start the new path
+        navigation.navigate('LearningPath', { pathId: createdPath.id });
       } else {
         // First-time user - create user document with first learning path
-        const now = Date.now();
-        const firstPath: LearningPath = {
-          id: generatePathId(),
+        const firstPathData = {
           goal,
           level: selectedLevel,
           emoji: getEmojiForGoal(goal),
-          progress: 0,
-          lessonsCompleted: 0,
-          totalLessons: 10,
-          memory: { topics: {} },
-          history: [],
-          createdAt: now,
-          updatedAt: now,
-          lastAccessedAt: now,
         };
 
-        await createUserDocument(goal, selectedLevel, firstPath);
-        addPath(firstPath);
+        await createUserDocument(goal, selectedLevel, firstPathData);
 
         const userDoc = await getUserDocument();
         setUserDocument(userDoc);
 
-        // Navigate to Main first, then to LearningSession
-        navigation.replace('Main');
-        // Use setTimeout to ensure Main is mounted before navigating to LearningSession
-        setTimeout(() => {
-          navigation.navigate('LearningSession', { pathId: firstPath.id });
-        }, 100);
+        // Fetch the created path from the user document
+        const paths = await learningPathsApi.getPaths();
+        if (paths.length > 0) {
+          const createdPath = paths[0];
+          addPath(createdPath);
+
+          // Navigate to Main first, then to LearningPath
+          navigation.replace('Main');
+          // Use setTimeout to ensure Main is mounted before navigating to LearningPath
+          setTimeout(() => {
+            navigation.navigate('LearningPath', { pathId: createdPath.id });
+          }, 100);
+        } else {
+          // Fallback: just navigate to Main
+          navigation.replace('Main');
+        }
       }
     } catch (error) {
       console.error('Error saving:', error);
