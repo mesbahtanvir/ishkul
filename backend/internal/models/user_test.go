@@ -273,17 +273,17 @@ func TestNextStepStruct(t *testing.T) {
 
 	t.Run("creates NextStep for quiz", func(t *testing.T) {
 		step := NextStep{
-			Type:     "quiz",
-			Topic:    "Python Quiz",
-			Question: "What is the output of print(2+2)?",
-			Options:  []string{"2", "4", "22", "Error"},
-			Answer:   "4",
+			Type:           "quiz",
+			Topic:          "Python Quiz",
+			Question:       "What is the output of print(2+2)?",
+			Options:        []string{"2", "4", "22", "Error"},
+			ExpectedAnswer: "4",
 		}
 
 		assert.Equal(t, "quiz", step.Type)
 		assert.NotEmpty(t, step.Question)
 		assert.Len(t, step.Options, 4)
-		assert.Equal(t, "4", step.Answer)
+		assert.Equal(t, "4", step.ExpectedAnswer)
 	})
 
 	t.Run("creates NextStep for practice", func(t *testing.T) {

@@ -44,14 +44,14 @@ type HistoryEntry struct {
 
 // NextStep represents the next recommended learning step
 type NextStep struct {
-	Type     string   `json:"type" firestore:"type"` // "lesson", "quiz", "practice"
-	Topic    string   `json:"topic" firestore:"topic"`
-	Title    string   `json:"title,omitempty" firestore:"title,omitempty"`
-	Content  string   `json:"content,omitempty" firestore:"content,omitempty"`
-	Question string   `json:"question,omitempty" firestore:"question,omitempty"`
-	Options  []string `json:"options,omitempty" firestore:"options,omitempty"`
-	Answer   string   `json:"answer,omitempty" firestore:"answer,omitempty"`
-	Task     string   `json:"task,omitempty" firestore:"task,omitempty"`
+	Type           string   `json:"type" firestore:"type"` // "lesson", "quiz", "practice"
+	Topic          string   `json:"topic" firestore:"topic"`
+	Title          string   `json:"title,omitempty" firestore:"title,omitempty"`
+	Content        string   `json:"content,omitempty" firestore:"content,omitempty"`
+	Question       string   `json:"question,omitempty" firestore:"question,omitempty"`
+	Options        []string `json:"options,omitempty" firestore:"options,omitempty"`
+	ExpectedAnswer string   `json:"expectedAnswer,omitempty" firestore:"expectedAnswer,omitempty"`
+	Task           string   `json:"task,omitempty" firestore:"task,omitempty"`
 }
 
 // Progress represents user's learning progress

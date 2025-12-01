@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 	"google.golang.org/api/iterator"
 )
 
@@ -438,14 +440,104 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
-	// No current step - return null (frontend should call LLM to generate)
+	// No current step - generate one using LLM
+	nextStep, err := generateNextStepForPath(&path)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to generate next step: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Save the generated step to Firestore
+	_, err = fs.Collection("learning_paths").Doc(pathID).Update(ctx, []firestore.Update{
+		{Path: "currentStep", Value: nextStep},
+		{Path: "updatedAt", Value: time.Now().UnixMilli()},
+	})
+	if err != nil {
+		// Log but don't fail - we can still return the step
+		fmt.Printf("Warning: failed to cache generated step: %v\n", err)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"step": nil,
+		"step": nextStep,
 	}); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
+}
+
+// generateNextStepForPath generates the next learning step using the LLM
+func generateNextStepForPath(path *models.LearningPath) (*models.NextStep, error) {
+	// Check if LLM is initialized
+	if openaiClient == nil || promptLoader == nil {
+		return nil, fmt.Errorf("LLM not initialized")
+	}
+
+	// Extract history topics
+	historyTopics := make([]string, 0, len(path.History))
+	for _, h := range path.History {
+		historyTopics = append(historyTopics, h.Topic)
+	}
+
+	// Get recent history (last 3 topics)
+	recentHistory := ""
+	if len(historyTopics) > 0 {
+		start := len(historyTopics) - 3
+		if start < 0 {
+			start = 0
+		}
+		recentHistory = strings.Join(historyTopics[start:], ", ")
+	}
+
+	// Prepare memory summary
+	memorySummary := ""
+	if path.Memory != nil && len(path.Memory.Topics) > 0 {
+		memoryBytes, err := json.Marshal(path.Memory)
+		if err == nil {
+			memorySummary = string(memoryBytes)
+		}
+	}
+
+	// Prepare variables for the prompt
+	vars := prompts.Variables{
+		"goal":          path.Goal,
+		"level":         path.Level,
+		"historyCount":  strconv.Itoa(len(historyTopics)),
+		"memory":        memorySummary,
+		"recentHistory": recentHistory,
+	}
+
+	// Load the next-step prompt template
+	template, err := promptLoader.LoadByName("learning/next-step")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load prompt template: %w", err)
+	}
+
+	// Render prompt
+	openaiReq, err := promptRenderer.RenderToRequest(template, vars)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render prompt: %w", err)
+	}
+
+	// Call OpenAI
+	completion, err := openaiClient.CreateChatCompletion(*openaiReq)
+	if err != nil {
+		return nil, fmt.Errorf("OpenAI API error: %w", err)
+	}
+
+	if len(completion.Choices) == 0 {
+		return nil, fmt.Errorf("no completion returned from OpenAI")
+	}
+
+	content := completion.Choices[0].Message.Content
+
+	// Parse the JSON response into NextStep
+	var nextStep models.NextStep
+	if err := json.Unmarshal([]byte(content), &nextStep); err != nil {
+		return nil, fmt.Errorf("failed to parse LLM response as JSON: %w (content: %s)", err, content)
+	}
+
+	return &nextStep, nil
 }
 
 // CompleteStepRequest represents the request to complete a step
