@@ -18,10 +18,9 @@ ishkul/
 │   ├── internal/handlers/ # HTTP endpoints
 │   └── pkg/firebase/      # Firebase Admin SDK
 ├── firebase/              # Firestore rules & config
-├── prompts/               # Application LLM prompts (.prompt.yml) for learning features
+├── prompts/               # LLM prompts (.prompt.yml) - works with GitHub Models & backend
 ├── .github/
 │   ├── workflows/         # GitHub Actions CI/CD
-│   ├── prompts/           # GitHub Models prompt files (.prompt.yml)
 │   └── copilot-instructions.md  # Repository-wide Copilot instructions
 └── CLAUDE.md              # Claude Code instructions (this file)
 ```
@@ -144,19 +143,20 @@ This repository supports multiple AI coding assistants:
 - **`.github/copilot-instructions.md`** - Repository-wide instructions for Copilot
 
 ### GitHub Models (Preview)
-- **`.github/prompts/*.prompt.yml`** - Reusable prompts for GitHub Models
+- **`prompts/*.prompt.yml`** - All prompts work with GitHub Models
 - Files appear in the repository's Models page and can be run in Prompt Editor
 - Supports model comparison, evaluation, and CI/CD integration via `gh models eval`
 
-### Application LLM Prompts
-- **`prompts/*.prompt.yml`** - Application-specific prompts for Ishkul's learning features
-- Used by the app's LLM service (quiz generation, lessons, etc.)
+### Prompts Directory Structure
+All `.prompt.yml` files are in `prompts/` for easy backend loading AND GitHub Models integration:
+- `prompts/learning/` - Learning feature prompts (quiz, lessons, exercises)
+- `prompts/system/` - System prompts (learning coach)
+- `prompts/*.prompt.yml` - Dev tool prompts (code review, test generation)
 
 | Location | Extension | Purpose |
 |----------|-----------|---------|
 | `.github/copilot-instructions.md` | `.md` | Copilot repo instructions |
-| `.github/prompts/` | `.prompt.yml` | GitHub Models prompts |
-| `prompts/` | `.prompt.yml` | App LLM prompts (learning features) |
+| `prompts/` | `.prompt.yml` | All prompts (GitHub Models + backend) |
 
 ## 📚 External Documentation
 
