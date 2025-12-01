@@ -37,8 +37,8 @@ describe('ProgressScreen', () => {
         updatedAt: Date.now(),
         memory: {
           topics: {
-            'variables': { mastery: 0.8, lastSeen: Date.now() },
-            'loops': { mastery: 0.6, lastSeen: Date.now() },
+            'variables': { confidence: 0.8, lastReviewed: new Date().toISOString(), timesTested: 5 },
+            'loops': { confidence: 0.6, lastReviewed: new Date().toISOString(), timesTested: 3 },
           },
         },
         history: [
@@ -189,7 +189,11 @@ describe('ProgressScreen', () => {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         memory: {
-          topics: { 'topic1': { mastery: 0, lastSeen: 0 }, 'topic2': { mastery: 0, lastSeen: 0 }, 'topic3': { mastery: 0, lastSeen: 0 } },
+          topics: {
+            'topic1': { confidence: 0, lastReviewed: '', timesTested: 0 },
+            'topic2': { confidence: 0, lastReviewed: '', timesTested: 0 },
+            'topic3': { confidence: 0, lastReviewed: '', timesTested: 0 },
+          },
         },
         history: [
           { type: 'lesson', topic: 'A', timestamp: 1 },

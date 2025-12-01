@@ -1,16 +1,13 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { QuizScreen } from '../QuizScreen';
-import { RootStackParamList } from '../../types/navigation';
+import type { RootStackParamList } from '../../types/navigation';
 
-type MockNavigation = Pick<
-  NativeStackNavigationProp<RootStackParamList, 'Quiz'>,
-  'navigate' | 'replace' | 'goBack'
->;
-type MockRoute = RouteProp<RootStackParamList, 'Quiz'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Quiz'>;
+type ScreenRouteProp = RouteProp<RootStackParamList, 'Quiz'>;
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');
@@ -43,11 +40,11 @@ jest.mock('../../services/memory', () => ({
 
 // Mock navigation
 const mockNavigate = jest.fn();
-const mockNavigation: MockNavigation = {
+const mockNavigation = {
   navigate: mockNavigate,
   replace: jest.fn(),
   goBack: jest.fn(),
-};
+} as unknown as NavigationProp;
 
 const mockStep = {
   type: 'quiz' as const,
@@ -57,11 +54,11 @@ const mockStep = {
   expectedAnswer: 'container for storing data',
 };
 
-const mockRoute: MockRoute = {
+const mockRoute = {
   key: 'Quiz-test',
   name: 'Quiz',
   params: { step: mockStep, pathId: 'test-path-123' },
-};
+} as unknown as ScreenRouteProp;
 
 const mockPathResult = {
   path: {
@@ -324,11 +321,11 @@ describe('QuizScreen', () => {
         expectedAnswer: 'programming language',
       };
 
-      const route: MockRoute = {
+      const route = {
         key: 'Quiz-test',
         name: 'Quiz',
         params: { step: stepWithoutTitle, pathId: 'test-path-123' },
-      };
+      } as unknown as ScreenRouteProp;
 
       const { getByText } = render(
         <QuizScreen navigation={mockNavigation} route={route} />

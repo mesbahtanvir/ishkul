@@ -1,16 +1,13 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { PracticeScreen } from '../PracticeScreen';
-import { RootStackParamList } from '../../types/navigation';
+import type { RootStackParamList } from '../../types/navigation';
 
-type MockNavigation = Pick<
-  NativeStackNavigationProp<RootStackParamList, 'Practice'>,
-  'navigate' | 'replace' | 'goBack'
->;
-type MockRoute = RouteProp<RootStackParamList, 'Practice'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Practice'>;
+type ScreenRouteProp = RouteProp<RootStackParamList, 'Practice'>;
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');
@@ -43,11 +40,11 @@ jest.mock('../../services/memory', () => ({
 
 // Mock navigation
 const mockNavigate = jest.fn();
-const mockNavigation: MockNavigation = {
+const mockNavigation = {
   navigate: mockNavigate,
   replace: jest.fn(),
   goBack: jest.fn(),
-};
+} as unknown as NavigationProp;
 
 const mockStep = {
   type: 'practice' as const,
@@ -56,11 +53,11 @@ const mockStep = {
   task: 'Create a function called greet that takes a name parameter and returns a greeting message.',
 };
 
-const mockRoute: MockRoute = {
+const mockRoute = {
   key: 'Practice-test',
   name: 'Practice',
   params: { step: mockStep, pathId: 'test-path-123' },
-};
+} as unknown as ScreenRouteProp;
 
 const mockPathResult = {
   path: {
@@ -249,11 +246,11 @@ describe('PracticeScreen', () => {
         task: 'Practice advanced concepts.',
       };
 
-      const route: MockRoute = {
+      const route = {
         key: 'Practice-test',
         name: 'Practice',
         params: { step: stepWithoutTitle, pathId: 'test-path-123' },
-      };
+      } as unknown as ScreenRouteProp;
 
       const { getByText } = render(
         <PracticeScreen navigation={mockNavigation} route={route} />
@@ -272,11 +269,11 @@ describe('PracticeScreen', () => {
         task: 'Build a reusable button component with props for variant and size.',
       };
 
-      const route: MockRoute = {
+      const route = {
         key: 'Practice-test',
         name: 'Practice',
         params: { step: differentStep, pathId: 'test-path-123' },
-      };
+      } as unknown as ScreenRouteProp;
 
       const { getByText } = render(
         <PracticeScreen navigation={mockNavigation} route={route} />

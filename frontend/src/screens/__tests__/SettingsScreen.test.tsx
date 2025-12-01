@@ -1,13 +1,10 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SettingsScreen } from '../SettingsScreen';
-import { RootStackParamList } from '../../types/navigation';
+import type { RootStackParamList } from '../../types/navigation';
 
-type MockNavigation = Pick<
-  NativeStackNavigationProp<RootStackParamList, 'Settings'>,
-  'navigate' | 'replace' | 'goBack'
->;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
 
 // Mock userStore
 const mockClearUser = jest.fn();
@@ -62,11 +59,11 @@ jest.mock('../../services/auth', () => ({
 
 // Mock navigation
 const mockReplace = jest.fn();
-const mockNavigation: MockNavigation = {
+const mockNavigation = {
   navigate: jest.fn(),
   replace: mockReplace,
   goBack: jest.fn(),
-};
+} as unknown as NavigationProp;
 
 describe('SettingsScreen', () => {
   beforeEach(() => {

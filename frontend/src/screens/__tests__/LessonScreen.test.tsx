@@ -1,16 +1,13 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { LessonScreen } from '../LessonScreen';
-import { RootStackParamList } from '../../types/navigation';
+import type { RootStackParamList } from '../../types/navigation';
 
-type MockNavigation = Pick<
-  NativeStackNavigationProp<RootStackParamList, 'Lesson'>,
-  'navigate' | 'replace' | 'goBack'
->;
-type MockRoute = RouteProp<RootStackParamList, 'Lesson'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Lesson'>;
+type ScreenRouteProp = RouteProp<RootStackParamList, 'Lesson'>;
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');
@@ -43,11 +40,11 @@ jest.mock('../../services/memory', () => ({
 
 // Mock navigation
 const mockNavigate = jest.fn();
-const mockNavigation: MockNavigation = {
+const mockNavigation = {
   navigate: mockNavigate,
   replace: jest.fn(),
   goBack: jest.fn(),
-};
+} as unknown as NavigationProp;
 
 const mockStep = {
   type: 'lesson' as const,
@@ -56,11 +53,11 @@ const mockStep = {
   content: 'Variables in Python are containers for storing data values. Unlike other programming languages, Python has no command for declaring a variable.',
 };
 
-const mockRoute: MockRoute = {
+const mockRoute = {
   key: 'Lesson-test',
   name: 'Lesson',
   params: { step: mockStep, pathId: 'test-path-123' },
-};
+} as unknown as ScreenRouteProp;
 
 const mockPathResult = {
   path: {
@@ -230,11 +227,11 @@ describe('LessonScreen', () => {
         content: 'Python is a programming language.',
       };
 
-      const route: MockRoute = {
+      const route = {
         key: 'Lesson-test',
         name: 'Lesson',
         params: { step: stepWithoutTitle, pathId: 'test-path-123' },
-      };
+      } as unknown as ScreenRouteProp;
 
       const { getByText } = render(
         <LessonScreen navigation={mockNavigation} route={route} />
@@ -253,11 +250,11 @@ describe('LessonScreen', () => {
         content: 'This is a very long content that spans multiple paragraphs. '.repeat(10),
       };
 
-      const route: MockRoute = {
+      const route = {
         key: 'Lesson-test',
         name: 'Lesson',
         params: { step: longContentStep, pathId: 'test-path-123' },
-      };
+      } as unknown as ScreenRouteProp;
 
       const { getByText } = render(
         <LessonScreen navigation={mockNavigation} route={route} />

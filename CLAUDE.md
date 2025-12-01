@@ -106,7 +106,8 @@ See [docs/PRE_COMMIT_HOOKS.md](docs/PRE_COMMIT_HOOKS.md) for detailed testing en
 ## 💡 Development Guidelines
 
 ### Frontend
-- **TypeScript required** - No plain JavaScript
+- **TypeScript required** - No plain JavaScript, avoid `any` keyword
+- **Run `npx tsc --noEmit`** - Always verify TypeScript after changes (from `frontend/` dir)
 - **Zustand stores** - Use for state management
 - **React Navigation 7** - Follow existing patterns
 - **Firebase client SDK** - Use services in `src/services/`
