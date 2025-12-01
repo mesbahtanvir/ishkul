@@ -18,7 +18,12 @@ ishkul/
 │   ├── internal/handlers/ # HTTP endpoints
 │   └── pkg/firebase/      # Firebase Admin SDK
 ├── firebase/              # Firestore rules & config
-└── .github/workflows/     # GitHub Actions CI/CD
+├── prompts/               # Application LLM prompts (.prompt.yml) for learning features
+├── .github/
+│   ├── workflows/         # GitHub Actions CI/CD
+│   ├── prompts/           # GitHub Copilot prompt files (.prompt.md)
+│   └── copilot-instructions.md  # Repository-wide Copilot instructions
+└── CLAUDE.md              # Claude Code instructions (this file)
 ```
 
 ## 🔧 Key Commands
@@ -128,6 +133,27 @@ See [docs/PRE_COMMIT_HOOKS.md](docs/PRE_COMMIT_HOOKS.md) for detailed testing en
 - **Rules**: Users read/write own documents only
 - **Storage**: User uploads (future feature)
 
+## 🤖 AI Assistant Configuration
+
+This repository supports multiple AI coding assistants:
+
+### Claude Code
+- **CLAUDE.md** (this file) - Project instructions for Claude Code
+
+### GitHub Copilot
+- **`.github/copilot-instructions.md`** - Repository-wide instructions
+- **`.github/prompts/*.prompt.md`** - Reusable prompt templates (Markdown with YAML frontmatter)
+
+### Application LLM Prompts
+- **`prompts/*.prompt.yml`** - Application-specific prompts for Ishkul's learning features (quiz generation, lessons, etc.)
+- These are NOT GitHub Copilot prompts - they're used by the app's LLM service
+
+| Location | Extension | Purpose |
+|----------|-----------|---------|
+| `.github/copilot-instructions.md` | `.md` | Copilot repo instructions |
+| `.github/prompts/` | `.prompt.md` | Copilot reusable prompts |
+| `prompts/` | `.prompt.yml` | App LLM prompts (learning features) |
+
 ## 📚 External Documentation
 
 For detailed information, see:
@@ -193,4 +219,4 @@ For more, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
-**Last Updated**: 2025-11-29 | **Version**: 2.0.0 (Compact) | **Status**: Production Ready ✅
+**Last Updated**: 2025-12-01 | **Version**: 2.1.0 | **Status**: Production Ready ✅
