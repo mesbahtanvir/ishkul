@@ -13,6 +13,8 @@ export type RootStackParamList = {
   // Legacy: Old session screen (redirect to LearningPath)
   LearningSession: { pathId: string };
   NextStep: undefined; // Legacy - keep for backward compatibility
+  // Generating step screen - engaging loader while AI generates content
+  GeneratingStep: { pathId: string; topic?: string };
   // Generic step screen - uses tool registry to render any step type
   Step: { step: Step; pathId: string };
   // Legacy step screens - kept for backward compatibility

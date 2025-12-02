@@ -29,6 +29,7 @@ import { LessonScreen } from '../screens/LessonScreen';
 import { QuizScreen } from '../screens/QuizScreen';
 import { PracticeScreen } from '../screens/PracticeScreen';
 import { StepScreen } from '../screens/StepScreen';
+import { GeneratingStepScreen } from '../screens/GeneratingStepScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 
 // Initialize tool registry
@@ -101,6 +102,8 @@ const LearnStack = () => {
       <Stack.Screen name="LearningSession" component={LearningSessionScreen} />
       {/* New: Read-only view for completed steps */}
       <Stack.Screen name="StepDetail" component={StepDetailScreen} />
+      {/* Generating step screen - engaging loader while AI generates */}
+      <Stack.Screen name="GeneratingStep" component={GeneratingStepScreen} />
       {/* New: Generic step screen using tool registry */}
       <Stack.Screen name="Step" component={StepScreen} />
       {/* Legacy step screens - kept for backward compatibility */}
