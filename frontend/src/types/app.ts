@@ -75,12 +75,23 @@ export interface NextStep {
   task?: string;
 }
 
+// Learning path status constants (must match backend)
+export type PathStatus = 'active' | 'completed' | 'archived' | 'deleted';
+
+export const PathStatuses = {
+  ACTIVE: 'active' as PathStatus,
+  COMPLETED: 'completed' as PathStatus,
+  ARCHIVED: 'archived' as PathStatus,
+  DELETED: 'deleted' as PathStatus,
+} as const;
+
 // Learning Path - represents a single learning journey
 export interface LearningPath {
   id: string;
   goal: string;
   level: LevelType;
   emoji: string;
+  status?: PathStatus; // Path status: active, completed, archived, deleted
   progress: number; // 0-100
   lessonsCompleted: number;
   totalLessons: number;
@@ -89,6 +100,8 @@ export interface LearningPath {
   createdAt: number;
   updatedAt: number;
   lastAccessedAt: number;
+  completedAt?: number; // Timestamp when path was completed
+  archivedAt?: number; // Timestamp when path was archived
 }
 
 export interface UserDocument {

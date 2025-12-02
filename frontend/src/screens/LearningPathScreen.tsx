@@ -22,7 +22,7 @@ import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
-import { Step } from '../types/app';
+import { Step, PathStatuses } from '../types/app';
 import { useScreenTracking, useAITracking } from '../services/analytics';
 
 type LearningPathScreenNavigationProp = NativeStackNavigationProp<
@@ -75,9 +75,10 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       if (path) {
         setActivePath(path);
 
-        // If no steps exist or all completed, fetch next step
+        // Only fetch next step for active paths that have no current step
+        const isPathActive = !path.status || path.status === PathStatuses.ACTIVE;
         const currentStep = getCurrentStep(path.steps);
-        if (!currentStep) {
+        if (isPathActive && !currentStep) {
           await fetchNextStep();
         }
       } else {
@@ -181,13 +182,21 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   const handleContinue = () => {
     if (!activePath) return;
 
+    // Don't allow generating new steps for completed/archived paths
+    const isPathActive = !activePath.status || activePath.status === PathStatuses.ACTIVE;
+
     const currentStep = getCurrentStep(activePath.steps);
     if (currentStep) {
       handleStartStep(currentStep);
-    } else {
-      // Generate next step
+    } else if (isPathActive) {
+      // Generate next step only for active paths
       fetchNextStep();
     }
+    // For completed paths, do nothing - they can only review steps
+  };
+
+  const handleStartNewPath = () => {
+    navigation.navigate('GoalSelection', { isCreatingNewPath: true });
   };
 
   // Responsive values
@@ -217,6 +226,9 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   const currentStep = getCurrentStep(activePath.steps);
   const completedSteps = activePath.steps.filter((s) => s.completed);
   const hasSteps = activePath.steps.length > 0;
+  const isPathCompleted = activePath.status === PathStatuses.COMPLETED;
+  const isPathArchived = activePath.status === PathStatuses.ARCHIVED;
+  const isPathActive = !activePath.status || activePath.status === PathStatuses.ACTIVE;
 
   return (
     <Container>
@@ -274,7 +286,39 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {!hasSteps && !isLoadingNextStep && (
+          {/* Path completed celebration */}
+          {isPathCompleted && (
+            <View style={styles.completedState}>
+              <Text style={styles.completedEmoji}>🎉</Text>
+              <Text style={[styles.completedTitle, { color: colors.text.primary }]}>
+                Congratulations!
+              </Text>
+              <Text style={[styles.completedText, { color: colors.text.secondary }]}>
+                You&apos;ve completed this learning path!
+              </Text>
+              <View style={[styles.completedBadge, { backgroundColor: colors.success + '20' }]}>
+                <Text style={[styles.completedBadgeText, { color: colors.success }]}>
+                  {completedSteps.length} steps completed
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Path archived notice */}
+          {isPathArchived && (
+            <View style={styles.archivedState}>
+              <Text style={styles.archivedEmoji}>📦</Text>
+              <Text style={[styles.archivedTitle, { color: colors.text.primary }]}>
+                Path Archived
+              </Text>
+              <Text style={[styles.archivedText, { color: colors.text.secondary }]}>
+                This path is archived. You can review your progress below.
+              </Text>
+            </View>
+          )}
+
+          {/* Empty state for new paths */}
+          {!hasSteps && !isLoadingNextStep && isPathActive && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>🚀</Text>
               <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
@@ -314,13 +358,26 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
           <View style={styles.bottomSpacer} />
         </ScrollView>
 
-        {/* Sticky continue button at bottom */}
+        {/* Sticky button at bottom - changes based on path status */}
         <View style={[styles.buttonContainer, { backgroundColor: colors.background.primary }]}>
-          <Button
-            title={currentStep ? 'Continue →' : 'Get Next Step'}
-            onPress={handleContinue}
-            loading={isLoadingNextStep}
-          />
+          {isPathCompleted ? (
+            <Button
+              title="Start New Learning Path"
+              onPress={handleStartNewPath}
+            />
+          ) : isPathArchived ? (
+            <Button
+              title="Back to Home"
+              onPress={handleBack}
+              variant="secondary"
+            />
+          ) : (
+            <Button
+              title={currentStep ? 'Continue →' : 'Get Next Step'}
+              onPress={handleContinue}
+              loading={isLoadingNextStep}
+            />
+          )}
         </View>
       </View>
     </Container>
@@ -446,6 +503,54 @@ const styles = StyleSheet.create({
     ...Typography.body.medium,
     textAlign: 'center',
     marginBottom: Spacing.xl,
+  },
+  // Completed path styles
+  completedState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  completedEmoji: {
+    fontSize: 64,
+    marginBottom: Spacing.md,
+  },
+  completedTitle: {
+    ...Typography.heading.h2,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  completedText: {
+    ...Typography.body.medium,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  completedBadge: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.borderRadius.full,
+  },
+  completedBadgeText: {
+    ...Typography.label.medium,
+    fontWeight: '600',
+  },
+  // Archived path styles
+  archivedState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  archivedEmoji: {
+    fontSize: 48,
+    marginBottom: Spacing.md,
+  },
+  archivedTitle: {
+    ...Typography.heading.h3,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  archivedText: {
+    ...Typography.body.medium,
+    textAlign: 'center',
   },
 });
 

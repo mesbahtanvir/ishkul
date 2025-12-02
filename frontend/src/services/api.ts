@@ -43,6 +43,10 @@ export const ErrorCodes = {
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
   MISSING_CREDENTIALS: 'MISSING_CREDENTIALS',
   NETWORK_ERROR: 'NETWORK_ERROR',
+  // Learning path error codes
+  PATH_COMPLETED: 'PATH_COMPLETED',
+  PATH_ARCHIVED: 'PATH_ARCHIVED',
+  PATH_DELETED: 'PATH_DELETED',
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
