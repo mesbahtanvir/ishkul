@@ -38,14 +38,15 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure Docker for GCP
+      - name: Configure Docker for GCP Artifact Registry
         run: |
-          gcloud auth configure-docker gcr.io
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
       - name: Build Docker image
         run: |
-          IMAGE_TAG="gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          LATEST_TAG="gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:latest"
+          REGISTRY="${{ env.GCP_REGION }}-docker.pkg.dev"
+          IMAGE_TAG="${REGISTRY}/${{ env.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          LATEST_TAG="${REGISTRY}/${{ env.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:latest"
 
           echo "Building image: $IMAGE_TAG"
           docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" -f backend/Dockerfile .
@@ -53,7 +54,7 @@ jobs:
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
-      - name: Push Docker image to GCP Container Registry
+      - name: Push Docker image to Artifact Registry
         run: |
           docker push ${{ env.IMAGE_TAG }}
           docker push ${{ env.LATEST_TAG }}
