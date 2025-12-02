@@ -22,23 +22,9 @@ type User struct {
 	StripeSubscriptionID string `json:"-" firestore:"stripeSubscriptionId,omitempty"`                          // Stripe subscription ID (not exposed to client)
 	SubscriptionStatus   string `json:"subscriptionStatus,omitempty" firestore:"subscriptionStatus,omitempty"` // active, canceled, past_due, trialing
 
-	// Payment method display info (safe to expose)
-	PaymentMethodLast4 string `json:"paymentMethodLast4,omitempty" firestore:"paymentMethodLast4,omitempty"` // Last 4 digits of card
-	PaymentMethodBrand string `json:"paymentMethodBrand,omitempty" firestore:"paymentMethodBrand,omitempty"` // visa, mastercard, etc.
-
-	// Subscription pause info
-	PausedAt    *time.Time `json:"pausedAt,omitempty" firestore:"pausedAt,omitempty"`       // When subscription was paused
-	ResumeAt    *time.Time `json:"resumeAt,omitempty" firestore:"resumeAt,omitempty"`       // When subscription will resume
-	PauseMonths int        `json:"pauseMonths,omitempty" firestore:"pauseMonths,omitempty"` // Number of months paused
-
 	// Trial info
-	TrialEndsAt    *time.Time `json:"trialEndsAt,omitempty" firestore:"trialEndsAt,omitempty"`       // When trial ends
-	HasUsedTrial   bool       `json:"hasUsedTrial,omitempty" firestore:"hasUsedTrial,omitempty"`     // Whether user has used trial
-	TrialStartedAt *time.Time `json:"trialStartedAt,omitempty" firestore:"trialStartedAt,omitempty"` // When trial started
-
-	// Cancellation info (for analytics)
-	CancellationReason   string `json:"cancellationReason,omitempty" firestore:"cancellationReason,omitempty"` // Why user canceled
-	CancellationFeedback string `json:"-" firestore:"cancellationFeedback,omitempty"`                          // Additional feedback
+	TrialEndsAt  *time.Time `json:"trialEndsAt,omitempty" firestore:"trialEndsAt,omitempty"`   // When trial ends
+	HasUsedTrial bool       `json:"hasUsedTrial,omitempty" firestore:"hasUsedTrial,omitempty"` // Whether user has used trial
 }
 
 // UserDocument represents the full user document including learning data

@@ -48,13 +48,6 @@ const getStatusColor = (status: SubscriptionStatusType, colors: ReturnType<typeo
   }
 };
 
-const getUsageColor = (used: number, limit: number, colors: ReturnType<typeof useTheme>['colors']): string => {
-  const percent = (used / limit) * 100;
-  if (percent >= 90) return colors.danger;
-  if (percent >= 70) return colors.ios.orange;
-  return colors.primary;
-};
-
 const formatSubscriptionDate = (date: Date | null): string => {
   if (!date) return '';
   return date.toLocaleDateString('en-US', {
@@ -71,7 +64,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   useScreenTracking('Settings', 'SettingsScreen');
   const { trackLogout, trackThemeChanged, trackDeleteAccountInitiated, getActiveTime } = useAnalytics();
   const { user, clearUser } = useUserStore();
-  const { tier, status, paidUntil, limits, fetchStatus } = useSubscriptionStore();
+  const { tier, status, paidUntil, fetchStatus } = useSubscriptionStore();
   const { colors, themeMode, setThemeMode } = useTheme();
   const [dailyReminder, setDailyReminder] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -279,76 +272,27 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
         <View style={[styles.section, isSmallPhone && styles.sectionSmall]}>
           <Text style={[styles.sectionTitle, { color: colors.ios.gray }]}>Account</Text>
           <TouchableOpacity
-            style={[styles.subscriptionCard, { backgroundColor: colors.card.default }]}
+            style={[styles.settingRow, { backgroundColor: colors.card.default }]}
             onPress={() => navigation.navigate('Subscription')}
             activeOpacity={0.7}
           >
-            <View style={styles.subscriptionHeader}>
-              <View style={styles.subscriptionTitleRow}>
-                {isPro ? (
-                  <View style={[styles.subscriptionBadge, { backgroundColor: colors.primary }]}>
-                    <Text style={[styles.subscriptionBadgeText, { color: colors.white }]}>PRO</Text>
-                  </View>
-                ) : (
-                  <Text style={[styles.subscriptionPlanName, { color: colors.text.primary }]}>Free Plan</Text>
-                )}
-                {isPro && (
-                  <Text style={[styles.subscriptionStatus, { color: getStatusColor(status, colors) }]}>
-                    {getStatusLabel(status)}
-                  </Text>
-                )}
-              </View>
-              <Text style={[styles.chevron, { color: colors.text.tertiary }]}>{'\u203A'}</Text>
-            </View>
-
-            {isPro && paidUntil && (
-              <Text style={[styles.subscriptionRenewal, { color: colors.text.secondary }]}>
-                {status === 'canceled' ? 'Access until' : 'Renews'} {formatSubscriptionDate(paidUntil)}
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: colors.text.primary }]}>
+                {isPro ? 'Pro Subscription' : 'Free Plan'}
               </Text>
-            )}
-
-            {/* Usage Stats */}
-            {limits && (
-              <View style={styles.usageStatsRow}>
-                <View style={styles.usageStat}>
-                  <View style={[styles.usageProgressBg, { backgroundColor: colors.border }]}>
-                    <View
-                      style={[
-                        styles.usageProgressFill,
-                        {
-                          backgroundColor: getUsageColor(limits.dailySteps.used, limits.dailySteps.limit, colors),
-                          width: `${Math.min(100, (limits.dailySteps.used / limits.dailySteps.limit) * 100)}%`,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={[styles.usageStatText, { color: colors.text.tertiary }]}>
-                    {limits.dailySteps.used}/{limits.dailySteps.limit} steps
-                  </Text>
-                </View>
-                <View style={styles.usageStat}>
-                  <View style={[styles.usageProgressBg, { backgroundColor: colors.border }]}>
-                    <View
-                      style={[
-                        styles.usageProgressFill,
-                        {
-                          backgroundColor: getUsageColor(limits.activePaths.used, limits.activePaths.limit, colors),
-                          width: `${Math.min(100, (limits.activePaths.used / limits.activePaths.limit) * 100)}%`,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={[styles.usageStatText, { color: colors.text.tertiary }]}>
-                    {limits.activePaths.used}/{limits.activePaths.limit} paths
-                  </Text>
-                </View>
-                {!isPro && (
-                  <View style={[styles.upgradeChip, { backgroundColor: colors.primary + '15' }]}>
-                    <Text style={[styles.upgradeChipText, { color: colors.primary }]}>Upgrade</Text>
-                  </View>
-                )}
-              </View>
-            )}
+              {isPro && (
+                <Text style={[styles.settingDescription, { color: getStatusColor(status, colors) }]}>
+                  {getStatusLabel(status)}
+                  {paidUntil && ` - ${status === 'canceled' ? 'until' : 'renews'} ${formatSubscriptionDate(paidUntil)}`}
+                </Text>
+              )}
+              {!isPro && (
+                <Text style={[styles.settingDescription, { color: colors.text.secondary }]}>
+                  Upgrade to Pro for more features
+                </Text>
+              )}
+            </View>
+            <Text style={[styles.chevron, { color: colors.text.tertiary }]}>{'\u203A'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -631,80 +575,5 @@ const styles = StyleSheet.create({
   },
   footerText: {
     ...Typography.label.small,
-  },
-  // Subscription card styles
-  subscriptionCard: {
-    padding: Spacing.md,
-    borderRadius: Spacing.borderRadius.md,
-    marginBottom: Spacing.sm,
-  },
-  subscriptionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  subscriptionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  subscriptionBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: Spacing.borderRadius.sm,
-  },
-  subscriptionBadgeText: {
-    ...Typography.label.small,
-    fontWeight: '700',
-    fontSize: 11,
-  },
-  subscriptionPlanName: {
-    ...Typography.body.medium,
-    fontWeight: '600',
-  },
-  subscriptionStatus: {
-    ...Typography.label.small,
-    marginLeft: Spacing.sm,
-    fontWeight: '500',
-  },
-  subscriptionRenewal: {
-    ...Typography.label.small,
-    marginTop: Spacing.xs,
-  },
-  usageStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-  },
-  usageStat: {
-    marginRight: Spacing.md,
-  },
-  usageProgressBg: {
-    width: 50,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 2,
-  },
-  usageProgressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  usageStatText: {
-    ...Typography.label.small,
-    fontSize: 10,
-  },
-  upgradeChip: {
-    marginLeft: 'auto',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: Spacing.borderRadius.sm,
-  },
-  upgradeChipText: {
-    ...Typography.label.small,
-    fontWeight: '600',
-    fontSize: 11,
   },
 });

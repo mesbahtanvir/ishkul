@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { CancellationFlow, CancellationReason } from '../components/CancellationFlow';
+import { CancellationFlow } from '../components/CancellationFlow';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
@@ -61,10 +61,10 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
     setShowCancellationFlow(true);
   };
 
-  const handleCancelConfirm = async (reason: CancellationReason, feedback?: string) => {
+  const handleCancelConfirm = async () => {
     setCanceling(true);
     try {
-      await apiClient.post('/subscription/cancel', { reason, feedback });
+      await apiClient.post('/subscription/cancel', {});
       await fetchStatus();
       setShowCancellationFlow(false);
 
