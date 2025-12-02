@@ -409,6 +409,69 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate course outline in the background
+	go func(pathID, goal, level, userID string) {
+		bgCtx := context.Background()
+
+		if appLogger != nil {
+			logger.Info(appLogger, bgCtx, "outline_generation_started",
+				slog.String("path_id", pathID),
+				slog.String("goal", goal),
+			)
+		}
+
+		outline, err := generateCourseOutline(goal, level)
+		if err != nil {
+			if appLogger != nil {
+				logger.Error(appLogger, bgCtx, "outline_generation_failed",
+					slog.String("path_id", pathID),
+					slog.String("error", err.Error()),
+				)
+			}
+			return
+		}
+
+		// Calculate total lessons from outline
+		totalTopics := countOutlineTopics(outline)
+
+		// Initialize outline position at the start
+		outlinePosition := &models.OutlinePosition{
+			ModuleIndex: 0,
+			TopicIndex:  0,
+		}
+		if len(outline.Modules) > 0 {
+			outlinePosition.ModuleID = outline.Modules[0].ID
+			if len(outline.Modules[0].Topics) > 0 {
+				outlinePosition.TopicID = outline.Modules[0].Topics[0].ID
+			}
+		}
+
+		// Update the path with the generated outline
+		bgFs := firebase.GetFirestore()
+		if bgFs != nil {
+			_, updateErr := bgFs.Collection("learning_paths").Doc(pathID).Update(bgCtx, []firestore.Update{
+				{Path: "outline", Value: outline},
+				{Path: "outlinePosition", Value: outlinePosition},
+				{Path: "totalLessons", Value: totalTopics},
+				{Path: "updatedAt", Value: time.Now().UnixMilli()},
+			})
+			if updateErr != nil {
+				if appLogger != nil {
+					logger.Error(appLogger, bgCtx, "outline_save_failed",
+						slog.String("path_id", pathID),
+						slog.String("error", updateErr.Error()),
+					)
+				}
+			} else if appLogger != nil {
+				logger.Info(appLogger, bgCtx, "outline_generation_completed",
+					slog.String("path_id", pathID),
+					slog.Int("modules", len(outline.Modules)),
+					slog.Int("total_topics", totalTopics),
+				)
+			}
+		}
+	}(pathID, req.Goal, req.Level, userID)
+
 	// Trigger pre-generation of the first step in the background
 	if pregenerateService != nil {
 		// Fetch user to get their tier
@@ -1537,6 +1600,131 @@ func viewStep(w http.ResponseWriter, r *http.Request, pathID string, stepID stri
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
+}
+
+// generateCourseOutline generates a course outline using the LLM
+func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
+	if openaiClient == nil || promptLoader == nil {
+		return nil, fmt.Errorf("LLM not initialized")
+	}
+
+	vars := prompts.Variables{
+		"goal":  goal,
+		"level": level,
+	}
+
+	// Load the course-outline prompt template
+	template, err := promptLoader.LoadByName("learning/course-outline")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load course-outline prompt: %w", err)
+	}
+
+	openaiReq, err := promptRenderer.RenderToRequest(template, vars)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render prompt: %w", err)
+	}
+
+	completion, err := openaiClient.CreateChatCompletion(*openaiReq)
+	if err != nil {
+		return nil, fmt.Errorf("OpenAI API error: %w", err)
+	}
+
+	if len(completion.Choices) == 0 {
+		return nil, fmt.Errorf("no completion returned from OpenAI")
+	}
+
+	content := completion.Choices[0].Message.Content
+
+	// Parse the JSON response
+	var outlineData struct {
+		Title            string   `json:"title"`
+		Description      string   `json:"description"`
+		EstimatedMinutes int      `json:"estimatedMinutes"`
+		Prerequisites    []string `json:"prerequisites"`
+		LearningOutcomes []string `json:"learningOutcomes"`
+		Modules          []struct {
+			ID               string   `json:"id"`
+			Title            string   `json:"title"`
+			Description      string   `json:"description"`
+			EstimatedMinutes int      `json:"estimatedMinutes"`
+			LearningOutcomes []string `json:"learningOutcomes"`
+			Topics           []struct {
+				ID               string   `json:"id"`
+				Title            string   `json:"title"`
+				ToolID           string   `json:"toolId"`
+				EstimatedMinutes int      `json:"estimatedMinutes"`
+				Description      string   `json:"description"`
+				Prerequisites    []string `json:"prerequisites"`
+			} `json:"topics"`
+		} `json:"modules"`
+		Metadata struct {
+			Difficulty string   `json:"difficulty"`
+			Category   string   `json:"category"`
+			Tags       []string `json:"tags"`
+		} `json:"metadata"`
+	}
+
+	if err := json.Unmarshal([]byte(content), &outlineData); err != nil {
+		return nil, fmt.Errorf("failed to parse outline response as JSON: %w (content: %s)", err, content)
+	}
+
+	// Convert to CourseOutline model
+	outline := &models.CourseOutline{
+		Title:            outlineData.Title,
+		Description:      outlineData.Description,
+		EstimatedMinutes: outlineData.EstimatedMinutes,
+		Prerequisites:    outlineData.Prerequisites,
+		LearningOutcomes: outlineData.LearningOutcomes,
+		Metadata: models.OutlineMetadata{
+			Difficulty: outlineData.Metadata.Difficulty,
+			Category:   outlineData.Metadata.Category,
+			Tags:       outlineData.Metadata.Tags,
+		},
+		GeneratedAt: time.Now().UnixMilli(),
+		Modules:     make([]models.OutlineModule, 0, len(outlineData.Modules)),
+	}
+
+	// Convert modules and topics
+	for _, m := range outlineData.Modules {
+		module := models.OutlineModule{
+			ID:               m.ID,
+			Title:            m.Title,
+			Description:      m.Description,
+			EstimatedMinutes: m.EstimatedMinutes,
+			LearningOutcomes: m.LearningOutcomes,
+			Status:           "pending",
+			Topics:           make([]models.OutlineTopic, 0, len(m.Topics)),
+		}
+
+		for _, t := range m.Topics {
+			topic := models.OutlineTopic{
+				ID:               t.ID,
+				Title:            t.Title,
+				ToolID:           t.ToolID,
+				EstimatedMinutes: t.EstimatedMinutes,
+				Description:      t.Description,
+				Prerequisites:    t.Prerequisites,
+				Status:           "pending",
+			}
+			module.Topics = append(module.Topics, topic)
+		}
+
+		outline.Modules = append(outline.Modules, module)
+	}
+
+	return outline, nil
+}
+
+// countOutlineTopics returns the total number of topics in an outline
+func countOutlineTopics(outline *models.CourseOutline) int {
+	if outline == nil {
+		return 0
+	}
+	count := 0
+	for _, m := range outline.Modules {
+		count += len(m.Topics)
+	}
+	return count
 }
 
 // compactMemory uses LLM to summarize learning progress

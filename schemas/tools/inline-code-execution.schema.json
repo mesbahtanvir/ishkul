@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ishkul.com/schemas/tools/inline-code-execution.schema.json",
+  "title": "Inline Code Execution Step",
+  "description": "Write and run code interactively to solve a problem (5-10 minutes)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "_base.schema.json" }
+  ],
+  "properties": {
+    "type": {
+      "const": "inline-code-execution"
+    },
+    "topic": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "question": {
+      "type": "string",
+      "description": "The problem statement - what the learner needs to solve",
+      "minLength": 20,
+      "maxLength": 500
+    },
+    "language": {
+      "type": "string",
+      "enum": ["python", "javascript", "typescript", "go", "rust", "java", "c", "cpp"],
+      "description": "Programming language for the exercise"
+    },
+    "codeTemplate": {
+      "type": "string",
+      "description": "Pre-filled code with TODO comments or blanks to complete",
+      "minLength": 10
+    },
+    "testCases": {
+      "type": "array",
+      "description": "Test cases to validate the solution",
+      "items": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "string",
+            "description": "Input or function call to test"
+          },
+          "expectedOutput": {
+            "type": "string",
+            "description": "Expected output or return value"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this test case checks"
+          },
+          "hidden": {
+            "type": "boolean",
+            "description": "Whether to hide this test case from learner",
+            "default": false
+          }
+        },
+        "required": ["input", "expectedOutput"]
+      },
+      "minItems": 1,
+      "maxItems": 5
+    },
+    "hints": {
+      "type": "array",
+      "description": "Progressive hints if learner is stuck",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3
+    },
+    "sampleSolution": {
+      "type": "string",
+      "description": "Complete working solution (shown after attempts)"
+    },
+    "constraints": {
+      "type": "object",
+      "description": "Execution constraints",
+      "properties": {
+        "timeoutSeconds": {
+          "type": "integer",
+          "default": 5
+        },
+        "memoryMB": {
+          "type": "integer",
+          "default": 128
+        }
+      }
+    }
+  },
+  "required": ["type", "topic", "title", "question", "language", "codeTemplate", "testCases"],
+  "additionalProperties": false,
+
+  "_meta": {
+    "toolId": "inline-code-execution",
+    "uiComponent": "InlineCodeExecution",
+    "estimatedMinutes": 7,
+    "categories": ["programming", "hands-on", "coding"],
+    "selectionCriteria": {
+      "when": [
+        "Learning a programming language",
+        "Concept requires hands-on coding practice",
+        "Need to verify code actually works",
+        "Building problem-solving skills"
+      ],
+      "requires": {
+        "goalCategory": ["programming", "coding", "development"]
+      }
+    },
+    "example": {
+      "type": "inline-code-execution",
+      "topic": "Python Functions",
+      "title": "Create a Greeting Function",
+      "question": "Write a function called `greet` that takes a person's name as input and returns a greeting message in the format 'Hello, {name}!'",
+      "language": "python",
+      "codeTemplate": "def greet(name):\n    # TODO: Return a greeting message\n    # Example: greet('Alice') should return 'Hello, Alice!'\n    pass\n\n# Test your function\nprint(greet('Alice'))\nprint(greet('Bob'))",
+      "testCases": [
+        {
+          "input": "greet('Alice')",
+          "expectedOutput": "Hello, Alice!",
+          "description": "Basic greeting"
+        },
+        {
+          "input": "greet('World')",
+          "expectedOutput": "Hello, World!",
+          "description": "Different name"
+        },
+        {
+          "input": "greet('')",
+          "expectedOutput": "Hello, !",
+          "description": "Empty string edge case",
+          "hidden": true
+        }
+      ],
+      "hints": [
+        "Use an f-string: f'Hello, {name}!'",
+        "Don't forget to return the value, not just print it",
+        "The format is exactly 'Hello, ' + name + '!'"
+      ],
+      "sampleSolution": "def greet(name):\n    return f'Hello, {name}!'"
+    }
+  }
+}

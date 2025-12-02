@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tool Registry Index",
+  "description": "Index of all available learning tools and their schemas",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "id": "lesson",
+      "name": "Micro-Lesson",
+      "schema": "lesson.schema.json",
+      "description": "Teach one concept in 2-3 minutes",
+      "estimatedMinutes": 3,
+      "categories": ["teaching", "concept"]
+    },
+    {
+      "id": "quiz",
+      "name": "Quick Quiz",
+      "schema": "quiz.schema.json",
+      "description": "Test comprehension with a quick question",
+      "estimatedMinutes": 1,
+      "categories": ["assessment", "comprehension"]
+    },
+    {
+      "id": "practice",
+      "name": "Hands-on Practice",
+      "schema": "practice.schema.json",
+      "description": "Small exercise to apply concepts",
+      "estimatedMinutes": 5,
+      "categories": ["hands-on", "application"]
+    },
+    {
+      "id": "flashcard",
+      "name": "Flashcard",
+      "schema": "flashcard.schema.json",
+      "description": "Quick recall card for memorization",
+      "estimatedMinutes": 1,
+      "categories": ["memorization", "recall", "vocabulary"]
+    },
+    {
+      "id": "inline-code-execution",
+      "name": "Code Exercise",
+      "schema": "inline-code-execution.schema.json",
+      "description": "Write and run code to solve a problem",
+      "estimatedMinutes": 7,
+      "categories": ["programming", "hands-on", "coding"],
+      "requires": {
+        "goalCategory": ["programming", "coding", "development"]
+      }
+    },
+    {
+      "id": "pronunciation",
+      "name": "Pronunciation",
+      "schema": "pronunciation.schema.json",
+      "description": "Learn correct pronunciation with audio",
+      "estimatedMinutes": 2,
+      "categories": ["language", "vocabulary", "speaking", "audio"],
+      "requires": {
+        "goalCategory": ["language", "vocabulary", "speaking"]
+      }
+    }
+  ]
+}

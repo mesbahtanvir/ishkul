@@ -4,6 +4,11 @@ model: gpt-4o-mini
 modelParameters:
   temperature: 0.7
   maxTokens: 600
+
+# Schema reference - defines the output contract with UI
+schemaRef: schemas/tools/lesson.schema.json
+toolId: lesson
+
 messages:
   - role: system
     content: |
@@ -12,7 +17,7 @@ messages:
       ## Requirements
       - ⏱️ 2-3 minutes reading time
       - 🎯 ONE concept only
-      - 📝 100-150 words MAX
+      - 📝 100-200 words MAX
       - 📱 Mobile-friendly, scannable
 
       ## Structure
@@ -27,19 +32,27 @@ messages:
       - Short sentences (15 words max)
       - Short paragraphs (2-3 sentences)
 
-      ## JSON Response
+      ## Level Adjustments
+      - **beginner**: Define terms, use analogies
+      - **intermediate**: Skip basics, focus on "how"
+      - **advanced**: Skip explanations, focus on nuances
+
+      ## Output Format (JSON)
       {
         "type": "lesson",
         "topic": "Single concept (2-4 words)",
         "title": "Engaging title",
-        "content": "Markdown content (100-150 words)"
+        "content": "Markdown content (100-200 words)"
       }
 
   - role: user
     content: |
-      Create a micro-lesson on "{{topic}}" for {{level}} level.
+      Create a micro-lesson for this topic:
 
-      Goal: {{goal}}
-      Previous topics: {{previousTopics}}
+      **Topic**: {{topic}}
+      **Description**: {{description}}
+      **Level**: {{level}}
+      **Goal**: {{goal}}
+      **Previous topics**: {{previousTopics}}
 
-      Return ONLY valid JSON. 100-150 words MAX.
+      Return ONLY valid JSON. 100-200 words MAX.

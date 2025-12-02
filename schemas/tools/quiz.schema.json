@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ishkul.com/schemas/tools/quiz.schema.json",
+  "title": "Quiz Step",
+  "description": "A quick comprehension check (30-60 seconds)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "_base.schema.json" }
+  ],
+  "properties": {
+    "type": {
+      "const": "quiz"
+    },
+    "topic": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "question": {
+      "type": "string",
+      "description": "Clear, concise question (1-2 sentences)",
+      "minLength": 10,
+      "maxLength": 300
+    },
+    "questionType": {
+      "type": "string",
+      "enum": ["multiple-choice", "true-false", "short-answer", "fill-blank"],
+      "description": "Type of question format"
+    },
+    "options": {
+      "type": "array",
+      "description": "Options for multiple-choice questions",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "maxItems": 5
+    },
+    "expectedAnswer": {
+      "type": "string",
+      "description": "The correct answer (1-50 words)",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "explanation": {
+      "type": "string",
+      "description": "Brief explanation of why the answer is correct",
+      "maxLength": 300
+    },
+    "hints": {
+      "type": "array",
+      "description": "Optional hints if learner is stuck",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3
+    }
+  },
+  "required": ["type", "topic", "title", "question", "questionType", "expectedAnswer"],
+  "additionalProperties": false,
+
+  "_meta": {
+    "toolId": "quiz",
+    "uiComponent": "QuizCard",
+    "estimatedMinutes": 1,
+    "categories": ["assessment", "comprehension"],
+    "selectionCriteria": {
+      "when": [
+        "After 1-2 lessons on a topic",
+        "To verify understanding before moving on",
+        "To reinforce key concepts"
+      ]
+    },
+    "example": {
+      "type": "quiz",
+      "topic": "Python Variables",
+      "title": "Variable Basics Check",
+      "question": "What will be stored in `x` after running: `x = 5 + 3`?",
+      "questionType": "short-answer",
+      "expectedAnswer": "8",
+      "explanation": "Python evaluates the expression 5 + 3 first, then stores the result (8) in variable x.",
+      "hints": ["Think about what 5 + 3 equals"]
+    }
+  }
+}

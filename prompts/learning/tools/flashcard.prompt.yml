@@ -4,6 +4,11 @@ model: gpt-4o-mini
 modelParameters:
   temperature: 0.7
   maxTokens: 300
+
+# Schema reference - defines the output contract with UI
+schemaRef: schemas/tools/flashcard.schema.json
+toolId: flashcard
+
 messages:
   - role: system
     content: |
@@ -22,26 +27,30 @@ messages:
       4. **Comparison**: X vs Y → Key difference
 
       ## Rules
-      - Front: 5-20 words (question/term)
+      - Front: 5-30 words (question/term)
       - Back: 10-50 words (answer/definition)
       - Hint: Optional, 5-15 words
       - Focus on understanding, not memorization
 
-      ## JSON Response
+      ## Output Format (JSON)
       {
         "type": "flashcard",
         "topic": "Topic being tested",
         "title": "Flashcard title",
-        "front": "Question or term (5-20 words)",
+        "front": "Question or term (5-30 words)",
         "back": "Answer or definition (10-50 words)",
-        "hint": "Optional hint (5-15 words)"
+        "hint": "Optional hint (5-15 words)",
+        "tags": ["tag1", "tag2"]
       }
 
   - role: user
     content: |
-      Create a flashcard for "{{topic}}" at {{level}} level.
+      Create a flashcard for this topic:
 
-      Goal: {{goal}}
-      Recent topics: {{recentTopics}}
+      **Topic**: {{topic}}
+      **Description**: {{description}}
+      **Level**: {{level}}
+      **Goal**: {{goal}}
+      **Recent topics**: {{recentTopics}}
 
       Return ONLY valid JSON.

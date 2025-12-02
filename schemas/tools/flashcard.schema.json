@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ishkul.com/schemas/tools/flashcard.schema.json",
+  "title": "Flashcard Step",
+  "description": "A quick recall card for spaced repetition (30-60 seconds)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "_base.schema.json" }
+  ],
+  "properties": {
+    "type": {
+      "const": "flashcard"
+    },
+    "topic": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "front": {
+      "type": "string",
+      "description": "Question or term (5-30 words)",
+      "minLength": 5,
+      "maxLength": 150
+    },
+    "back": {
+      "type": "string",
+      "description": "Answer or definition (10-50 words)",
+      "minLength": 10,
+      "maxLength": 300
+    },
+    "hint": {
+      "type": "string",
+      "description": "Optional hint (5-15 words)",
+      "maxLength": 100
+    },
+    "tags": {
+      "type": "array",
+      "description": "Tags for organizing flashcards",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": ["type", "topic", "title", "front", "back"],
+  "additionalProperties": false,
+
+  "_meta": {
+    "toolId": "flashcard",
+    "uiComponent": "FlashcardCard",
+    "estimatedMinutes": 1,
+    "categories": ["memorization", "recall", "vocabulary"],
+    "selectionCriteria": {
+      "when": [
+        "Learning definitions or terminology",
+        "Reinforcing key facts",
+        "Building vocabulary",
+        "Spaced repetition review"
+      ]
+    },
+    "example": {
+      "type": "flashcard",
+      "topic": "Python Variables",
+      "title": "Variable Definition",
+      "front": "What is a variable in Python?",
+      "back": "A named container that stores a value. Created with the = operator. Example: x = 5",
+      "hint": "Think of a labeled box",
+      "tags": ["python", "basics", "variables"]
+    }
+  }
+}
