@@ -43,12 +43,17 @@ func DevGetTestToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"accessToken":  tokenPair.AccessToken,
 		"refreshToken": tokenPair.RefreshToken,
 		"expiresIn":    tokenPair.ExpiresIn,
 		"userId":       testUID,
 		"email":        testEmail,
 		"warning":      "This is a development-only endpoint and should never be used in production",
-	})
+	}); err != nil {
+		if appLogger != nil {
+			logger.Error(appLogger, r.Context(), "dev_token_encode_failed",
+			)
+		}
+	}
 }
