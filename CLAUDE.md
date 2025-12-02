@@ -189,7 +189,7 @@ cd firebase && firebase deploy --only firestore:rules,storage --project=ishkul-o
 
 ## 🔗 Quick Links
 
-- **Cloud Run Dashboard**: [Metrics & logs](https://console.cloud.google.com/run/detail/europe-west1/ishkul-backend/metrics?project=ishkul-org)
+- **Cloud Run Dashboard**: [Metrics & logs](https://console.cloud.google.com/run/detail/northamerica-northeast1/ishkul-backend/metrics?project=ishkul-org)
 - **Vercel Deployments**: [Frontend builds](https://vercel.com/my-dream-company/ishkul/deployments)
 - **Firebase Console**: [Firestore, Auth, Storage](https://console.firebase.google.com/project/ishkul-org)
 - **GCP Console**: [Overall project](https://console.cloud.google.com/welcome?project=ishkul-org)
