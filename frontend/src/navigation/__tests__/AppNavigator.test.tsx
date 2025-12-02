@@ -307,7 +307,7 @@ describe('Subscription URL handling integration', () => {
     const mockFetchStatus = jest.fn();
     const mockSetState = jest.fn();
 
-    const path = '/home';
+    const path: string = '/home';
     const isWeb = true;
 
     if (isWeb) {
