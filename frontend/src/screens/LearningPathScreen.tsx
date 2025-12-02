@@ -23,7 +23,7 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { Step } from '../types/app';
-import { useScreenTracking } from '../services/analytics';
+import { useScreenTracking, useAITracking, useAnalytics } from '../services/analytics';
 
 type LearningPathScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -49,6 +49,10 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   const scrollViewRef = useRef<ScrollView>(null);
   const { responsive } = useResponsive();
   const { colors } = useTheme();
+
+  // AI tracking for step generation
+  const { trackRequest, trackResponse, trackError } = useAITracking();
+  const { trackNextStepRequested } = useAnalytics();
 
   useEffect(() => {
     loadPath();
@@ -90,9 +94,28 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   };
 
   const fetchNextStep = async () => {
+    const startTime = Date.now();
+    const currentStepIndex = activePath?.steps.length || 0;
+
     try {
       setIsLoadingNextStep(true);
+
+      // Track AI request
+      await trackNextStepRequested({
+        path_id: pathId,
+        current_step_index: currentStepIndex,
+      });
+      trackRequest('next_step', { path_id: pathId });
+
       const { step } = await getPathNextStep(pathId);
+
+      // Track successful AI response
+      const responseTimeMs = Date.now() - startTime;
+      trackResponse('next_step', responseTimeMs, {
+        step_id: step.id,
+        step_type: step.type,
+        topic: step.topic,
+      });
 
       // Add step to local state
       addStep(pathId, step);
@@ -108,6 +131,10 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
+      // Track AI error
+      const responseTimeMs = Date.now() - startTime;
+      trackError('next_step', error instanceof Error ? error.message : 'Unknown error', responseTimeMs);
+
       console.error('Error fetching next step:', error);
       Alert.alert('Error', 'Failed to generate next step. Please try again.');
     } finally {

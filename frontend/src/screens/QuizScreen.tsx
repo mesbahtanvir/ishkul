@@ -15,7 +15,7 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
-import { useScreenTracking } from '../services/analytics';
+import { useScreenTracking, useQuizTracking } from '../services/analytics';
 
 type QuizScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Quiz'>;
 type QuizScreenRouteProp = RouteProp<RootStackParamList, 'Quiz'>;
@@ -37,10 +37,25 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
   const { responsive } = useResponsive();
   const { colors } = useTheme();
 
-  const handleSubmit = () => {
+  // Track quiz engagement
+  const { startQuiz, answerQuestion, completeQuiz } = useQuizTracking({
+    pathId,
+    stepId: step.id,
+    topic: step.topic,
+  });
+
+  // Start quiz tracking when screen mounts
+  React.useEffect(() => {
+    startQuiz();
+  }, [startQuiz]);
+
+  const handleSubmit = async () => {
     const userAnswer = answer.trim().toLowerCase();
     const expectedAnswer = (step.expectedAnswer || '').trim().toLowerCase();
     const correct = userAnswer.includes(expectedAnswer) || expectedAnswer.includes(userAnswer);
+
+    // Track the answer
+    await answerQuestion(correct);
 
     setIsCorrect(correct);
     setIsSubmitted(true);
@@ -50,10 +65,15 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
     try {
       setLoading(true);
 
+      const score = isCorrect ? 100 : 0;
+
+      // Track quiz completion
+      await completeQuiz(score);
+
       // Complete the step with score and user answer
       const result = await completeStep(pathId, step.id, {
         userAnswer: answer,
-        score: isCorrect ? 100 : 0,
+        score,
       });
 
       // Update local state

@@ -13,7 +13,7 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
-import { useScreenTracking } from '../services/analytics';
+import { useScreenTracking, useStepTracking, useAnalytics } from '../services/analytics';
 
 type PracticeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Practice'>;
 type PracticeScreenRouteProp = RouteProp<RootStackParamList, 'Practice'>;
@@ -35,9 +35,36 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
   const { responsive, isSmallPhone } = useResponsive();
   const { colors } = useTheme();
 
+  // Track step engagement
+  const { startStep, completeStep: trackComplete } = useStepTracking({
+    pathId,
+    stepId: step.id,
+    stepType: 'practice',
+    topic: step.topic,
+    stepIndex: step.index,
+  });
+  const { trackPracticeCompleted } = useAnalytics();
+
+  // Start tracking when screen mounts
+  React.useEffect(() => {
+    startStep();
+  }, [startStep]);
+
   const handleDone = async () => {
     try {
       setLoading(true);
+
+      // Track step completion
+      await trackComplete();
+
+      // Track practice-specific completion with hints info
+      await trackPracticeCompleted({
+        path_id: pathId,
+        step_id: step.id,
+        topic: step.topic,
+        active_time_sec: 0, // Will be set from the hook
+        hints_used: step.hints?.length || 0,
+      });
 
       // Complete the step
       const result = await completeStep(pathId, step.id);
