@@ -16,16 +16,14 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { ProgressBar } from '../components/ProgressBar';
 import { StepCard } from '../components/StepCard';
 import { useLearningPathsStore, getCurrentStep } from '../state/learningPathsStore';
-import { useSubscriptionStore } from '../state/subscriptionStore';
-import { getPathNextStep, getLearningPath, viewStep } from '../services/memory';
-import { ApiError, ErrorCodes } from '../services/api';
+import { getLearningPath, viewStep } from '../services/memory';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { Step, PathStatuses } from '../types/app';
-import { useScreenTracking, useAITracking } from '../services/analytics';
+import { useScreenTracking } from '../services/analytics';
 
 type LearningPathScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -44,17 +42,12 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
 }) => {
   useScreenTracking('LearningPath', 'LearningPathScreen');
   const { pathId } = route.params;
-  const { activePath, setActivePath, addStep } = useLearningPathsStore();
-  const { showUpgradePrompt } = useSubscriptionStore();
+  const { activePath, setActivePath } = useLearningPathsStore();
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingNextStep, setIsLoadingNextStep] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const { responsive } = useResponsive();
   const { colors } = useTheme();
-
-  // AI tracking for step generation
-  const { startRequest, completeRequest, trackError } = useAITracking();
 
   useEffect(() => {
     loadPath();
@@ -77,13 +70,6 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
 
       if (path) {
         setActivePath(path);
-
-        // Only fetch next step for active paths that have no current step
-        const isPathActive = !path.status || path.status === PathStatuses.ACTIVE;
-        const currentStep = getCurrentStep(path.steps);
-        if (isPathActive && !currentStep) {
-          await fetchNextStep();
-        }
       } else {
         Alert.alert('Error', 'Learning path not found');
         navigation.goBack();
@@ -96,59 +82,12 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
     }
   };
 
-  const fetchNextStep = async () => {
-    const currentProgress = activePath?.progress || 0;
-
-    try {
-      setIsLoadingNextStep(true);
-
-      // Track AI request start (returns request ID for timing)
-      const requestId = startRequest(pathId, currentProgress);
-
-      const { step } = await getPathNextStep(pathId);
-
-      // Track successful AI response with timing
-      await completeRequest(
-        requestId,
-        pathId,
-        step.type as 'lesson' | 'quiz' | 'practice' | 'review' | 'summary',
-        step.topic,
-        'gemini-2.0-flash' // Model used by backend
-      );
-
-      // Add step to local state
-      addStep(pathId, step);
-
-      // Refresh the path to get updated data
-      const updatedPath = await getLearningPath(pathId);
-      if (updatedPath) {
-        setActivePath(updatedPath);
-      }
-
-      // Scroll to the current step
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    } catch (error) {
-      // Track AI error
-      await trackError(
-        pathId,
-        error instanceof Error ? error.message : 'Unknown error',
-        0 // retry count
-      );
-
-      console.error('Error fetching next step:', error);
-
-      // Check if this is a daily step limit error
-      if (error instanceof ApiError && error.code === ErrorCodes.DAILY_STEP_LIMIT_REACHED) {
-        // Show upgrade modal instead of generic error
-        showUpgradePrompt('step_limit');
-      } else {
-        Alert.alert('Error', 'Failed to generate next step. Please try again.');
-      }
-    } finally {
-      setIsLoadingNextStep(false);
-    }
+  // Navigate to GeneratingStepScreen for smooth loading experience
+  const navigateToGenerateStep = () => {
+    navigation.navigate('GeneratingStep', {
+      pathId,
+      topic: activePath?.goal,
+    });
   };
 
   const onRefresh = async () => {
@@ -199,8 +138,8 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
     if (currentStep) {
       handleStartStep(currentStep);
     } else if (isPathActive) {
-      // Generate next step only for active paths
-      fetchNextStep();
+      // Navigate to GeneratingStepScreen for engaging loading experience
+      navigateToGenerateStep();
     }
     // For completed paths, do nothing - they can only review steps
   };
@@ -328,7 +267,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
           )}
 
           {/* Empty state for new paths */}
-          {!hasSteps && !isLoadingNextStep && isPathActive && (
+          {!hasSteps && isPathActive && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>🚀</Text>
               <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
@@ -355,15 +294,6 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
             />
           ))}
 
-          {/* Loading indicator for next step */}
-          {isLoadingNextStep && (
-            <View style={styles.loadingNextStep}>
-              <Text style={[styles.loadingText, { color: colors.text.secondary }]}>
-                Generating your next step...
-              </Text>
-            </View>
-          )}
-
           {/* Spacer at bottom to allow content to scroll above button */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
@@ -385,7 +315,6 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
             <Button
               title={currentStep ? 'Continue →' : 'Get Next Step'}
               onPress={handleContinue}
-              loading={isLoadingNextStep}
             />
           )}
         </View>
@@ -477,13 +406,6 @@ const styles = StyleSheet.create({
   emptyText: {
     ...Typography.body.medium,
     textAlign: 'center',
-  },
-  loadingNextStep: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
-  },
-  loadingText: {
-    ...Typography.body.medium,
   },
   bottomSpacer: {
     height: Spacing.xl,
