@@ -91,6 +91,20 @@ jobs:
             ENV_VARS="${ENV_VARS},ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}"
           fi
 
+          # Stripe integration secrets
+          if [ -n "${{ secrets.STRIPE_SECRET_KEY }}" ]; then
+            ENV_VARS="${ENV_VARS},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}"
+          fi
+          if [ -n "${{ secrets.STRIPE_PRO_PRICE_ID }}" ]; then
+            ENV_VARS="${ENV_VARS},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }}"
+          fi
+          if [ -n "${{ secrets.STRIPE_WEBHOOK_SECRET }}" ]; then
+            ENV_VARS="${ENV_VARS},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}"
+          fi
+          if [ -n "${{ secrets.APP_URL }}" ]; then
+            ENV_VARS="${ENV_VARS},APP_URL=${{ secrets.APP_URL }}"
+          fi
+
           echo "env_vars=${ENV_VARS}" >> $GITHUB_OUTPUT
 
       - name: Deploy to Cloud Run
