@@ -41,7 +41,7 @@ const defaultLimits: UsageLimits = {
   activePaths: { used: 0, limit: 2 },
 };
 
-export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
+export const useSubscriptionStore = create<SubscriptionState>((set) => ({
   // Initial state
   tier: 'free',
   status: null,
