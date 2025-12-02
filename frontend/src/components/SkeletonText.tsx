@@ -26,7 +26,7 @@ interface SkeletonTextProps {
 }
 
 // Pre-defined width patterns for natural-looking text
-const VARIED_WIDTHS = ['100%', '95%', '85%', '90%', '70%', '80%', '65%'];
+const VARIED_WIDTHS: DimensionValue[] = ['100%', '95%', '85%', '90%', '70%', '80%', '65%'];
 
 export const SkeletonText: React.FC<SkeletonTextProps> = ({
   lines = 3,
