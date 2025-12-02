@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle, DimensionValue } from 'react-native';
 import { Skeleton } from './Skeleton';
 import { Spacing } from '../theme/spacing';
 
@@ -37,7 +37,7 @@ export const SkeletonText: React.FC<SkeletonTextProps> = ({
   style,
   animated = true,
 }) => {
-  const getLineWidth = (index: number): string => {
+  const getLineWidth = (index: number): DimensionValue => {
     switch (pattern) {
       case 'full':
         return '100%';
@@ -111,7 +111,7 @@ export const SkeletonParagraph: React.FC<SkeletonParagraphProps> = ({
  */
 interface SkeletonTitleProps {
   /** Width of the title (default: 70%) */
-  width?: string | number;
+  width?: DimensionValue;
   /** Size variant */
   size?: 'small' | 'medium' | 'large';
   /** Additional styles */
