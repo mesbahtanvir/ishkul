@@ -353,7 +353,8 @@ const styles = StyleSheet.create({
   progressText: {
     ...Typography.label.medium,
     marginLeft: Spacing.sm,
-    minWidth: 40,
+    minWidth: 35,
+    flexShrink: 0,
     textAlign: 'right',
   },
   stepsContainer: {
