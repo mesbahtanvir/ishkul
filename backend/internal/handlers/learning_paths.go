@@ -474,17 +474,17 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 
 	// Trigger pre-generation of the first step in the background
 	if pregenerateService != nil {
-		// Fetch user to get their tier
-		userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+		// Fetch user to get their tier for pregeneration
+		userDoc, userErr := fs.Collection("users").Doc(userID).Get(ctx)
 		var user models.User
-		userTier := models.TierFree // Default to free tier
-		if err == nil {
-			if err := userDoc.DataTo(&user); err == nil {
-				userTier = user.GetCurrentTier()
+		pregenerateTier := models.TierFree // Default to free tier
+		if userErr == nil {
+			if dataErr := userDoc.DataTo(&user); dataErr == nil {
+				pregenerateTier = user.GetCurrentTier()
 			}
 		}
 
-		pregenerateService.TriggerPregeneration(&path, userTier)
+		pregenerateService.TriggerPregeneration(&path, pregenerateTier)
 		if appLogger != nil {
 			logger.Info(appLogger, ctx, "pregeneration_triggered_on_create",
 				slog.String("path_id", pathID),
@@ -826,7 +826,7 @@ func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string
 	now := time.Now().UnixMilli()
 	updates := []firestore.Update{
 		{Path: "status", Value: models.PathStatusActive},
-		{Path: "archivedAt", Value: int64(0)}, // Clear archived timestamp
+		{Path: "archivedAt", Value: firestore.Delete}, // Remove archived timestamp
 		{Path: "updatedAt", Value: now},
 		{Path: "lastAccessedAt", Value: now},
 	}
@@ -839,17 +839,17 @@ func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string
 	// Trigger pre-generation for the unarchived path
 	path.Status = models.PathStatusActive
 	if pregenerateService != nil {
-		// Fetch user to get their tier
-		userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+		// Fetch user to get their tier for pregeneration
+		userDoc, userErr := fs.Collection("users").Doc(userID).Get(ctx)
 		var user models.User
-		userTier := models.TierFree // Default to free tier
-		if err == nil {
-			if err := userDoc.DataTo(&user); err == nil {
-				userTier = user.GetCurrentTier()
+		pregenerateTier := models.TierFree // Default to free tier
+		if userErr == nil {
+			if dataErr := userDoc.DataTo(&user); dataErr == nil {
+				pregenerateTier = user.GetCurrentTier()
 			}
 		}
 
-		pregenerateService.TriggerPregeneration(&path, userTier)
+		pregenerateService.TriggerPregeneration(&path, pregenerateTier)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1055,18 +1055,18 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	// Trigger pre-generation for the NEXT step (background)
 	// Only do this if we had a cache hit - if we had a miss, no point pre-generating again immediately
 	if cacheHit && pregenerateService != nil {
-		// Fetch user to get their tier
-		userDoc, err := fs.Collection("users").Doc(path.UserID).Get(ctx)
+		// Fetch user to get their tier for pregeneration
+		userDoc, userErr := fs.Collection("users").Doc(path.UserID).Get(ctx)
 		var user models.User
-		userTier := models.TierFree // Default to free tier
-		if err == nil {
-			if err := userDoc.DataTo(&user); err == nil {
-				userTier = user.GetCurrentTier()
+		pregenerateTier := models.TierFree // Default to free tier
+		if userErr == nil {
+			if dataErr := userDoc.DataTo(&user); dataErr == nil {
+				pregenerateTier = user.GetCurrentTier()
 			}
 		}
 
 		// Update path with the new step for accurate pre-generation context
-		pregenerateService.TriggerPregeneration(&path, userTier)
+		pregenerateService.TriggerPregeneration(&path, pregenerateTier)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1470,22 +1470,22 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 	// But only if the path is still active (not completed)
 	nextStepNeeded := !pathCompleted && path.Status == models.PathStatusActive
 	if nextStepNeeded && pregenerateService != nil {
-		// Fetch user to get their tier
-		userDoc, err := fs.Collection("users").Doc(path.UserID).Get(ctx)
+		// Fetch user to get their tier for pregeneration
+		userDoc, userErr := fs.Collection("users").Doc(path.UserID).Get(ctx)
 		var user models.User
-		userTier := models.TierFree // Default to free tier
-		if err == nil {
-			if err := userDoc.DataTo(&user); err == nil {
-				userTier = user.GetCurrentTier()
+		pregenerateTier := models.TierFree // Default to free tier
+		if userErr == nil {
+			if dataErr := userDoc.DataTo(&user); dataErr == nil {
+				pregenerateTier = user.GetCurrentTier()
 			}
 		}
 
-		pregenerateService.TriggerPregeneration(path, userTier)
+		pregenerateService.TriggerPregeneration(path, pregenerateTier)
 		if appLogger != nil {
 			logger.Info(appLogger, ctx, "pregeneration_triggered_on_complete",
 				slog.String("path_id", pathID),
 				slog.Int("completed_step_index", stepIndex),
-				slog.String("user_tier", userTier),
+				slog.String("user_tier", pregenerateTier),
 			)
 		}
 	}

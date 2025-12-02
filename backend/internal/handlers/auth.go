@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	firebaseauth "firebase.google.com/go/v4/auth"
@@ -245,7 +246,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		}
 		// Check for invalid email format
 		errMsg := err.Error()
-		if contains(errMsg, "email") && contains(errMsg, "invalid") {
+		if containsCaseInsensitive(errMsg, "email") && containsCaseInsensitive(errMsg, "invalid") {
 			sendErrorResponse(w, http.StatusBadRequest, ErrCodeInvalidEmail, "Please enter a valid email address")
 			return
 		}
@@ -283,34 +284,9 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// contains checks if a string contains a substring (case-insensitive)
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsLower(s, substr))
-}
-
-func containsLower(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if equalFoldSubstr(s[i:i+len(substr)], substr) {
-			return true
-		}
-	}
-	return false
-}
-
-func equalFoldSubstr(a, b string) bool {
-	for i := 0; i < len(a); i++ {
-		ca, cb := a[i], b[i]
-		if ca >= 'A' && ca <= 'Z' {
-			ca += 'a' - 'A'
-		}
-		if cb >= 'A' && cb <= 'Z' {
-			cb += 'a' - 'A'
-		}
-		if ca != cb {
-			return false
-		}
-	}
-	return true
+// containsCaseInsensitive checks if a string contains a substring (case-insensitive)
+func containsCaseInsensitive(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
 
 // FirebaseAuthResponse represents the response from Firebase Auth REST API
