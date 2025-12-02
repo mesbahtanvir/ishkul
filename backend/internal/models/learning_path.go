@@ -112,7 +112,7 @@ type OutlineTopic struct {
 	EstimatedMinutes int               `json:"estimatedMinutes" firestore:"estimatedMinutes"`
 	Description      string            `json:"description" firestore:"description"`
 	Prerequisites    []string          `json:"prerequisites" firestore:"prerequisites"`
-	Status           string            `json:"status" firestore:"status"` // pending, completed, skipped, needs_review
+	Status           string            `json:"status" firestore:"status"`                     // pending, completed, skipped, needs_review
 	StepID           string            `json:"stepId,omitempty" firestore:"stepId,omitempty"` // Links to generated Step
 	Performance      *TopicPerformance `json:"performance,omitempty" firestore:"performance,omitempty"`
 }
