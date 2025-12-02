@@ -81,6 +81,16 @@ func main() {
 		logger.Info(appLogger, ctx, "llm_initialized")
 	}
 
+	// Initialize Stripe
+	if err := handlers.InitializeStripe(); err != nil {
+		logger.Warn(appLogger, ctx, "stripe_initialization_failed",
+			slog.String("error", err.Error()),
+		)
+		logger.Info(appLogger, ctx, "stripe_endpoints_disabled")
+	} else {
+		logger.Info(appLogger, ctx, "stripe_initialized")
+	}
+
 	// Initialize rate limiter
 	rateLimiter := middleware.DefaultRateLimiter()
 
@@ -159,12 +169,23 @@ func main() {
 	api.HandleFunc("/api/learning-paths", handlers.LearningPathsHandler)
 	api.HandleFunc("/api/learning-paths/", handlers.LearningPathsHandler)
 
+	// Subscription endpoints (protected)
+	api.HandleFunc("/api/subscription/status", handlers.GetSubscriptionStatus)
+	api.HandleFunc("/api/subscription/checkout", handlers.CreateCheckoutSession)
+	api.HandleFunc("/api/subscription/portal", handlers.CreatePortalSession)
+
 	// Apply middleware to protected routes (rate limit -> CORS -> auth)
 	protectedHandler := rateLimiter.Limit(middleware.CORS(middleware.Auth(api)))
 	mux.Handle("/api/me", protectedHandler)
 	mux.Handle("/api/me/", protectedHandler)
 	mux.Handle("/api/learning-paths", protectedHandler)
 	mux.Handle("/api/learning-paths/", protectedHandler)
+	mux.Handle("/api/subscription/", protectedHandler)
+
+	// Stripe webhook (no auth - uses signature verification)
+	webhookMux := http.NewServeMux()
+	webhookMux.HandleFunc("/api/webhooks/stripe", handlers.HandleStripeWebhook)
+	mux.Handle("/api/webhooks/", middleware.CORS(webhookMux))
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")

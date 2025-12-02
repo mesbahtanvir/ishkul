@@ -2,10 +2,58 @@ package models
 
 import "time"
 
+// Tier constants
 const (
 	TierFree = "free"
 	TierPro  = "pro"
 )
+
+// Model constants for each tier
+const (
+	FreeModel = "gpt-4o-mini"
+	ProModel  = "gpt-5-pro-2025-10-06"
+)
+
+// Daily step limits
+const (
+	FreeDailyStepLimit = 100
+	ProDailyStepLimit  = 1000
+)
+
+// Active learning path limits
+const (
+	FreeMaxActivePaths = 2
+	ProMaxActivePaths  = 5
+)
+
+// Stripe pricing (in cents)
+const (
+	ProPriceMonthly = 200 // $2.00
+)
+
+// GetModelForTier returns the appropriate AI model for the given tier
+func GetModelForTier(tier string) string {
+	if tier == TierPro {
+		return ProModel
+	}
+	return FreeModel
+}
+
+// GetDailyStepLimit returns the daily step limit for the given tier
+func GetDailyStepLimit(tier string) int {
+	if tier == TierPro {
+		return ProDailyStepLimit
+	}
+	return FreeDailyStepLimit
+}
+
+// GetMaxActivePaths returns the max active learning paths for the given tier
+func GetMaxActivePaths(tier string) int {
+	if tier == TierPro {
+		return ProMaxActivePaths
+	}
+	return FreeMaxActivePaths
+}
 
 // GetCurrentTier returns the user's current tier based on subscription status
 // Returns "pro" if PaidUntil is set and in the future, otherwise returns Tier

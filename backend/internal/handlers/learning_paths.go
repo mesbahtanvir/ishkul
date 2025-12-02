@@ -22,7 +22,8 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// MaxLearningPathsPerUser is the maximum number of learning paths a user can have
+// MaxLearningPathsPerUser is deprecated - use models.GetMaxActivePaths(tier) instead
+// Kept for backward compatibility during migration
 const MaxLearningPathsPerUser = 5
 
 // Global cache and pre-generation service
@@ -348,15 +349,36 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user has reached the maximum number of learning paths
+	// Get user tier and limits
+	userTier, limits, err := GetUserTierAndLimits(ctx, userID)
+	if err != nil {
+		// Fallback to free tier if we can't get user info
+		userTier = models.TierFree
+	}
+
+	// Check if user has reached the maximum number of learning paths for their tier
 	existingPaths, err := countUserLearningPaths(ctx, fs, userID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error checking existing paths: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	if existingPaths >= MaxLearningPathsPerUser {
-		http.Error(w, fmt.Sprintf("Maximum of %d active learning paths allowed. Please complete, archive, or delete an existing path to create a new one.", MaxLearningPathsPerUser), http.StatusBadRequest)
+	maxPaths := models.GetMaxActivePaths(userTier)
+	if existingPaths >= maxPaths {
+		// Include upgrade hint for free users
+		upgradeHint := ""
+		if userTier == models.TierFree {
+			upgradeHint = " Upgrade to Pro for up to 5 active paths."
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":       fmt.Sprintf("Maximum of %d active learning paths allowed.%s", maxPaths, upgradeHint),
+			"code":        "PATH_LIMIT_REACHED",
+			"canUpgrade":  userTier == models.TierFree,
+			"currentTier": userTier,
+			"limits":      limits,
+		})
 		return
 	}
 
@@ -707,6 +729,12 @@ func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string
 		return
 	}
 
+	// Get user tier for limit checks
+	userTier, limits, err := GetUserTierAndLimits(ctx, userID)
+	if err != nil {
+		userTier = models.TierFree
+	}
+
 	// Check if user has room for another active path
 	activeCount, err := countUserLearningPaths(ctx, fs, userID)
 	if err != nil {
@@ -714,8 +742,21 @@ func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string
 		return
 	}
 
-	if activeCount >= MaxLearningPathsPerUser {
-		http.Error(w, fmt.Sprintf("Cannot unarchive: you already have %d active learning paths. Maximum allowed is %d. Please complete, archive, or delete an active path first.", activeCount, MaxLearningPathsPerUser), http.StatusBadRequest)
+	maxPaths := models.GetMaxActivePaths(userTier)
+	if activeCount >= maxPaths {
+		upgradeHint := ""
+		if userTier == models.TierFree {
+			upgradeHint = " Upgrade to Pro for up to 5 active paths."
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":       fmt.Sprintf("Cannot unarchive: you already have %d active learning paths (max %d).%s", activeCount, maxPaths, upgradeHint),
+			"code":        "PATH_LIMIT_REACHED",
+			"canUpgrade":  userTier == models.TierFree,
+			"currentTier": userTier,
+			"limits":      limits,
+		})
 		return
 	}
 
@@ -818,6 +859,12 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
+	// Get user tier for limit checks
+	userTier, limits, err := GetUserTierAndLimits(ctx, userID)
+	if err != nil {
+		userTier = models.TierFree
+	}
+
 	// Normalize to ensure valid defaults
 	normalizeLearningPath(&path)
 
@@ -838,6 +885,29 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 			http.Error(w, "Error encoding response", http.StatusInternalServerError)
 			return
 		}
+		return
+	}
+
+	// Check daily step limit before generating a new step (soft block)
+	canGenerate, stepsUsed, stepLimit, _ := CheckCanGenerateStep(ctx, userID, userTier)
+	if !canGenerate {
+		// Soft block - user can view existing steps but cannot generate new ones
+		upgradeHint := ""
+		if userTier == models.TierFree {
+			upgradeHint = " Upgrade to Pro for 1,000 steps per day."
+		}
+		resetTime := models.GetDailyLimitResetTime()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":            fmt.Sprintf("Daily step limit reached (%d/%d).%s", stepsUsed, stepLimit, upgradeHint),
+			"code":             "DAILY_STEP_LIMIT_REACHED",
+			"canUpgrade":       userTier == models.TierFree,
+			"currentTier":      userTier,
+			"limits":           limits,
+			"dailyLimitResetAt": resetTime,
+			"existingSteps":    path.Steps, // Allow viewing existing steps
+		})
 		return
 	}
 
@@ -897,6 +967,23 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	if err != nil {
 		// Log but don't fail - we can still return the step
 		fmt.Printf("Warning: failed to save generated step: %v\n", err)
+	}
+
+	// Increment daily usage counter
+	newUsage, _, usageErr := IncrementDailyUsage(ctx, userID, userTier)
+	if usageErr != nil {
+		if appLogger != nil {
+			logger.Warn(appLogger, ctx, "failed_to_increment_daily_usage",
+				slog.String("user_id", userID),
+				slog.String("error", usageErr.Error()),
+			)
+		}
+	} else if appLogger != nil {
+		logger.Info(appLogger, ctx, "daily_usage_incremented",
+			slog.String("user_id", userID),
+			slog.Int("new_count", newUsage),
+			slog.String("tier", userTier),
+		)
 	}
 
 	// Trigger pre-generation for the NEXT step (background)

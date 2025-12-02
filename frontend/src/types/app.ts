@@ -123,3 +123,48 @@ export interface User {
   displayName: string | null;
   photoURL: string | null;
 }
+
+// Subscription types
+export type TierType = 'free' | 'pro';
+export type SubscriptionStatusType = 'active' | 'canceled' | 'past_due' | 'trialing' | null;
+
+export interface UsageLimit {
+  used: number;
+  limit: number;
+}
+
+export interface UsageLimits {
+  dailySteps: UsageLimit;
+  activePaths: UsageLimit;
+}
+
+export interface SubscriptionStatus {
+  tier: TierType;
+  status: SubscriptionStatusType;
+  paidUntil: string | null;
+  limits: UsageLimits;
+  canUpgrade: boolean;
+  canGenerateSteps: boolean;
+  canCreatePath: boolean;
+  dailyLimitResetAt: string | null;
+}
+
+export interface CheckoutSessionResponse {
+  checkoutUrl: string;
+  sessionId: string;
+}
+
+export interface PortalSessionResponse {
+  portalUrl: string;
+}
+
+// Limit error response from API
+export interface LimitErrorResponse {
+  error: string;
+  code: 'PATH_LIMIT_REACHED' | 'DAILY_STEP_LIMIT_REACHED';
+  canUpgrade: boolean;
+  currentTier: TierType;
+  limits: UsageLimits;
+  dailyLimitResetAt?: string;
+  existingSteps?: Step[];
+}
