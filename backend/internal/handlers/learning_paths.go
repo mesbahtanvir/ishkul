@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,9 +15,18 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 	"google.golang.org/api/iterator"
 )
+
+// Global logger instance - initialized in llm.go
+var appLogger *slog.Logger
+
+// SetLogger sets the global logger instance (called from main)
+func SetAppLogger(log *slog.Logger) {
+	appLogger = log
+}
 
 // LearningPathsHandler handles all /api/learning-paths routes
 func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
@@ -27,8 +38,19 @@ func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
 	// /api/learning-paths/{id}/steps/{stepId}/view -> view step (updates lastReviewed)
 	// /api/learning-paths/{id}/memory -> update memory
 
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+
+	// Add user ID to context for logging
+	ctx = logger.WithUserID(ctx, userID)
+
 	path := strings.TrimPrefix(r.URL.Path, "/api/learning-paths")
 	path = strings.TrimPrefix(path, "/")
+
+	logger.Info(appLogger, ctx, "learning_paths_request",
+		slog.String("method", r.Method),
+		slog.String("path", r.URL.Path),
+	)
 
 	// Root path: /api/learning-paths
 	if path == "" {
@@ -38,6 +60,9 @@ func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
 		case http.MethodPost:
 			createLearningPath(w, r)
 		default:
+			logger.Warn(appLogger, ctx, "learning_paths_method_not_allowed",
+				slog.String("method", r.Method),
+			)
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 		return
@@ -539,6 +564,13 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 func generateNextStepForPath(path *models.LearningPath) (*models.Step, error) {
 	// Check if LLM is initialized
 	if openaiClient == nil || promptLoader == nil {
+		if appLogger != nil {
+			logger.Error(appLogger, context.Background(), "llm_not_initialized",
+				slog.String("path_id", path.ID),
+				slog.String("openai_client_nil", fmt.Sprintf("%v", openaiClient == nil)),
+				slog.String("prompt_loader_nil", fmt.Sprintf("%v", promptLoader == nil)),
+			)
+		}
 		return nil, fmt.Errorf("LLM not initialized")
 	}
 

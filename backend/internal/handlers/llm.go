@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"log/slog"
 
+	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/openai"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 )
@@ -22,12 +25,31 @@ func InitializeLLM(promptsDir string) error {
 	// Initialize OpenAI client
 	openaiClient, err = openai.NewClient()
 	if err != nil {
-		return fmt.Errorf("failed to initialize OpenAI client: %w", err)
+		errMsg := fmt.Sprintf("failed to initialize OpenAI client: %v", err)
+		if appLogger != nil {
+			logger.Error(appLogger, context.Background(), "openai_client_init_failed",
+				slog.String("error", err.Error()),
+			)
+		}
+		return fmt.Errorf(errMsg)
+	}
+
+	if appLogger != nil {
+		logger.Info(appLogger, context.Background(), "openai_client_initialized")
 	}
 
 	// Initialize prompt loader
 	promptLoader = prompts.NewLoader(promptsDir)
+	if appLogger != nil {
+		logger.Info(appLogger, context.Background(), "prompt_loader_initialized",
+			slog.String("prompts_dir", promptsDir),
+		)
+	}
+
 	promptRenderer = prompts.NewRenderer()
+	if appLogger != nil {
+		logger.Info(appLogger, context.Background(), "prompt_renderer_initialized")
+	}
 
 	log.Println("LLM components initialized successfully")
 	return nil

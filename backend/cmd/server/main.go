@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,15 +13,28 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/handlers"
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 )
 
 func main() {
-	// Initialize Firebase
+	// Initialize structured logger
+	appLogger := logger.New()
+
 	ctx := context.Background()
+
+	// Log application startup
+	logger.Info(appLogger, ctx, "application_startup",
+		slog.String("version", os.Getenv("APP_VERSION")),
+		slog.String("environment", os.Getenv("ENVIRONMENT")),
+	)
+
+	// Initialize Firebase
 	if err := firebase.Initialize(ctx); err != nil {
+		logger.ErrorWithErr(appLogger, ctx, "firebase_initialization_failed", err)
 		log.Fatalf("Failed to initialize Firebase: %v", err)
 	}
 	defer firebase.Cleanup()
+	logger.Info(appLogger, ctx, "firebase_initialized")
 
 	// Initialize LLM components (OpenAI + prompt loader)
 	// Use absolute path /app/prompts for Cloud Run, fallback to ./prompts for local dev
@@ -28,9 +42,20 @@ func main() {
 	if _, err := os.Stat(promptsDir); os.IsNotExist(err) {
 		promptsDir = "prompts"
 	}
+	logger.Info(appLogger, ctx, "llm_initialization_attempt",
+		slog.String("prompts_dir", promptsDir),
+	)
+
+	// Set the logger instance for handlers package
+	handlers.SetAppLogger(appLogger)
+
 	if err := handlers.InitializeLLM(promptsDir); err != nil {
-		log.Printf("Warning: Failed to initialize LLM: %v", err)
-		log.Println("LLM endpoints will not be available")
+		logger.Warn(appLogger, ctx, "llm_initialization_failed",
+			slog.String("error", err.Error()),
+		)
+		logger.Info(appLogger, ctx, "llm_endpoints_disabled")
+	} else {
+		logger.Info(appLogger, ctx, "llm_initialized")
 	}
 
 	// Initialize rate limiter
@@ -38,6 +63,12 @@ func main() {
 
 	// Setup router
 	mux := http.NewServeMux()
+
+	// Wrap mux with logging middleware
+	var handler http.Handler = mux
+	handler = middleware.LoggingMiddleware(appLogger)(handler)
+
+	logger.Info(appLogger, ctx, "router_setup_complete")
 
 	// Health check endpoint (no auth required)
 	mux.HandleFunc("/health", handlers.HealthCheck)
@@ -110,7 +141,7 @@ func main() {
 	// Create server
 	srv := &http.Server{
 		Addr:         ":" + port,
-		Handler:      mux,
+		Handler:      handler,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -118,8 +149,11 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		log.Printf("Server starting on port %s", port)
+		logger.Info(appLogger, ctx, "server_starting",
+			slog.String("port", port),
+		)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.ErrorWithErr(appLogger, ctx, "server_failed_to_start", err)
 			log.Fatalf("Server failed to start: %v", err)
 		}
 	}()
@@ -129,15 +163,16 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Server shutting down...")
+	logger.Info(appLogger, ctx, "server_shutdown_signal_received")
 
 	// Graceful shutdown with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.ErrorWithErr(appLogger, ctx, "server_forced_shutdown", err)
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
 
-	log.Println("Server exited")
+	logger.Info(appLogger, ctx, "server_exited")
 }
