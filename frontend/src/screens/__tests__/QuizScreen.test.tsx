@@ -6,13 +6,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { QuizScreen } from '../QuizScreen';
 import type { RootStackParamList } from '../../types/navigation';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Quiz'>;
-type ScreenRouteProp = RouteProp<RootStackParamList, 'Quiz'>;
-
-// Mock Alert
-jest.spyOn(Alert, 'alert');
-
-// Mock analytics hooks
+// Mock analytics hooks to prevent console.log outputs
 const mockStartQuiz = jest.fn();
 const mockAnswerQuestion = jest.fn().mockResolvedValue(undefined);
 const mockCompleteQuiz = jest.fn().mockResolvedValue(undefined);
@@ -25,6 +19,19 @@ jest.mock('../../services/analytics', () => ({
     getActiveSeconds: jest.fn().mockReturnValue(0),
   }),
 }));
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Quiz'>;
+type ScreenRouteProp = RouteProp<RootStackParamList, 'Quiz'>;
+
+// Spy on console.error to suppress expected error logs during tests
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+afterAll(() => {
+  consoleErrorSpy.mockRestore();
+});
+
+// Mock Alert
+jest.spyOn(Alert, 'alert');
 
 // Mock userStore
 const mockSetUserDocument = jest.fn();

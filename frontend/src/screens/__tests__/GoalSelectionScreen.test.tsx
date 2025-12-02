@@ -5,6 +5,49 @@ import { RouteProp } from '@react-navigation/native';
 import { GoalSelectionScreen } from '../GoalSelectionScreen';
 import { RootStackParamList } from '../../types/navigation';
 
+// Mock analytics hooks to prevent console.log outputs
+jest.mock('../../services/analytics/hooks', () => ({
+  useAnalytics: () => ({
+    trackScreen: jest.fn(),
+    setUserId: jest.fn(),
+    setUserProperties: jest.fn(),
+    trackSignUp: jest.fn(),
+    trackLogin: jest.fn(),
+    trackLogout: jest.fn(),
+    trackOnboardingStart: jest.fn(),
+    trackGoalSelected: jest.fn(),
+    trackLevelSelected: jest.fn(),
+    trackOnboardingComplete: jest.fn(),
+    trackLearningPathCreated: jest.fn(),
+    trackLearningPathOpened: jest.fn(),
+    trackLearningPathDeleted: jest.fn(),
+    trackStepStarted: jest.fn(),
+    trackStepCompleted: jest.fn(),
+    trackLessonCompleted: jest.fn(),
+    trackPracticeCompleted: jest.fn(),
+    trackQuizStarted: jest.fn(),
+    trackQuizQuestionAnswered: jest.fn(),
+    trackQuizCompleted: jest.fn(),
+    trackNextStepRequested: jest.fn(),
+    trackNextStepGenerated: jest.fn(),
+    trackAIError: jest.fn(),
+    trackAppOpen: jest.fn(),
+    startSession: jest.fn(),
+    endSession: jest.fn(),
+    trackThemeChanged: jest.fn(),
+    trackProgressViewed: jest.fn(),
+    trackDeleteAccountInitiated: jest.fn(),
+    getActiveTime: jest.fn(),
+  }),
+  useScreenTracking: jest.fn(),
+  useOnboardingTracking: () => ({
+    startOnboarding: jest.fn(),
+    selectGoal: jest.fn(),
+    selectLevel: jest.fn(),
+    completeOnboarding: jest.fn(),
+  }),
+}));
+
 type GoalSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoalSelection'>;
 type GoalSelectionScreenRouteProp = RouteProp<RootStackParamList, 'GoalSelection'>;
 
