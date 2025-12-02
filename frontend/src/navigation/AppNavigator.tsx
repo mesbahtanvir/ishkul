@@ -156,6 +156,8 @@ export const AppNavigator: React.FC = () => {
 
         if (validatedUser) {
           setUser(validatedUser);
+          // Clear cache when user logs in to ensure fresh data from backend
+          useLearningPathsStore.getState().clearAllCache();
           try {
             // Fetch user document and learning paths in parallel
             const [userDoc, paths] = await Promise.all([

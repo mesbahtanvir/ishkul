@@ -30,6 +30,7 @@ interface LearningPathsState {
   getCachedPath: (pathId: string) => LearningPath | null;
   invalidatePathCache: (pathId: string) => void;
   invalidateListCache: () => void;
+  clearAllCache: () => void; // Clear all cache metadata (called on login)
 }
 
 // Helper to find current (incomplete) step
@@ -175,6 +176,13 @@ export const useLearningPathsStore = create<LearningPathsState>((set, get) => ({
 
   invalidateListCache: () => {
     set({ listCache: null });
+  },
+
+  clearAllCache: () => {
+    set({
+      pathsCache: new Map(),
+      listCache: null,
+    });
   },
 }));
 
