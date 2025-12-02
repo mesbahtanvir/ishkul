@@ -66,8 +66,8 @@ type VerifyCheckoutRequest struct {
 
 // VerifyCheckoutResponse represents the response after verifying checkout
 type VerifyCheckoutResponse struct {
-	Success bool   `json:"success"`          // Whether the checkout was successful
-	Tier    string `json:"tier"`             // Current tier after verification
+	Success bool   `json:"success"`           // Whether the checkout was successful
+	Tier    string `json:"tier"`              // Current tier after verification
 	Message string `json:"message,omitempty"` // Optional message (e.g., error details)
 }
 
