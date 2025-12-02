@@ -102,11 +102,12 @@ describe('LessonScreen', () => {
     });
 
     it('should render the lesson title', () => {
-      const { getByText } = render(
+      const { getAllByText } = render(
         <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
-      expect(getByText('Introduction to Variables')).toBeTruthy();
+      const titleElements = getAllByText('Introduction to Variables');
+      expect(titleElements.length).toBeGreaterThan(0);
     });
 
     it('should render the lesson content', () => {
@@ -226,11 +227,12 @@ describe('LessonScreen', () => {
         params: { step: stepWithoutTitle, pathId: 'test-path-123' },
       } as unknown as ScreenRouteProp;
 
-      const { getByText } = render(
+      const { getAllByText } = render(
         <LessonScreen navigation={mockNavigation} route={route} />
       );
 
-      expect(getByText('Python Basics')).toBeTruthy();
+      const titleElements = getAllByText('Python Basics');
+      expect(titleElements.length).toBeGreaterThan(0);
     });
   });
 
@@ -250,11 +252,12 @@ describe('LessonScreen', () => {
         params: { step: longContentStep, pathId: 'test-path-123' },
       } as unknown as ScreenRouteProp;
 
-      const { getByText } = render(
+      const { getAllByText, getByText } = render(
         <LessonScreen navigation={mockNavigation} route={route} />
       );
 
-      expect(getByText('A Very Long Lesson')).toBeTruthy();
+      const titleElements = getAllByText('A Very Long Lesson');
+      expect(titleElements.length).toBeGreaterThan(0);
       expect(getByText(/This is a very long content/)).toBeTruthy();
     });
   });

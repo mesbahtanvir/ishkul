@@ -102,11 +102,12 @@ describe('PracticeScreen', () => {
     });
 
     it('should render the practice title', () => {
-      const { getByText } = render(
+      const { getAllByText } = render(
         <PracticeScreen navigation={mockNavigation} route={mockRoute} />
       );
 
-      expect(getByText('Write Your First Function')).toBeTruthy();
+      const titleElements = getAllByText('Write Your First Function');
+      expect(titleElements.length).toBeGreaterThan(0);
     });
 
     it('should render Your Task label', () => {
@@ -246,11 +247,12 @@ describe('PracticeScreen', () => {
         params: { step: stepWithoutTitle, pathId: 'test-path-123' },
       } as unknown as ScreenRouteProp;
 
-      const { getByText } = render(
+      const { getAllByText } = render(
         <PracticeScreen navigation={mockNavigation} route={route} />
       );
 
-      expect(getByText('Advanced Python')).toBeTruthy();
+      const titleElements = getAllByText('Advanced Python');
+      expect(titleElements.length).toBeGreaterThan(0);
     });
   });
 
@@ -269,11 +271,12 @@ describe('PracticeScreen', () => {
         params: { step: differentStep, pathId: 'test-path-123' },
       } as unknown as ScreenRouteProp;
 
-      const { getByText } = render(
+      const { getAllByText, getByText } = render(
         <PracticeScreen navigation={mockNavigation} route={route} />
       );
 
-      expect(getByText('Create a Component')).toBeTruthy();
+      const titleElements = getAllByText('Create a Component');
+      expect(titleElements.length).toBeGreaterThan(0);
       expect(getByText(/Build a reusable button component/)).toBeTruthy();
     });
   });

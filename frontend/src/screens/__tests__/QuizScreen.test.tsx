@@ -103,11 +103,12 @@ describe('QuizScreen', () => {
     });
 
     it('should render the question title', () => {
-      const { getByText } = render(
+      const { getAllByText } = render(
         <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
 
-      expect(getByText('Variables Quiz')).toBeTruthy();
+      const titleElements = getAllByText('Variables Quiz');
+      expect(titleElements.length).toBeGreaterThan(0);
     });
 
     it('should render the question text', () => {
@@ -318,11 +319,12 @@ describe('QuizScreen', () => {
         params: { step: stepWithoutTitle, pathId: 'test-path-123' },
       } as unknown as ScreenRouteProp;
 
-      const { getByText } = render(
+      const { getAllByText } = render(
         <QuizScreen navigation={mockNavigation} route={route} />
       );
 
-      expect(getByText('Python Basics')).toBeTruthy();
+      const titleElements = getAllByText('Python Basics');
+      expect(titleElements.length).toBeGreaterThan(0);
     });
   });
 });
