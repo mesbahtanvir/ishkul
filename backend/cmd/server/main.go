@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/mesbahtanvir/ishkul/backend/internal/handlers"
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
@@ -17,6 +18,11 @@ import (
 )
 
 func main() {
+	// Load .env file for local development (ignored in production)
+	// godotenv returns an error if file doesn't exist, which is fine -
+	// Cloud Run uses environment variables directly
+	_ = godotenv.Load()
+
 	// Initialize structured logger
 	appLogger := logger.New()
 
