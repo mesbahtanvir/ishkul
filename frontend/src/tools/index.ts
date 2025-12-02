@@ -13,12 +13,14 @@ export * from './registry';
 export { LessonTool, LessonRenderer, LessonData } from './lesson';
 export { QuizTool, QuizRenderer, QuizData } from './quiz';
 export { PracticeTool, PracticeRenderer, PracticeData } from './practice';
+export { FlashcardTool, FlashcardRenderer, FlashcardData } from './flashcard';
 
 // Register all built-in tools
 import { registerTool } from './registry';
 import { LessonTool } from './lesson';
 import { QuizTool } from './quiz';
 import { PracticeTool } from './practice';
+import { FlashcardTool } from './flashcard';
 
 /**
  * Initialize and register all built-in tools
@@ -27,6 +29,7 @@ export function initializeTools(): void {
   registerTool(LessonTool);
   registerTool(QuizTool);
   registerTool(PracticeTool);
+  registerTool(FlashcardTool);
 
   // Review and Summary use the same renderer as Lesson
   // They're registered as aliases

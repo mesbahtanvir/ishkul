@@ -1,7 +1,7 @@
 // Type definitions for the learning app
 
 export type LevelType = 'beginner' | 'intermediate' | 'advanced';
-export type StepType = 'lesson' | 'quiz' | 'practice' | 'review' | 'summary';
+export type StepType = 'lesson' | 'quiz' | 'practice' | 'review' | 'summary' | 'flashcard';
 
 // Maximum character length for step content
 export const MAX_STEP_CONTENT_LENGTH = 2000;

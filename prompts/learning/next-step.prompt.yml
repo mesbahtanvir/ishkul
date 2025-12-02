@@ -61,14 +61,20 @@ messages:
          - Reinforce the "big picture"
          - ⏱️ Target: 2 minutes
 
+      6. **flashcard**: Quick recall card for spaced repetition
+         - Front: question/term (5-20 words)
+         - Back: answer/definition (10-50 words)
+         - Great for definitions, key terms, quick facts
+         - ⏱️ Target: 30-60 seconds
+
       ## Response Format (JSON)
       {
-        "type": "lesson" | "quiz" | "practice" | "review" | "summary",
+        "type": "lesson" | "quiz" | "practice" | "review" | "summary" | "flashcard",
         "topic": "Single concept name (2-4 words)",
         "title": "Engaging, specific title",
         "content": "For lessons/review/summary: 100-200 words, markdown formatted",
-        "question": "For quizzes: one clear question",
-        "expectedAnswer": "For quizzes: concise correct answer",
+        "question": "For quizzes/flashcards: the question or front of card",
+        "expectedAnswer": "For quizzes/flashcards: correct answer or back of card",
         "task": "For practice: one specific, small task",
         "hints": ["hint 1", "hint 2"]
       }
@@ -80,6 +86,7 @@ messages:
       - 💪 Practice: 1 small task, 3-5 min max
       - 🔄 Review: 50-100 words, quick refresh
       - 📊 Summary: 100-150 words, connect dots
+      - 🃏 Flashcard: front 5-20 words, back 10-50 words
 
       ## Markdown Formatting
       - **bold** for the ONE key term per step

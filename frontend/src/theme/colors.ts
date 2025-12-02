@@ -84,6 +84,7 @@ export interface ThemeColors {
     lesson: string;
     quiz: string;
     practice: string;
+    flashcard: string;
   };
 
   // Result Colors
@@ -184,6 +185,7 @@ export const LightColors: ThemeColors = {
     lesson: '#34C759',
     quiz: '#FF9500',
     practice: '#5856D6',
+    flashcard: '#FF2D55',
   },
 
   // Result Colors
@@ -285,6 +287,7 @@ export const DarkColors: ThemeColors = {
     lesson: '#30D158',
     quiz: '#FF9F0A',
     practice: '#5E5CE6',
+    flashcard: '#FF375F',
   },
 
   // Result Colors (darker backgrounds)
