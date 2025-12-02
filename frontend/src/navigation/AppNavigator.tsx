@@ -179,7 +179,14 @@ export const AppNavigator: React.FC = () => {
             setUserDocument(userDoc);
             setPaths(paths);
           } catch (error) {
-            console.error('Error fetching user data:', error);
+            // Log detailed error information for debugging
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error('Error fetching user data on app startup:', {
+              message: errorMessage,
+              error,
+            });
+            // User will see the app with cached/empty data
+            // A sync error will be shown in the UI once we implement a sync status indicator
           }
         } else {
           // Only clear user if tokens don't exist
@@ -194,7 +201,12 @@ export const AppNavigator: React.FC = () => {
           // Next sync will update when tokens refresh
         }
       } catch (error) {
-        console.error('Error checking auth state:', error);
+        // Log detailed error information for debugging
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error checking auth state:', {
+          message: errorMessage,
+          error,
+        });
         // Only clear user if tokens don't exist
         if (!tokenStorage.hasTokens()) {
           setUser(null);

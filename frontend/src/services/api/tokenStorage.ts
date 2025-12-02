@@ -104,6 +104,8 @@ class TokenStorage {
       }
     } catch (error) {
       console.error('Error clearing tokens:', error);
+      // Throw error so caller can handle it
+      throw error;
     }
   }
 

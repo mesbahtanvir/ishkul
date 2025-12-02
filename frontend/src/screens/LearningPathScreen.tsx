@@ -126,7 +126,14 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
         // Record the view to update lastReviewed
         await viewStep(pathId, step.id);
       } catch (error) {
-        console.error('Error recording step view:', error);
+        // Log detailed error information
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error recording step view:', { message: errorMessage, error });
+        // Show alert but still navigate to step details
+        Alert.alert(
+          'Warning',
+          'Could not record your step view. Your progress may not be fully synchronized.'
+        );
       }
       navigation.navigate('StepDetail', { step, pathId });
     } else {

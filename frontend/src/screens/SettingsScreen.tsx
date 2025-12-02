@@ -51,6 +51,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
       console.error('Logout error:', error);
       setLoading(false);
       setShowLogoutDialog(false);
+      // Surface error to user
+      Alert.alert(
+        'Logout Failed',
+        `An error occurred while logging out: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        [{ text: 'OK', onPress: () => {} }]
+      );
     }
   };
 
@@ -112,7 +118,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
       navigation.replace('Login');
     } catch (error) {
       console.error('Delete account error:', error);
-      Alert.alert('Error', 'Failed to delete account. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert(
+        'Account Delete Failed',
+        `Failed to delete account: ${errorMessage}`,
+        [{ text: 'Try Again', onPress: () => {} }]
+      );
       setLoading(false);
       setShowDeleteConfirmDialog(false);
     }

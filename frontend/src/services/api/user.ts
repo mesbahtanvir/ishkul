@@ -92,14 +92,16 @@ export const userApi = {
 
   /**
    * Get full user document (including learning data)
+   * Throws error on API failure so caller can handle appropriately
    */
-  async getUserDocument(): Promise<UserDocument | null> {
+  async getUserDocument(): Promise<UserDocument> {
     try {
       const response = await apiClient.get<BackendUserDocument>('/me/document');
       return transformUserDocument(response);
     } catch (error) {
-      console.error('Error getting user document:', error);
-      return null;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error getting user document:', { message: errorMessage, error });
+      throw error;
     }
   },
 

@@ -53,15 +53,33 @@ export const authApi = {
 
   /**
    * Logout - clear local tokens and notify backend
+   * Errors are propagated to the caller so they can notify the user
    */
   async logout(): Promise<void> {
+    let logoutError: Error | null = null;
+
     try {
       await apiClient.post('/auth/logout', {});
     } catch (error) {
-      // Ignore errors - we still want to clear local tokens
-      console.warn('Logout API call failed:', error);
+      // Capture error but don't throw yet - we still need to clear tokens
+      logoutError = error instanceof Error ? error : new Error('Logout API call failed');
+      console.error('Logout API call failed:', error);
     }
-    await tokenStorage.clearTokens();
+
+    // Always clear tokens, even if API call fails
+    try {
+      await tokenStorage.clearTokens();
+    } catch (clearError) {
+      console.error('Error clearing tokens during logout:', clearError);
+      // If both API and token clearing failed, throw the API error first
+      if (logoutError) throw logoutError;
+      throw clearError;
+    }
+
+    // Now throw API error if it occurred (after tokens are cleared)
+    if (logoutError) {
+      throw logoutError;
+    }
   },
 
   /**

@@ -48,7 +48,15 @@ export const HomeScreen: React.FC = () => {
           const fetchedPaths = await learningPathsApi.getPaths();
           setPaths(fetchedPaths);
         } catch (error) {
-          console.error('Error refreshing paths:', error);
+          // Log detailed error and notify user
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error('Error refreshing learning paths:', { message: errorMessage, error });
+          // Show alert to user about sync failure
+          if (Platform.OS === 'web') {
+            window.alert('Failed to sync learning paths. Please try again.');
+          } else {
+            Alert.alert('Sync Error', 'Failed to sync learning paths. Please try again.');
+          }
         }
       };
       refreshPaths();
