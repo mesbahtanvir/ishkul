@@ -1,15 +1,13 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, Alert, Platform, TouchableOpacity } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Container } from '../components/Container';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { CreatePathCard } from '../components/CreatePathCard';
 import { LearningPathCard } from '../components/LearningPathCard';
 import { LoadingScreen } from '../components/LoadingScreen';
 
-import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 import { learningPathsApi } from '../services/api';
 
@@ -27,7 +25,6 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const { user } = useUserStore();
   const { paths, setPaths, setActivePath, deletePath, loading } = useLearningPathsStore();
   const { colors } = useTheme();
 
@@ -99,45 +96,46 @@ export const HomeScreen: React.FC = () => {
     setPathToDelete(null);
   };
 
-  const firstName = user?.displayName?.split(' ')[0] || 'there';
-
   if (loading) {
     return <LoadingScreen />;
   }
 
   return (
-    <Container scrollable padding="medium">
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.greeting, { color: colors.text.primary }]}>Welcome back, {firstName}</Text>
-        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>Continue your learning journey</Text>
-      </View>
+    <View style={styles.container}>
+      <Container scrollable padding="medium">
+        {/* Learning Paths Section */}
+        {paths.length > 0 ? (
+          <View style={styles.pathsSection}>
+            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>My Learning Paths</Text>
+            {paths.map((path) => (
+              <LearningPathCard
+                key={path.id}
+                path={path}
+                onPress={handlePathPress}
+                onDelete={handleDeletePath}
+              />
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>📚</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>Start Your Learning Journey</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.text.secondary }]}>
+              Create your first learning path and begin mastering new skills!
+            </Text>
+          </View>
+        )}
+      </Container>
 
-      {/* Create New Path Card */}
-      <CreatePathCard onPress={handleCreatePath} />
-
-      {/* Learning Paths Section */}
-      {paths.length > 0 ? (
-        <View style={styles.pathsSection}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>My Learning Paths</Text>
-          {paths.map((path) => (
-            <LearningPathCard
-              key={path.id}
-              path={path}
-              onPress={handlePathPress}
-              onDelete={handleDeletePath}
-            />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>📚</Text>
-          <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>Start Your Learning Journey</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.text.secondary }]}>
-            Create your first learning path and begin mastering new skills!
-          </Text>
-        </View>
-      )}
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={handleCreatePath}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.fabIcon}>✨</Text>
+        <Text style={[styles.fabText, { color: colors.white }]}>New Path</Text>
+      </TouchableOpacity>
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
@@ -151,21 +149,13 @@ export const HomeScreen: React.FC = () => {
         destructive
         loading={deleteLoading}
       />
-    </Container>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  header: {
-    marginBottom: Spacing.lg,
-    marginTop: Spacing.md,
-  },
-  greeting: {
-    ...Typography.heading.h2,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    ...Typography.body.medium,
+  container: {
+    flex: 1,
   },
   pathsSection: {
     flex: 1,
@@ -193,6 +183,30 @@ const styles = StyleSheet.create({
     ...Typography.body.medium,
     textAlign: 'center',
     paddingHorizontal: Spacing.xl,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: Spacing.lg,
+    right: Spacing.lg,
+    width: 120,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  fabIcon: {
+    fontSize: 20,
+  },
+  fabText: {
+    ...Typography.button.medium,
+    fontWeight: '600',
   },
 });
 
