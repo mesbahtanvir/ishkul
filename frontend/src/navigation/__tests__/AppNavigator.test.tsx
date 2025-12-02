@@ -125,15 +125,11 @@ const mockUseLearningPathsStore = useLearningPathsStore as jest.MockedFunction<t
 
 describe('AppNavigator', () => {
   let mockFetchStatus: jest.Mock;
-  let mockSetState: jest.Mock;
-  let originalWindow: typeof window;
-  let originalDocument: typeof document;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     mockFetchStatus = jest.fn().mockResolvedValue(undefined);
-    mockSetState = jest.fn();
 
     // Mock useUserStore
     mockUseUserStore.mockReturnValue({
@@ -156,7 +152,7 @@ describe('AppNavigator', () => {
       fetchStatus: mockFetchStatus,
       checkoutInProgress: false,
     });
-    (useSubscriptionStore as unknown as { setState: jest.Mock }).setState = mockSetState;
+    (useSubscriptionStore as unknown as { setState: jest.Mock }).setState = jest.fn();
 
     // Mock useLearningPathsStore
     mockUseLearningPathsStore.mockReturnValue({
@@ -168,84 +164,6 @@ describe('AppNavigator', () => {
     // Also mock getState for direct access
     (useLearningPathsStore as unknown as { getState: () => unknown }).getState = jest.fn().mockReturnValue({
       clearAllCache: jest.fn(),
-    });
-
-    // Store original window and document
-    originalWindow = global.window;
-    originalDocument = global.document;
-  });
-
-  afterEach(() => {
-    // Restore window and document
-    global.window = originalWindow;
-    global.document = originalDocument;
-  });
-
-  describe('web URL handling', () => {
-    beforeEach(() => {
-      // Mock Platform.OS as 'web'
-      jest.mock('react-native', () => ({
-        ...jest.requireActual('react-native'),
-        Platform: {
-          OS: 'web',
-        },
-      }));
-    });
-
-    it('should handle /subscription/success URL on web', async () => {
-      // Mock window.location and history for web
-      const mockReplaceState = jest.fn();
-      Object.defineProperty(global, 'window', {
-        value: {
-          location: {
-            pathname: '/subscription/success',
-            origin: 'https://ishkul.org',
-          },
-          history: {
-            replaceState: mockReplaceState,
-          },
-        },
-        writable: true,
-      });
-
-      // Force Platform.OS to be 'web'
-      const { Platform } = require('react-native');
-      Platform.OS = 'web';
-
-      render(<AppNavigator />);
-
-      // Since the effect runs on mount, we should see the expected behavior
-      // Note: Due to mock complexity, this test verifies the component renders without errors
-      await waitFor(() => {
-        expect(true).toBe(true);
-      });
-    });
-
-    it('should handle /subscription/cancel URL on web', async () => {
-      // Mock window.location and history for web
-      const mockReplaceState = jest.fn();
-      Object.defineProperty(global, 'window', {
-        value: {
-          location: {
-            pathname: '/subscription/cancel',
-            origin: 'https://ishkul.org',
-          },
-          history: {
-            replaceState: mockReplaceState,
-          },
-        },
-        writable: true,
-      });
-
-      // Force Platform.OS to be 'web'
-      const { Platform } = require('react-native');
-      Platform.OS = 'web';
-
-      render(<AppNavigator />);
-
-      await waitFor(() => {
-        expect(true).toBe(true);
-      });
     });
   });
 
