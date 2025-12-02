@@ -47,10 +47,13 @@ func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/learning-paths")
 	path = strings.TrimPrefix(path, "/")
 
-	logger.Info(appLogger, ctx, "learning_paths_request",
-		slog.String("method", r.Method),
-		slog.String("path", r.URL.Path),
-	)
+	// Log request if logger is available
+	if appLogger != nil {
+		logger.Info(appLogger, ctx, "learning_paths_request",
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+		)
+	}
 
 	// Root path: /api/learning-paths
 	if path == "" {
@@ -60,9 +63,11 @@ func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
 		case http.MethodPost:
 			createLearningPath(w, r)
 		default:
-			logger.Warn(appLogger, ctx, "learning_paths_method_not_allowed",
-				slog.String("method", r.Method),
-			)
+			if appLogger != nil {
+				logger.Warn(appLogger, ctx, "learning_paths_method_not_allowed",
+					slog.String("method", r.Method),
+				)
+			}
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 		return

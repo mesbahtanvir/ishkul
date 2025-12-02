@@ -72,6 +72,11 @@ func GetUserID(ctx context.Context) string {
 
 // LogWithContext logs a message with request and user IDs from context
 func LogWithContext(logger *slog.Logger, ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr) {
+	// Skip logging if logger is nil (e.g., in tests)
+	if logger == nil {
+		return
+	}
+
 	// Add context IDs to attributes
 	allAttrs := append(attrs,
 		slog.String(string(requestIDKey), GetRequestID(ctx)),
