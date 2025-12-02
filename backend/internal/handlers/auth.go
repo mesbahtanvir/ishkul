@@ -245,8 +245,8 @@ func Register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Check for invalid email format
-		errMsg := err.Error()
-		if containsCaseInsensitive(errMsg, "email") && containsCaseInsensitive(errMsg, "invalid") {
+		errMsg := strings.ToLower(err.Error())
+		if strings.Contains(errMsg, "email") && strings.Contains(errMsg, "invalid") {
 			sendErrorResponse(w, http.StatusBadRequest, ErrCodeInvalidEmail, "Please enter a valid email address")
 			return
 		}
@@ -282,11 +282,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to create account. Please try again.")
 		return
 	}
-}
-
-// containsCaseInsensitive checks if a string contains a substring (case-insensitive)
-func containsCaseInsensitive(s, substr string) bool {
-	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
 
 // FirebaseAuthResponse represents the response from Firebase Auth REST API
