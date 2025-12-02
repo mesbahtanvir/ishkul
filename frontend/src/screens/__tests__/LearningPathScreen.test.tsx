@@ -452,7 +452,7 @@ describe('LearningPathScreen', () => {
       });
     });
 
-    it('should call handleContinue to fetch next step when Get Next Step is pressed', async () => {
+    it('should navigate to GeneratingStep when Get Next Step is pressed', async () => {
       // Path with all steps completed - should show "Get Next Step" button
       const pathWithAllCompleted = createMockPath({
         status: 'active',
@@ -462,10 +462,6 @@ describe('LearningPathScreen', () => {
       mockGetLearningPath.mockResolvedValue(pathWithAllCompleted);
       mockGetCachedPath.mockReturnValue(pathWithAllCompleted);
       mockIsCacheValid.mockReturnValue(true);
-      mockGetPathNextStep.mockResolvedValue({
-        step: createMockStep({ id: 'new-step', index: 1 }),
-        stepIndex: 1,
-      });
 
       const { getByText } = render(
         <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
@@ -478,7 +474,10 @@ describe('LearningPathScreen', () => {
       fireEvent.press(getByText('Get Next Step'));
 
       await waitFor(() => {
-        expect(mockGetPathNextStep).toHaveBeenCalledWith('test-path-123');
+        expect(mockNavigate).toHaveBeenCalledWith('GeneratingStep', {
+          pathId: 'test-path-123',
+          topic: pathWithAllCompleted.goal,
+        });
       });
     });
   });
