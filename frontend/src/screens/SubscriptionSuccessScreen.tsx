@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
@@ -18,6 +18,10 @@ interface SubscriptionSuccessScreenProps {
   navigation: SubscriptionSuccessScreenNavigationProp;
 }
 
+// Constants for polling
+const POLL_INTERVAL_MS = 1500; // Poll every 1.5 seconds
+const MAX_POLL_ATTEMPTS = 10; // Max 15 seconds of polling
+
 export const SubscriptionSuccessScreen: React.FC<SubscriptionSuccessScreenProps> = ({
   navigation,
 }) => {
@@ -28,13 +32,31 @@ export const SubscriptionSuccessScreen: React.FC<SubscriptionSuccessScreenProps>
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
+  const pollAttempts = useRef(0);
+
+  // Poll for subscription status until it shows 'pro' or max attempts reached
+  const pollForProStatus = useCallback(async () => {
+    await fetchStatus();
+    const currentTier = useSubscriptionStore.getState().tier;
+
+    if (currentTier === 'pro') {
+      // Successfully updated to pro
+      return;
+    }
+
+    pollAttempts.current += 1;
+    if (pollAttempts.current < MAX_POLL_ATTEMPTS) {
+      // Schedule next poll
+      setTimeout(pollForProStatus, POLL_INTERVAL_MS);
+    }
+  }, [fetchStatus]);
 
   useEffect(() => {
-    // Refresh subscription status
-    fetchStatus();
-
     // Mark checkout as complete
     useSubscriptionStore.setState({ checkoutInProgress: false });
+
+    // Start polling for pro status (handles webhook race condition)
+    pollForProStatus();
 
     // Run animations
     Animated.sequence([
@@ -60,7 +82,7 @@ export const SubscriptionSuccessScreen: React.FC<SubscriptionSuccessScreenProps>
       delay: 300,
       useNativeDriver: true,
     }).start();
-  }, [fetchStatus, scaleAnim, checkmarkAnim, opacityAnim]);
+  }, [pollForProStatus, scaleAnim, checkmarkAnim, opacityAnim]);
 
   const handleContinue = () => {
     // Navigate back to main app

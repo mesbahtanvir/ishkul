@@ -210,6 +210,29 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 let appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null;
 let visibilityHandler: (() => void) | null = null;
 
+// Polling configuration for handling webhook race condition
+const POLL_INTERVAL_MS = 1500;
+const MAX_POLL_ATTEMPTS = 10;
+
+// Poll for subscription status until tier is 'pro' or max attempts reached
+const pollForProStatus = async (attempts = 0): Promise<void> => {
+  const state = useSubscriptionStore.getState();
+  await state.fetchStatus();
+
+  const updatedState = useSubscriptionStore.getState();
+  if (updatedState.tier === 'pro') {
+    useSubscriptionStore.setState({ checkoutInProgress: false });
+    return;
+  }
+
+  if (attempts < MAX_POLL_ATTEMPTS) {
+    setTimeout(() => pollForProStatus(attempts + 1), POLL_INTERVAL_MS);
+  } else {
+    // Give up polling, mark checkout as complete anyway
+    useSubscriptionStore.setState({ checkoutInProgress: false });
+  }
+};
+
 const setupVisibilityListener = () => {
   if (Platform.OS === 'web') {
     // Web: Use document visibility API
@@ -218,10 +241,9 @@ const setupVisibilityListener = () => {
         if (document.visibilityState === 'visible') {
           const state = useSubscriptionStore.getState();
           if (state.checkoutInProgress) {
-            // Refresh subscription status after returning from checkout
-            state.fetchStatus().then(() => {
-              useSubscriptionStore.setState({ checkoutInProgress: false });
-            });
+            // Poll for subscription status after returning from checkout
+            // This handles the webhook race condition
+            pollForProStatus();
           }
         }
       };
@@ -234,10 +256,9 @@ const setupVisibilityListener = () => {
         if (nextAppState === 'active') {
           const state = useSubscriptionStore.getState();
           if (state.checkoutInProgress) {
-            // Refresh subscription status after returning from checkout
-            state.fetchStatus().then(() => {
-              useSubscriptionStore.setState({ checkoutInProgress: false });
-            });
+            // Poll for subscription status after returning from checkout
+            // This handles the webhook race condition
+            pollForProStatus();
           }
         }
       });
