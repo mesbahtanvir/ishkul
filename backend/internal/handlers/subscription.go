@@ -445,11 +445,11 @@ func GetPaymentSheetParams(w http.ResponseWriter, r *http.Request) {
 	// Return the parameters needed for the payment sheet
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
-		"paymentIntent":   clientSecret,
-		"ephemeralKey":    ek.Secret,
-		"customer":        stripeCustomerID,
-		"publishableKey":  publishableKey,
-		"subscriptionId":  sub.ID,
+		"paymentIntent":  clientSecret,
+		"ephemeralKey":   ek.Secret,
+		"customer":       stripeCustomerID,
+		"publishableKey": publishableKey,
+		"subscriptionId": sub.ID,
 	}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
