@@ -357,24 +357,76 @@ This document outlines planned features, improvements, and architectural enhance
 
 ## Analytics & Insights
 
-### Usage Analytics (P2)
+> 📖 **See detailed strategy**: [ANALYTICS.md](ANALYTICS.md)
 
-**Current State**: No user analytics
+### Phase 1: Firebase Analytics (P1) 🔄 IN PROGRESS
+
+**Current State**: No analytics - Strategy documented, ready for implementation
 
 **Goals**:
-- Track user engagement metrics
-- Understand learning patterns
-- Identify drop-off points
-- Measure feature adoption
+- Track user engagement metrics (DAU/MAU, session duration)
+- Monitor learning performance (quiz scores, completion rates)
+- Measure AI performance (response times, error rates)
+- Identify drop-off points in funnels
 
 **Implementation**:
-- [ ] Set up Google Analytics 4 / Mixpanel
-- [ ] Implement event tracking
-- [ ] Create analytics dashboard
-- [ ] Set up retention cohorts
-- [ ] Track funnels (sign-up → learning)
+- [ ] Set up Firebase Analytics in React Native
+- [ ] Create type-safe analytics service
+- [ ] Implement Tier 1 events (auth, learning, session)
+- [ ] Add active time tracking (not just elapsed time)
+- [ ] Implement offline event queue
+- [ ] Configure Firebase dashboards
+- [ ] Set up BigQuery export
 
-**Estimated Impact**: 🟦🟦 Medium - Business insights
+**Key Events** (21 Tier 1 events):
+- Auth: `sign_up`, `login`, `logout`
+- Learning: `step_started`, `step_completed`, `quiz_question_answered`
+- AI: `next_step_generated`, `ai_error`
+- Session: `app_open`, `session_start`, `session_end`
+
+**Estimated Impact**: 🟦🟦🟦 High - Foundation for all product decisions
+
+---
+
+### Phase 2: Advanced Analytics (P2)
+
+**Current State**: Planned after Firebase baseline
+
+**Goals**:
+- Deep behavioral analysis with cohorts
+- Advanced retention curves
+- A/B testing infrastructure
+- User journey mapping
+
+**Implementation**:
+- [ ] Evaluate Mixpanel vs Amplitude
+- [ ] Integrate chosen platform
+- [ ] Set up cohort analysis
+- [ ] Implement retention tracking
+- [ ] Create A/B test framework
+
+**Estimated Impact**: 🟦🟦 Medium - Advanced insights
+
+---
+
+### Phase 3: Error Tracking (P2)
+
+**Current State**: Basic Cloud Logging only
+
+**Goals**:
+- Detailed error context with stack traces
+- Session replay for debugging
+- Performance monitoring
+- Release health tracking
+
+**Implementation**:
+- [ ] Integrate Sentry
+- [ ] Configure error grouping
+- [ ] Set up session replay
+- [ ] Create alerting rules
+- [ ] Monitor release health
+
+**Estimated Impact**: 🟦🟦 Medium - Debugging & reliability
 
 ---
 
@@ -383,16 +435,16 @@ This document outlines planned features, improvements, and architectural enhance
 **Current State**: No learning outcome tracking
 
 **Goals**:
-- Measure retention rates
-- Track quiz performance
+- Measure retention rates by topic
+- Track quiz performance trends
 - Identify difficult topics
 - Show learning velocity
 
 **Implementation**:
-- [ ] Design metrics schema
-- [ ] Implement tracking in backend
-- [ ] Create dashboard for instructors
-- [ ] Generate student reports
+- [ ] Design topic performance schema
+- [ ] Aggregate quiz data in BigQuery
+- [ ] Create learning analytics dashboard
+- [ ] Generate student progress reports
 - [ ] A/B test learning methods
 
 **Estimated Impact**: 🟦🟦 Medium - Instructional improvement

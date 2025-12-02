@@ -23,6 +23,7 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { Step } from '../types/app';
+import { useScreenTracking, useAITracking } from '../services/analytics';
 
 type LearningPathScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -39,6 +40,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   navigation,
   route,
 }) => {
+  useScreenTracking('LearningPath', 'LearningPathScreen');
   const { pathId } = route.params;
   const { activePath, setActivePath, addStep } = useLearningPathsStore();
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +49,9 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   const scrollViewRef = useRef<ScrollView>(null);
   const { responsive } = useResponsive();
   const { colors } = useTheme();
+
+  // AI tracking for step generation
+  const { startRequest, completeRequest, trackError } = useAITracking();
 
   useEffect(() => {
     loadPath();
@@ -88,9 +93,24 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   };
 
   const fetchNextStep = async () => {
+    const currentProgress = activePath?.progress || 0;
+
     try {
       setIsLoadingNextStep(true);
+
+      // Track AI request start (returns request ID for timing)
+      const requestId = startRequest(pathId, currentProgress);
+
       const { step } = await getPathNextStep(pathId);
+
+      // Track successful AI response with timing
+      await completeRequest(
+        requestId,
+        pathId,
+        step.type as 'lesson' | 'quiz' | 'practice' | 'review' | 'summary',
+        step.topic,
+        'gemini-2.0-flash' // Model used by backend
+      );
 
       // Add step to local state
       addStep(pathId, step);
@@ -106,6 +126,13 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
+      // Track AI error
+      await trackError(
+        pathId,
+        error instanceof Error ? error.message : 'Unknown error',
+        0 // retry count
+      );
+
       console.error('Error fetching next step:', error);
       Alert.alert('Error', 'Failed to generate next step. Please try again.');
     } finally {

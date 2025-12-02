@@ -13,6 +13,7 @@ import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
+import { useScreenTracking, useAnalytics } from '../services/analytics';
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
 
@@ -21,6 +22,8 @@ interface SettingsScreenProps {
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
+  useScreenTracking('Settings', 'SettingsScreen');
+  const { trackLogout, trackThemeChanged, trackDeleteAccountInitiated, getActiveTime } = useAnalytics();
   const { user, clearUser } = useUserStore();
   const { tier, fetchStatus } = useSubscriptionStore();
   const { colors, themeMode, setThemeMode } = useTheme();
@@ -30,6 +33,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
+  const sessionStartTime = React.useRef(Date.now());
 
   // Fetch subscription status on mount
   useEffect(() => {
@@ -45,6 +49,17 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
     { value: 'system', label: 'System' },
   ];
 
+  const handleThemeChange = async (newMode: ThemeMode) => {
+    const oldMode = themeMode;
+    setThemeMode(newMode);
+
+    // Track theme change
+    await trackThemeChanged({
+      from_theme: oldMode,
+      to_theme: newMode,
+    });
+  };
+
   const handleLogout = () => {
     setShowLogoutDialog(true);
   };
@@ -52,6 +67,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   const confirmLogout = async () => {
     try {
       setLoading(true);
+
+      // Track logout with session duration
+      const sessionDuration = Math.floor((Date.now() - sessionStartTime.current) / 1000);
+      await trackLogout({ session_duration_sec: sessionDuration });
+
       await signOut();
       clearUser();
       setShowLogoutDialog(false);
@@ -75,7 +95,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
     }
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
+    // Track delete account initiated
+    // Note: account_age_days is set to 0 as we don't store account creation time in local User type
+    await trackDeleteAccountInitiated({
+      account_age_days: 0,
+      paths_count: 0, // Would need to fetch from store
+      steps_completed: 0, // Would need to fetch from store
+    });
+
     setShowDeleteDialog(true);
   };
 
@@ -231,7 +259,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
                   styles.themeOption,
                   themeMode === mode.value && { backgroundColor: colors.primary },
                 ]}
-                onPress={() => setThemeMode(mode.value)}
+                onPress={() => handleThemeChange(mode.value)}
                 activeOpacity={0.7}
               >
                 <Text

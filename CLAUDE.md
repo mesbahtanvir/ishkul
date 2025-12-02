@@ -169,6 +169,7 @@ For detailed information, see:
 - **[docs/ROADMAP.md](docs/ROADMAP.md)** - Future features, enhancements, timeline
 - **[docs/PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Detailed architecture
 - **[docs/ENV_SYNC_GUIDE.md](docs/ENV_SYNC_GUIDE.md)** - Dynamic environment variable syncing
+- **[docs/ANALYTICS.md](docs/ANALYTICS.md)** - Analytics strategy, events, funnels (WIP)
 - **[frontend/DESIGN_SYSTEM.md](frontend/DESIGN_SYSTEM.md)** - UI/UX design tokens
 
 ## 🚀 Quick Deploy

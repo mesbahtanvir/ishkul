@@ -20,6 +20,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { ApiError, ErrorCodes } from '../services/api';
+import { useScreenTracking, useAnalytics } from '../services/analytics';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -33,6 +34,8 @@ type AuthMode = 'login' | 'register';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
+  useScreenTracking('Login', 'LoginScreen');
+  const { trackSignUp, trackLogin } = useAnalytics();
   const { setUser, setUserDocument, setLoading } = useUserStore();
   const { request, response, promptAsync, configError } = useGoogleAuth();
   const { responsive, isSmallPhone } = useResponsive();
@@ -88,6 +91,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       setErrorMessage(null);
       const user = await signInWithGoogleIdToken(idToken);
       setUser(user);
+
+      // Track Google login
+      await trackLogin({ method: 'google' });
 
       const userDoc = await getUserDocument();
       setUserDocument(userDoc);
@@ -198,8 +204,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       let user;
       if (authMode === 'login') {
         user = await signInWithEmail(email.trim(), password);
+        // Track email login
+        await trackLogin({ method: 'email' });
       } else {
         user = await registerWithEmail(email.trim(), password, displayName.trim());
+        // Track email signup
+        await trackSignUp({ method: 'email' });
       }
 
       setUser(user);

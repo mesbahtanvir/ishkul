@@ -12,6 +12,20 @@ type ScreenRouteProp = RouteProp<RootStackParamList, 'Quiz'>;
 // Mock Alert
 jest.spyOn(Alert, 'alert');
 
+// Mock analytics hooks
+const mockStartQuiz = jest.fn();
+const mockAnswerQuestion = jest.fn().mockResolvedValue(undefined);
+const mockCompleteQuiz = jest.fn().mockResolvedValue(undefined);
+jest.mock('../../services/analytics', () => ({
+  useScreenTracking: jest.fn(),
+  useQuizTracking: () => ({
+    startQuiz: mockStartQuiz,
+    answerQuestion: mockAnswerQuestion,
+    completeQuiz: mockCompleteQuiz,
+    getActiveSeconds: jest.fn().mockReturnValue(0),
+  }),
+}));
+
 // Mock userStore
 const mockSetUserDocument = jest.fn();
 jest.mock('../../state/userStore', () => ({
@@ -83,6 +97,10 @@ describe('QuizScreen', () => {
       level: 'beginner',
       learningPaths: [],
     });
+    // Reset analytics mocks
+    mockStartQuiz.mockClear();
+    mockAnswerQuestion.mockResolvedValue(undefined);
+    mockCompleteQuiz.mockResolvedValue(undefined);
   });
 
   describe('rendering', () => {
@@ -159,7 +177,7 @@ describe('QuizScreen', () => {
   });
 
   describe('answer submission', () => {
-    it('should show correct result for correct answer', () => {
+    it('should show correct result for correct answer', async () => {
       const { getByPlaceholderText, getByText } = render(
         <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -168,11 +186,13 @@ describe('QuizScreen', () => {
       fireEvent.changeText(input, 'A container for storing data');
       fireEvent.press(getByText('Submit'));
 
-      expect(getByText('✔️')).toBeTruthy();
-      expect(getByText('Correct! Well done!')).toBeTruthy();
+      await waitFor(() => {
+        expect(getByText('✔️')).toBeTruthy();
+        expect(getByText('Correct! Well done!')).toBeTruthy();
+      });
     });
 
-    it('should show incorrect result for wrong answer', () => {
+    it('should show incorrect result for wrong answer', async () => {
       const { getByPlaceholderText, getByText } = render(
         <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -181,11 +201,13 @@ describe('QuizScreen', () => {
       fireEvent.changeText(input, 'wrong answer');
       fireEvent.press(getByText('Submit'));
 
-      expect(getByText('✖️')).toBeTruthy();
-      expect(getByText(/Not quite. Expected:/)).toBeTruthy();
+      await waitFor(() => {
+        expect(getByText('✖️')).toBeTruthy();
+        expect(getByText(/Not quite. Expected:/)).toBeTruthy();
+      });
     });
 
-    it('should show Continue button after submission', () => {
+    it('should show Continue button after submission', async () => {
       const { getByPlaceholderText, getByText, queryByText } = render(
         <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -194,11 +216,16 @@ describe('QuizScreen', () => {
       fireEvent.changeText(input, 'container for storing data');
       fireEvent.press(getByText('Submit'));
 
+      // Wait for Continue button to appear first
+      await waitFor(() => {
+        expect(getByText('Continue →')).toBeTruthy();
+      });
+
+      // Then verify Submit is gone
       expect(queryByText('Submit')).toBeNull();
-      expect(getByText('Continue →')).toBeTruthy();
     });
 
-    it('should disable input after submission', () => {
+    it('should disable input after submission', async () => {
       const { getByPlaceholderText, getByText } = render(
         <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -207,7 +234,9 @@ describe('QuizScreen', () => {
       fireEvent.changeText(input, 'answer');
       fireEvent.press(getByText('Submit'));
 
-      expect(input.props.editable).toBe(false);
+      await waitFor(() => {
+        expect(input.props.editable).toBe(false);
+      });
     });
   });
 
@@ -220,6 +249,12 @@ describe('QuizScreen', () => {
       const input = getByPlaceholderText('Type your answer here...');
       fireEvent.changeText(input, 'container for storing data');
       fireEvent.press(getByText('Submit'));
+
+      // Wait for submit to complete before clicking Continue
+      await waitFor(() => {
+        expect(getByText('Continue →')).toBeTruthy();
+      });
+
       fireEvent.press(getByText('Continue →'));
 
       await waitFor(() => {
@@ -246,6 +281,12 @@ describe('QuizScreen', () => {
       const input = getByPlaceholderText('Type your answer here...');
       fireEvent.changeText(input, 'wrong answer');
       fireEvent.press(getByText('Submit'));
+
+      // Wait for submit to complete before clicking Continue
+      await waitFor(() => {
+        expect(getByText('Continue →')).toBeTruthy();
+      });
+
       fireEvent.press(getByText('Continue →'));
 
       await waitFor(() => {
@@ -266,6 +307,12 @@ describe('QuizScreen', () => {
       const input = getByPlaceholderText('Type your answer here...');
       fireEvent.changeText(input, 'answer');
       fireEvent.press(getByText('Submit'));
+
+      // Wait for submit to complete before clicking Continue
+      await waitFor(() => {
+        expect(getByText('Continue →')).toBeTruthy();
+      });
+
       fireEvent.press(getByText('Continue →'));
 
       await waitFor(() => {
@@ -278,7 +325,7 @@ describe('QuizScreen', () => {
   });
 
   describe('answer matching', () => {
-    it('should be case-insensitive', () => {
+    it('should be case-insensitive', async () => {
       const { getByPlaceholderText, getByText } = render(
         <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -287,10 +334,12 @@ describe('QuizScreen', () => {
       fireEvent.changeText(input, 'CONTAINER FOR STORING DATA');
       fireEvent.press(getByText('Submit'));
 
-      expect(getByText('Correct! Well done!')).toBeTruthy();
+      await waitFor(() => {
+        expect(getByText('Correct! Well done!')).toBeTruthy();
+      });
     });
 
-    it('should accept partial match', () => {
+    it('should accept partial match', async () => {
       const { getByPlaceholderText, getByText } = render(
         <QuizScreen navigation={mockNavigation} route={mockRoute} />
       );
@@ -299,7 +348,9 @@ describe('QuizScreen', () => {
       fireEvent.changeText(input, 'A variable is a container for storing data values');
       fireEvent.press(getByText('Submit'));
 
-      expect(getByText('Correct! Well done!')).toBeTruthy();
+      await waitFor(() => {
+        expect(getByText('Correct! Well done!')).toBeTruthy();
+      });
     });
   });
 

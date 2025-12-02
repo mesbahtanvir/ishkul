@@ -14,6 +14,7 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { LevelType } from '../types/app';
 import { RootStackParamList } from '../types/navigation';
+import { useScreenTracking, useOnboardingTracking, useAnalytics } from '../services/analytics';
 
 type LevelSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'LevelSelection'>;
 type LevelSelectionScreenRouteProp = RouteProp<RootStackParamList, 'LevelSelection'>;
@@ -48,13 +49,22 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
   navigation,
   route,
 }) => {
+  useScreenTracking('LevelSelection', 'LevelSelectionScreen');
+  const { selectLevel, completeOnboarding } = useOnboardingTracking();
+  const { trackLearningPathCreated } = useAnalytics();
   const { goal, isCreatingNewPath } = route.params;
   const { user, userDocument, setUserDocument } = useUserStore();
-  const { addPath } = useLearningPathsStore();
+  const { addPath, paths } = useLearningPathsStore();
   const [selectedLevel, setSelectedLevel] = useState<LevelType | null>(null);
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
   const { colors } = useTheme();
+
+  // Track level selection when user taps a level
+  const handleLevelSelect = (level: LevelType) => {
+    setSelectedLevel(level);
+    selectLevel(level);
+  };
 
   const handleConfirm = async () => {
     if (!selectedLevel || !user) return;
@@ -73,6 +83,14 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
         const createdPath = await addLearningPath(newPathData);
         addPath(createdPath);
 
+        // Track learning path created
+        await trackLearningPathCreated({
+          path_id: createdPath.id,
+          goal,
+          level: selectedLevel,
+          is_first_path: false,
+        });
+
         // Navigate directly to LearningPath to start the new path
         navigation.navigate('LearningPath', { pathId: createdPath.id });
       } else {
@@ -88,11 +106,22 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
         const userDoc = await getUserDocument();
         setUserDocument(userDoc);
 
+        // Track onboarding complete for first-time users
+        await completeOnboarding(goal, selectedLevel);
+
         // Fetch the created path from the user document
-        const paths = await learningPathsApi.getPaths();
-        if (paths.length > 0) {
-          const createdPath = paths[0];
+        const fetchedPaths = await learningPathsApi.getPaths();
+        if (fetchedPaths.length > 0) {
+          const createdPath = fetchedPaths[0];
           addPath(createdPath);
+
+          // Track learning path created
+          await trackLearningPathCreated({
+            path_id: createdPath.id,
+            goal,
+            level: selectedLevel,
+            is_first_path: true,
+          });
 
           // Navigate to Main first, then to LearningPath
           navigation.replace('Main');
@@ -150,7 +179,7 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
                 { padding: cardPadding, backgroundColor: colors.card.default },
                 selectedLevel === level.id && { borderColor: colors.ios.blue, backgroundColor: colors.card.selected },
               ]}
-              onPress={() => setSelectedLevel(level.id)}
+              onPress={() => handleLevelSelect(level.id)}
               activeOpacity={0.7}
             >
               <Text style={[styles.levelEmoji, { fontSize: emojiSize }]}>{level.emoji}</Text>

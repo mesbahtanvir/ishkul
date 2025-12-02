@@ -18,6 +18,7 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { learningPathsApi } from '../services/api';
+import { useScreenTracking } from '../services/analytics';
 
 type LandingScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Landing'>;
 
@@ -66,6 +67,7 @@ const FEATURES: Feature[] = [
 ];
 
 export const LandingScreen: React.FC<LandingScreenProps> = ({ navigation }) => {
+  useScreenTracking('Landing', 'LandingScreen');
   const { colors } = useTheme();
   const { responsive, isSmallPhone } = useResponsive();
   const [scaleAnim] = React.useState(new Animated.Value(0.9));

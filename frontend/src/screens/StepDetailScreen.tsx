@@ -9,6 +9,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
 import { StepType } from '../types/app';
+import { useScreenTracking } from '../services/analytics';
 
 type StepDetailScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -59,6 +60,7 @@ export const StepDetailScreen: React.FC<StepDetailScreenProps> = ({
   navigation,
   route,
 }) => {
+  useScreenTracking('StepDetail', 'StepDetailScreen');
   const { step } = route.params;
   const { responsive, isSmallPhone } = useResponsive();
   const { colors } = useTheme();

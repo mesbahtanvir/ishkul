@@ -16,6 +16,8 @@ import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
 import { StepType } from '../types/app';
+import { useScreenTracking, useStepTracking } from '../services/analytics';
+import type { StepType as AnalyticsStepType } from '../services/analytics';
 
 type LessonScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Lesson'>;
 type LessonScreenRouteProp = RouteProp<RootStackParamList, 'Lesson'>;
@@ -55,6 +57,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
   navigation,
   route,
 }) => {
+  useScreenTracking('Lesson', 'LessonScreen');
   const { step, pathId } = route.params;
   const { setUserDocument } = useUserStore();
   const { updatePath, setActivePath } = useLearningPathsStore();
@@ -62,9 +65,26 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
   const { responsive } = useResponsive();
   const { colors } = useTheme();
 
+  // Track step engagement
+  const { startStep, completeStep: trackComplete } = useStepTracking({
+    pathId,
+    stepId: step.id,
+    stepType: step.type as AnalyticsStepType,
+    topic: step.topic,
+    stepIndex: step.index,
+  });
+
+  // Start tracking when screen mounts
+  React.useEffect(() => {
+    startStep();
+  }, [startStep]);
+
   const handleUnderstand = async () => {
     try {
       setLoading(true);
+
+      // Track step completion
+      await trackComplete();
 
       // Complete the step and get updated path
       const result = await completeStep(pathId, step.id);

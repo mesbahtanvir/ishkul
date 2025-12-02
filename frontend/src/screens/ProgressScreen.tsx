@@ -6,8 +6,10 @@ import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
+import { useScreenTracking } from '../services/analytics';
 
 export const ProgressScreen: React.FC = () => {
+  useScreenTracking('Progress', 'ProgressScreen');
   const { userDocument } = useUserStore();
   const { responsive, isSmallPhone, isTablet } = useResponsive();
   const { colors } = useTheme();
