@@ -19,6 +19,7 @@ import (
 	portalsession "github.com/stripe/stripe-go/v81/billingportal/session"
 	checkoutsession "github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/customer"
+	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 	"google.golang.org/api/iterator"
 )
@@ -467,6 +468,23 @@ func handleCheckoutCompleted(ctx context.Context, fs *firestore.Client, event *s
 		updates = append(updates, firestore.Update{
 			Path: "stripeSubscriptionId", Value: session.Subscription.ID,
 		})
+
+		// Fetch full subscription to get paidUntil date
+		sub, err := subscription.Get(session.Subscription.ID, nil)
+		if err != nil {
+			if appLogger != nil {
+				logger.Warn(appLogger, ctx, "webhook_checkout_subscription_fetch_failed",
+					slog.String("subscription_id", session.Subscription.ID),
+					slog.String("error", err.Error()),
+				)
+			}
+			// Continue with update even if we can't get paidUntil
+		} else {
+			paidUntil := time.Unix(sub.CurrentPeriodEnd, 0)
+			updates = append(updates, firestore.Update{
+				Path: "paidUntil", Value: paidUntil,
+			})
+		}
 	}
 
 	_, err := fs.Collection("users").Doc(userID).Update(ctx, updates)
