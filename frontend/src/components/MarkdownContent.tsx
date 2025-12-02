@@ -87,7 +87,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content }) => 
       marginVertical: 4,
     },
     blockquote: {
-      borderLeftColor: colors.border.primary,
+      borderLeftColor: colors.border,
       borderLeftWidth: 4,
       paddingLeft: Spacing.md,
       marginVertical: Spacing.md,
@@ -97,9 +97,9 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content }) => 
     link: {
       color: colors.primary,
       textDecorationLine: 'underline' as const,
-    },
+    } as Record<string, string>,
     hr: {
-      backgroundColor: colors.border.primary,
+      backgroundColor: colors.border,
       height: 1,
       marginVertical: Spacing.lg,
     },

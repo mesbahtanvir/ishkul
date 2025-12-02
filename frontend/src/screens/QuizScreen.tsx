@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, ViewStyle } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { Card } from '../components/Card';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 import { completeStep, getUserDocument } from '../services/memory';
@@ -30,7 +31,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { responsive, isSmallPhone } = useResponsive();
+  const { responsive } = useResponsive();
   const { colors } = useTheme();
 
   const handleSubmit = () => {
@@ -81,19 +82,25 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
   return (
     <Container scrollable>
       <View style={styles.content}>
-        <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
-          <Text style={[styles.emoji, { fontSize: emojiSize }]}>❓</Text>
-          <View style={[styles.badge, { backgroundColor: colors.badge.quiz }]}>
-            <Text style={[styles.badgeText, { color: colors.white }]}>Quiz</Text>
+        <Card elevation="md" padding="lg" style={styles.headerCard}>
+          <View style={styles.header}>
+            <Text style={[styles.emoji, { fontSize: emojiSize }]}>❓</Text>
+            <View style={[styles.badge, { backgroundColor: colors.badge.quiz }]}>
+              <Text style={[styles.badgeText, { color: colors.white }]}>Quiz</Text>
+            </View>
+            <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
+              {step.title || step.topic}
+            </Text>
           </View>
-          <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
-            {step.title || step.topic}
+        </Card>
+
+        <Card elevation="sm" padding="lg" style={styles.questionCard}>
+          <Text style={[styles.question, { color: colors.text.primary }]}>
+            {step.question}
           </Text>
-        </View>
+        </Card>
 
-        <View style={styles.bodyContainer}>
-          <Text style={[styles.question, { color: colors.text.primary }]}>{step.question}</Text>
-
+        <Card elevation="sm" padding="lg" style={styles.inputCard}>
           <Input
             placeholder="Type your answer here..."
             value={answer}
@@ -101,11 +108,16 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
             multiline
             numberOfLines={4}
             editable={!isSubmitted}
-            containerStyle={styles.inputContainer}
           />
+        </Card>
 
-          {isSubmitted && (
-            <View style={[styles.resultContainer, { backgroundColor: isCorrect ? colors.result.correct : colors.result.incorrect }]}>
+        {isSubmitted && (
+          <Card
+            elevation="sm"
+            padding="lg"
+            style={[styles.resultCard, { backgroundColor: isCorrect ? colors.result.correct : colors.result.incorrect }] as unknown as ViewStyle}
+          >
+            <View style={styles.resultContent}>
               <Text style={styles.resultIcon}>{isCorrect ? '✔️' : '✖️'}</Text>
               <Text style={[styles.resultText, { color: colors.text.primary }]}>
                 {isCorrect
@@ -113,22 +125,24 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
                   : `Not quite. Expected: ${step.expectedAnswer}`}
               </Text>
             </View>
+          </Card>
+        )}
+
+        <View style={styles.buttonContainer}>
+          {!isSubmitted ? (
+            <Button
+              title="Submit"
+              onPress={handleSubmit}
+              disabled={!answer.trim()}
+            />
+          ) : (
+            <Button
+              title="Continue →"
+              onPress={handleNextStep}
+              loading={loading}
+            />
           )}
         </View>
-
-        {!isSubmitted ? (
-          <Button
-            title="Submit"
-            onPress={handleSubmit}
-            disabled={!answer.trim()}
-          />
-        ) : (
-          <Button
-            title="Continue →"
-            onPress={handleNextStep}
-            loading={loading}
-          />
-        )}
       </View>
     </Container>
   );
@@ -137,13 +151,13 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
 const styles = StyleSheet.create({
   content: {
     flex: 1,
+    gap: Spacing.md,
+  },
+  headerCard: {
+    marginBottom: Spacing.sm,
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  headerSmall: {
-    marginBottom: Spacing.lg,
   },
   emoji: {
     marginBottom: Spacing.md,
@@ -162,32 +176,34 @@ const styles = StyleSheet.create({
     ...Typography.heading.h2,
     textAlign: 'center',
   },
-  bodyContainer: {
-    flex: 1,
-    marginBottom: Spacing.lg,
+  questionCard: {
+    marginBottom: Spacing.sm,
   },
   question: {
     ...Typography.body.medium,
     lineHeight: 26,
-    marginBottom: Spacing.lg,
     fontWeight: '500',
   },
-  inputContainer: {
+  inputCard: {
+    marginBottom: Spacing.sm,
+  },
+  resultCard: {
     marginBottom: Spacing.md,
   },
-  resultContainer: {
-    padding: Spacing.md,
-    borderRadius: Spacing.borderRadius.md,
+  resultContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   resultIcon: {
     fontSize: Spacing.lg,
-    marginRight: Spacing.sm,
+    marginRight: Spacing.md,
   },
   resultText: {
     flex: 1,
     ...Typography.body.small,
     fontWeight: '500',
+  },
+  buttonContainer: {
+    marginTop: Spacing.md,
   },
 });

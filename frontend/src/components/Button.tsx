@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { Spacing } from '../theme/spacing';
+import { getElevation } from '../theme/elevation';
 
 interface ButtonProps {
   title: string;
@@ -83,6 +84,7 @@ export const Button: React.FC<ButtonProps> = ({
         styles.button,
         getButtonStyle(),
         getButtonSize(),
+        getElevation('sm'),
         disabled && styles.disabled,
         style,
       ]}
@@ -102,12 +104,12 @@ export const Button: React.FC<ButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     paddingVertical: Spacing.md,
-    borderRadius: 10,
+    borderRadius: Spacing.borderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   buttonText: {
     fontSize: 16,

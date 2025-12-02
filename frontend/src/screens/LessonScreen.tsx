@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
+import { Card } from '../components/Card';
 import { MarkdownContent } from '../components/MarkdownContent';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
@@ -57,7 +58,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
   const { setUserDocument } = useUserStore();
   const { updatePath, setActivePath } = useLearningPathsStore();
   const [loading, setLoading] = useState(false);
-  const { responsive, isSmallPhone } = useResponsive();
+  const { responsive } = useResponsive();
   const { colors } = useTheme();
 
   const handleUnderstand = async () => {
@@ -109,23 +110,25 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
   return (
     <Container scrollable>
       <View style={styles.content}>
-        <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
-          <Text style={[styles.emoji, { fontSize: emojiSize }]}>
-            {getStepIcon(step.type)}
-          </Text>
-          <View style={[styles.badge, { backgroundColor: getBadgeColor() }]}>
-            <Text style={[styles.badgeText, { color: colors.white }]}>
-              {getStepTypeLabel(step.type)}
+        <Card elevation="md" padding="lg" style={styles.headerCard}>
+          <View style={styles.header}>
+            <Text style={[styles.emoji, { fontSize: emojiSize }]}>
+              {getStepIcon(step.type)}
+            </Text>
+            <View style={[styles.badge, { backgroundColor: getBadgeColor() }]}>
+              <Text style={[styles.badgeText, { color: colors.white }]}>
+                {getStepTypeLabel(step.type)}
+              </Text>
+            </View>
+            <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
+              {step.title || step.topic}
             </Text>
           </View>
-          <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
-            {step.title || step.topic}
-          </Text>
-        </View>
+        </Card>
 
-        <View style={styles.bodyContainer}>
-          <MarkdownContent content={step.content} />
-        </View>
+        <Card elevation="sm" padding="lg" style={styles.contentCard}>
+          <MarkdownContent content={step.content || ''} />
+        </Card>
 
         <Button
           title="I Understand →"
@@ -140,13 +143,17 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
 const styles = StyleSheet.create({
   content: {
     flex: 1,
+    gap: Spacing.md,
+  },
+  headerCard: {
+    marginBottom: Spacing.sm,
+  },
+  contentCard: {
+    flex: 1,
+    marginBottom: Spacing.lg,
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  headerSmall: {
-    marginBottom: Spacing.lg,
   },
   emoji: {
     marginBottom: Spacing.md,
@@ -164,13 +171,5 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.heading.h2,
     textAlign: 'center',
-  },
-  bodyContainer: {
-    flex: 1,
-    marginBottom: Spacing.lg,
-  },
-  body: {
-    ...Typography.body.medium,
-    lineHeight: 26,
   },
 });
