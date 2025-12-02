@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, Platform } from 'react-native';
+import { Text, Platform, Linking } from 'react-native';
 
 // Stores
 import { useUserStore } from '../state/userStore';
@@ -35,11 +35,54 @@ import { ProgressScreen } from '../screens/ProgressScreen';
 import '../tools';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { SubscriptionScreen } from '../screens/SubscriptionScreen';
+import { SubscriptionSuccessScreen } from '../screens/SubscriptionSuccessScreen';
+import { ManageSubscriptionScreen } from '../screens/ManageSubscriptionScreen';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { UpgradeModal } from '../components/UpgradeModal';
+import { PastDueBanner } from '../components/PastDueBanner';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
+
+// Deep linking configuration
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: [
+    'learnanything://',
+    'https://ishkul.org',
+    'https://www.ishkul.org',
+  ],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          SettingsTab: {
+            screens: {
+              SubscriptionSuccess: 'subscription/success',
+              Subscription: 'subscription',
+              ManageSubscription: 'subscription/manage',
+            },
+          },
+        },
+      },
+    },
+  },
+  // Custom getInitialURL for handling deep links
+  async getInitialURL() {
+    // Check if app was opened from a deep link
+    const url = await Linking.getInitialURL();
+    if (url != null) {
+      return url;
+    }
+    return null;
+  },
+  // Custom subscribe for handling deep links while app is open
+  subscribe(listener) {
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      listener(url);
+    });
+    return () => subscription.remove();
+  },
+};
 
 // Learn Stack Navigator
 const LearnStack = () => {
@@ -78,6 +121,8 @@ const SettingsStack = () => {
     >
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+      <Stack.Screen name="SubscriptionSuccess" component={SubscriptionSuccessScreen} />
+      <Stack.Screen name="ManageSubscription" component={ManageSubscriptionScreen} />
     </Stack.Navigator>
   );
 };
@@ -270,9 +315,12 @@ export const AppNavigator: React.FC = () => {
   }, [_hasHydrated]);
 
   return (
-    <NavigationContainer>
-      <RootNavigator />
-      <UpgradeModal />
-    </NavigationContainer>
+    <>
+      <PastDueBanner />
+      <NavigationContainer linking={linking}>
+        <RootNavigator />
+        <UpgradeModal />
+      </NavigationContainer>
+    </>
   );
 };

@@ -116,8 +116,8 @@ describe('ErrorCodes', () => {
       });
     });
 
-    it('should have 16 total error codes', () => {
-      expect(Object.keys(ErrorCodes)).toHaveLength(16);
+    it('should have 18 total error codes', () => {
+      expect(Object.keys(ErrorCodes)).toHaveLength(18);
     });
   });
 });

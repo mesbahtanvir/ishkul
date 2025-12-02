@@ -10,16 +10,33 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Subscriptio
 // Mock the subscription store
 jest.mock('../../state/subscriptionStore');
 
+// Mock stripe service - native payment not available in tests (web environment)
+jest.mock('../../services/stripe', () => ({
+  stripeService: {
+    isNativePaymentAvailable: () => false,
+    processPayment: jest.fn(),
+  },
+}));
+
+// Mock window.location for web checkout tests
+Object.defineProperty(window, 'location', {
+  value: { origin: 'https://test.example.com' },
+  writable: true,
+});
+
 const mockFetchStatus = jest.fn();
 const mockStartCheckout = jest.fn();
+const mockStartNativeCheckout = jest.fn();
 const mockOpenPortal = jest.fn();
 
 const mockUseSubscriptionStore = useSubscriptionStore as jest.MockedFunction<typeof useSubscriptionStore>;
 
 // Mock navigation
 const mockGoBack = jest.fn();
+const mockNavigate = jest.fn();
 const mockNavigation = {
   goBack: mockGoBack,
+  navigate: mockNavigate,
 } as unknown as NavigationProp;
 
 const defaultStoreState = {
@@ -41,6 +58,7 @@ const defaultStoreState = {
   checkoutInProgress: false,
   fetchStatus: mockFetchStatus,
   startCheckout: mockStartCheckout,
+  startNativeCheckout: mockStartNativeCheckout,
   openPortal: mockOpenPortal,
   showUpgradePrompt: jest.fn(),
   hideUpgradePrompt: jest.fn(),
@@ -214,20 +232,17 @@ describe('SubscriptionScreen', () => {
       });
     });
 
-    it('should call openPortal when Manage Subscription is pressed', async () => {
+    it('should navigate to ManageSubscription when Manage Subscription is pressed', () => {
       mockUseSubscriptionStore.mockReturnValue({
         ...defaultStoreState,
         tier: 'pro',
         status: 'active',
       });
-      mockOpenPortal.mockResolvedValue('https://portal.url');
       const { getByText } = render(<SubscriptionScreen navigation={mockNavigation} />);
 
       fireEvent.press(getByText('Manage Subscription'));
 
-      await waitFor(() => {
-        expect(mockOpenPortal).toHaveBeenCalled();
-      });
+      expect(mockNavigate).toHaveBeenCalledWith('ManageSubscription');
     });
   });
 

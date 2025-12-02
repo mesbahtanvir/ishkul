@@ -6,8 +6,9 @@ import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore, getEmojiForGoal } from '../state/learningPathsStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { createUserDocument, getUserDocument, addLearningPath } from '../services/memory';
-import { learningPathsApi } from '../services/api';
+import { learningPathsApi, ApiError, ErrorCodes } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -55,6 +56,7 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
   const { goal, isCreatingNewPath } = route.params;
   const { user, userDocument, setUserDocument } = useUserStore();
   const { addPath, paths } = useLearningPathsStore();
+  const { showUpgradePrompt } = useSubscriptionStore();
   const [selectedLevel, setSelectedLevel] = useState<LevelType | null>(null);
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
@@ -136,7 +138,14 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
       }
     } catch (error) {
       console.error('Error saving:', error);
-      Alert.alert('Error', 'Failed to save. Please try again.');
+
+      // Check if this is a path limit error
+      if (error instanceof ApiError && error.code === ErrorCodes.PATH_LIMIT_REACHED) {
+        // Show upgrade modal instead of generic error
+        showUpgradePrompt('path_limit');
+      } else {
+        Alert.alert('Error', 'Failed to save. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

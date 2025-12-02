@@ -2,12 +2,28 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { UpgradeModal } from '../UpgradeModal';
 import { useSubscriptionStore } from '../../state/subscriptionStore';
+import { stripeService } from '../../services/stripe';
 
 // Mock the subscription store
 jest.mock('../../state/subscriptionStore');
 
+// Mock stripe service - native payment not available in tests (web environment)
+jest.mock('../../services/stripe', () => ({
+  stripeService: {
+    isNativePaymentAvailable: () => false,
+    processPayment: jest.fn(),
+  },
+}));
+
+// Mock window.location for web checkout tests
+Object.defineProperty(window, 'location', {
+  value: { origin: 'https://test.example.com' },
+  writable: true,
+});
+
 const mockHideUpgradePrompt = jest.fn();
 const mockStartCheckout = jest.fn();
+const mockStartNativeCheckout = jest.fn();
 
 const mockUseSubscriptionStore = useSubscriptionStore as jest.MockedFunction<typeof useSubscriptionStore>;
 
@@ -30,6 +46,7 @@ const defaultStoreState = {
   checkoutInProgress: false,
   fetchStatus: jest.fn(),
   startCheckout: mockStartCheckout,
+  startNativeCheckout: mockStartNativeCheckout,
   openPortal: jest.fn(),
   showUpgradePrompt: jest.fn(),
   hideUpgradePrompt: mockHideUpgradePrompt,

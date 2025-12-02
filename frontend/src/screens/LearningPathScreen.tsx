@@ -16,7 +16,9 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { ProgressBar } from '../components/ProgressBar';
 import { StepCard } from '../components/StepCard';
 import { useLearningPathsStore, getCurrentStep } from '../state/learningPathsStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { getPathNextStep, getLearningPath, viewStep } from '../services/memory';
+import { ApiError, ErrorCodes } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -43,6 +45,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   useScreenTracking('LearningPath', 'LearningPathScreen');
   const { pathId } = route.params;
   const { activePath, setActivePath, addStep } = useLearningPathsStore();
+  const { showUpgradePrompt } = useSubscriptionStore();
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingNextStep, setIsLoadingNextStep] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -135,7 +138,14 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       );
 
       console.error('Error fetching next step:', error);
-      Alert.alert('Error', 'Failed to generate next step. Please try again.');
+
+      // Check if this is a daily step limit error
+      if (error instanceof ApiError && error.code === ErrorCodes.DAILY_STEP_LIMIT_REACHED) {
+        // Show upgrade modal instead of generic error
+        showUpgradePrompt('step_limit');
+      } else {
+        Alert.alert('Error', 'Failed to generate next step. Please try again.');
+      }
     } finally {
       setIsLoadingNextStep(false);
     }

@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Alert } from 'react-native';
 import { Button } from './Button';
 import { useSubscriptionStore } from '../state/subscriptionStore';
+import { stripeService } from '../services/stripe';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -18,6 +19,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ onDismiss, onUpgrade
     upgradeModalReason,
     hideUpgradePrompt,
     startCheckout,
+    startNativeCheckout,
     loading,
     limits,
   } = useSubscriptionStore();
@@ -28,14 +30,26 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ onDismiss, onUpgrade
   };
 
   const handleUpgrade = async () => {
-    const baseUrl = Platform.OS === 'web' ? window.location.origin : 'https://ishkul.org';
-    const sessionId = await startCheckout(
-      `${baseUrl}/subscription/success`,
-      `${baseUrl}/subscription/cancel`
-    );
-    if (sessionId) {
-      hideUpgradePrompt();
-      onUpgradeSuccess?.();
+    // Use native payment sheet on mobile, Stripe Checkout on web
+    if (stripeService.isNativePaymentAvailable()) {
+      const result = await startNativeCheckout();
+      if (result.success) {
+        hideUpgradePrompt();
+        onUpgradeSuccess?.();
+      } else if (result.error && result.error !== 'Payment canceled') {
+        Alert.alert('Payment Failed', result.error);
+      }
+    } else {
+      // Web: Use Stripe Checkout redirect
+      const baseUrl = window.location.origin;
+      const sessionId = await startCheckout(
+        `${baseUrl}/subscription/success`,
+        `${baseUrl}/subscription/cancel`
+      );
+      if (sessionId) {
+        hideUpgradePrompt();
+        onUpgradeSuccess?.();
+      }
     }
   };
 

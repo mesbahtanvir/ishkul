@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Linking, Platform, AppState, AppStateStatus } from 'react-native';
 import { apiClient } from '../services/api/client';
+import { stripeService } from '../services/stripe';
 import {
   TierType,
   SubscriptionStatusType,
@@ -33,6 +34,7 @@ interface SubscriptionState {
   // Actions
   fetchStatus: () => Promise<void>;
   startCheckout: (successUrl: string, cancelUrl: string) => Promise<string | null>;
+  startNativeCheckout: () => Promise<{ success: boolean; error?: string }>;
   openPortal: (returnUrl?: string) => Promise<string | null>;
   showUpgradePrompt: (reason: 'path_limit' | 'step_limit' | 'general') => void;
   hideUpgradePrompt: () => void;
@@ -113,6 +115,36 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         error: error instanceof Error ? error.message : 'Failed to start checkout',
       });
       return null;
+    }
+  },
+
+  startNativeCheckout: async () => {
+    set({ loading: true, error: null, checkoutInProgress: true });
+    try {
+      const result = await stripeService.processPayment();
+
+      if (result.success) {
+        // Payment successful, refresh subscription status
+        await get().fetchStatus();
+        set({ loading: false, checkoutInProgress: false });
+        return { success: true };
+      } else {
+        set({
+          loading: false,
+          checkoutInProgress: false,
+          error: result.error || 'Payment failed',
+        });
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('Native checkout failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Payment failed';
+      set({
+        loading: false,
+        checkoutInProgress: false,
+        error: errorMessage,
+      });
+      return { success: false, error: errorMessage };
     }
   },
 
