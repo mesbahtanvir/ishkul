@@ -557,6 +557,26 @@ export const learningPathsApi = {
   },
 
   /**
+   * Archive a learning path
+   */
+  async archivePath(pathId: string): Promise<LearningPath> {
+    const response = await api.patch<{ path: LearningPath }>(
+      `/learning-paths/${pathId}/archive`
+    );
+    return normalizeLearningPath(response.path)!;
+  },
+
+  /**
+   * Restore an archived learning path
+   */
+  async restorePath(pathId: string): Promise<LearningPath> {
+    const response = await api.patch<{ path: LearningPath }>(
+      `/learning-paths/${pathId}/restore`
+    );
+    return normalizeLearningPath(response.path)!;
+  },
+
+  /**
    * Get next step - returns existing incomplete step or generates new one
    */
   async getNextStep(pathId: string): Promise<{ step: Step; stepIndex: number }> {
