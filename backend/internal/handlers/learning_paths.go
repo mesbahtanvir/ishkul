@@ -119,6 +119,18 @@ func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
 			} else {
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
+		case "archive":
+			if r.Method == http.MethodPost {
+				archiveLearningPath(w, r, pathID)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		case "unarchive":
+			if r.Method == http.MethodPost {
+				unarchiveLearningPath(w, r, pathID)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
 		case "memory":
 			if r.Method == http.MethodPost {
 				updatePathMemory(w, r, pathID)
@@ -179,7 +191,10 @@ func normalizeLearningPath(path *models.LearningPath) {
 	}
 }
 
-// listLearningPaths returns all learning paths for the authenticated user
+// listLearningPaths returns learning paths for the authenticated user
+// Query params:
+//   - status: filter by status (active, completed, archived). Default shows active + completed.
+//             Deleted paths are never shown.
 func listLearningPaths(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
@@ -194,8 +209,26 @@ func listLearningPaths(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query learning paths for this user
-	iter := fs.Collection("learning_paths").Where("userId", "==", userID).OrderBy("lastAccessedAt", firestore.Desc).Documents(ctx)
+	// Get status filter from query params
+	statusFilter := r.URL.Query().Get("status")
+
+	// Build query based on status filter
+	var query firestore.Query
+	baseQuery := fs.Collection("learning_paths").Where("userId", "==", userID)
+
+	switch statusFilter {
+	case models.PathStatusActive:
+		query = baseQuery.Where("status", "==", models.PathStatusActive).OrderBy("lastAccessedAt", firestore.Desc)
+	case models.PathStatusCompleted:
+		query = baseQuery.Where("status", "==", models.PathStatusCompleted).OrderBy("completedAt", firestore.Desc)
+	case models.PathStatusArchived:
+		query = baseQuery.Where("status", "==", models.PathStatusArchived).OrderBy("archivedAt", firestore.Desc)
+	default:
+		// Default: show all non-deleted paths, ordered by last accessed
+		query = baseQuery.OrderBy("lastAccessedAt", firestore.Desc)
+	}
+
+	iter := query.Documents(ctx)
 	defer iter.Stop()
 
 	paths := []models.LearningPath{}
@@ -213,6 +246,17 @@ func listLearningPaths(w http.ResponseWriter, r *http.Request) {
 		if err := doc.DataTo(&path); err != nil {
 			continue // Skip malformed documents
 		}
+
+		// Skip deleted paths (they should never be shown)
+		if path.Status == models.PathStatusDeleted {
+			continue
+		}
+
+		// Handle legacy paths without status (treat as active)
+		if path.Status == "" {
+			path.Status = models.PathStatusActive
+		}
+
 		normalizeLearningPath(&path)
 		paths = append(paths, path)
 	}
@@ -312,7 +356,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if existingPaths >= MaxLearningPathsPerUser {
-		http.Error(w, fmt.Sprintf("Maximum of %d learning paths allowed. Please delete an existing path to create a new one.", MaxLearningPathsPerUser), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Maximum of %d active learning paths allowed. Please complete, archive, or delete an existing path to create a new one.", MaxLearningPathsPerUser), http.StatusBadRequest)
 		return
 	}
 
@@ -325,6 +369,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		Goal:             req.Goal,
 		Level:            req.Level,
 		Emoji:            req.Emoji,
+		Status:           models.PathStatusActive,
 		Progress:         0,
 		LessonsCompleted: 0,
 		TotalLessons:     10, // Default estimate
@@ -363,9 +408,13 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// countUserLearningPaths counts the number of learning paths for a user
+// countUserActiveLearningPaths counts the number of active learning paths for a user
+// Only active paths count toward the limit (not completed, archived, or deleted)
 func countUserLearningPaths(ctx context.Context, fs *firestore.Client, userID string) (int, error) {
-	iter := fs.Collection("learning_paths").Where("userId", "==", userID).Documents(ctx)
+	iter := fs.Collection("learning_paths").
+		Where("userId", "==", userID).
+		Where("status", "==", models.PathStatusActive).
+		Documents(ctx)
 	defer iter.Stop()
 
 	count := 0
@@ -477,7 +526,7 @@ func updateLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 	}
 }
 
-// deleteLearningPath deletes a learning path
+// deleteLearningPath soft deletes a learning path (sets status to deleted)
 func deleteLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
@@ -510,14 +559,178 @@ func deleteLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
-	if _, err := fs.Collection("learning_paths").Doc(pathID).Delete(ctx); err != nil {
+	// Cannot delete already deleted paths
+	if existing.Status == models.PathStatusDeleted {
+		http.Error(w, "Learning path is already deleted", http.StatusBadRequest)
+		return
+	}
+
+	// Soft delete: update status to deleted
+	now := time.Now().UnixMilli()
+	updates := []firestore.Update{
+		{Path: "status", Value: models.PathStatusDeleted},
+		{Path: "deletedAt", Value: now},
+		{Path: "updatedAt", Value: now},
+	}
+
+	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
 		http.Error(w, fmt.Sprintf("Error deleting learning path: %v", err), http.StatusInternalServerError)
 		return
+	}
+
+	// Clear pre-generated cache for this path
+	if stepCache != nil {
+		stepCache.Delete(pathID, userID)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
+		"message": "Learning path deleted",
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// archiveLearningPath archives an active learning path
+func archiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
+		return
+	}
+
+	var path models.LearningPath
+	if err := doc.DataTo(&path); err != nil {
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if path.UserID != userID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Only active paths can be archived
+	if path.Status != models.PathStatusActive && path.Status != "" {
+		http.Error(w, fmt.Sprintf("Cannot archive path with status '%s'. Only active paths can be archived.", path.Status), http.StatusBadRequest)
+		return
+	}
+
+	now := time.Now().UnixMilli()
+	updates := []firestore.Update{
+		{Path: "status", Value: models.PathStatusArchived},
+		{Path: "archivedAt", Value: now},
+		{Path: "updatedAt", Value: now},
+	}
+
+	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
+		http.Error(w, fmt.Sprintf("Error archiving learning path: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Clear pre-generated cache for this path
+	if stepCache != nil {
+		stepCache.Delete(pathID, userID)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Learning path archived",
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// unarchiveLearningPath restores an archived path to active status
+func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
+		return
+	}
+
+	var path models.LearningPath
+	if err := doc.DataTo(&path); err != nil {
+		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if path.UserID != userID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Only archived paths can be unarchived
+	if path.Status != models.PathStatusArchived {
+		http.Error(w, fmt.Sprintf("Cannot unarchive path with status '%s'. Only archived paths can be unarchived.", path.Status), http.StatusBadRequest)
+		return
+	}
+
+	// Check if user has room for another active path
+	activeCount, err := countUserLearningPaths(ctx, fs, userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error checking active paths: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if activeCount >= MaxLearningPathsPerUser {
+		http.Error(w, fmt.Sprintf("Cannot unarchive: you already have %d active learning paths. Maximum allowed is %d. Please complete, archive, or delete an active path first.", activeCount, MaxLearningPathsPerUser), http.StatusBadRequest)
+		return
+	}
+
+	now := time.Now().UnixMilli()
+	updates := []firestore.Update{
+		{Path: "status", Value: models.PathStatusActive},
+		{Path: "archivedAt", Value: int64(0)}, // Clear archived timestamp
+		{Path: "updatedAt", Value: now},
+		{Path: "lastAccessedAt", Value: now},
+	}
+
+	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
+		http.Error(w, fmt.Sprintf("Error unarchiving learning path: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Trigger pre-generation for the unarchived path
+	path.Status = models.PathStatusActive
+	if pregenerateService != nil {
+		pregenerateService.TriggerPregeneration(&path)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Learning path restored to active",
 	}); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
@@ -563,6 +776,24 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	if path.UserID != userID {
 		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Handle legacy paths without status (treat as active)
+	if path.Status == "" {
+		path.Status = models.PathStatusActive
+	}
+
+	// Block step generation for non-active paths
+	switch path.Status {
+	case models.PathStatusCompleted:
+		http.Error(w, "This learning path is completed. You can only review existing steps.", http.StatusBadRequest)
+		return
+	case models.PathStatusArchived:
+		http.Error(w, "This learning path is archived. Unarchive it to continue learning.", http.StatusBadRequest)
+		return
+	case models.PathStatusDeleted:
+		http.Error(w, "This learning path has been deleted.", http.StatusNotFound)
 		return
 	}
 
@@ -996,6 +1227,13 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 		}
 	}
 
+	// Check if path should be auto-completed
+	// Path is completed when progress reaches 100% and all quiz/test steps are passed
+	pathCompleted := false
+	if newProgress >= 100 {
+		pathCompleted = isPathReadyForCompletion(path)
+	}
+
 	// Update the path in Firestore
 	updates := []firestore.Update{
 		{Path: "steps", Value: path.Steps},
@@ -1004,6 +1242,24 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 		{Path: "memory", Value: path.Memory},
 		{Path: "updatedAt", Value: now},
 		{Path: "lastAccessedAt", Value: now},
+	}
+
+	// If path is completed, update status
+	if pathCompleted {
+		updates = append(updates,
+			firestore.Update{Path: "status", Value: models.PathStatusCompleted},
+			firestore.Update{Path: "completedAt", Value: now},
+		)
+		path.Status = models.PathStatusCompleted
+		path.CompletedAt = now
+
+		if appLogger != nil {
+			logger.Info(appLogger, ctx, "learning_path_auto_completed",
+				slog.String("path_id", pathID),
+				slog.String("goal", path.Goal),
+				slog.Int("total_steps", len(path.Steps)),
+			)
+		}
 	}
 
 	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
@@ -1027,7 +1283,9 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 	normalizeLearningPath(path)
 
 	// Trigger pre-generation for the next step in the background
-	if pregenerateService != nil {
+	// But only if the path is still active (not completed)
+	nextStepNeeded := !pathCompleted && path.Status == models.PathStatusActive
+	if nextStepNeeded && pregenerateService != nil {
 		pregenerateService.TriggerPregeneration(path)
 		if appLogger != nil {
 			logger.Info(appLogger, ctx, "pregeneration_triggered_on_complete",
@@ -1037,15 +1295,40 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 		}
 	}
 
+	// Clear cache if path is completed
+	if pathCompleted && stepCache != nil {
+		stepCache.Delete(pathID, path.UserID)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"path":           path,
 		"completedStep":  path.Steps[stepIndex],
-		"nextStepNeeded": true,
+		"nextStepNeeded": nextStepNeeded,
+		"pathCompleted":  pathCompleted,
 	}); err != nil {
 		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
 		return
 	}
+}
+
+// isPathReadyForCompletion checks if all steps are completed and quizzes are passed
+func isPathReadyForCompletion(path *models.LearningPath) bool {
+	if len(path.Steps) == 0 {
+		return false
+	}
+
+	for _, step := range path.Steps {
+		if !step.Completed {
+			return false
+		}
+		// For quiz steps, check if they have a passing score (>= 70%)
+		if step.Type == "quiz" && step.Score < 70 {
+			return false
+		}
+	}
+
+	return true
 }
 
 // viewStep records that a user viewed a completed step (updates lastReviewed)
