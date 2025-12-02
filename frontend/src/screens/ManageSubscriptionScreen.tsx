@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { CancellationFlow, CancellationReason } from '../components/CancellationFlow';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
@@ -34,7 +35,7 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
   } = useSubscriptionStore();
 
   const [canceling, setCanceling] = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showCancellationFlow, setShowCancellationFlow] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -57,25 +58,15 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
   };
 
   const handleCancelSubscription = () => {
-    if (Platform.OS === 'web') {
-      // Web: Use confirm dialog
-      const confirmed = window.confirm(
-        `Are you sure you want to cancel your Pro subscription?\n\nYou'll keep Pro features until ${formatDate(paidUntil)}, then your account will revert to the Free plan.`
-      );
-      if (confirmed) {
-        performCancellation();
-      }
-    } else {
-      // Mobile: Show confirmation state
-      setShowCancelConfirm(true);
-    }
+    setShowCancellationFlow(true);
   };
 
-  const performCancellation = async () => {
+  const handleCancelConfirm = async (reason: CancellationReason, feedback?: string) => {
     setCanceling(true);
     try {
-      await apiClient.post('/subscription/cancel', {});
+      await apiClient.post('/subscription/cancel', { reason, feedback });
       await fetchStatus();
+      setShowCancellationFlow(false);
 
       Alert.alert(
         'Subscription Canceled',
@@ -91,7 +82,42 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
       );
     } finally {
       setCanceling(false);
-      setShowCancelConfirm(false);
+    }
+  };
+
+  const handleAcceptOffer = async (offerType: 'discount' | 'pause') => {
+    setCanceling(true);
+    try {
+      if (offerType === 'discount') {
+        // Apply discount coupon via backend
+        await apiClient.post('/subscription/apply-retention-offer', { offerType: 'discount' });
+        await fetchStatus();
+        setShowCancellationFlow(false);
+        Alert.alert(
+          'Offer Applied!',
+          'You now have 50% off for the next 2 months. Thank you for staying with us!',
+          [{ text: 'Great!' }]
+        );
+      } else if (offerType === 'pause') {
+        // Pause subscription
+        await apiClient.post('/subscription/pause', { months: 1 });
+        await fetchStatus();
+        setShowCancellationFlow(false);
+        Alert.alert(
+          'Subscription Paused',
+          'Your subscription has been paused for 1 month. You can resume anytime.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      }
+    } catch (error) {
+      console.error('Failed to apply offer:', error);
+      Alert.alert(
+        'Error',
+        'Failed to apply offer. Please try again or contact support.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setCanceling(false);
     }
   };
 
@@ -175,36 +201,8 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
           </View>
         </View>
 
-        {/* Cancellation Warning (if showing confirmation) */}
-        {showCancelConfirm && (
-          <View style={[styles.cancelConfirmCard, { backgroundColor: colors.ios.orange + '15' }]}>
-            <Text style={[styles.cancelConfirmTitle, { color: colors.ios.orange }]}>
-              Cancel Subscription?
-            </Text>
-            <Text style={[styles.cancelConfirmText, { color: colors.text.secondary }]}>
-              Your Pro features will remain active until {formatDate(paidUntil)}. After that,
-              your account will revert to the Free plan with limited features.
-            </Text>
-
-            <View style={styles.cancelConfirmButtons}>
-              <Button
-                title="Keep Pro"
-                onPress={() => setShowCancelConfirm(false)}
-                style={styles.keepButton}
-              />
-              <Button
-                title="Cancel Anyway"
-                onPress={performCancellation}
-                variant="secondary"
-                loading={canceling}
-                style={styles.cancelButton}
-              />
-            </View>
-          </View>
-        )}
-
         {/* Actions */}
-        {!showCancelConfirm && (
+        {(
           <View style={styles.actionsSection}>
             <Button
               title="Update Payment Method"
@@ -244,6 +242,16 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
           </Text>
         </View>
       </ScrollView>
+
+      {/* Cancellation Flow Modal */}
+      <CancellationFlow
+        visible={showCancellationFlow}
+        paidUntil={paidUntil}
+        onCancel={handleCancelConfirm}
+        onKeep={() => setShowCancellationFlow(false)}
+        onAcceptOffer={handleAcceptOffer}
+        loading={canceling}
+      />
     </Container>
   );
 };

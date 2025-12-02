@@ -258,6 +258,11 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	// Add 7-day free trial for users who haven't used it before
+	if !user.HasUsedTrial {
+		params.SubscriptionData.TrialPeriodDays = stripe.Int64(7)
+	}
+
 	session, err := checkoutsession.New(params)
 	if err != nil {
 		if appLogger != nil {
@@ -470,6 +475,14 @@ func CancelSubscription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse optional cancellation reason and feedback
+	var req struct {
+		Reason   string `json:"reason"`
+		Feedback string `json:"feedback"`
+	}
+	// Ignore decode errors - reason is optional
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
 	fs := firebase.GetFirestore()
 	if fs == nil {
 		http.Error(w, "Database not available", http.StatusInternalServerError)
@@ -512,11 +525,19 @@ func CancelSubscription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update user's subscription status in Firestore
-	_, err = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+	// Update user's subscription status in Firestore (including cancellation reason)
+	updates := []firestore.Update{
 		{Path: "subscriptionStatus", Value: models.SubscriptionStatusCanceled},
 		{Path: "updatedAt", Value: time.Now()},
-	})
+	}
+	if req.Reason != "" {
+		updates = append(updates, firestore.Update{Path: "cancellationReason", Value: req.Reason})
+	}
+	if req.Feedback != "" {
+		updates = append(updates, firestore.Update{Path: "cancellationFeedback", Value: req.Feedback})
+	}
+
+	_, err = fs.Collection("users").Doc(userID).Update(ctx, updates)
 	if err != nil {
 		if appLogger != nil {
 			logger.Warn(appLogger, ctx, "failed_to_update_subscription_status",
@@ -530,6 +551,7 @@ func CancelSubscription(w http.ResponseWriter, r *http.Request) {
 		logger.Info(appLogger, ctx, "subscription_canceled_by_user",
 			slog.String("user_id", userID),
 			slog.String("subscription_id", user.StripeSubscriptionID),
+			slog.String("reason", req.Reason),
 			slog.Bool("cancel_at_period_end", sub.CancelAtPeriodEnd),
 		)
 	}
@@ -1264,4 +1286,394 @@ func GetUserTierAndLimits(ctx context.Context, userID string) (string, *models.U
 	}
 
 	return tier, limits, nil
+}
+
+// PauseSubscription pauses the user's subscription for a specified number of months
+func PauseSubscription(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		Months int `json:"months"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		req.Months = 1 // Default to 1 month
+	}
+	if req.Months < 1 || req.Months > 3 {
+		req.Months = 1
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	// Get user data
+	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var user models.User
+	if err := userDoc.DataTo(&user); err != nil {
+		http.Error(w, "Error reading user data", http.StatusInternalServerError)
+		return
+	}
+
+	if user.StripeSubscriptionID == "" {
+		http.Error(w, "No active subscription found", http.StatusBadRequest)
+		return
+	}
+
+	// Pause the subscription using Stripe's pause_collection
+	params := &stripe.SubscriptionParams{
+		PauseCollection: &stripe.SubscriptionPauseCollectionParams{
+			Behavior: stripe.String("void"),
+		},
+	}
+
+	sub, err := subscription.Update(user.StripeSubscriptionID, params)
+	if err != nil {
+		if appLogger != nil {
+			logger.Error(appLogger, ctx, "stripe_subscription_pause_failed",
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
+		}
+		http.Error(w, "Failed to pause subscription", http.StatusInternalServerError)
+		return
+	}
+
+	// Update user record
+	now := time.Now()
+	resumeAt := now.AddDate(0, req.Months, 0)
+
+	_, err = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+		{Path: "pausedAt", Value: now},
+		{Path: "resumeAt", Value: resumeAt},
+		{Path: "pauseMonths", Value: req.Months},
+		{Path: "updatedAt", Value: now},
+	})
+	if err != nil {
+		if appLogger != nil {
+			logger.Warn(appLogger, ctx, "failed_to_update_pause_status",
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
+	if appLogger != nil {
+		logger.Info(appLogger, ctx, "subscription_paused",
+			slog.String("user_id", userID),
+			slog.Int("months", req.Months),
+		)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]interface{}{
+		"success":     true,
+		"pausedUntil": resumeAt.Format(time.RFC3339),
+		"status":      string(sub.Status),
+	}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
+}
+
+// ResumeSubscription resumes a paused subscription
+func ResumeSubscription(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	// Get user data
+	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var user models.User
+	if err := userDoc.DataTo(&user); err != nil {
+		http.Error(w, "Error reading user data", http.StatusInternalServerError)
+		return
+	}
+
+	if user.StripeSubscriptionID == "" {
+		http.Error(w, "No subscription found", http.StatusBadRequest)
+		return
+	}
+
+	// Resume the subscription
+	params := &stripe.SubscriptionParams{}
+	params.AddExpand("pause_collection")
+
+	// Clear pause_collection to resume
+	sub, err := subscription.Update(user.StripeSubscriptionID, &stripe.SubscriptionParams{
+		PauseCollection: &stripe.SubscriptionPauseCollectionParams{},
+	})
+	if err != nil {
+		if appLogger != nil {
+			logger.Error(appLogger, ctx, "stripe_subscription_resume_failed",
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
+		}
+		http.Error(w, "Failed to resume subscription", http.StatusInternalServerError)
+		return
+	}
+
+	// Update user record
+	_, err = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+		{Path: "pausedAt", Value: nil},
+		{Path: "resumeAt", Value: nil},
+		{Path: "pauseMonths", Value: 0},
+		{Path: "subscriptionStatus", Value: models.SubscriptionStatusActive},
+		{Path: "updatedAt", Value: time.Now()},
+	})
+	if err != nil {
+		if appLogger != nil {
+			logger.Warn(appLogger, ctx, "failed_to_update_resume_status",
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
+	if appLogger != nil {
+		logger.Info(appLogger, ctx, "subscription_resumed",
+			slog.String("user_id", userID),
+		)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]interface{}{
+		"success": true,
+		"status":  string(sub.Status),
+	}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
+}
+
+// ApplyRetentionOffer applies a retention offer to prevent cancellation
+func ApplyRetentionOffer(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		OfferType string `json:"offerType"` // "discount" or "pause"
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	// Get user data
+	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var user models.User
+	if err := userDoc.DataTo(&user); err != nil {
+		http.Error(w, "Error reading user data", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if user already used a retention offer recently
+	if user.RetentionOfferApplied && user.RetentionOfferDate != nil {
+		// Only allow one retention offer per 6 months
+		sixMonthsAgo := time.Now().AddDate(0, -6, 0)
+		if user.RetentionOfferDate.After(sixMonthsAgo) {
+			http.Error(w, "Retention offer already applied recently", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if user.StripeSubscriptionID == "" {
+		http.Error(w, "No active subscription found", http.StatusBadRequest)
+		return
+	}
+
+	now := time.Now()
+
+	switch req.OfferType {
+	case "discount":
+		// Get retention coupon ID from environment
+		couponID := os.Getenv("STRIPE_RETENTION_COUPON_ID")
+		if couponID == "" {
+			// Create a 50% off for 2 months coupon if not configured
+			// In production, this should be pre-configured
+			http.Error(w, "Retention coupon not configured", http.StatusInternalServerError)
+			return
+		}
+
+		// Apply coupon to subscription
+		params := &stripe.SubscriptionParams{
+			Coupon: stripe.String(couponID),
+		}
+
+		sub, err := subscription.Update(user.StripeSubscriptionID, params)
+		if err != nil {
+			if appLogger != nil {
+				logger.Error(appLogger, ctx, "stripe_retention_coupon_failed",
+					slog.String("user_id", userID),
+					slog.String("error", err.Error()),
+				)
+			}
+			http.Error(w, "Failed to apply discount", http.StatusInternalServerError)
+			return
+		}
+
+		// If subscription was set to cancel, remove the cancellation
+		if sub.CancelAtPeriodEnd {
+			_, err = subscription.Update(user.StripeSubscriptionID, &stripe.SubscriptionParams{
+				CancelAtPeriodEnd: stripe.Bool(false),
+			})
+			if err != nil {
+				if appLogger != nil {
+					logger.Warn(appLogger, ctx, "failed_to_remove_cancellation",
+						slog.String("user_id", userID),
+						slog.String("error", err.Error()),
+					)
+				}
+			}
+		}
+
+		// Update user record
+		_, err = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+			{Path: "retentionOfferApplied", Value: true},
+			{Path: "retentionOfferType", Value: "discount"},
+			{Path: "retentionOfferDate", Value: now},
+			{Path: "subscriptionStatus", Value: models.SubscriptionStatusActive},
+			{Path: "updatedAt", Value: now},
+		})
+		if err != nil {
+			if appLogger != nil {
+				logger.Warn(appLogger, ctx, "failed_to_update_retention_status",
+					slog.String("user_id", userID),
+					slog.String("error", err.Error()),
+				)
+			}
+		}
+
+		if appLogger != nil {
+			logger.Info(appLogger, ctx, "retention_discount_applied",
+				slog.String("user_id", userID),
+			)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":   true,
+			"offerType": "discount",
+			"message":   "50% discount applied for the next 2 months",
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		}
+
+	case "pause":
+		// Pause for 1 month as retention offer
+		params := &stripe.SubscriptionParams{
+			PauseCollection: &stripe.SubscriptionPauseCollectionParams{
+				Behavior: stripe.String("void"),
+			},
+			CancelAtPeriodEnd: stripe.Bool(false), // Remove cancellation if set
+		}
+
+		_, err := subscription.Update(user.StripeSubscriptionID, params)
+		if err != nil {
+			if appLogger != nil {
+				logger.Error(appLogger, ctx, "stripe_retention_pause_failed",
+					slog.String("user_id", userID),
+					slog.String("error", err.Error()),
+				)
+			}
+			http.Error(w, "Failed to pause subscription", http.StatusInternalServerError)
+			return
+		}
+
+		resumeAt := now.AddDate(0, 1, 0)
+
+		// Update user record
+		_, err = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+			{Path: "retentionOfferApplied", Value: true},
+			{Path: "retentionOfferType", Value: "pause"},
+			{Path: "retentionOfferDate", Value: now},
+			{Path: "pausedAt", Value: now},
+			{Path: "resumeAt", Value: resumeAt},
+			{Path: "pauseMonths", Value: 1},
+			{Path: "updatedAt", Value: now},
+		})
+		if err != nil {
+			if appLogger != nil {
+				logger.Warn(appLogger, ctx, "failed_to_update_pause_status",
+					slog.String("user_id", userID),
+					slog.String("error", err.Error()),
+				)
+			}
+		}
+
+		if appLogger != nil {
+			logger.Info(appLogger, ctx, "retention_pause_applied",
+				slog.String("user_id", userID),
+			)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":     true,
+			"offerType":   "pause",
+			"pausedUntil": resumeAt.Format(time.RFC3339),
+			"message":     "Subscription paused for 1 month",
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		}
+
+	default:
+		http.Error(w, "Invalid offer type", http.StatusBadRequest)
+	}
 }
