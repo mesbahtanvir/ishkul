@@ -22,7 +22,6 @@ import (
 	"github.com/stripe/stripe-go/v81/ephemeralkey"
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
-	"google.golang.org/api/iterator"
 )
 
 // InitializeStripe sets up the Stripe client with the API key
@@ -82,7 +81,7 @@ func GetSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Count active learning paths
-	activePathCount, err := countUserLearningPaths(ctx, fs, userID)
+	activePathCount, err := CountUserActivePaths(ctx, fs, userID)
 	if err != nil {
 		activePathCount = 0
 	}
@@ -1248,7 +1247,7 @@ func GetUserTierAndLimits(ctx context.Context, userID string) (string, *models.U
 	}
 
 	// Count active paths
-	activeCount, err := countUserActivePaths(ctx, fs, userID)
+	activeCount, err := CountUserActivePaths(ctx, fs, userID)
 	if err != nil {
 		activeCount = 0
 	}
@@ -1265,27 +1264,4 @@ func GetUserTierAndLimits(ctx context.Context, userID string) (string, *models.U
 	}
 
 	return tier, limits, nil
-}
-
-// countUserActivePaths counts only active paths (not completed, archived, or deleted)
-func countUserActivePaths(ctx context.Context, fs *firestore.Client, userID string) (int, error) {
-	iter := fs.Collection("learning_paths").
-		Where("userId", "==", userID).
-		Where("status", "==", models.PathStatusActive).
-		Documents(ctx)
-	defer iter.Stop()
-
-	count := 0
-	for {
-		_, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return 0, err
-		}
-		count++
-	}
-
-	return count, nil
 }

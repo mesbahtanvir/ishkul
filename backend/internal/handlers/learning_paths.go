@@ -22,8 +22,8 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// MaxLearningPathsPerUser is deprecated - use models.GetMaxActivePaths(tier) instead
-// Kept for backward compatibility during migration
+// Deprecated: MaxLearningPathsPerUser is deprecated.
+// Use models.GetMaxActivePaths(tier) instead for tier-aware path limits.
 const MaxLearningPathsPerUser = 5
 
 // Global cache and pre-generation service
@@ -41,133 +41,132 @@ func SetAppLogger(log *slog.Logger) {
 }
 
 // LearningPathsHandler handles all /api/learning-paths routes
+// Routes:
+//   - GET    /api/learning-paths              -> list paths
+//   - POST   /api/learning-paths              -> create path
+//   - GET    /api/learning-paths/{id}         -> get path
+//   - PATCH  /api/learning-paths/{id}         -> update path
+//   - DELETE /api/learning-paths/{id}         -> delete path
+//   - POST   /api/learning-paths/{id}/next    -> get/generate next step
+//   - POST   /api/learning-paths/{id}/archive -> archive path
+//   - POST   /api/learning-paths/{id}/memory  -> update memory
+//   - POST   /api/learning-paths/{id}/steps/{stepId}/complete -> complete step
+//   - POST   /api/learning-paths/{id}/steps/{stepId}/view     -> view step
 func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse the path to determine the action
-	// /api/learning-paths -> list/create
-	// /api/learning-paths/{id} -> get/update/delete
-	// /api/learning-paths/{id}/next -> get/generate next step
-	// /api/learning-paths/{id}/steps/{stepId}/complete -> complete step
-	// /api/learning-paths/{id}/steps/{stepId}/view -> view step (updates lastReviewed)
-	// /api/learning-paths/{id}/memory -> update memory
-
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
-
-	// Add user ID to context for logging
 	ctx = logger.WithUserID(ctx, userID)
 
-	path := strings.TrimPrefix(r.URL.Path, "/api/learning-paths")
-	path = strings.TrimPrefix(path, "/")
+	logRequest(ctx, r)
 
-	// Log request if logger is available
+	segments := parsePath(r.URL.Path, "/api/learning-paths")
+
+	switch len(segments) {
+	case 0:
+		handleRootPath(w, r)
+	case 1:
+		handleSinglePath(w, r, segments[0])
+	case 2:
+		handlePathAction(w, r, segments[0], segments[1])
+	case 4:
+		handleStepAction(w, r, segments)
+	default:
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
+}
+
+// parsePath extracts path segments after the given prefix
+func parsePath(urlPath, prefix string) []string {
+	path := strings.TrimPrefix(urlPath, prefix)
+	path = strings.TrimPrefix(path, "/")
+	if path == "" {
+		return []string{}
+	}
+	return strings.Split(path, "/")
+}
+
+// logRequest logs the incoming request if logger is available
+func logRequest(ctx context.Context, r *http.Request) {
 	if appLogger != nil {
 		logger.Info(appLogger, ctx, "learning_paths_request",
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),
 		)
 	}
+}
 
-	// Root path: /api/learning-paths
-	if path == "" {
-		switch r.Method {
-		case http.MethodGet:
-			listLearningPaths(w, r)
-		case http.MethodPost:
-			createLearningPath(w, r)
-		default:
-			if appLogger != nil {
-				logger.Warn(appLogger, ctx, "learning_paths_method_not_allowed",
-					slog.String("method", r.Method),
-				)
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
+// handleRootPath handles /api/learning-paths
+func handleRootPath(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		listLearningPaths(w, r)
+	case http.MethodPost:
+		createLearningPath(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// handleSinglePath handles /api/learning-paths/{id}
+func handleSinglePath(w http.ResponseWriter, r *http.Request, pathID string) {
+	switch r.Method {
+	case http.MethodGet:
+		getLearningPath(w, r, pathID)
+	case http.MethodPatch, http.MethodPut:
+		updateLearningPath(w, r, pathID)
+	case http.MethodDelete:
+		deleteLearningPath(w, r, pathID)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// handlePathAction handles /api/learning-paths/{id}/{action}
+func handlePathAction(w http.ResponseWriter, r *http.Request, pathID, action string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Parse path segments
-	segments := strings.Split(path, "/")
-	pathID := segments[0]
+	// Route to the appropriate handler based on action
+	switch action {
+	case "next", "session": // "session" kept for backward compatibility
+		getPathNextStep(w, r, pathID)
+	case "complete": // Legacy endpoint - complete the current step
+		completeCurrentStep(w, r, pathID)
+	case "archive":
+		archiveLearningPath(w, r, pathID)
+	case "unarchive":
+		unarchiveLearningPath(w, r, pathID)
+	case "memory":
+		updatePathMemory(w, r, pathID)
+	default:
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
+}
 
-	// /api/learning-paths/{id}
-	if len(segments) == 1 {
-		switch r.Method {
-		case http.MethodGet:
-			getLearningPath(w, r, pathID)
-		case http.MethodPatch, http.MethodPut:
-			updateLearningPath(w, r, pathID)
-		case http.MethodDelete:
-			deleteLearningPath(w, r, pathID)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
+// handleStepAction handles /api/learning-paths/{id}/steps/{stepId}/{action}
+func handleStepAction(w http.ResponseWriter, r *http.Request, segments []string) {
+	if segments[1] != "steps" {
+		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
 
-	// /api/learning-paths/{id}/{action}
-	if len(segments) == 2 {
-		action := segments[1]
-		switch action {
-		case "next", "session": // "session" kept for backward compatibility
-			if r.Method == http.MethodPost {
-				getPathNextStep(w, r, pathID)
-			} else {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
-		case "complete": // Legacy endpoint - complete the current step
-			if r.Method == http.MethodPost {
-				completeCurrentStep(w, r, pathID)
-			} else {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
-		case "archive":
-			if r.Method == http.MethodPost {
-				archiveLearningPath(w, r, pathID)
-			} else {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
-		case "unarchive":
-			if r.Method == http.MethodPost {
-				unarchiveLearningPath(w, r, pathID)
-			} else {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
-		case "memory":
-			if r.Method == http.MethodPost {
-				updatePathMemory(w, r, pathID)
-			} else {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
-		default:
-			http.Error(w, "Not found", http.StatusNotFound)
-		}
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// /api/learning-paths/{id}/steps/{stepId}/{action}
-	if len(segments) == 4 && segments[1] == "steps" {
-		stepID := segments[2]
-		action := segments[3]
-		switch action {
-		case "complete":
-			if r.Method == http.MethodPost {
-				completeStep(w, r, pathID, stepID)
-			} else {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
-		case "view":
-			if r.Method == http.MethodPost {
-				viewStep(w, r, pathID, stepID)
-			} else {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
-		default:
-			http.Error(w, "Not found", http.StatusNotFound)
-		}
-		return
-	}
+	pathID, stepID, action := segments[0], segments[2], segments[3]
 
-	http.Error(w, "Not found", http.StatusNotFound)
+	switch action {
+	case "complete":
+		completeStep(w, r, pathID, stepID)
+	case "view":
+		viewStep(w, r, pathID, stepID)
+	default:
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
 }
 
 // normalizeLearningPath ensures the learning path has valid defaults for nil slices/maps
@@ -357,7 +356,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if user has reached the maximum number of learning paths for their tier
-	existingPaths, err := countUserLearningPaths(ctx, fs, userID)
+	existingPaths, err := CountUserActivePaths(ctx, fs, userID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error checking existing paths: %v", err), http.StatusInternalServerError)
 		return
@@ -502,30 +501,6 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
-}
-
-// countUserActiveLearningPaths counts the number of active learning paths for a user
-// Only active paths count toward the limit (not completed, archived, or deleted)
-func countUserLearningPaths(ctx context.Context, fs *firestore.Client, userID string) (int, error) {
-	iter := fs.Collection("learning_paths").
-		Where("userId", "==", userID).
-		Where("status", "==", models.PathStatusActive).
-		Documents(ctx)
-	defer iter.Stop()
-
-	count := 0
-	for {
-		_, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return 0, err
-		}
-		count++
-	}
-
-	return count, nil
 }
 
 // updateLearningPath updates a learning path
@@ -799,7 +774,7 @@ func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string
 	}
 
 	// Check if user has room for another active path
-	activeCount, err := countUserLearningPaths(ctx, fs, userID)
+	activeCount, err := CountUserActivePaths(ctx, fs, userID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error checking active paths: %v", err), http.StatusInternalServerError)
 		return
