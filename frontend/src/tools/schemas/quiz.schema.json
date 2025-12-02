@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "quiz",
+  "title": "Micro-Quiz",
+  "description": "Quick comprehension check with ONE question (30-60 seconds)",
+  "type": "object",
+  "properties": {
+    "question": {
+      "type": "string",
+      "description": "Clear, focused question (1-2 sentences)",
+      "minLength": 10,
+      "maxLength": 300
+    },
+    "expectedAnswer": {
+      "type": "string",
+      "description": "Concise correct answer (1-10 words)",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "options": {
+      "type": "array",
+      "description": "Multiple choice options (optional, 3-4 items)",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "minItems": 2,
+      "maxItems": 6
+    },
+    "explanation": {
+      "type": "string",
+      "description": "Brief explanation shown after answering",
+      "maxLength": 300
+    },
+    "topic": {
+      "type": "string",
+      "description": "Topic being tested",
+      "minLength": 2,
+      "maxLength": 50
+    },
+    "title": {
+      "type": "string",
+      "description": "Quiz title",
+      "minLength": 3,
+      "maxLength": 100
+    }
+  },
+  "required": ["question", "expectedAnswer", "topic", "title"]
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "lesson",
+  "title": "Micro-Lesson",
+  "description": "Bite-sized lesson teaching ONE concept in 2-3 minutes",
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "string",
+      "description": "Markdown-formatted lesson content (100-200 words)",
+      "minLength": 50,
+      "maxLength": 1500
+    },
+    "topic": {
+      "type": "string",
+      "description": "Single concept name (2-4 words)",
+      "minLength": 2,
+      "maxLength": 50
+    },
+    "title": {
+      "type": "string",
+      "description": "Engaging, specific title",
+      "minLength": 3,
+      "maxLength": 100
+    }
+  },
+  "required": ["content", "topic", "title"]
+}

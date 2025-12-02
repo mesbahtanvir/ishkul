@@ -27,7 +27,11 @@ import { StepDetailScreen } from '../screens/StepDetailScreen';
 import { LessonScreen } from '../screens/LessonScreen';
 import { QuizScreen } from '../screens/QuizScreen';
 import { PracticeScreen } from '../screens/PracticeScreen';
+import { StepScreen } from '../screens/StepScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
+
+// Initialize tool registry
+import '../tools';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 import { LoadingScreen } from '../components/LoadingScreen';
@@ -53,7 +57,9 @@ const LearnStack = () => {
       <Stack.Screen name="LearningSession" component={LearningSessionScreen} />
       {/* New: Read-only view for completed steps */}
       <Stack.Screen name="StepDetail" component={StepDetailScreen} />
-      {/* Step interaction screens */}
+      {/* New: Generic step screen using tool registry */}
+      <Stack.Screen name="Step" component={StepScreen} />
+      {/* Legacy step screens - kept for backward compatibility */}
       <Stack.Screen name="Lesson" component={LessonScreen} />
       <Stack.Screen name="Quiz" component={QuizScreen} />
       <Stack.Screen name="Practice" component={PracticeScreen} />
