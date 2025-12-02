@@ -5,10 +5,21 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"time"
 
+	"github.com/mesbahtanvir/ishkul/backend/internal/services"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/cache"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/openai"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
+)
+
+// Cache configuration constants
+const (
+	// StepCacheTTL is how long pre-generated steps stay in cache
+	StepCacheTTL = 10 * time.Minute
+	// CacheCleanupInterval is how often expired entries are removed
+	CacheCleanupInterval = 5 * time.Minute
 )
 
 var (
@@ -50,6 +61,42 @@ func InitializeLLM(promptsDir string) error {
 		logger.Info(appLogger, context.Background(), "prompt_renderer_initialized")
 	}
 
-	log.Println("LLM components initialized successfully")
+	// Initialize step cache for pre-generation
+	stepCache = cache.NewStepCache(StepCacheTTL)
+	stepCache.StartCleanup(CacheCleanupInterval)
+	if appLogger != nil {
+		logger.Info(appLogger, context.Background(), "step_cache_initialized",
+			slog.Duration("ttl", StepCacheTTL),
+			slog.Duration("cleanup_interval", CacheCleanupInterval),
+		)
+	}
+
+	// Initialize pre-generation service
+	pregenerateService = services.NewPregenerateService(
+		stepCache,
+		openaiClient,
+		promptLoader,
+		promptRenderer,
+		appLogger,
+	)
+	if appLogger != nil {
+		logger.Info(appLogger, context.Background(), "pregenerate_service_initialized")
+	}
+
+	log.Println("LLM components initialized successfully (with pre-generation cache)")
 	return nil
+}
+
+// GetStepCacheStats returns current cache statistics for monitoring
+func GetStepCacheStats() map[string]interface{} {
+	if stepCache == nil {
+		return map[string]interface{}{
+			"initialized": false,
+		}
+	}
+	return map[string]interface{}{
+		"initialized": true,
+		"size":        stepCache.Size(),
+		"ttl_minutes": StepCacheTTL.Minutes(),
+	}
 }

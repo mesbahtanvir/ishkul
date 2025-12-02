@@ -3,6 +3,14 @@ package models
 // MaxStepContentLength is the maximum character length for step content
 const MaxStepContentLength = 2000
 
+// Learning path status constants
+const (
+	PathStatusActive    = "active"
+	PathStatusCompleted = "completed"
+	PathStatusArchived  = "archived"
+	PathStatusDeleted   = "deleted"
+)
+
 // LearningPath represents a user's learning journey for a specific goal
 type LearningPath struct {
 	ID               string  `json:"id" firestore:"id"`
@@ -10,6 +18,7 @@ type LearningPath struct {
 	Goal             string  `json:"goal" firestore:"goal"`
 	Level            string  `json:"level" firestore:"level"`
 	Emoji            string  `json:"emoji" firestore:"emoji"`
+	Status           string  `json:"status" firestore:"status"`                     // active, completed, archived, deleted
 	Progress         int     `json:"progress" firestore:"progress"`                 // 0-100
 	LessonsCompleted int     `json:"lessonsCompleted" firestore:"lessonsCompleted"` // Number of completed steps
 	TotalLessons     int     `json:"totalLessons" firestore:"totalLessons"`         // Estimated total steps in path
@@ -18,6 +27,9 @@ type LearningPath struct {
 	CreatedAt        int64   `json:"createdAt" firestore:"createdAt"`
 	UpdatedAt        int64   `json:"updatedAt" firestore:"updatedAt"`
 	LastAccessedAt   int64   `json:"lastAccessedAt" firestore:"lastAccessedAt"`
+	CompletedAt      int64   `json:"completedAt,omitempty" firestore:"completedAt,omitempty"` // When path was completed
+	ArchivedAt       int64   `json:"archivedAt,omitempty" firestore:"archivedAt,omitempty"`   // When path was archived
+	DeletedAt        int64   `json:"deletedAt,omitempty" firestore:"deletedAt,omitempty"`     // When path was soft deleted
 }
 
 // Step represents a single step in the learning path (lesson, quiz, practice, etc.)

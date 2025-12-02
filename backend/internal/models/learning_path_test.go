@@ -618,3 +618,340 @@ func TestLearningPathWithStepsAndMemory(t *testing.T) {
 		assert.Equal(t, original.Memory.Topics["Test"].Confidence, restored.Memory.Topics["Test"].Confidence)
 	})
 }
+
+// =============================================================================
+// Path Status Constants Tests
+// =============================================================================
+
+func TestPathStatusConstants(t *testing.T) {
+	t.Run("status constants have correct values", func(t *testing.T) {
+		assert.Equal(t, "active", PathStatusActive)
+		assert.Equal(t, "completed", PathStatusCompleted)
+		assert.Equal(t, "archived", PathStatusArchived)
+		assert.Equal(t, "deleted", PathStatusDeleted)
+	})
+
+	t.Run("status constants are unique", func(t *testing.T) {
+		statuses := []string{PathStatusActive, PathStatusCompleted, PathStatusArchived, PathStatusDeleted}
+		unique := make(map[string]bool)
+
+		for _, status := range statuses {
+			assert.False(t, unique[status], "Duplicate status: %s", status)
+			unique[status] = true
+		}
+
+		assert.Len(t, unique, 4)
+	})
+}
+
+// =============================================================================
+// LearningPath Status Field Tests
+// =============================================================================
+
+func TestLearningPathStatusField(t *testing.T) {
+	t.Run("creates path with active status", func(t *testing.T) {
+		path := LearningPath{
+			ID:     "path-1",
+			UserID: "user-1",
+			Goal:   "Learn Go",
+			Level:  "beginner",
+			Status: PathStatusActive,
+		}
+
+		assert.Equal(t, PathStatusActive, path.Status)
+	})
+
+	t.Run("creates path with completed status and timestamp", func(t *testing.T) {
+		path := LearningPath{
+			ID:          "path-1",
+			UserID:      "user-1",
+			Goal:        "Learn Go",
+			Level:       "beginner",
+			Status:      PathStatusCompleted,
+			Progress:    100,
+			CompletedAt: 1704067200000,
+		}
+
+		assert.Equal(t, PathStatusCompleted, path.Status)
+		assert.Equal(t, int64(1704067200000), path.CompletedAt)
+	})
+
+	t.Run("creates path with archived status and timestamp", func(t *testing.T) {
+		path := LearningPath{
+			ID:         "path-1",
+			UserID:     "user-1",
+			Goal:       "Learn Go",
+			Level:      "beginner",
+			Status:     PathStatusArchived,
+			ArchivedAt: 1704067200000,
+		}
+
+		assert.Equal(t, PathStatusArchived, path.Status)
+		assert.Equal(t, int64(1704067200000), path.ArchivedAt)
+	})
+
+	t.Run("creates path with deleted status and timestamp", func(t *testing.T) {
+		path := LearningPath{
+			ID:        "path-1",
+			UserID:    "user-1",
+			Goal:      "Learn Go",
+			Level:     "beginner",
+			Status:    PathStatusDeleted,
+			DeletedAt: 1704067200000,
+		}
+
+		assert.Equal(t, PathStatusDeleted, path.Status)
+		assert.Equal(t, int64(1704067200000), path.DeletedAt)
+	})
+
+	t.Run("JSON includes status field", func(t *testing.T) {
+		path := LearningPath{
+			ID:     "path-123",
+			UserID: "user-456",
+			Goal:   "Learn Go",
+			Level:  "beginner",
+			Status: PathStatusActive,
+		}
+
+		jsonBytes, err := json.Marshal(path)
+		require.NoError(t, err)
+
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
+		assert.Contains(t, parsed, "status")
+		assert.Equal(t, "active", parsed["status"])
+	})
+
+	t.Run("JSON omits empty timestamps", func(t *testing.T) {
+		path := LearningPath{
+			ID:     "path-123",
+			UserID: "user-456",
+			Goal:   "Learn Go",
+			Level:  "beginner",
+			Status: PathStatusActive,
+		}
+
+		jsonBytes, err := json.Marshal(path)
+		require.NoError(t, err)
+
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
+		// These should be omitted when zero
+		assert.NotContains(t, parsed, "completedAt")
+		assert.NotContains(t, parsed, "archivedAt")
+		assert.NotContains(t, parsed, "deletedAt")
+	})
+
+	t.Run("JSON includes non-zero timestamps", func(t *testing.T) {
+		path := LearningPath{
+			ID:          "path-123",
+			UserID:      "user-456",
+			Goal:        "Learn Go",
+			Level:       "beginner",
+			Status:      PathStatusCompleted,
+			CompletedAt: 1704067200000,
+		}
+
+		jsonBytes, err := json.Marshal(path)
+		require.NoError(t, err)
+
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
+		assert.Contains(t, parsed, "completedAt")
+	})
+
+	t.Run("JSON unmarshaling handles status correctly", func(t *testing.T) {
+		jsonStr := `{
+			"id": "path-789",
+			"userId": "user-123",
+			"goal": "Master Python",
+			"level": "intermediate",
+			"status": "completed",
+			"completedAt": 1704067200000
+		}`
+
+		var path LearningPath
+		err := json.Unmarshal([]byte(jsonStr), &path)
+		require.NoError(t, err)
+
+		assert.Equal(t, PathStatusCompleted, path.Status)
+		assert.Equal(t, int64(1704067200000), path.CompletedAt)
+	})
+}
+
+// =============================================================================
+// LearningPath Lifecycle Tests
+// =============================================================================
+
+func TestLearningPathLifecycle(t *testing.T) {
+	t.Run("new path starts as active", func(t *testing.T) {
+		path := LearningPath{
+			ID:               "path-new",
+			UserID:           "user-123",
+			Goal:             "Learn Go",
+			Level:            "beginner",
+			Status:           PathStatusActive,
+			Progress:         0,
+			LessonsCompleted: 0,
+			TotalLessons:     10,
+		}
+
+		assert.Equal(t, PathStatusActive, path.Status)
+		assert.Equal(t, int64(0), path.CompletedAt)
+		assert.Equal(t, int64(0), path.ArchivedAt)
+		assert.Equal(t, int64(0), path.DeletedAt)
+	})
+
+	t.Run("completed path has 100% progress", func(t *testing.T) {
+		path := LearningPath{
+			ID:               "path-done",
+			UserID:           "user-123",
+			Goal:             "Learn Go",
+			Level:            "beginner",
+			Status:           PathStatusCompleted,
+			Progress:         100,
+			LessonsCompleted: 10,
+			TotalLessons:     10,
+			CompletedAt:      1704067200000,
+		}
+
+		assert.Equal(t, PathStatusCompleted, path.Status)
+		assert.Equal(t, 100, path.Progress)
+		assert.Equal(t, path.LessonsCompleted, path.TotalLessons)
+		assert.NotEqual(t, int64(0), path.CompletedAt)
+	})
+
+	t.Run("archived path preserves progress", func(t *testing.T) {
+		path := LearningPath{
+			ID:               "path-archived",
+			UserID:           "user-123",
+			Goal:             "Learn Go",
+			Level:            "beginner",
+			Status:           PathStatusArchived,
+			Progress:         50,
+			LessonsCompleted: 5,
+			TotalLessons:     10,
+			ArchivedAt:       1704067200000,
+		}
+
+		assert.Equal(t, PathStatusArchived, path.Status)
+		assert.Equal(t, 50, path.Progress)
+		assert.NotEqual(t, int64(0), path.ArchivedAt)
+	})
+
+	t.Run("deleted path has deletedAt timestamp", func(t *testing.T) {
+		path := LearningPath{
+			ID:        "path-deleted",
+			UserID:    "user-123",
+			Goal:      "Learn Go",
+			Level:     "beginner",
+			Status:    PathStatusDeleted,
+			DeletedAt: 1704067200000,
+		}
+
+		assert.Equal(t, PathStatusDeleted, path.Status)
+		assert.NotEqual(t, int64(0), path.DeletedAt)
+	})
+}
+
+// =============================================================================
+// LearningPath Status Validation Helpers
+// =============================================================================
+
+func TestStatusValidationHelpers(t *testing.T) {
+	t.Run("validates status is one of known values", func(t *testing.T) {
+		validStatuses := map[string]bool{
+			PathStatusActive:    true,
+			PathStatusCompleted: true,
+			PathStatusArchived:  true,
+			PathStatusDeleted:   true,
+		}
+
+		assert.True(t, validStatuses["active"])
+		assert.True(t, validStatuses["completed"])
+		assert.True(t, validStatuses["archived"])
+		assert.True(t, validStatuses["deleted"])
+		assert.False(t, validStatuses["unknown"])
+		assert.False(t, validStatuses[""])
+	})
+}
+
+// =============================================================================
+// LearningPath with Steps - Completion Scenario Tests
+// =============================================================================
+
+func TestLearningPathCompletionScenarios(t *testing.T) {
+	t.Run("path with all completed steps and passing quizzes", func(t *testing.T) {
+		path := LearningPath{
+			ID:               "path-complete",
+			UserID:           "user-123",
+			Goal:             "Learn Go",
+			Level:            "beginner",
+			Status:           PathStatusCompleted,
+			Progress:         100,
+			LessonsCompleted: 3,
+			TotalLessons:     3,
+			Steps: []Step{
+				{ID: "step-1", Type: "lesson", Completed: true, Score: 0},
+				{ID: "step-2", Type: "quiz", Completed: true, Score: 85},
+				{ID: "step-3", Type: "lesson", Completed: true, Score: 0},
+			},
+			CompletedAt: 1704067200000,
+		}
+
+		// All steps completed
+		allCompleted := true
+		for _, s := range path.Steps {
+			if !s.Completed {
+				allCompleted = false
+				break
+			}
+		}
+		assert.True(t, allCompleted)
+
+		// All quizzes passed (>= 70%)
+		allQuizzesPassed := true
+		for _, s := range path.Steps {
+			if s.Type == "quiz" && s.Score < 70 {
+				allQuizzesPassed = false
+				break
+			}
+		}
+		assert.True(t, allQuizzesPassed)
+	})
+
+	t.Run("path with failed quiz should not be completed", func(t *testing.T) {
+		path := LearningPath{
+			ID:               "path-incomplete",
+			UserID:           "user-123",
+			Goal:             "Learn Go",
+			Level:            "beginner",
+			Status:           PathStatusActive, // Should remain active due to failed quiz
+			Progress:         100,
+			LessonsCompleted: 3,
+			TotalLessons:     3,
+			Steps: []Step{
+				{ID: "step-1", Type: "lesson", Completed: true, Score: 0},
+				{ID: "step-2", Type: "quiz", Completed: true, Score: 60}, // Failed
+				{ID: "step-3", Type: "lesson", Completed: true, Score: 0},
+			},
+		}
+
+		// Check if all quizzes passed
+		allQuizzesPassed := true
+		for _, s := range path.Steps {
+			if s.Type == "quiz" && s.Score < 70 {
+				allQuizzesPassed = false
+				break
+			}
+		}
+		assert.False(t, allQuizzesPassed)
+		assert.Equal(t, PathStatusActive, path.Status)
+	})
+}
