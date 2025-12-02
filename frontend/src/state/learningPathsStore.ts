@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { LearningPath, Step } from '../types/app';
+import { LearningPath, Step, PathStatus } from '../types/app';
 
 interface CacheMetadata {
   timestamp: number;
@@ -20,6 +20,8 @@ interface LearningPathsState {
   addPath: (path: LearningPath) => void;
   updatePath: (pathId: string, updates: Partial<LearningPath>) => void;
   deletePath: (pathId: string) => void;
+  archivePath: (pathId: string) => void;
+  restorePath: (pathId: string) => void;
   addStep: (pathId: string, step: Step) => void;
   updateStep: (pathId: string, stepId: string, updates: Partial<Step>) => void;
   setLoading: (loading: boolean) => void;
@@ -31,6 +33,8 @@ interface LearningPathsState {
   invalidatePathCache: (pathId: string) => void;
   invalidateListCache: () => void;
   clearAllCache: () => void; // Clear all cache metadata (called on login)
+  // Selectors
+  getPathsByStatus: (status: PathStatus) => LearningPath[];
 }
 
 // Helper to find current (incomplete) step
@@ -103,6 +107,50 @@ export const useLearningPathsStore = create<LearningPathsState>((set, get) => ({
     set({
       paths: paths.filter((p) => p.id !== pathId),
       activePath: activePath?.id === pathId ? null : activePath,
+      pathsCache,
+    });
+  },
+
+  archivePath: (pathId) => {
+    const { paths, activePath, pathsCache } = get();
+    const updatedPaths = paths.map((p) =>
+      p.id === pathId
+        ? { ...p, status: 'archived' as PathStatus, archivedAt: Date.now(), updatedAt: Date.now() }
+        : p
+    );
+    pathsCache.set(pathId, { timestamp: Date.now(), ttl: CACHE_TTL });
+    set({
+      paths: updatedPaths,
+      activePath:
+        activePath?.id === pathId
+          ? { ...activePath, status: 'archived' as PathStatus, archivedAt: Date.now(), updatedAt: Date.now() }
+          : activePath,
+      pathsCache,
+    });
+  },
+
+  restorePath: (pathId) => {
+    const { paths, activePath, pathsCache } = get();
+    const updatedPaths = paths.map((p) => {
+      if (p.id === pathId) {
+        // Determine if path should be 'active' or 'completed' based on progress
+        const newStatus: PathStatus = p.progress >= 100 ? 'completed' : 'active';
+        return { ...p, status: newStatus, archivedAt: undefined, updatedAt: Date.now() };
+      }
+      return p;
+    });
+    pathsCache.set(pathId, { timestamp: Date.now(), ttl: CACHE_TTL });
+    set({
+      paths: updatedPaths,
+      activePath:
+        activePath?.id === pathId
+          ? {
+              ...activePath,
+              status: activePath.progress >= 100 ? 'completed' : 'active',
+              archivedAt: undefined,
+              updatedAt: Date.now(),
+            }
+          : activePath,
       pathsCache,
     });
   },
@@ -182,6 +230,14 @@ export const useLearningPathsStore = create<LearningPathsState>((set, get) => ({
     set({
       pathsCache: new Map(),
       listCache: null,
+    });
+  },
+
+  getPathsByStatus: (status) => {
+    const { paths } = get();
+    return paths.filter((p) => {
+      const pathStatus = p.status || (p.progress >= 100 ? 'completed' : 'active');
+      return pathStatus === status;
     });
   },
 }));
