@@ -849,13 +849,16 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	// Block step generation for non-active paths
 	switch path.Status {
 	case models.PathStatusCompleted:
-		http.Error(w, "This learning path is completed. You can only review existing steps.", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodePathCompleted,
+			"This learning path is completed. You can only review existing steps.")
 		return
 	case models.PathStatusArchived:
-		http.Error(w, "This learning path is archived. Unarchive it to continue learning.", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodePathArchived,
+			"This learning path is archived. Unarchive it to continue learning.")
 		return
 	case models.PathStatusDeleted:
-		http.Error(w, "This learning path has been deleted.", http.StatusNotFound)
+		sendErrorResponse(w, http.StatusNotFound, ErrCodePathDeleted,
+			"This learning path has been deleted.")
 		return
 	}
 

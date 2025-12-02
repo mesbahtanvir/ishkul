@@ -61,6 +61,13 @@ const (
 	ErrCodeMissingCredentials = "MISSING_CREDENTIALS"
 )
 
+// Error codes for learning paths
+const (
+	ErrCodePathCompleted = "PATH_COMPLETED"
+	ErrCodePathArchived  = "PATH_ARCHIVED"
+	ErrCodePathDeleted   = "PATH_DELETED"
+)
+
 // sendErrorResponse sends a structured JSON error response
 func sendErrorResponse(w http.ResponseWriter, statusCode int, code string, message string) {
 	w.Header().Set("Content-Type", "application/json")
