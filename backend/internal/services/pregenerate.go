@@ -46,7 +46,7 @@ func NewPregenerateService(
 
 // TriggerPregeneration starts background generation for a learning path
 // It's safe to call multiple times - duplicate calls will be ignored
-func (s *PregenerateService) TriggerPregeneration(path *models.LearningPath) {
+func (s *PregenerateService) TriggerPregeneration(path *models.LearningPath, userTier string) {
 	if s.openai == nil || s.loader == nil {
 		return // LLM not initialized
 	}
@@ -70,12 +70,13 @@ func (s *PregenerateService) TriggerPregeneration(path *models.LearningPath) {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
-		step, err := s.generateStep(ctx, path)
+		step, err := s.generateStep(ctx, path, userTier)
 		if err != nil {
 			if s.logger != nil {
 				s.logger.Error("pregeneration_failed",
 					slog.String("path_id", path.ID),
 					slog.String("user_id", path.UserID),
+					slog.String("user_tier", userTier),
 					slog.String("error", err.Error()),
 				)
 			}
@@ -88,6 +89,7 @@ func (s *PregenerateService) TriggerPregeneration(path *models.LearningPath) {
 		if s.logger != nil {
 			s.logger.Info("pregeneration_complete",
 				slog.String("path_id", path.ID),
+				slog.String("user_tier", userTier),
 				slog.String("step_type", step.Type),
 				slog.String("step_topic", step.Topic),
 			)
@@ -102,8 +104,8 @@ func (s *PregenerateService) IsGenerating(pathID, userID string) bool {
 	return exists
 }
 
-// generateStep creates a new step using the LLM
-func (s *PregenerateService) generateStep(ctx context.Context, path *models.LearningPath) (*models.Step, error) {
+// generateStep creates a new step using the LLM with tier-aware model selection
+func (s *PregenerateService) generateStep(ctx context.Context, path *models.LearningPath, userTier string) (*models.Step, error) {
 	// Get recent steps since last compaction
 	recentSteps := getRecentSteps(path)
 
@@ -140,8 +142,8 @@ func (s *PregenerateService) generateStep(ctx context.Context, path *models.Lear
 		return nil, fmt.Errorf("failed to load prompt template: %w", err)
 	}
 
-	// Render prompt
-	openaiReq, err := s.renderer.RenderToRequest(template, vars)
+	// Render prompt with tier-aware model selection
+	openaiReq, err := s.renderer.RenderToRequestWithTier(template, vars, userTier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}

@@ -254,7 +254,7 @@ func TestTriggerPregenerationEdgeCases(t *testing.T) {
 		}
 
 		// Should not panic
-		service.TriggerPregeneration(path)
+		service.TriggerPregeneration(path, "free")
 
 		// Should not be marked as generating
 		assert.False(t, service.IsGenerating("path-1", "user-1"))

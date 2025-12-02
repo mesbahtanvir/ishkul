@@ -60,13 +60,25 @@ func (r *Renderer) substituteVariables(content string, vars Variables) (string, 
 
 // RenderToRequest creates a complete OpenAI request from a template
 func (r *Renderer) RenderToRequest(template *PromptTemplate, vars Variables) (*openai.ChatCompletionRequest, error) {
+	return r.RenderToRequestWithTier(template, vars, "free")
+}
+
+// RenderToRequestWithTier creates a complete OpenAI request from a template with tier-aware model selection
+// If tier is "pro", uses gpt-4o for premium experience; otherwise uses the template's default model
+func (r *Renderer) RenderToRequestWithTier(template *PromptTemplate, vars Variables, tier string) (*openai.ChatCompletionRequest, error) {
 	messages, err := r.Render(template, vars)
 	if err != nil {
 		return nil, err
 	}
 
+	model := template.Model
+	// Pro users get upgraded to gpt-4o for learning steps if template is using mini
+	if tier == "pro" && template.Model == "gpt-4o-mini" {
+		model = "gpt-4o"
+	}
+
 	req := &openai.ChatCompletionRequest{
-		Model:       template.Model,
+		Model:       model,
 		Messages:    messages,
 		Temperature: template.ModelParameters.Temperature,
 		MaxTokens:   template.ModelParameters.MaxTokens,

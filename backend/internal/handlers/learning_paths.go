@@ -389,11 +389,22 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 
 	// Trigger pre-generation of the first step in the background
 	if pregenerateService != nil {
-		pregenerateService.TriggerPregeneration(&path)
+		// Fetch user to get their tier
+		userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+		var user models.User
+		userTier := models.TierFree // Default to free tier
+		if err == nil {
+			if err := userDoc.DataTo(&user); err == nil {
+				userTier = user.GetCurrentTier()
+			}
+		}
+
+		pregenerateService.TriggerPregeneration(&path, userTier)
 		if appLogger != nil {
 			logger.Info(appLogger, ctx, "pregeneration_triggered_on_create",
 				slog.String("path_id", pathID),
 				slog.String("goal", path.Goal),
+				slog.String("user_tier", userTier),
 			)
 		}
 	}
@@ -724,7 +735,17 @@ func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string
 	// Trigger pre-generation for the unarchived path
 	path.Status = models.PathStatusActive
 	if pregenerateService != nil {
-		pregenerateService.TriggerPregeneration(&path)
+		// Fetch user to get their tier
+		userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+		var user models.User
+		userTier := models.TierFree // Default to free tier
+		if err == nil {
+			if err := userDoc.DataTo(&user); err == nil {
+				userTier = user.GetCurrentTier()
+			}
+		}
+
+		pregenerateService.TriggerPregeneration(&path, userTier)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -881,8 +902,18 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	// Trigger pre-generation for the NEXT step (background)
 	// Only do this if we had a cache hit - if we had a miss, no point pre-generating again immediately
 	if cacheHit && pregenerateService != nil {
+		// Fetch user to get their tier
+		userDoc, err := fs.Collection("users").Doc(path.UserID).Get(ctx)
+		var user models.User
+		userTier := models.TierFree // Default to free tier
+		if err == nil {
+			if err := userDoc.DataTo(&user); err == nil {
+				userTier = user.GetCurrentTier()
+			}
+		}
+
 		// Update path with the new step for accurate pre-generation context
-		pregenerateService.TriggerPregeneration(&path)
+		pregenerateService.TriggerPregeneration(&path, userTier)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1286,11 +1317,22 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 	// But only if the path is still active (not completed)
 	nextStepNeeded := !pathCompleted && path.Status == models.PathStatusActive
 	if nextStepNeeded && pregenerateService != nil {
-		pregenerateService.TriggerPregeneration(path)
+		// Fetch user to get their tier
+		userDoc, err := fs.Collection("users").Doc(path.UserID).Get(ctx)
+		var user models.User
+		userTier := models.TierFree // Default to free tier
+		if err == nil {
+			if err := userDoc.DataTo(&user); err == nil {
+				userTier = user.GetCurrentTier()
+			}
+		}
+
+		pregenerateService.TriggerPregeneration(path, userTier)
 		if appLogger != nil {
 			logger.Info(appLogger, ctx, "pregeneration_triggered_on_complete",
 				slog.String("path_id", pathID),
 				slog.Int("completed_step_index", stepIndex),
+				slog.String("user_tier", userTier),
 			)
 		}
 	}
