@@ -25,13 +25,12 @@ func InitializeLLM(promptsDir string) error {
 	// Initialize OpenAI client
 	openaiClient, err = openai.NewClient()
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to initialize OpenAI client: %v", err)
 		if appLogger != nil {
 			logger.Error(appLogger, context.Background(), "openai_client_init_failed",
 				slog.String("error", err.Error()),
 			)
 		}
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("failed to initialize OpenAI client: %w", err)
 	}
 
 	if appLogger != nil {

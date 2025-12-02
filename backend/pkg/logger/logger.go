@@ -9,9 +9,12 @@ import (
 	"strings"
 )
 
+// contextKey is a type for context keys to avoid collisions
+type contextKey string
+
 const (
-	requestIDKey = "request_id"
-	userIDKey    = "user_id"
+	requestIDKey contextKey = "request_id"
+	userIDKey    contextKey = "user_id"
 )
 
 // New creates a structured logger with JSON output
@@ -71,8 +74,8 @@ func GetUserID(ctx context.Context) string {
 func LogWithContext(logger *slog.Logger, ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr) {
 	// Add context IDs to attributes
 	allAttrs := append(attrs,
-		slog.String(requestIDKey, GetRequestID(ctx)),
-		slog.String(userIDKey, GetUserID(ctx)),
+		slog.String(string(requestIDKey), GetRequestID(ctx)),
+		slog.String(string(userIDKey), GetUserID(ctx)),
 	)
 
 	// Convert to any slice for Log method
