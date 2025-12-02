@@ -52,6 +52,126 @@ const LEARNING_TIPS = [
     title: 'Fun fact',
     text: 'Your brain uses 20% of your body\'s energy while learning.',
   },
+  {
+    emoji: '🎓',
+    title: 'Study smart',
+    text: 'Studying before sleep helps consolidate memories overnight.',
+  },
+  {
+    emoji: '🏃',
+    title: 'Stay active',
+    text: 'Physical exercise increases blood flow to the brain and improves focus.',
+  },
+  {
+    emoji: '🎵',
+    title: 'Did you know?',
+    text: 'Listening to music without lyrics can help some people concentrate better.',
+  },
+  {
+    emoji: '💪',
+    title: 'You got this!',
+    text: 'Every expert was once a beginner. Keep pushing forward!',
+  },
+  {
+    emoji: '🌱',
+    title: 'Growth mindset',
+    text: 'Intelligence can be developed. Your abilities improve with effort.',
+  },
+  {
+    emoji: '🔗',
+    title: 'Connect ideas',
+    text: 'Linking new concepts to things you already know speeds up learning.',
+  },
+  {
+    emoji: '📝',
+    title: 'Write it down',
+    text: 'Handwriting notes engages more brain regions than typing.',
+  },
+  {
+    emoji: '🌊',
+    title: 'Stay hydrated',
+    text: 'Drinking water helps maintain concentration and mental clarity.',
+  },
+  {
+    emoji: '🎲',
+    title: 'Mix it up',
+    text: 'Interleaving different topics improves long-term retention.',
+  },
+  {
+    emoji: '🔍',
+    title: 'Be curious',
+    text: 'Curiosity primes your brain for learning and boosts memory.',
+  },
+  {
+    emoji: '🌙',
+    title: 'Rest well',
+    text: 'Quality sleep is essential for memory consolidation.',
+  },
+  {
+    emoji: '🤔',
+    title: 'Think deeper',
+    text: 'Asking "why" and "how" leads to deeper understanding.',
+  },
+  {
+    emoji: '🏆',
+    title: 'Celebrate wins',
+    text: 'Acknowledging small victories keeps motivation high.',
+  },
+  {
+    emoji: '⏰',
+    title: 'Timing matters',
+    text: 'Most people learn best in the morning when the brain is fresh.',
+  },
+  {
+    emoji: '🧩',
+    title: 'Problem solving',
+    text: 'Struggling with a problem before seeing the solution deepens learning.',
+  },
+  {
+    emoji: '👥',
+    title: 'Learn together',
+    text: 'Study groups can expose you to different perspectives and ideas.',
+  },
+  {
+    emoji: '📊',
+    title: 'Track progress',
+    text: 'Monitoring your improvement helps maintain motivation.',
+  },
+  {
+    emoji: '🎨',
+    title: 'Get creative',
+    text: 'Using diagrams and visuals can make abstract concepts concrete.',
+  },
+  {
+    emoji: '🔋',
+    title: 'Recharge',
+    text: 'Taking a 20-minute power nap can restore focus and alertness.',
+  },
+  {
+    emoji: '🌈',
+    title: 'Stay positive',
+    text: 'A positive attitude improves learning and problem-solving abilities.',
+  },
+  {
+    emoji: '📖',
+    title: 'Read widely',
+    text: 'Cross-disciplinary knowledge helps you make unique connections.',
+  },
+  {
+    emoji: '🧘',
+    title: 'Mindfulness',
+    text: 'Brief meditation before studying can improve focus and retention.',
+  },
+  {
+    emoji: '🔬',
+    title: 'Experiment',
+    text: 'Trying different study methods helps you find what works best for you.',
+  },
+  {
+    emoji: '🚀',
+    title: 'Aim high',
+    text: 'Setting challenging but achievable goals drives better performance.',
+  },
 ];
 
 interface GeneratingContentProps {
