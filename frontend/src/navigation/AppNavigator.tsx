@@ -10,6 +10,7 @@ import { useLearningPathsStore } from '../state/learningPathsStore';
 import { checkAuthState, initializeAuth } from '../services/auth';
 import { getUserDocument } from '../services/memory';
 import { learningPathsApi } from '../services/api';
+import { tokenStorage } from '../services/api/tokenStorage';
 
 // Types
 import { RootStackParamList } from '../types/navigation';
@@ -114,10 +115,15 @@ const MainTabs = () => {
 // Root Navigator
 const RootNavigator = () => {
   const { user, loading } = useUserStore();
+  const hasTokens = tokenStorage.hasTokens();
 
   if (loading) {
     return <LoadingScreen />;
   }
+
+  // User is authenticated if they have both user state AND valid tokens
+  // This prevents showing Landing page when tokens exist but user state is temporarily null
+  const isAuthenticated = !!user && hasTokens;
 
   return (
     <Stack.Navigator
@@ -125,7 +131,7 @@ const RootNavigator = () => {
         headerShown: false,
       }}
     >
-      {!user ? (
+      {!isAuthenticated ? (
         <>
           <Stack.Screen name="Landing" component={LandingScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -176,16 +182,25 @@ export const AppNavigator: React.FC = () => {
             console.error('Error fetching user data:', error);
           }
         } else {
-          // No valid session - clear persisted user
+          // Only clear user if tokens don't exist
+          // This prevents clearing user when backend validation fails but tokens are still valid
+          if (!tokenStorage.hasTokens()) {
+            setUser(null);
+            setUserDocument(null);
+            setPaths([]);
+          }
+          // If tokens exist but validation failed, keep existing user state
+          // The user will see the Main dashboard with potentially stale data
+          // Next sync will update when tokens refresh
+        }
+      } catch (error) {
+        console.error('Error checking auth state:', error);
+        // Only clear user if tokens don't exist
+        if (!tokenStorage.hasTokens()) {
           setUser(null);
           setUserDocument(null);
           setPaths([]);
         }
-      } catch (error) {
-        console.error('Error checking auth state:', error);
-        setUser(null);
-        setUserDocument(null);
-        setPaths([]);
       } finally {
         setLoading(false);
         setPathsLoading(false);
