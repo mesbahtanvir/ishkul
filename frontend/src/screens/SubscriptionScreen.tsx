@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useSubscriptionStore } from '../state/subscriptionStore';
+import { stripeService } from '../services/stripe';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -26,7 +27,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
     loading,
     fetchStatus,
     startCheckout,
-    openPortal,
+    startNativeCheckout,
   } = useSubscriptionStore();
 
   useEffect(() => {
@@ -34,15 +35,26 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
   }, [fetchStatus]);
 
   const handleUpgrade = async () => {
-    const baseUrl = Platform.OS === 'web' ? window.location.origin : 'https://ishkul.org';
-    await startCheckout(
-      `${baseUrl}/subscription/success`,
-      `${baseUrl}/subscription/cancel`
-    );
+    // Use native payment sheet on mobile, Stripe Checkout on web
+    if (stripeService.isNativePaymentAvailable()) {
+      const result = await startNativeCheckout();
+      if (result.success) {
+        // Navigate to success screen
+        navigation.navigate('SubscriptionSuccess');
+      } else if (result.error && result.error !== 'Payment canceled') {
+        Alert.alert('Payment Failed', result.error);
+      }
+    } else {
+      // Web: Use Stripe Checkout redirect
+      const successUrl = `${window.location.origin}/subscription/success`;
+      const cancelUrl = `${window.location.origin}/subscription/cancel`;
+      await startCheckout(successUrl, cancelUrl);
+    }
   };
 
-  const handleManageSubscription = async () => {
-    await openPortal();
+  const handleManageSubscription = () => {
+    // Navigate to in-app management screen
+    navigation.navigate('ManageSubscription');
   };
 
   const isPro = tier === 'pro';

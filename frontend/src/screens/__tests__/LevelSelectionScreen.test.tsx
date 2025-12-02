@@ -120,6 +120,26 @@ jest.mock('../../services/api', () => ({
   learningPathsApi: {
     getPaths: () => mockGetPaths(),
   },
+  ApiError: class ApiError extends Error {
+    code: string;
+    constructor(code: string, message: string) {
+      super(message);
+      this.name = 'ApiError';
+      this.code = code;
+    }
+  },
+  ErrorCodes: {
+    PATH_LIMIT_REACHED: 'PATH_LIMIT_REACHED',
+    DAILY_STEP_LIMIT_REACHED: 'DAILY_STEP_LIMIT_REACHED',
+  },
+}));
+
+// Mock subscription store
+const mockShowUpgradePrompt = jest.fn();
+jest.mock('../../state/subscriptionStore', () => ({
+  useSubscriptionStore: () => ({
+    showUpgradePrompt: mockShowUpgradePrompt,
+  }),
 }));
 
 // Mock navigation

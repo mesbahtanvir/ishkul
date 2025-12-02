@@ -19,6 +19,7 @@ import (
 	portalsession "github.com/stripe/stripe-go/v81/billingportal/session"
 	checkoutsession "github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/customer"
+	"github.com/stripe/stripe-go/v81/ephemeralkey"
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 	"google.golang.org/api/iterator"
@@ -282,6 +283,266 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		CheckoutURL: session.URL,
 		SessionID:   session.ID,
 	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// GetPaymentSheetParams returns the parameters needed for the native payment sheet
+func GetPaymentSheetParams(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	// Get user data
+	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var user models.User
+	if err := userDoc.DataTo(&user); err != nil {
+		http.Error(w, "Error reading user data", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if already Pro
+	if user.IsProUser() {
+		http.Error(w, "User already has an active Pro subscription", http.StatusBadRequest)
+		return
+	}
+
+	// Get or create Stripe customer
+	stripeCustomerID := user.StripeCustomerID
+	if stripeCustomerID == "" {
+		if user.Email == "" {
+			http.Error(w, "User email is required for subscription", http.StatusBadRequest)
+			return
+		}
+
+		params := &stripe.CustomerParams{
+			Email: stripe.String(user.Email),
+			Metadata: map[string]string{
+				"user_id": userID,
+			},
+		}
+		if user.DisplayName != "" {
+			params.Name = stripe.String(user.DisplayName)
+		}
+
+		c, err := customer.New(params)
+		if err != nil {
+			if appLogger != nil {
+				logger.Error(appLogger, ctx, "stripe_customer_creation_failed",
+					slog.String("user_id", userID),
+					slog.String("error", err.Error()),
+				)
+			}
+			http.Error(w, "Failed to create customer", http.StatusInternalServerError)
+			return
+		}
+		stripeCustomerID = c.ID
+
+		// Save customer ID to user
+		_, _ = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+			{Path: "stripeCustomerId", Value: stripeCustomerID},
+			{Path: "updatedAt", Value: time.Now()},
+		})
+	}
+
+	// Create ephemeral key for the customer
+	ephemeralKeyParams := &stripe.EphemeralKeyParams{
+		Customer:      stripe.String(stripeCustomerID),
+		StripeVersion: stripe.String("2024-12-18.acacia"),
+	}
+	ek, err := ephemeralkey.New(ephemeralKeyParams)
+	if err != nil {
+		if appLogger != nil {
+			logger.Error(appLogger, ctx, "ephemeral_key_creation_failed",
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
+		}
+		http.Error(w, "Failed to create ephemeral key", http.StatusInternalServerError)
+		return
+	}
+
+	// Get price ID from environment
+	priceID := os.Getenv("STRIPE_PRO_PRICE_ID")
+	if priceID == "" {
+		http.Error(w, "Stripe price not configured", http.StatusInternalServerError)
+		return
+	}
+
+	// Create subscription with payment_behavior set to allow incomplete
+	subParams := &stripe.SubscriptionParams{
+		Customer: stripe.String(stripeCustomerID),
+		Items: []*stripe.SubscriptionItemsParams{
+			{
+				Price: stripe.String(priceID),
+			},
+		},
+		PaymentBehavior: stripe.String("default_incomplete"),
+		PaymentSettings: &stripe.SubscriptionPaymentSettingsParams{
+			SaveDefaultPaymentMethod: stripe.String("on_subscription"),
+		},
+	}
+	subParams.AddExpand("latest_invoice.payment_intent")
+	subParams.AddMetadata("user_id", userID)
+
+	sub, err := subscription.New(subParams)
+	if err != nil {
+		if appLogger != nil {
+			logger.Error(appLogger, ctx, "subscription_creation_failed",
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
+		}
+		http.Error(w, "Failed to create subscription", http.StatusInternalServerError)
+		return
+	}
+
+	// Get the client secret from the payment intent
+	var clientSecret string
+	if sub.LatestInvoice != nil && sub.LatestInvoice.PaymentIntent != nil {
+		clientSecret = sub.LatestInvoice.PaymentIntent.ClientSecret
+	}
+
+	if clientSecret == "" {
+		http.Error(w, "Failed to get payment intent", http.StatusInternalServerError)
+		return
+	}
+
+	// Get publishable key
+	publishableKey := os.Getenv("STRIPE_PUBLISHABLE_KEY")
+	if publishableKey == "" {
+		http.Error(w, "Stripe publishable key not configured", http.StatusInternalServerError)
+		return
+	}
+
+	if appLogger != nil {
+		logger.Info(appLogger, ctx, "payment_sheet_params_created",
+			slog.String("user_id", userID),
+			slog.String("subscription_id", sub.ID),
+		)
+	}
+
+	// Return the parameters needed for the payment sheet
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]interface{}{
+		"paymentIntent":  clientSecret,
+		"ephemeralKey":   ek.Secret,
+		"customer":       stripeCustomerID,
+		"publishableKey": publishableKey,
+		"subscriptionId": sub.ID,
+	}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// CancelSubscription cancels the user's subscription at period end
+func CancelSubscription(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	// Get user data
+	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var user models.User
+	if err := userDoc.DataTo(&user); err != nil {
+		http.Error(w, "Error reading user data", http.StatusInternalServerError)
+		return
+	}
+
+	if user.StripeSubscriptionID == "" {
+		http.Error(w, "No active subscription found", http.StatusBadRequest)
+		return
+	}
+
+	// Cancel subscription at period end (not immediately)
+	params := &stripe.SubscriptionParams{
+		CancelAtPeriodEnd: stripe.Bool(true),
+	}
+
+	sub, err := subscription.Update(user.StripeSubscriptionID, params)
+	if err != nil {
+		if appLogger != nil {
+			logger.Error(appLogger, ctx, "stripe_subscription_cancel_failed",
+				slog.String("user_id", userID),
+				slog.String("subscription_id", user.StripeSubscriptionID),
+				slog.String("error", err.Error()),
+			)
+		}
+		http.Error(w, "Failed to cancel subscription", http.StatusInternalServerError)
+		return
+	}
+
+	// Update user's subscription status in Firestore
+	_, err = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+		{Path: "subscriptionStatus", Value: models.SubscriptionStatusCanceled},
+		{Path: "updatedAt", Value: time.Now()},
+	})
+	if err != nil {
+		if appLogger != nil {
+			logger.Warn(appLogger, ctx, "failed_to_update_subscription_status",
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
+	if appLogger != nil {
+		logger.Info(appLogger, ctx, "subscription_canceled_by_user",
+			slog.String("user_id", userID),
+			slog.String("subscription_id", user.StripeSubscriptionID),
+			slog.Bool("cancel_at_period_end", sub.CancelAtPeriodEnd),
+		)
+	}
+
+	// Return success with cancellation details
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]interface{}{
+		"success":           true,
+		"cancelAtPeriodEnd": sub.CancelAtPeriodEnd,
+		"currentPeriodEnd":  time.Unix(sub.CurrentPeriodEnd, 0).Format(time.RFC3339),
+	}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}

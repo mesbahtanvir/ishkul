@@ -47,6 +47,9 @@ export const ErrorCodes = {
   PATH_COMPLETED: 'PATH_COMPLETED',
   PATH_ARCHIVED: 'PATH_ARCHIVED',
   PATH_DELETED: 'PATH_DELETED',
+  // Subscription limit error codes
+  PATH_LIMIT_REACHED: 'PATH_LIMIT_REACHED',
+  DAILY_STEP_LIMIT_REACHED: 'DAILY_STEP_LIMIT_REACHED',
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];

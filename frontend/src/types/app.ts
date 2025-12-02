@@ -171,6 +171,14 @@ export interface PortalSessionResponse {
   portalUrl: string;
 }
 
+export interface PaymentSheetParams {
+  paymentIntent: string;
+  ephemeralKey: string;
+  customer: string;
+  publishableKey: string;
+  subscriptionId: string;
+}
+
 // Limit error response from API
 export interface LimitErrorResponse {
   error: string;

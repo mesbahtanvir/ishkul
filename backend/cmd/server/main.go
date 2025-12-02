@@ -173,6 +173,8 @@ func main() {
 	api.HandleFunc("/api/subscription/status", handlers.GetSubscriptionStatus)
 	api.HandleFunc("/api/subscription/checkout", handlers.CreateCheckoutSession)
 	api.HandleFunc("/api/subscription/portal", handlers.CreatePortalSession)
+	api.HandleFunc("/api/subscription/cancel", handlers.CancelSubscription)
+	api.HandleFunc("/api/subscription/payment-sheet", handlers.GetPaymentSheetParams)
 
 	// Apply middleware to protected routes (rate limit -> CORS -> auth)
 	protectedHandler := rateLimiter.Limit(middleware.CORS(middleware.Auth(api)))

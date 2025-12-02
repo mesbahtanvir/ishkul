@@ -2,6 +2,7 @@ import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { ThemeProvider } from './src/components/ThemeProvider';
+import { StripeProviderWrapper } from './src/components/StripeProviderWrapper';
 import { useSessionTracking } from './src/services/analytics';
 
 export default function App() {
@@ -10,9 +11,11 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <AppNavigator />
-      </ThemeProvider>
+      <StripeProviderWrapper>
+        <ThemeProvider>
+          <AppNavigator />
+        </ThemeProvider>
+      </StripeProviderWrapper>
     </SafeAreaProvider>
   );
 }
