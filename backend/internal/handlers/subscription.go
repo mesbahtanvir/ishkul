@@ -22,7 +22,6 @@ import (
 	"github.com/stripe/stripe-go/v81/ephemeralkey"
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
-	"google.golang.org/api/iterator"
 )
 
 // InitializeStripe sets up the Stripe client with the API key
