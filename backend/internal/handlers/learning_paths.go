@@ -14,10 +14,21 @@ import (
 	"github.com/google/uuid"
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
+	"github.com/mesbahtanvir/ishkul/backend/internal/services"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/cache"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 	"google.golang.org/api/iterator"
+)
+
+// MaxLearningPathsPerUser is the maximum number of learning paths a user can have
+const MaxLearningPathsPerUser = 5
+
+// Global cache and pre-generation service
+var (
+	stepCache           *cache.StepCache
+	pregenerateService  *services.PregenerateService
 )
 
 // Global logger instance - initialized in llm.go
@@ -293,6 +304,18 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if user has reached the maximum number of learning paths
+	existingPaths, err := countUserLearningPaths(ctx, fs, userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error checking existing paths: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if existingPaths >= MaxLearningPathsPerUser {
+		http.Error(w, fmt.Sprintf("Maximum of %d learning paths allowed. Please delete an existing path to create a new one.", MaxLearningPathsPerUser), http.StatusBadRequest)
+		return
+	}
+
 	now := time.Now().UnixMilli()
 	pathID := uuid.New().String()
 
@@ -319,6 +342,17 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Trigger pre-generation of the first step in the background
+	if pregenerateService != nil {
+		pregenerateService.TriggerPregeneration(&path)
+		if appLogger != nil {
+			logger.Info(appLogger, ctx, "pregeneration_triggered_on_create",
+				slog.String("path_id", pathID),
+				slog.String("goal", path.Goal),
+			)
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
@@ -327,6 +361,26 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
+}
+
+// countUserLearningPaths counts the number of learning paths for a user
+func countUserLearningPaths(ctx context.Context, fs *firestore.Client, userID string) (int, error) {
+	iter := fs.Collection("learning_paths").Where("userId", "==", userID).Documents(ctx)
+	defer iter.Stop()
+
+	count := 0
+	for {
+		_, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return 0, err
+		}
+		count++
+	}
+
+	return count, nil
 }
 
 // updateLearningPath updates a learning path
@@ -535,19 +589,49 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
-	// No current step - generate one using LLM
-	nextStep, err := generateNextStepForPath(&path)
-	if err != nil {
+	// No current step - try to get from cache first (instant response)
+	var nextStep *models.Step
+	cacheHit := false
+
+	if stepCache != nil {
+		nextStep = stepCache.Get(pathID, userID)
+		if nextStep != nil {
+			cacheHit = true
+			// Update step index to match current path state
+			nextStep.Index = len(path.Steps)
+			// Remove from cache since we're using it
+			stepCache.Delete(pathID, userID)
+			if appLogger != nil {
+				logger.Info(appLogger, ctx, "step_cache_hit",
+					slog.String("path_id", pathID),
+					slog.String("step_type", nextStep.Type),
+				)
+			}
+		}
+	}
+
+	// Cache miss - generate synchronously (fallback)
+	if nextStep == nil {
+		var genErr error
+		nextStep, genErr = generateNextStepForPath(&path)
+		if genErr != nil {
+			if appLogger != nil {
+				logger.Error(appLogger, ctx, "failed_to_generate_next_step",
+					slog.String("path_id", pathID),
+					slog.String("error", genErr.Error()),
+					slog.String("openai_client_nil", fmt.Sprintf("%v", openaiClient == nil)),
+					slog.String("prompt_loader_nil", fmt.Sprintf("%v", promptLoader == nil)),
+				)
+			}
+			http.Error(w, fmt.Sprintf("Failed to generate next step: %v", genErr), http.StatusInternalServerError)
+			return
+		}
 		if appLogger != nil {
-			logger.Error(appLogger, ctx, "failed_to_generate_next_step",
+			logger.Info(appLogger, ctx, "step_cache_miss",
 				slog.String("path_id", pathID),
-				slog.String("error", err.Error()),
-				slog.String("openai_client_nil", fmt.Sprintf("%v", openaiClient == nil)),
-				slog.String("prompt_loader_nil", fmt.Sprintf("%v", promptLoader == nil)),
+				slog.String("step_type", nextStep.Type),
 			)
 		}
-		http.Error(w, fmt.Sprintf("Failed to generate next step: %v", err), http.StatusInternalServerError)
-		return
 	}
 
 	// Append the new step to the Steps array
@@ -561,6 +645,13 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	if err != nil {
 		// Log but don't fail - we can still return the step
 		fmt.Printf("Warning: failed to save generated step: %v\n", err)
+	}
+
+	// Trigger pre-generation for the NEXT step (background)
+	// Only do this if we had a cache hit - if we had a miss, no point pre-generating again immediately
+	if cacheHit && pregenerateService != nil {
+		// Update path with the new step for accurate pre-generation context
+		pregenerateService.TriggerPregeneration(&path)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -934,6 +1025,17 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 
 	// Normalize to ensure valid defaults
 	normalizeLearningPath(path)
+
+	// Trigger pre-generation for the next step in the background
+	if pregenerateService != nil {
+		pregenerateService.TriggerPregeneration(path)
+		if appLogger != nil {
+			logger.Info(appLogger, ctx, "pregeneration_triggered_on_complete",
+				slog.String("path_id", pathID),
+				slog.Int("completed_step_index", stepIndex),
+			)
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
