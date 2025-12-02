@@ -538,6 +538,14 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	// No current step - generate one using LLM
 	nextStep, err := generateNextStepForPath(&path)
 	if err != nil {
+		if appLogger != nil {
+			logger.Error(appLogger, ctx, "failed_to_generate_next_step",
+				slog.String("path_id", pathID),
+				slog.String("error", err.Error()),
+				slog.String("openai_client_nil", fmt.Sprintf("%v", openaiClient == nil)),
+				slog.String("prompt_loader_nil", fmt.Sprintf("%v", promptLoader == nil)),
+			)
+		}
 		http.Error(w, fmt.Sprintf("Failed to generate next step: %v", err), http.StatusInternalServerError)
 		return
 	}
