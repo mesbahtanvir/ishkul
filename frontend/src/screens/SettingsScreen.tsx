@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Switch, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
@@ -25,6 +25,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   const [dailyReminder, setDailyReminder] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
 
   // Theme mode options
@@ -58,6 +60,71 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
     }
   };
 
+  const handleDeleteAccount = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async (mode: 'soft' | 'hard') => {
+    setShowDeleteDialog(false);
+
+    if (mode === 'hard') {
+      // Show confirmation for hard delete
+      setShowDeleteConfirmDialog(true);
+    } else {
+      // Soft delete - proceed directly
+      await performDelete('soft');
+    }
+  };
+
+  const performDelete = async (mode: 'soft' | 'hard') => {
+    try {
+      setLoading(true);
+      setShowDeleteConfirmDialog(false);
+
+      const response = await fetch('/api/me/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ type: mode }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Delete failed: ${response.statusText}`);
+      }
+
+      // Clear user data and navigate to login
+      clearUser();
+      setShowDeleteConfirmDialog(false);
+
+      if (mode === 'soft') {
+        Alert.alert(
+          'Account Deleted',
+          'Your account has been marked for deletion. You have 30 days to recover it before permanent deletion.'
+        );
+      } else {
+        Alert.alert(
+          'Account Permanently Deleted',
+          'Your account and all associated data have been permanently deleted.'
+        );
+      }
+
+      navigation.replace('Login');
+    } catch (error) {
+      console.error('Delete account error:', error);
+      Alert.alert('Error', 'Failed to delete account. Please try again.');
+      setLoading(false);
+      setShowDeleteConfirmDialog(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    if (!loading) {
+      setShowDeleteDialog(false);
+      setShowDeleteConfirmDialog(false);
+    }
+  };
+
   // Responsive values
   const titleSize = responsive(
     Typography.display.small.fontSize,
@@ -88,9 +155,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
         {/* Profile Section */}
         <View style={[styles.profileSection, { backgroundColor: colors.card.default }, isSmallPhone && styles.sectionSmall]}>
           <View style={styles.avatarContainer}>
-            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.avatarText, { color: colors.white }]}>{getInitials()}</Text>
-            </View>
+            {user?.photoURL ? (
+              <Image
+                source={{ uri: user.photoURL }}
+                style={[styles.avatar, { borderRadius: 28 }]}
+              />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                <Text style={[styles.avatarText, { color: colors.white }]}>{getInitials()}</Text>
+              </View>
+            )}
           </View>
           <View style={styles.profileInfo}>
             {user?.displayName && (
@@ -158,6 +232,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
           </View>
         </View>
 
+        {/* Delete Account Button */}
+        <View style={styles.buttonContainer}>
+          <Button
+            title="Delete Account"
+            onPress={handleDeleteAccount}
+            variant="danger"
+            loading={loading}
+          />
+        </View>
+
         {/* Sign Out Button */}
         <View style={styles.buttonContainer}>
           <Button
@@ -183,6 +267,31 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
         cancelText="Cancel"
         onConfirm={confirmLogout}
         onCancel={cancelLogout}
+        destructive
+        loading={loading}
+      />
+
+      {/* Delete Account Dialog - Choose Delete Mode */}
+      <ConfirmDialog
+        visible={showDeleteDialog}
+        title="Delete Account"
+        message="Choose how you want to delete your account:\n\nSoft Delete: Your account will be marked for deletion. You can recover it within 30 days.\n\nHard Delete: Your account and all data will be permanently deleted immediately."
+        confirmText="Soft Delete (30-day recovery)"
+        cancelText="Hard Delete (permanent)"
+        onConfirm={() => handleConfirmDelete('soft')}
+        onCancel={() => handleConfirmDelete('hard')}
+        loading={loading}
+      />
+
+      {/* Hard Delete Confirmation Dialog */}
+      <ConfirmDialog
+        visible={showDeleteConfirmDialog}
+        title="Permanent Deletion"
+        message="This will permanently delete your account and all associated data. This action cannot be undone."
+        confirmText="Delete Permanently"
+        cancelText="Cancel"
+        onConfirm={() => performDelete('hard')}
+        onCancel={cancelDelete}
         destructive
         loading={loading}
       />

@@ -133,6 +133,14 @@ func main() {
 	})
 	api.HandleFunc("/api/me/history", handlers.AddHistory)
 	api.HandleFunc("/api/me/memory", handlers.UpdateMemory)
+	api.HandleFunc("/api/me/delete", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodDelete, http.MethodPost:
+			handlers.DeleteAccount(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	api.HandleFunc("/api/me/next-step", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:

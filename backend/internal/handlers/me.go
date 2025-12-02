@@ -9,6 +9,7 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
+	"google.golang.org/api/iterator"
 )
 
 // GetMe returns the current user's profile
@@ -522,5 +523,111 @@ func UpdateMemory(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
+	}
+}
+
+// DeleteAccountRequest represents a delete account request
+type DeleteAccountRequest struct {
+	Type string `json:"type"` // "soft" for 30-day recovery, "hard" for immediate deletion
+}
+
+// DeleteAccount soft deletes the account (30-day recovery period) or hard deletes it
+// Soft delete: Sets deletedAt timestamp, user cannot login but data recoverable for 30 days
+// Hard delete: Permanently deletes all user data immediately (only if DeletedAt is set)
+func DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req DeleteAccountRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Type != "soft" && req.Type != "hard" {
+		http.Error(w, "Type must be 'soft' or 'hard'", http.StatusBadRequest)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	docRef := fs.Collection("users").Doc(userID)
+
+	if req.Type == "soft" {
+		// Soft delete: Set deletedAt timestamp
+		_, err := docRef.Update(ctx, []firestore.Update{
+			{Path: "deletedAt", Value: time.Now()},
+			{Path: "updatedAt", Value: time.Now()},
+		})
+
+		if err != nil {
+			http.Error(w, "Error deleting account", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Account scheduled for deletion. You have 30 days to recover your account.",
+			"type":    "soft",
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+			return
+		}
+	} else if req.Type == "hard" {
+		// Hard delete: Permanently delete the user document and all learning paths
+		// First delete all learning paths for this user
+		pathsIter := fs.Collection("learning_paths").Where("userId", "==", userID).Documents(ctx)
+		defer pathsIter.Stop()
+
+		batch := fs.Batch()
+		pathCount := 0
+
+		for {
+			doc, err := pathsIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				http.Error(w, "Error fetching learning paths", http.StatusInternalServerError)
+				return
+			}
+			batch.Delete(doc.Ref)
+			pathCount++
+		}
+
+		// Delete the user document
+		batch.Delete(docRef)
+
+		// Commit the batch
+		_, err := batch.Commit(ctx)
+		if err != nil {
+			http.Error(w, "Error permanently deleting account", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":        true,
+			"message":        "Account and all associated data permanently deleted.",
+			"type":           "hard",
+			"deletedPaths":   pathCount,
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+			return
+		}
 	}
 }
