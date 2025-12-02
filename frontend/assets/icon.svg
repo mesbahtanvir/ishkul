@@ -1,32 +1,65 @@
 <svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background circle -->
   <defs>
+    <!-- Primary gradient: Indigo to Purple -->
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
     </linearGradient>
+
+    <!-- Accent gradient: Amber to Orange -->
     <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#fcd34d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fb923c;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Highlight gradient for 3D effect -->
+    <linearGradient id="highlightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.4" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.05" />
     </linearGradient>
   </defs>
 
-  <!-- Main background -->
+  <!-- Background circle -->
   <circle cx="96" cy="96" r="96" fill="url(#bgGradient)"/>
 
-  <!-- Book/Learning symbol -->
+  <!-- Subtle highlight for depth -->
+  <circle cx="96" cy="96" r="96" fill="url(#highlightGradient)"/>
+
+  <!-- Main icon group -->
   <g transform="translate(96, 96)">
-    <!-- Open book -->
-    <path d="M -30 -15 L -5 -20 L -5 25 L -30 20 Z" fill="white" opacity="0.9"/>
-    <path d="M 5 -20 L 30 -15 L 30 20 L 5 25 Z" fill="white" opacity="0.9"/>
+    <!-- Left book page - curved for 3D effect -->
+    <path d="M -38 -22 Q -28 -26 -8 -24 L -8 28 Q -28 26 -38 22 Z"
+          fill="white" opacity="0.95" stroke="none"/>
 
-    <!-- Pages/Shine effect -->
-    <line x1="-5" y1="-15" x2="-5" y2="20" stroke="url(#accentGradient)" stroke-width="2" opacity="0.8"/>
-    <line x1="5" y1="-15" x2="5" y2="20" stroke="url(#accentGradient)" stroke-width="2" opacity="0.8"/>
+    <!-- Right book page - curved for 3D effect -->
+    <path d="M 8 -24 Q 28 -26 38 -22 L 38 22 Q 28 26 8 28 Z"
+          fill="white" opacity="0.95" stroke="none"/>
 
-    <!-- Sparkle dots for "anything" -->
-    <circle cx="-20" cy="-25" r="4" fill="url(#accentGradient)"/>
-    <circle cx="20" cy="-25" r="4" fill="url(#accentGradient)"/>
-    <circle cx="0" cy="35" r="4" fill="url(#accentGradient)"/>
+    <!-- Book spine - gradient accent -->
+    <rect x="-10" y="-22" width="20" height="50" fill="url(#accentGradient)" opacity="0.9" rx="2"/>
+
+    <!-- Page fold lines for depth -->
+    <g stroke="url(#accentGradient)" stroke-width="1.5" opacity="0.6" stroke-linecap="round">
+      <line x1="-8" y1="-18" x2="-8" y2="24"/>
+      <line x1="8" y1="-18" x2="8" y2="24"/>
+    </g>
+
+    <!-- Decorative learning lines on pages -->
+    <g stroke="url(#accentGradient)" stroke-width="2" opacity="0.4" stroke-linecap="round">
+      <!-- Left page lines -->
+      <line x1="-32" y1="-8" x2="-14" y2="-8"/>
+      <line x1="-32" y1="2" x2="-14" y2="2"/>
+      <line x1="-32" y1="12" x2="-20" y2="12"/>
+
+      <!-- Right page lines -->
+      <line x1="14" y1="-8" x2="32" y2="-8"/>
+      <line x1="14" y1="2" x2="32" y2="2"/>
+      <line x1="20" y1="12" x2="32" y2="12"/>
+    </g>
+
+
+    <!-- Subtle shadow for dimension -->
+    <ellipse cx="0" cy="28" rx="42" ry="8" fill="rgba(0,0,0,0.08)" filter="blur(2px)"/>
   </g>
 </svg>

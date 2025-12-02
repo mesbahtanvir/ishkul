@@ -176,23 +176,39 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 	// Get or create Stripe customer
 	stripeCustomerID := user.StripeCustomerID
 	if stripeCustomerID == "" {
+		// Validate email before creating Stripe customer
+		if user.Email == "" {
+			if appLogger != nil {
+				logger.Error(appLogger, ctx, "stripe_customer_creation_failed_no_email",
+					slog.String("user_id", userID),
+				)
+			}
+			http.Error(w, "User email is required for subscription", http.StatusBadRequest)
+			return
+		}
+
 		// Create new Stripe customer
 		params := &stripe.CustomerParams{
 			Email: stripe.String(user.Email),
-			Name:  stripe.String(user.DisplayName),
 			Metadata: map[string]string{
 				"user_id": userID,
 			},
 		}
+		// Only set name if available (it's optional for Stripe)
+		if user.DisplayName != "" {
+			params.Name = stripe.String(user.DisplayName)
+		}
+
 		c, err := customer.New(params)
 		if err != nil {
 			if appLogger != nil {
 				logger.Error(appLogger, ctx, "stripe_customer_creation_failed",
 					slog.String("user_id", userID),
+					slog.String("email", user.Email),
 					slog.String("error", err.Error()),
 				)
 			}
-			http.Error(w, "Failed to create customer", http.StatusInternalServerError)
+			http.Error(w, "Failed to create customer: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 		stripeCustomerID = c.ID

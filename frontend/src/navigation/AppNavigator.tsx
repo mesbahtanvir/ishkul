@@ -63,7 +63,19 @@ const LearnStack = () => {
       <Stack.Screen name="Lesson" component={LessonScreen} />
       <Stack.Screen name="Quiz" component={QuizScreen} />
       <Stack.Screen name="Practice" component={PracticeScreen} />
-      {/* Subscription management */}
+    </Stack.Navigator>
+  );
+};
+
+// Settings Stack Navigator
+const SettingsStack = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
     </Stack.Navigator>
   );
@@ -110,9 +122,10 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
+        name="SettingsTab"
+        component={SettingsStack}
         options={{
+          tabBarLabel: 'Settings',
           tabBarIcon: () => (
             <Text style={{ fontSize: 24 }}>⚙️</Text>
           ),
