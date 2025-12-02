@@ -372,7 +372,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"error":       fmt.Sprintf("Maximum of %d active learning paths allowed.%s", maxPaths, upgradeHint),
 			"code":        "PATH_LIMIT_REACHED",
 			"canUpgrade":  userTier == models.TierFree,
@@ -750,7 +750,7 @@ func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"error":       fmt.Sprintf("Cannot unarchive: you already have %d active learning paths (max %d).%s", activeCount, maxPaths, upgradeHint),
 			"code":        "PATH_LIMIT_REACHED",
 			"canUpgrade":  userTier == models.TierFree,
@@ -899,7 +899,7 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		resetTime := models.GetDailyLimitResetTime()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"error":             fmt.Sprintf("Daily step limit reached (%d/%d).%s", stepsUsed, stepLimit, upgradeHint),
 			"code":              "DAILY_STEP_LIMIT_REACHED",
 			"canUpgrade":        userTier == models.TierFree,
