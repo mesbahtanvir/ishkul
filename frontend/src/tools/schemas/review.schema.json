@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "review",
+  "title": "Micro-Review",
+  "description": "Quick refresh of ONE previously learned concept (1-2 minutes)",
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "string",
+      "description": "Condensed review content (50-100 words)",
+      "minLength": 30,
+      "maxLength": 800
+    },
+    "topic": {
+      "type": "string",
+      "description": "Topic being reviewed",
+      "minLength": 2,
+      "maxLength": 50
+    },
+    "title": {
+      "type": "string",
+      "description": "Review title",
+      "minLength": 3,
+      "maxLength": 100
+    }
+  },
+  "required": ["content", "topic", "title"]
+}

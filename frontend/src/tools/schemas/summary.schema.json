@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "summary",
+  "title": "Micro-Summary",
+  "description": "Connect 2-3 recent concepts in a structured format (2 minutes)",
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "string",
+      "description": "Structured summary connecting concepts (100-150 words)",
+      "minLength": 50,
+      "maxLength": 1200
+    },
+    "topic": {
+      "type": "string",
+      "description": "Summary topic/theme",
+      "minLength": 2,
+      "maxLength": 50
+    },
+    "title": {
+      "type": "string",
+      "description": "Summary title",
+      "minLength": 3,
+      "maxLength": 100
+    }
+  },
+  "required": ["content", "topic", "title"]
+}

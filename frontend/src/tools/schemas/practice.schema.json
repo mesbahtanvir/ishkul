@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "practice",
+  "title": "Micro-Practice",
+  "description": "Small, focused exercise completable in 3-5 minutes",
+  "type": "object",
+  "properties": {
+    "task": {
+      "type": "string",
+      "description": "One specific, small task (2-3 sentences)",
+      "minLength": 20,
+      "maxLength": 500
+    },
+    "hints": {
+      "type": "array",
+      "description": "Quick hints if stuck",
+      "items": {
+        "type": "string",
+        "minLength": 5,
+        "maxLength": 200
+      },
+      "minItems": 0,
+      "maxItems": 3
+    },
+    "successCriteria": {
+      "type": "array",
+      "description": "Clear success criteria",
+      "items": {
+        "type": "string",
+        "minLength": 5,
+        "maxLength": 150
+      },
+      "minItems": 1,
+      "maxItems": 3
+    },
+    "estimatedTime": {
+      "type": "string",
+      "description": "Estimated completion time",
+      "maxLength": 20
+    },
+    "topic": {
+      "type": "string",
+      "description": "Topic being practiced",
+      "minLength": 2,
+      "maxLength": 50
+    },
+    "title": {
+      "type": "string",
+      "description": "Practice title",
+      "minLength": 3,
+      "maxLength": 100
+    }
+  },
+  "required": ["task", "topic", "title"]
+}
