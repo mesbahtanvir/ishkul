@@ -10,6 +10,7 @@ import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
+import { useScreenTracking, useOnboardingTracking } from '../services/analytics';
 
 type GoalSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoalSelection'>;
 type GoalSelectionScreenRouteProp = RouteProp<RootStackParamList, 'GoalSelection'>;
@@ -31,13 +32,25 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
   navigation,
   route,
 }) => {
+  useScreenTracking('GoalSelection', 'GoalSelectionScreen');
+  const { startOnboarding, selectGoal } = useOnboardingTracking();
   const [goal, setGoal] = useState('');
   const { responsive, isSmallPhone, isTablet } = useResponsive();
   const { colors } = useTheme();
   const isCreatingNewPath = route.params?.isCreatingNewPath ?? false;
 
+  // Track onboarding start when entering this screen (only for new users)
+  React.useEffect(() => {
+    if (!isCreatingNewPath) {
+      startOnboarding(true);
+    }
+  }, [isCreatingNewPath, startOnboarding]);
+
   const handleNext = () => {
     if (goal.trim()) {
+      // Track goal selection
+      selectGoal(goal.trim());
+
       navigation.navigate('LevelSelection', {
         goal: goal.trim(),
         isCreatingNewPath,

@@ -23,6 +23,7 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { Step } from '../types/app';
+import { useScreenTracking } from '../services/analytics';
 
 type LearningPathScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -39,6 +40,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   navigation,
   route,
 }) => {
+  useScreenTracking('LearningPath', 'LearningPathScreen');
   const { pathId } = route.params;
   const { activePath, setActivePath, addStep } = useLearningPathsStore();
   const [isLoading, setIsLoading] = useState(true);

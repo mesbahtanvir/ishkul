@@ -17,6 +17,7 @@ import { Spacing } from '../theme/spacing';
 
 import { RootStackParamList } from '../types/navigation';
 import { LearningPath } from '../types/app';
+import { useScreenTracking } from '../services/analytics';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -24,6 +25,7 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 export const HomeScreen: React.FC = () => {
+  useScreenTracking('Home', 'HomeScreen');
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { paths, setPaths, setActivePath, deletePath, loading } = useLearningPathsStore();
   const { colors } = useTheme();

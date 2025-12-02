@@ -13,6 +13,7 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
+import { useScreenTracking } from '../services/analytics';
 
 type PracticeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Practice'>;
 type PracticeScreenRouteProp = RouteProp<RootStackParamList, 'Practice'>;
@@ -26,6 +27,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
   navigation,
   route,
 }) => {
+  useScreenTracking('Practice', 'PracticeScreen');
   const { step, pathId } = route.params;
   const { setUserDocument } = useUserStore();
   const { updatePath, setActivePath } = useLearningPathsStore();

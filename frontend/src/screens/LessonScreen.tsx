@@ -16,6 +16,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
 import { StepType } from '../types/app';
+import { useScreenTracking } from '../services/analytics';
 
 type LessonScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Lesson'>;
 type LessonScreenRouteProp = RouteProp<RootStackParamList, 'Lesson'>;
@@ -55,6 +56,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
   navigation,
   route,
 }) => {
+  useScreenTracking('Lesson', 'LessonScreen');
   const { step, pathId } = route.params;
   const { setUserDocument } = useUserStore();
   const { updatePath, setActivePath } = useLearningPathsStore();

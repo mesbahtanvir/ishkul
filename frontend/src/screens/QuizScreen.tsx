@@ -15,6 +15,7 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
+import { useScreenTracking } from '../services/analytics';
 
 type QuizScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Quiz'>;
 type QuizScreenRouteProp = RouteProp<RootStackParamList, 'Quiz'>;
@@ -25,6 +26,7 @@ interface QuizScreenProps {
 }
 
 export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => {
+  useScreenTracking('Quiz', 'QuizScreen');
   const { step, pathId } = route.params;
   const { setUserDocument } = useUserStore();
   const { updatePath, setActivePath } = useLearningPathsStore();
