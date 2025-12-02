@@ -2,11 +2,12 @@ import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { Text, Platform } from 'react-native';
 
 // Stores
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { checkAuthState, initializeAuth } from '../services/auth';
 import { getUserDocument } from '../services/memory';
 import { learningPathsApi } from '../services/api';
@@ -172,6 +173,29 @@ const RootNavigator = () => {
 export const AppNavigator: React.FC = () => {
   const { _hasHydrated, setUser, setUserDocument, setLoading } = useUserStore();
   const { setPaths, setLoading: setPathsLoading } = useLearningPathsStore();
+  const { fetchStatus } = useSubscriptionStore();
+
+  // Handle subscription success/cancel URLs on web
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const path = window.location.pathname;
+
+      if (path === '/subscription/success') {
+        // Clear the URL and refresh subscription status
+        window.history.replaceState({}, '', '/');
+
+        // Fetch updated subscription status
+        fetchStatus();
+
+        // Mark checkout as complete
+        useSubscriptionStore.setState({ checkoutInProgress: false });
+      } else if (path === '/subscription/cancel') {
+        // User canceled checkout, just clear the URL
+        window.history.replaceState({}, '', '/');
+        useSubscriptionStore.setState({ checkoutInProgress: false });
+      }
+    }
+  }, [fetchStatus]);
 
   useEffect(() => {
     // Wait for store to be hydrated before checking auth

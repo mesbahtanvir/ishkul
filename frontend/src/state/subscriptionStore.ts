@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Linking, Platform } from 'react-native';
+import { Linking, Platform, AppState, AppStateStatus } from 'react-native';
 import { apiClient } from '../services/api/client';
 import {
   TierType,
@@ -27,6 +27,9 @@ interface SubscriptionState {
   showUpgradeModal: boolean;
   upgradeModalReason: 'path_limit' | 'step_limit' | 'general' | null;
 
+  // Checkout tracking
+  checkoutInProgress: boolean;
+
   // Actions
   fetchStatus: () => Promise<void>;
   startCheckout: (successUrl: string, cancelUrl: string) => Promise<string | null>;
@@ -41,7 +44,7 @@ const defaultLimits: UsageLimits = {
   activePaths: { used: 0, limit: 2 },
 };
 
-export const useSubscriptionStore = create<SubscriptionState>((set) => ({
+export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   // Initial state
   tier: 'free',
   status: null,
@@ -55,6 +58,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
   error: null,
   showUpgradeModal: false,
   upgradeModalReason: null,
+  checkoutInProgress: false,
 
   fetchStatus: async () => {
     set({ loading: true, error: null });
@@ -81,7 +85,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
   },
 
   startCheckout: async (successUrl: string, cancelUrl: string) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, checkoutInProgress: true });
     try {
       const response = await apiClient.post<CheckoutSessionResponse>('/subscription/checkout', {
         successUrl,
@@ -105,6 +109,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
       console.error('Failed to create checkout session:', error);
       set({
         loading: false,
+        checkoutInProgress: false,
         error: error instanceof Error ? error.message : 'Failed to start checkout',
       });
       return null;
@@ -163,9 +168,53 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
       error: null,
       showUpgradeModal: false,
       upgradeModalReason: null,
+      checkoutInProgress: false,
     });
   },
 }));
+
+// Set up app state change listener to refresh subscription after checkout
+// This handles the case where user returns from Stripe checkout
+let appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null;
+let visibilityHandler: (() => void) | null = null;
+
+const setupVisibilityListener = () => {
+  if (Platform.OS === 'web') {
+    // Web: Use document visibility API
+    if (typeof document !== 'undefined' && !visibilityHandler) {
+      visibilityHandler = () => {
+        if (document.visibilityState === 'visible') {
+          const state = useSubscriptionStore.getState();
+          if (state.checkoutInProgress) {
+            // Refresh subscription status after returning from checkout
+            state.fetchStatus().then(() => {
+              useSubscriptionStore.setState({ checkoutInProgress: false });
+            });
+          }
+        }
+      };
+      document.addEventListener('visibilitychange', visibilityHandler);
+    }
+  } else {
+    // Mobile: Use AppState
+    if (!appStateSubscription) {
+      appStateSubscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+        if (nextAppState === 'active') {
+          const state = useSubscriptionStore.getState();
+          if (state.checkoutInProgress) {
+            // Refresh subscription status after returning from checkout
+            state.fetchStatus().then(() => {
+              useSubscriptionStore.setState({ checkoutInProgress: false });
+            });
+          }
+        }
+      });
+    }
+  }
+};
+
+// Initialize the listener
+setupVisibilityListener();
 
 // Helper to check if user is Pro
 export const useIsPro = () => useSubscriptionStore((state) => state.tier === 'pro');
