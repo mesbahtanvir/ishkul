@@ -54,10 +54,15 @@ func main() {
 	logger.Info(appLogger, ctx, "firebase_initialized")
 
 	// Initialize LLM components (OpenAI + prompt loader)
-	// Use absolute path /app/prompts for Cloud Run, fallback to ./prompts for local dev
+	// Try multiple paths: /app/prompts (Cloud Run), ../prompts (running from backend dir), ./prompts (running from project root)
 	promptsDir := "/app/prompts"
 	if _, err := os.Stat(promptsDir); os.IsNotExist(err) {
-		promptsDir = "prompts"
+		// Try parent directory (when running from backend directory)
+		promptsDir = "../prompts"
+		if _, err := os.Stat(promptsDir); os.IsNotExist(err) {
+			// Try current directory (when running from project root)
+			promptsDir = "prompts"
+		}
 	}
 	logger.Info(appLogger, ctx, "llm_initialization_attempt",
 		slog.String("prompts_dir", promptsDir),
@@ -89,6 +94,9 @@ func main() {
 
 	// Health check endpoint (no auth required)
 	mux.HandleFunc("/health", handlers.HealthCheck)
+
+	// Development-only endpoint (no auth required, only available in development)
+	mux.HandleFunc("/dev/test-token", handlers.DevGetTestToken)
 
 	// Auth routes (no auth required - these issue tokens)
 	// Rate limiting applied to prevent brute force attacks
