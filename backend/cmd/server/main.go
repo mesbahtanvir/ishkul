@@ -21,6 +21,7 @@ func main() {
 	// Load .env file only in development mode
 	// In production (Cloud Run), ENVIRONMENT is set to "production"
 	// and we use Cloud Run's native environment variables
+	// Deployed to Toronto, Canada (northamerica-northeast2)
 	if os.Getenv("ENVIRONMENT") == "" || os.Getenv("ENVIRONMENT") == "development" {
 		// Load .env file for local development
 		// godotenv returns an error if file doesn't exist, which is fine -
