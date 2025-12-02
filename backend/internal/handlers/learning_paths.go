@@ -1321,8 +1321,20 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 		return
 	}
 
+	// If step is already completed, return success with current state (idempotent)
 	if path.Steps[stepIndex].Completed {
-		http.Error(w, "Step already completed", http.StatusBadRequest)
+		pathCompleted := path.Status == models.PathStatusCompleted
+		nextStepNeeded := !pathCompleted && path.Status == models.PathStatusActive
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+			"path":           path,
+			"completedStep":  path.Steps[stepIndex],
+			"nextStepNeeded": nextStepNeeded,
+			"pathCompleted":  pathCompleted,
+		}); err != nil {
+			http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
+		}
 		return
 	}
 
