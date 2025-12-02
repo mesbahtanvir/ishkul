@@ -26,6 +26,6 @@ export type RootStackParamList = {
   SettingsTab: undefined;
   // Subscription management
   Subscription: undefined;
-  SubscriptionSuccess: undefined;
+  SubscriptionSuccess: { session_id?: string } | undefined;
   ManageSubscription: undefined;
 };

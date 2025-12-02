@@ -59,6 +59,18 @@ type PortalSessionResponse struct {
 	PortalURL string `json:"portalUrl"`
 }
 
+// VerifyCheckoutRequest represents a request to verify a checkout session
+type VerifyCheckoutRequest struct {
+	SessionID string `json:"sessionId"`
+}
+
+// VerifyCheckoutResponse represents the response after verifying checkout
+type VerifyCheckoutResponse struct {
+	Success bool   `json:"success"`          // Whether the checkout was successful
+	Tier    string `json:"tier"`             // Current tier after verification
+	Message string `json:"message,omitempty"` // Optional message (e.g., error details)
+}
+
 // NewDailyUsage creates a new DailyUsage for today
 func NewDailyUsage() *DailyUsage {
 	now := time.Now().UTC()

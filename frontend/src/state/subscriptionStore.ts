@@ -9,6 +9,7 @@ import {
   SubscriptionStatus,
   CheckoutSessionResponse,
   PortalSessionResponse,
+  VerifyCheckoutResponse,
 } from '../types/app';
 
 interface SubscriptionState {
@@ -35,6 +36,7 @@ interface SubscriptionState {
   fetchStatus: () => Promise<void>;
   startCheckout: (successUrl: string, cancelUrl: string) => Promise<string | null>;
   startNativeCheckout: () => Promise<{ success: boolean; error?: string }>;
+  verifyCheckout: (sessionId: string) => Promise<{ success: boolean; tier: TierType; error?: string }>;
   openPortal: (returnUrl?: string) => Promise<string | null>;
   showUpgradePrompt: (reason: 'path_limit' | 'step_limit' | 'general') => void;
   hideUpgradePrompt: () => void;
@@ -148,6 +150,39 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     }
   },
 
+  verifyCheckout: async (sessionId: string) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await apiClient.post<VerifyCheckoutResponse>('/subscription/verify', {
+        sessionId,
+      });
+
+      if (response.success) {
+        // Verification successful - update local state and fetch full status
+        set({ tier: response.tier, checkoutInProgress: false });
+        await get().fetchStatus();
+        set({ loading: false });
+        return { success: true, tier: response.tier };
+      } else {
+        set({
+          loading: false,
+          checkoutInProgress: false,
+          error: response.message || 'Verification failed',
+        });
+        return { success: false, tier: response.tier, error: response.message };
+      }
+    } catch (error) {
+      console.error('Failed to verify checkout session:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Verification failed';
+      set({
+        loading: false,
+        checkoutInProgress: false,
+        error: errorMessage,
+      });
+      return { success: false, tier: 'free', error: errorMessage };
+    }
+  },
+
   openPortal: async (returnUrl?: string) => {
     set({ loading: true, error: null });
     try {
@@ -206,44 +241,24 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 }));
 
 // Set up app state change listener to refresh subscription after checkout
-// This handles the case where user returns from Stripe checkout
+// This handles the case where user returns from Stripe checkout (fallback for mobile)
 let appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null;
 let visibilityHandler: (() => void) | null = null;
-
-// Polling configuration for handling webhook race condition
-const POLL_INTERVAL_MS = 1500;
-const MAX_POLL_ATTEMPTS = 10;
-
-// Poll for subscription status until tier is 'pro' or max attempts reached
-const pollForProStatus = async (attempts = 0): Promise<void> => {
-  const state = useSubscriptionStore.getState();
-  await state.fetchStatus();
-
-  const updatedState = useSubscriptionStore.getState();
-  if (updatedState.tier === 'pro') {
-    useSubscriptionStore.setState({ checkoutInProgress: false });
-    return;
-  }
-
-  if (attempts < MAX_POLL_ATTEMPTS) {
-    setTimeout(() => pollForProStatus(attempts + 1), POLL_INTERVAL_MS);
-  } else {
-    // Give up polling, mark checkout as complete anyway
-    useSubscriptionStore.setState({ checkoutInProgress: false });
-  }
-};
 
 const setupVisibilityListener = () => {
   if (Platform.OS === 'web') {
     // Web: Use document visibility API
+    // Note: The primary verification happens via session ID on the success page
+    // This is a fallback for edge cases
     if (typeof document !== 'undefined' && !visibilityHandler) {
       visibilityHandler = () => {
         if (document.visibilityState === 'visible') {
           const state = useSubscriptionStore.getState();
           if (state.checkoutInProgress) {
-            // Poll for subscription status after returning from checkout
-            // This handles the webhook race condition
-            pollForProStatus();
+            // Refresh subscription status after returning from checkout
+            state.fetchStatus().then(() => {
+              useSubscriptionStore.setState({ checkoutInProgress: false });
+            });
           }
         }
       };
@@ -256,9 +271,10 @@ const setupVisibilityListener = () => {
         if (nextAppState === 'active') {
           const state = useSubscriptionStore.getState();
           if (state.checkoutInProgress) {
-            // Poll for subscription status after returning from checkout
-            // This handles the webhook race condition
-            pollForProStatus();
+            // Refresh subscription status after returning from checkout
+            state.fetchStatus().then(() => {
+              useSubscriptionStore.setState({ checkoutInProgress: false });
+            });
           }
         }
       });

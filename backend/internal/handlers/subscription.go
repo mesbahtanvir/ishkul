@@ -624,6 +624,146 @@ func CreatePortalSession(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// VerifyCheckoutSession verifies a completed checkout session and syncs the subscription
+// This is the industry-standard approach to handle the race condition between
+// Stripe webhooks and user navigation after checkout completion.
+func VerifyCheckoutSession(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req models.VerifyCheckoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.SessionID == "" {
+		http.Error(w, "sessionId is required", http.StatusBadRequest)
+		return
+	}
+
+	// Retrieve the checkout session from Stripe
+	session, err := checkoutsession.Get(req.SessionID, nil)
+	if err != nil {
+		if appLogger != nil {
+			logger.Error(appLogger, ctx, "verify_checkout_session_failed",
+				slog.String("user_id", userID),
+				slog.String("session_id", req.SessionID),
+				slog.String("error", err.Error()),
+			)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
+			Success: false,
+			Tier:    models.TierFree,
+			Message: "Failed to retrieve checkout session",
+		})
+		return
+	}
+
+	// Verify the session belongs to this user
+	if session.Metadata["user_id"] != userID {
+		if appLogger != nil {
+			logger.Warn(appLogger, ctx, "verify_checkout_session_user_mismatch",
+				slog.String("user_id", userID),
+				slog.String("session_user_id", session.Metadata["user_id"]),
+			)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
+			Success: false,
+			Tier:    models.TierFree,
+			Message: "Session does not belong to this user",
+		})
+		return
+	}
+
+	// Check if checkout was completed successfully
+	if session.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
+		if appLogger != nil {
+			logger.Info(appLogger, ctx, "verify_checkout_not_paid",
+				slog.String("user_id", userID),
+				slog.String("payment_status", string(session.PaymentStatus)),
+			)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
+			Success: false,
+			Tier:    models.TierFree,
+			Message: "Payment not completed",
+		})
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	// Update user subscription status - this ensures status is updated
+	// even if webhook hasn't arrived yet
+	updates := []firestore.Update{
+		{Path: "tier", Value: models.TierPro},
+		{Path: "subscriptionStatus", Value: models.SubscriptionStatusActive},
+		{Path: "updatedAt", Value: time.Now()},
+	}
+
+	if session.Subscription != nil {
+		updates = append(updates, firestore.Update{
+			Path: "stripeSubscriptionId", Value: session.Subscription.ID,
+		})
+
+		// Fetch subscription to get paidUntil date
+		sub, err := subscription.Get(session.Subscription.ID, nil)
+		if err == nil {
+			paidUntil := time.Unix(sub.CurrentPeriodEnd, 0)
+			updates = append(updates, firestore.Update{
+				Path: "paidUntil", Value: paidUntil,
+			})
+		}
+	}
+
+	_, err = fs.Collection("users").Doc(userID).Update(ctx, updates)
+	if err != nil {
+		if appLogger != nil {
+			logger.Error(appLogger, ctx, "verify_checkout_update_failed",
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
+			Success: false,
+			Tier:    models.TierFree,
+			Message: "Failed to update subscription status",
+		})
+		return
+	}
+
+	if appLogger != nil {
+		logger.Info(appLogger, ctx, "subscription_verified_and_activated",
+			slog.String("user_id", userID),
+			slog.String("session_id", req.SessionID),
+		)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
+		Success: true,
+		Tier:    models.TierPro,
+	})
+}
+
 // HandleStripeWebhook processes Stripe webhook events
 func HandleStripeWebhook(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

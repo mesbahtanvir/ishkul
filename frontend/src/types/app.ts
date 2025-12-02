@@ -171,6 +171,12 @@ export interface PortalSessionResponse {
   portalUrl: string;
 }
 
+export interface VerifyCheckoutResponse {
+  success: boolean;
+  tier: TierType;
+  message?: string;
+}
+
 export interface PaymentSheetParams {
   paymentIntent: string;
   ephemeralKey: string;
