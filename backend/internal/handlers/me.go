@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -589,31 +590,42 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		}
 	} else if req.Type == "hard" {
 		// Hard delete: Permanently delete the user document and all learning paths
-		// First delete all learning paths for this user
-		pathsIter := fs.Collection("learning_paths").Where("userId", "==", userID).Documents(ctx)
-		defer pathsIter.Stop()
-
-		batch := fs.Batch()
+		// Use a transaction to ensure atomic deletion (all-or-nothing)
 		pathCount := 0
+		err := fs.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+			// Query all learning paths for this user
+			pathsIter := fs.Collection("learning_paths").Where("userId", "==", userID).Documents(ctx)
+			defer pathsIter.Stop()
 
-		for {
-			doc, err := pathsIter.Next()
-			if err == iterator.Done {
-				break
+			// Collect all document references to delete
+			var refsToDelete []*firestore.DocumentRef
+			for {
+				doc, err := pathsIter.Next()
+				if err == iterator.Done {
+					break
+				}
+				if err != nil {
+					return err
+				}
+				refsToDelete = append(refsToDelete, doc.Ref)
+				pathCount++
 			}
-			if err != nil {
-				http.Error(w, "Error fetching learning paths", http.StatusInternalServerError)
-				return
+
+			// Delete all learning paths in the transaction
+			for _, ref := range refsToDelete {
+				if err := tx.Delete(ref); err != nil {
+					return err
+				}
 			}
-			batch.Delete(doc.Ref)
-			pathCount++
-		}
 
-		// Delete the user document
-		batch.Delete(docRef)
+			// Delete the user document in the same transaction
+			if err := tx.Delete(docRef); err != nil {
+				return err
+			}
 
-		// Commit the batch
-		_, err := batch.Commit(ctx)
+			return nil
+		})
+
 		if err != nil {
 			http.Error(w, "Error permanently deleting account", http.StatusInternalServerError)
 			return
