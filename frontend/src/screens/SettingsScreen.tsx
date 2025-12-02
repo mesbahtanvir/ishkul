@@ -97,13 +97,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
 
   const handleDeleteAccount = async () => {
     // Track delete account initiated
-    const accountCreatedAt = user?.metadata?.creationTime
-      ? new Date(user.metadata.creationTime).getTime()
-      : Date.now();
-    const accountAgeDays = Math.floor((Date.now() - accountCreatedAt) / (1000 * 60 * 60 * 24));
-
+    // Note: account_age_days is set to 0 as we don't store account creation time in local User type
     await trackDeleteAccountInitiated({
-      account_age_days: accountAgeDays,
+      account_age_days: 0,
       paths_count: 0, // Would need to fetch from store
       steps_completed: 0, // Would need to fetch from store
     });
