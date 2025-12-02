@@ -45,7 +45,13 @@ jobs:
       - name: Build Docker image
         run: |
           REGISTRY="${{ env.GCP_REGION }}-docker.pkg.dev"
-          IMAGE_TAG="${REGISTRY}/${{ env.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          # Use IMAGE_TAG_SUFFIX secret if set, otherwise default to commit hash
+          TAG_SUFFIX="${{ secrets.IMAGE_TAG_SUFFIX }}"
+          if [ -z "$TAG_SUFFIX" ]; then
+            TAG_SUFFIX="${{ github.sha }}"
+          fi
+
+          IMAGE_TAG="${REGISTRY}/${{ env.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:${TAG_SUFFIX}"
           LATEST_TAG="${REGISTRY}/${{ env.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:latest"
 
           echo "Building image: $IMAGE_TAG"
