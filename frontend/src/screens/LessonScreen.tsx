@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
+import { MarkdownContent } from '../components/MarkdownContent';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 import { completeStep, getUserDocument } from '../services/memory';
@@ -123,7 +124,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
         </View>
 
         <View style={styles.bodyContainer}>
-          <Text style={[styles.body, { color: colors.text.primary }]}>{step.content}</Text>
+          <MarkdownContent content={step.content} />
         </View>
 
         <Button

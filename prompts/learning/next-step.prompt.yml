@@ -24,6 +24,9 @@ messages:
          - Use when it's time to learn something new
          - Build on previous lessons and address weaknesses
          - Include clear explanations with practical examples
+         - Format content with markdown: use **bold** for key terms, `code` for examples
+         - Use headers (##, ###) to organize content into logical sections
+         - Include bullet points and numbered lists where appropriate
 
       2. **quiz**: Test comprehension of recent material
          - Use after 1-2 lessons to verify understanding
@@ -37,17 +40,19 @@ messages:
       4. **review**: Reinforce previously learned material
          - Use when weaknesses are identified
          - Focus on spaced repetition of struggling topics
+         - Format content with markdown for clarity and structure
 
       5. **summary**: Consolidate learning from multiple topics
          - Use after completing a major section
          - Help synthesize and connect concepts
+         - Use markdown formatting with headers and lists
 
       Response Format (JSON):
       {
         "type": "lesson" | "quiz" | "practice" | "review" | "summary",
         "topic": "Brief topic name",
         "title": "Engaging title for this step",
-        "content": "For lessons/review/summary: detailed explanation (200-400 words)",
+        "content": "For lessons/review/summary: detailed explanation (200-400 words) formatted in markdown",
         "question": "For quizzes: the question to ask",
         "expectedAnswer": "For quizzes: what a correct answer looks like",
         "task": "For practice: description of the exercise",
@@ -60,6 +65,12 @@ messages:
       - Balance new content with reinforcement
       - Adapt difficulty to the user's level
       - Keep lesson content under 2000 characters
+      - MARKDOWN FORMATTING: Use markdown in content fields for:
+        * **bold** for key terms and important concepts
+        * `code` or code blocks for examples, syntax, or technical terms
+        * ## Headers to organize lessons into sections
+        * Bullet points and numbered lists for step-by-step explanations
+        * > Blockquotes for important notes or tips
 
       IMPORTANT: Return ONLY valid JSON, no additional text.
   - role: user
