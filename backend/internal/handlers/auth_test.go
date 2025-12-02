@@ -470,3 +470,41 @@ func TestRefreshConcurrent(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+// =============================================================================
+// containsCaseInsensitive Tests
+// =============================================================================
+
+func TestContainsCaseInsensitive(t *testing.T) {
+	t.Run("finds lowercase substring", func(t *testing.T) {
+		assert.True(t, containsCaseInsensitive("Hello World", "world"))
+	})
+
+	t.Run("finds uppercase substring", func(t *testing.T) {
+		assert.True(t, containsCaseInsensitive("hello world", "WORLD"))
+	})
+
+	t.Run("finds mixed case substring", func(t *testing.T) {
+		assert.True(t, containsCaseInsensitive("Hello World", "WoRlD"))
+	})
+
+	t.Run("returns false when not found", func(t *testing.T) {
+		assert.False(t, containsCaseInsensitive("Hello World", "xyz"))
+	})
+
+	t.Run("handles empty strings", func(t *testing.T) {
+		assert.True(t, containsCaseInsensitive("Hello", ""))
+		assert.False(t, containsCaseInsensitive("", "Hello"))
+	})
+
+	t.Run("handles exact match", func(t *testing.T) {
+		assert.True(t, containsCaseInsensitive("test", "test"))
+		assert.True(t, containsCaseInsensitive("TEST", "test"))
+	})
+
+	t.Run("finds email and invalid in error message", func(t *testing.T) {
+		errMsg := "The email address is invalid"
+		assert.True(t, containsCaseInsensitive(errMsg, "email"))
+		assert.True(t, containsCaseInsensitive(errMsg, "invalid"))
+	})
+}
