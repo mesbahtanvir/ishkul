@@ -38,11 +38,18 @@ const mockDefaultStep = {
 };
 
 describe('llmEngine', () => {
+  // Spy on console.error to suppress expected error logs during tests
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset authApi mock to return valid token for each test
     const { authApi } = require('../api');
     authApi.getAccessToken.mockReturnValue('test-token');
+  });
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   describe('getNextStep', () => {

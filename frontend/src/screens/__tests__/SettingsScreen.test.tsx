@@ -4,6 +4,26 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SettingsScreen } from '../SettingsScreen';
 import type { RootStackParamList } from '../../types/navigation';
 
+// Mock analytics hooks to prevent console.log outputs
+jest.mock('../../services/analytics/hooks', () => ({
+  useAnalytics: () => ({
+    trackScreen: jest.fn(),
+    setUserId: jest.fn(),
+    setUserProperties: jest.fn(),
+    trackThemeChanged: jest.fn(),
+    trackDeleteAccountInitiated: jest.fn(),
+  }),
+  useScreenTracking: jest.fn(),
+  useThemeTracking: jest.fn(),
+}));
+
+// Spy on console.error to suppress expected error logs during tests
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+afterAll(() => {
+  consoleErrorSpy.mockRestore();
+});
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
 
 // Mock userStore

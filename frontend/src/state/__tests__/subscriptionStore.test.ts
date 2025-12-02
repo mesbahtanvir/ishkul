@@ -25,6 +25,13 @@ jest.mock('react-native', () => ({
 }));
 
 describe('subscriptionStore', () => {
+  // Spy on console.error to suppress expected error logs during tests
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore();
+  });
+
   beforeEach(() => {
     // Reset the store state before each test
     useSubscriptionStore.setState({

@@ -6,8 +6,80 @@ import type { RouteProp } from '@react-navigation/native';
 import { LevelSelectionScreen } from '../LevelSelectionScreen';
 import type { RootStackParamList } from '../../types/navigation';
 
+// Mock analytics hooks to prevent console.log outputs
+jest.mock('../../services/analytics/hooks', () => ({
+  useAnalytics: () => ({
+    trackScreen: jest.fn(),
+    setUserId: jest.fn(),
+    setUserProperties: jest.fn(),
+    trackSignUp: jest.fn(),
+    trackLogin: jest.fn(),
+    trackLogout: jest.fn(),
+    trackOnboardingStart: jest.fn(),
+    trackGoalSelected: jest.fn(),
+    trackLevelSelected: jest.fn(),
+    trackOnboardingComplete: jest.fn(),
+    trackLearningPathCreated: jest.fn(),
+    trackLearningPathOpened: jest.fn(),
+    trackLearningPathDeleted: jest.fn(),
+    trackStepStarted: jest.fn(),
+    trackStepCompleted: jest.fn(),
+    trackLessonCompleted: jest.fn(),
+    trackPracticeCompleted: jest.fn(),
+    trackQuizStarted: jest.fn(),
+    trackQuizQuestionAnswered: jest.fn(),
+    trackQuizCompleted: jest.fn(),
+    trackNextStepRequested: jest.fn(),
+    trackNextStepGenerated: jest.fn(),
+    trackAIError: jest.fn(),
+    trackAppOpen: jest.fn(),
+    startSession: jest.fn(),
+    endSession: jest.fn(),
+    trackThemeChanged: jest.fn(),
+    trackProgressViewed: jest.fn(),
+    trackDeleteAccountInitiated: jest.fn(),
+    getActiveTime: jest.fn(),
+  }),
+  useScreenTracking: jest.fn(),
+  useActiveTime: () => ({
+    getActiveSeconds: jest.fn().mockReturnValue(0),
+    resetTimer: jest.fn(),
+  }),
+  useStepTracking: () => ({
+    startStep: jest.fn(),
+    completeStep: jest.fn(),
+    getActiveSeconds: jest.fn().mockReturnValue(0),
+  }),
+  useQuizTracking: () => ({
+    startQuiz: jest.fn(),
+    answerQuestion: jest.fn(),
+    completeQuiz: jest.fn(),
+    getActiveSeconds: jest.fn().mockReturnValue(0),
+  }),
+  useOnboardingTracking: () => ({
+    startOnboarding: jest.fn(),
+    selectGoal: jest.fn(),
+    selectLevel: jest.fn(),
+    completeOnboarding: jest.fn(),
+  }),
+  useAITracking: () => ({
+    startRequest: jest.fn(),
+    completeRequest: jest.fn(),
+    trackError: jest.fn(),
+  }),
+  useSessionTracking: jest.fn(),
+  useThemeTracking: jest.fn(),
+}));
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'LevelSelection'>;
 type ScreenRouteProp = RouteProp<RootStackParamList, 'LevelSelection'>;
+
+// Spy on console.error to suppress expected error logs during tests
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+afterAll(() => {
+  consoleErrorSpy.mockRestore();
+});
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');

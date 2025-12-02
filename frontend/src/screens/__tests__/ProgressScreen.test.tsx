@@ -3,6 +3,71 @@ import { render } from '@testing-library/react-native';
 import { ProgressScreen } from '../ProgressScreen';
 import { UserDocument } from '../../types/app';
 
+// Mock analytics hooks to prevent console.log outputs
+jest.mock('../../services/analytics/hooks', () => ({
+  useAnalytics: () => ({
+    trackScreen: jest.fn(),
+    setUserId: jest.fn(),
+    setUserProperties: jest.fn(),
+    trackSignUp: jest.fn(),
+    trackLogin: jest.fn(),
+    trackLogout: jest.fn(),
+    trackOnboardingStart: jest.fn(),
+    trackGoalSelected: jest.fn(),
+    trackLevelSelected: jest.fn(),
+    trackOnboardingComplete: jest.fn(),
+    trackLearningPathCreated: jest.fn(),
+    trackLearningPathOpened: jest.fn(),
+    trackLearningPathDeleted: jest.fn(),
+    trackStepStarted: jest.fn(),
+    trackStepCompleted: jest.fn(),
+    trackLessonCompleted: jest.fn(),
+    trackPracticeCompleted: jest.fn(),
+    trackQuizStarted: jest.fn(),
+    trackQuizQuestionAnswered: jest.fn(),
+    trackQuizCompleted: jest.fn(),
+    trackNextStepRequested: jest.fn(),
+    trackNextStepGenerated: jest.fn(),
+    trackAIError: jest.fn(),
+    trackAppOpen: jest.fn(),
+    startSession: jest.fn(),
+    endSession: jest.fn(),
+    trackThemeChanged: jest.fn(),
+    trackProgressViewed: jest.fn(),
+    trackDeleteAccountInitiated: jest.fn(),
+    getActiveTime: jest.fn(),
+  }),
+  useScreenTracking: jest.fn(),
+  useActiveTime: () => ({
+    getActiveSeconds: jest.fn().mockReturnValue(0),
+    resetTimer: jest.fn(),
+  }),
+  useStepTracking: () => ({
+    startStep: jest.fn(),
+    completeStep: jest.fn(),
+    getActiveSeconds: jest.fn().mockReturnValue(0),
+  }),
+  useQuizTracking: () => ({
+    startQuiz: jest.fn(),
+    answerQuestion: jest.fn(),
+    completeQuiz: jest.fn(),
+    getActiveSeconds: jest.fn().mockReturnValue(0),
+  }),
+  useOnboardingTracking: () => ({
+    startOnboarding: jest.fn(),
+    selectGoal: jest.fn(),
+    selectLevel: jest.fn(),
+    completeOnboarding: jest.fn(),
+  }),
+  useAITracking: () => ({
+    startRequest: jest.fn(),
+    completeRequest: jest.fn(),
+    trackError: jest.fn(),
+  }),
+  useSessionTracking: jest.fn(),
+  useThemeTracking: jest.fn(),
+}));
+
 // Mock userStore
 let mockUserDocument: UserDocument | null = null;
 jest.mock('../../state/userStore', () => ({

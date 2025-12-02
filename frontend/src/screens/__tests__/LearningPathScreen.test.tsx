@@ -44,6 +44,13 @@ const createMockPath = (overrides: Partial<LearningPath> = {}): LearningPath => 
   ...overrides,
 });
 
+// Spy on console.error to suppress expected error logs during tests
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+afterAll(() => {
+  consoleErrorSpy.mockRestore();
+});
+
 // Mock stores
 const mockSetActivePath = jest.fn();
 const mockAddStep = jest.fn();
@@ -51,15 +58,30 @@ const mockGetCachedPath = jest.fn();
 const mockIsCacheValid = jest.fn();
 let mockActivePath: LearningPath | null = null;
 
+// Create a mock store object with getState function
+const mockStore = {
+  activePath: null as LearningPath | null,
+  setActivePath: mockSetActivePath,
+  addStep: mockAddStep,
+  getCachedPath: mockGetCachedPath,
+  pathsCache: new Map(),
+  isCacheValid: mockIsCacheValid,
+};
+
 jest.mock('../../state/learningPathsStore', () => ({
-  useLearningPathsStore: () => ({
-    activePath: mockActivePath,
-    setActivePath: mockSetActivePath,
-    addStep: mockAddStep,
-    getCachedPath: mockGetCachedPath,
-    pathsCache: new Map(),
-    isCacheValid: mockIsCacheValid,
-  }),
+  useLearningPathsStore: Object.assign(
+    () => ({
+      activePath: mockActivePath,
+      setActivePath: mockSetActivePath,
+      addStep: mockAddStep,
+      getCachedPath: mockGetCachedPath,
+      pathsCache: new Map(),
+      isCacheValid: mockIsCacheValid,
+    }),
+    {
+      getState: () => mockStore,
+    }
+  ),
   getCurrentStep: jest.fn((steps: Step[]) => steps.find((s) => !s.completed) || null),
 }));
 
