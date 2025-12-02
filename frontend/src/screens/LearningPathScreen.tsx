@@ -354,7 +354,8 @@ const styles = StyleSheet.create({
     ...Typography.label.medium,
     marginLeft: Spacing.sm,
     minWidth: 35,
-    flexShrink: 0,
+    maxWidth: 50,
+    flexShrink: 1,
     textAlign: 'right',
   },
   stepsContainer: {
