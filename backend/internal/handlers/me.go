@@ -621,10 +621,10 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":        true,
-			"message":        "Account and all associated data permanently deleted.",
-			"type":           "hard",
-			"deletedPaths":   pathCount,
+			"success":      true,
+			"message":      "Account and all associated data permanently deleted.",
+			"type":         "hard",
+			"deletedPaths": pathCount,
 		}); err != nil {
 			http.Error(w, "Error encoding response", http.StatusInternalServerError)
 			return

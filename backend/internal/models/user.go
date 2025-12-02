@@ -4,17 +4,17 @@ import "time"
 
 // User represents a user in the system (basic profile)
 type User struct {
-	ID            string     `json:"id" firestore:"id"`
-	Email         string     `json:"email" firestore:"email"`
-	DisplayName   string     `json:"displayName" firestore:"displayName"`
-	PhotoURL      string     `json:"photoUrl,omitempty" firestore:"photoUrl,omitempty"`
-	CreatedAt     time.Time  `json:"createdAt" firestore:"createdAt"`
-	UpdatedAt     time.Time  `json:"updatedAt" firestore:"updatedAt"`
-	Goal          string     `json:"goal,omitempty" firestore:"goal,omitempty"`
-	Level         string     `json:"level,omitempty" firestore:"level,omitempty"`
-	Tier          string     `json:"tier" firestore:"tier"`           // "free" or "pro"
-	PaidUntil     *time.Time `json:"paidUntil,omitempty" firestore:"paidUntil,omitempty"` // Subscription expiration
-	DeletedAt     *time.Time `json:"deletedAt,omitempty" firestore:"deletedAt,omitempty"` // Soft delete timestamp
+	ID                   string     `json:"id" firestore:"id"`
+	Email                string     `json:"email" firestore:"email"`
+	DisplayName          string     `json:"displayName" firestore:"displayName"`
+	PhotoURL             string     `json:"photoUrl,omitempty" firestore:"photoUrl,omitempty"`
+	CreatedAt            time.Time  `json:"createdAt" firestore:"createdAt"`
+	UpdatedAt            time.Time  `json:"updatedAt" firestore:"updatedAt"`
+	Goal                 string     `json:"goal,omitempty" firestore:"goal,omitempty"`
+	Level                string     `json:"level,omitempty" firestore:"level,omitempty"`
+	Tier                 string     `json:"tier" firestore:"tier"`                                                     // "free" or "pro"
+	PaidUntil            *time.Time `json:"paidUntil,omitempty" firestore:"paidUntil,omitempty"`                       // Subscription expiration
+	DeletedAt            *time.Time `json:"deletedAt,omitempty" firestore:"deletedAt,omitempty"`                       // Soft delete timestamp
 	PermanentlyDeletedAt *time.Time `json:"permanentlyDeletedAt,omitempty" firestore:"permanentlyDeletedAt,omitempty"` // Hard delete timestamp
 }
 
