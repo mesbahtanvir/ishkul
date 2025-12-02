@@ -59,6 +59,34 @@ jobs:
           docker push ${{ env.IMAGE_TAG }}
           docker push ${{ env.LATEST_TAG }}
 
+      - name: Prepare environment variables for Cloud Run
+        id: prepare-env
+        run: |
+          # Build env vars string from GitHub secrets
+          # Regular env vars (all secrets except those starting with underscore)
+          ENV_VARS="ENVIRONMENT=production"
+          ENV_VARS="${ENV_VARS},FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }}"
+          ENV_VARS="${ENV_VARS},FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}"
+
+          # Add other standard vars if they exist
+          if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
+            ENV_VARS="${ENV_VARS},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
+          fi
+          if [ -n "${{ secrets.GOOGLE_WEB_CLIENT_ID }}" ]; then
+            ENV_VARS="${ENV_VARS},GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}"
+          fi
+          if [ -n "${{ secrets.GOOGLE_IOS_CLIENT_ID }}" ]; then
+            ENV_VARS="${ENV_VARS},GOOGLE_IOS_CLIENT_ID=${{ secrets.GOOGLE_IOS_CLIENT_ID }}"
+          fi
+          if [ -n "${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}" ]; then
+            ENV_VARS="${ENV_VARS},GOOGLE_ANDROID_CLIENT_ID=${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}"
+          fi
+          if [ -n "${{ secrets.ALLOWED_ORIGINS }}" ]; then
+            ENV_VARS="${ENV_VARS},ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}"
+          fi
+
+          echo "env_vars=${ENV_VARS}" >> $GITHUB_OUTPUT
+
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
@@ -66,7 +94,7 @@ jobs:
             --region=${{ env.GCP_REGION }} \
             --allow-unauthenticated \
             --project=${{ env.GCP_PROJECT_ID }} \
-            --set-env-vars=FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }},FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }},ENVIRONMENT=production
+            --set-env-vars=${{ steps.prepare-env.outputs.env_vars }}
 
       - name: Verify deployment
         run: |
