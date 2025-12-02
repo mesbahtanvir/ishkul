@@ -31,8 +31,7 @@ func DevGetTestToken(w http.ResponseWriter, r *http.Request) {
 	tokenPair, err := auth.GenerateTokenPair(testUID, testEmail)
 	if err != nil {
 		if appLogger != nil {
-			logger.Error(appLogger, r.Context(), "dev_token_generation_failed",
-			)
+			logger.Error(appLogger, r.Context(), "dev_token_generation_failed")
 		}
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
@@ -40,8 +39,7 @@ func DevGetTestToken(w http.ResponseWriter, r *http.Request) {
 
 	// Log the token generation
 	if appLogger != nil {
-		logger.Info(appLogger, r.Context(), "dev_test_token_generated",
-		)
+		logger.Info(appLogger, r.Context(), "dev_test_token_generated")
 	}
 
 	w.Header().Set("Content-Type", "application/json")

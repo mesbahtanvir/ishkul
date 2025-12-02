@@ -366,7 +366,7 @@ func signInWithEmailPassword(ctx context.Context, email, password string) (*fire
 	if resp.StatusCode != http.StatusOK {
 		var authErr FirebaseAuthError
 		if err := json.Unmarshal(body, &authErr); err == nil {
-			return nil, fmt.Errorf(authErr.Error.Message)
+			return nil, fmt.Errorf("%s", authErr.Error.Message)
 		}
 		return nil, fmt.Errorf("authentication failed")
 	}

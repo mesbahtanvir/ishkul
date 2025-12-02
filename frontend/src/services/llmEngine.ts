@@ -152,6 +152,7 @@ export const getNextStep = async (request: LLMRequest): Promise<LLMResponse> => 
 };
 
 // Fallback mock implementation (kept for development/offline use)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getNextStepMock = async (request: LLMRequest): Promise<LLMResponse> => {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
