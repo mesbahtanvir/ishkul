@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 import { completeStep, getUserDocument } from '../services/memory';
@@ -66,9 +67,11 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
   );
 
   return (
-    <Container scrollable>
-      <View style={styles.content}>
-        <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
+    <View style={styles.container}>
+      <ScreenHeader title={step.title || step.topic} onBack={() => navigation.goBack()} />
+      <Container scrollable>
+        <View style={styles.content}>
+          <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
           <Text style={[styles.emoji, { fontSize: emojiSize }]}>💪</Text>
           <View style={[styles.badge, { backgroundColor: colors.badge.practice }]}>
             <Text style={[styles.badgeText, { color: colors.white }]}>Practice</Text>
@@ -108,17 +111,21 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
           )}
         </View>
 
-        <Button
-          title="I'm Done →"
-          onPress={handleDone}
-          loading={loading}
-        />
-      </View>
-    </Container>
+          <Button
+            title="I'm Done →"
+            onPress={handleDone}
+            loading={loading}
+          />
+        </View>
+      </Container>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   content: {
     flex: 1,
   },

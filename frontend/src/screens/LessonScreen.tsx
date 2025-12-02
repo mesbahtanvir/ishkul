@@ -5,6 +5,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { MarkdownContent } from '../components/MarkdownContent';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
@@ -108,9 +109,11 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
   };
 
   return (
-    <Container scrollable>
-      <View style={styles.content}>
-        <Card elevation="md" padding="lg" style={styles.headerCard}>
+    <View style={styles.container}>
+      <ScreenHeader title={step.title || step.topic} onBack={() => navigation.goBack()} />
+      <Container scrollable>
+        <View style={styles.content}>
+          <Card elevation="md" padding="lg" style={styles.headerCard}>
           <View style={styles.header}>
             <Text style={[styles.emoji, { fontSize: emojiSize }]}>
               {getStepIcon(step.type)}
@@ -130,17 +133,21 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
           <MarkdownContent content={step.content || ''} />
         </Card>
 
-        <Button
-          title="I Understand →"
-          onPress={handleUnderstand}
-          loading={loading}
-        />
-      </View>
-    </Container>
+          <Button
+            title="I Understand →"
+            onPress={handleUnderstand}
+            loading={loading}
+          />
+        </View>
+      </Container>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   content: {
     flex: 1,
     gap: Spacing.md,

@@ -56,8 +56,17 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
     try {
       setIsLoading(true);
 
-      // Load the path
-      const path = await getLearningPath(pathId);
+      // Check if we have a valid cache for this path
+      const store = useLearningPathsStore.getState();
+      const cached = store.getCachedPath(pathId);
+      const pathCache = store.pathsCache.get(pathId) || null;
+
+      let path = cached;
+      if (!store.isCacheValid(pathCache)) {
+        // Cache expired or doesn't exist, fetch from API
+        path = await getLearningPath(pathId);
+      }
+
       if (path) {
         setActivePath(path);
 
@@ -232,7 +241,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
           </View>
         </View>
 
-        {/* Steps timeline */}
+        {/* Steps timeline with button at bottom */}
         <ScrollView
           ref={scrollViewRef}
           style={styles.stepsContainer}
@@ -278,12 +287,12 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
             </View>
           )}
 
-          {/* Spacer at bottom */}
+          {/* Spacer at bottom to allow content to scroll above button */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
 
-        {/* Continue button */}
-        <View style={styles.buttonContainer}>
+        {/* Sticky continue button at bottom */}
+        <View style={[styles.buttonContainer, { backgroundColor: colors.background.primary }]}>
           <Button
             title={currentStep ? 'Continue →' : 'Get Next Step'}
             onPress={handleContinue}
@@ -388,8 +397,11 @@ const styles = StyleSheet.create({
     height: Spacing.xl,
   },
   buttonContainer: {
+    paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.05)',
   },
   errorContainer: {
     flex: 1,

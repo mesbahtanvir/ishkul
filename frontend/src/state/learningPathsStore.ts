@@ -1,11 +1,18 @@
 import { create } from 'zustand';
 import { LearningPath, Step } from '../types/app';
 
+interface CacheMetadata {
+  timestamp: number;
+  ttl: number; // Time to live in milliseconds
+}
+
 interface LearningPathsState {
   paths: LearningPath[];
   activePath: LearningPath | null;
   loading: boolean;
   error: string | null;
+  pathsCache: Map<string, CacheMetadata>; // Cache timestamps for each path
+  listCache: CacheMetadata | null; // Cache timestamp for paths list
 
   // Actions
   setPaths: (paths: LearningPath[]) => void;
@@ -18,6 +25,11 @@ interface LearningPathsState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearPaths: () => void;
+  // Cache helpers
+  isCacheValid: (cacheMetadata: CacheMetadata | null) => boolean;
+  getCachedPath: (pathId: string) => LearningPath | null;
+  invalidatePathCache: (pathId: string) => void;
+  invalidateListCache: () => void;
 }
 
 // Helper to find current (incomplete) step
@@ -30,18 +42,32 @@ export const getCompletedSteps = (steps: Step[]): Step[] => {
   return steps.filter((s) => s.completed);
 };
 
+// Cache configuration (5 minutes TTL)
+const CACHE_TTL = 5 * 60 * 1000;
+
 export const useLearningPathsStore = create<LearningPathsState>((set, get) => ({
   paths: [],
   activePath: null,
   loading: false,
   error: null,
+  pathsCache: new Map(),
+  listCache: null,
 
   setPaths: (paths) => {
     // Sort by lastAccessedAt descending (most recent first)
     const sortedPaths = [...paths].sort(
       (a, b) => b.lastAccessedAt - a.lastAccessedAt
     );
-    set({ paths: sortedPaths });
+    // Update cache for each path
+    const pathsCache = new Map<string, CacheMetadata>();
+    sortedPaths.forEach((path) => {
+      pathsCache.set(path.id, { timestamp: Date.now(), ttl: CACHE_TTL });
+    });
+    set({
+      paths: sortedPaths,
+      pathsCache,
+      listCache: { timestamp: Date.now(), ttl: CACHE_TTL },
+    });
   },
 
   setActivePath: (path) => set({ activePath: path }),
@@ -52,26 +78,31 @@ export const useLearningPathsStore = create<LearningPathsState>((set, get) => ({
   },
 
   updatePath: (pathId, updates) => {
-    const { paths, activePath } = get();
+    const { paths, activePath, pathsCache } = get();
     const updatedPaths = paths.map((p) =>
       p.id === pathId ? { ...p, ...updates, updatedAt: Date.now() } : p
     );
     // Re-sort after update
     updatedPaths.sort((a, b) => b.lastAccessedAt - a.lastAccessedAt);
+    // Update cache timestamp for this path
+    pathsCache.set(pathId, { timestamp: Date.now(), ttl: CACHE_TTL });
     set({
       paths: updatedPaths,
       activePath:
         activePath?.id === pathId
           ? { ...activePath, ...updates, updatedAt: Date.now() }
           : activePath,
+      pathsCache,
     });
   },
 
   deletePath: (pathId) => {
-    const { paths, activePath } = get();
+    const { paths, activePath, pathsCache } = get();
+    pathsCache.delete(pathId);
     set({
       paths: paths.filter((p) => p.id !== pathId),
       activePath: activePath?.id === pathId ? null : activePath,
+      pathsCache,
     });
   },
 
@@ -115,7 +146,36 @@ export const useLearningPathsStore = create<LearningPathsState>((set, get) => ({
 
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
-  clearPaths: () => set({ paths: [], activePath: null, error: null }),
+  clearPaths: () =>
+    set({
+      paths: [],
+      activePath: null,
+      error: null,
+      pathsCache: new Map(),
+      listCache: null,
+    }),
+
+  // Cache helpers
+  isCacheValid: (cacheMetadata) => {
+    if (!cacheMetadata) return false;
+    const now = Date.now();
+    return now - cacheMetadata.timestamp < cacheMetadata.ttl;
+  },
+
+  getCachedPath: (pathId) => {
+    const { paths } = get();
+    return paths.find((p) => p.id === pathId) || null;
+  },
+
+  invalidatePathCache: (pathId) => {
+    const { pathsCache } = get();
+    pathsCache.delete(pathId);
+    set({ pathsCache });
+  },
+
+  invalidateListCache: () => {
+    set({ listCache: null });
+  },
 }));
 
 // Helper function to generate emoji based on goal

@@ -6,6 +6,7 @@ import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 import { completeStep, getUserDocument } from '../services/memory';
@@ -80,9 +81,11 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
   );
 
   return (
-    <Container scrollable>
-      <View style={styles.content}>
-        <Card elevation="md" padding="lg" style={styles.headerCard}>
+    <View style={styles.container}>
+      <ScreenHeader title={step.title || step.topic} onBack={() => navigation.goBack()} />
+      <Container scrollable>
+        <View style={styles.content}>
+          <Card elevation="md" padding="lg" style={styles.headerCard}>
           <View style={styles.header}>
             <Text style={[styles.emoji, { fontSize: emojiSize }]}>❓</Text>
             <View style={[styles.badge, { backgroundColor: colors.badge.quiz }]}>
@@ -128,27 +131,31 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
           </Card>
         )}
 
-        <View style={styles.buttonContainer}>
-          {!isSubmitted ? (
-            <Button
-              title="Submit"
-              onPress={handleSubmit}
-              disabled={!answer.trim()}
-            />
-          ) : (
-            <Button
-              title="Continue →"
-              onPress={handleNextStep}
-              loading={loading}
-            />
-          )}
+          <View style={styles.buttonContainer}>
+            {!isSubmitted ? (
+              <Button
+                title="Submit"
+                onPress={handleSubmit}
+                disabled={!answer.trim()}
+              />
+            ) : (
+              <Button
+                title="Continue →"
+                onPress={handleNextStep}
+                loading={loading}
+              />
+            )}
+          </View>
         </View>
-      </View>
-    </Container>
+      </Container>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   content: {
     flex: 1,
     gap: Spacing.md,

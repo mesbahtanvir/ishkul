@@ -41,6 +41,13 @@ export const HomeScreen: React.FC = () => {
     useCallback(() => {
       const refreshPaths = async () => {
         try {
+          // Check if cache is still valid before fetching
+          const { listCache, isCacheValid } = useLearningPathsStore.getState();
+          if (isCacheValid(listCache)) {
+            // Cache is still valid, skip API call
+            return;
+          }
+          // Cache expired or doesn't exist, fetch from API
           const fetchedPaths = await learningPathsApi.getPaths();
           setPaths(fetchedPaths);
         } catch (error) {
