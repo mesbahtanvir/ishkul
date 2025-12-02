@@ -41,10 +41,11 @@ export const SkeletonText: React.FC<SkeletonTextProps> = ({
     switch (pattern) {
       case 'full':
         return '100%';
-      case 'decreasing':
+      case 'decreasing': {
         // Each line is slightly shorter than the previous
         const decreasePercent = 100 - (index * (100 - lastLineWidth)) / (lines - 1 || 1);
         return `${Math.max(decreasePercent, lastLineWidth)}%`;
+      }
       case 'varied':
       default:
         // Use pre-defined varied widths, with last line always shorter

@@ -9,7 +9,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Animated, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Container } from '../components/Container';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { GeneratingContent } from '../components/GeneratingContent';
 import { LessonSkeleton } from '../components/skeletons/LessonSkeleton';
@@ -44,7 +43,8 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
 
   const [phase, setPhase] = useState<LoadingPhase>('generating');
   const [step, setStep] = useState<Step | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Error state kept for potential future error UI display
+  const [_error, setError] = useState<string | null>(null);
 
   // Animation values for smooth transitions
   const generatingOpacity = useRef(new Animated.Value(1)).current;
