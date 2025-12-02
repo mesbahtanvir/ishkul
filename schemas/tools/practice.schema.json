@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ishkul.com/schemas/tools/practice.schema.json",
+  "title": "Practice Step",
+  "description": "A small hands-on exercise (3-5 minutes)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "_base.schema.json" }
+  ],
+  "properties": {
+    "type": {
+      "const": "practice"
+    },
+    "topic": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "task": {
+      "type": "string",
+      "description": "Clear task description (2-3 sentences)",
+      "minLength": 20,
+      "maxLength": 500
+    },
+    "instructions": {
+      "type": "array",
+      "description": "Step-by-step instructions",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "maxItems": 5
+    },
+    "successCriteria": {
+      "type": "array",
+      "description": "How to know when done correctly",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "maxItems": 3
+    },
+    "hints": {
+      "type": "array",
+      "description": "Hints if stuck",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3
+    },
+    "sampleSolution": {
+      "type": "string",
+      "description": "Example solution (shown after attempt)"
+    }
+  },
+  "required": ["type", "topic", "title", "task", "successCriteria"],
+  "additionalProperties": false,
+
+  "_meta": {
+    "toolId": "practice",
+    "uiComponent": "PracticeCard",
+    "estimatedMinutes": 5,
+    "categories": ["hands-on", "application"],
+    "selectionCriteria": {
+      "when": [
+        "After quiz or 2-3 lessons",
+        "To apply learned concepts",
+        "To build muscle memory"
+      ]
+    },
+    "example": {
+      "type": "practice",
+      "topic": "Python Variables",
+      "title": "Create Your Own Variables",
+      "task": "Create three variables: your name (text), your age (number), and whether you like coding (true/false). Print all three.",
+      "instructions": [
+        "Open your Python environment",
+        "Create a variable for your name using quotes",
+        "Create a variable for your age as a number",
+        "Create a boolean variable for liking coding",
+        "Print each variable"
+      ],
+      "successCriteria": [
+        "All three variables are created with correct types",
+        "Running the code prints all three values"
+      ],
+      "hints": [
+        "Text needs quotes: name = \"Alice\"",
+        "Numbers don't need quotes: age = 25",
+        "Booleans are True or False (capitalized)"
+      ],
+      "sampleSolution": "name = \"Alice\"\nage = 25\nlikes_coding = True\nprint(name, age, likes_coding)"
+    }
+  }
+}

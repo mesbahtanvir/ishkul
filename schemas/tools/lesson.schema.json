@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ishkul.com/schemas/tools/lesson.schema.json",
+  "title": "Lesson Step",
+  "description": "A micro-lesson teaching one concept in 2-3 minutes",
+  "type": "object",
+  "allOf": [
+    { "$ref": "_base.schema.json" }
+  ],
+  "properties": {
+    "type": {
+      "const": "lesson"
+    },
+    "topic": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string",
+      "description": "Markdown-formatted lesson content (100-200 words)",
+      "minLength": 100,
+      "maxLength": 2000
+    }
+  },
+  "required": ["type", "topic", "title", "content"],
+  "additionalProperties": false,
+
+  "_meta": {
+    "toolId": "lesson",
+    "uiComponent": "LessonCard",
+    "estimatedMinutes": 3,
+    "categories": ["teaching", "concept"],
+    "selectionCriteria": {
+      "when": [
+        "Introducing a new concept",
+        "Explaining how something works",
+        "Building foundational knowledge"
+      ]
+    },
+    "example": {
+      "type": "lesson",
+      "topic": "Python Variables",
+      "title": "Storing Data with Variables",
+      "content": "**Variables** are containers for storing data.\n\nThink of them as labeled boxes. You put something in, give it a name, and retrieve it later.\n\n```python\nname = \"Alice\"\nage = 25\n```\n\nHere, `name` holds text and `age` holds a number.\n\n**Key takeaway:** Variables let you store and reuse values throughout your code."
+    }
+  }
+}

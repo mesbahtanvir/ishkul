@@ -1651,7 +1651,7 @@ func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
 			Topics           []struct {
 				ID               string   `json:"id"`
 				Title            string   `json:"title"`
-				Type             string   `json:"type"`
+				ToolID           string   `json:"toolId"`
 				EstimatedMinutes int      `json:"estimatedMinutes"`
 				Description      string   `json:"description"`
 				Prerequisites    []string `json:"prerequisites"`
@@ -1700,7 +1700,7 @@ func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
 			topic := models.OutlineTopic{
 				ID:               t.ID,
 				Title:            t.Title,
-				Type:             t.Type,
+				ToolID:           t.ToolID,
 				EstimatedMinutes: t.EstimatedMinutes,
 				Description:      t.Description,
 				Prerequisites:    t.Prerequisites,

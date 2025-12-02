@@ -106,14 +106,14 @@ type OutlineModule struct {
 
 // OutlineTopic represents a topic within a module
 type OutlineTopic struct {
-	ID               string   `json:"id" firestore:"id"`
-	Title            string   `json:"title" firestore:"title"`
-	Type             string   `json:"type" firestore:"type"` // lesson, quiz, practice, review
-	EstimatedMinutes int      `json:"estimatedMinutes" firestore:"estimatedMinutes"`
-	Description      string   `json:"description" firestore:"description"`
-	Prerequisites    []string `json:"prerequisites" firestore:"prerequisites"`
-	Status           string   `json:"status" firestore:"status"` // pending, completed, skipped, needs_review
-	StepID           string   `json:"stepId,omitempty" firestore:"stepId,omitempty"` // Links to generated Step
+	ID               string            `json:"id" firestore:"id"`
+	Title            string            `json:"title" firestore:"title"`
+	ToolID           string            `json:"toolId" firestore:"toolId"` // lesson, quiz, practice, flashcard, inline-code-execution, pronunciation, etc.
+	EstimatedMinutes int               `json:"estimatedMinutes" firestore:"estimatedMinutes"`
+	Description      string            `json:"description" firestore:"description"`
+	Prerequisites    []string          `json:"prerequisites" firestore:"prerequisites"`
+	Status           string            `json:"status" firestore:"status"` // pending, completed, skipped, needs_review
+	StepID           string            `json:"stepId,omitempty" firestore:"stepId,omitempty"` // Links to generated Step
 	Performance      *TopicPerformance `json:"performance,omitempty" firestore:"performance,omitempty"`
 }
 

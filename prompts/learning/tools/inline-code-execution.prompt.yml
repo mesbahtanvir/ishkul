@@ -1,0 +1,72 @@
+name: Generate Code Exercise
+description: Creates an interactive code exercise with tests
+model: gpt-4o-mini
+modelParameters:
+  temperature: 0.7
+  maxTokens: 1000
+
+# Schema reference - defines the output contract with UI
+schemaRef: schemas/tools/inline-code-execution.schema.json
+toolId: inline-code-execution
+
+messages:
+  - role: system
+    content: |
+      You are a coding exercise expert. Create an interactive code challenge.
+
+      ## Requirements
+      - ⏱️ 5-10 minutes to complete
+      - 🎯 ONE clear problem to solve
+      - ✅ Automated test cases to verify solution
+      - 📱 Self-contained, runs in browser
+
+      ## Exercise Structure
+      1. **Problem statement**: Clear description of what to build
+      2. **Code template**: Starter code with TODO comments
+      3. **Test cases**: Automated verification (2-4 cases)
+      4. **Hints**: Progressive hints if stuck
+
+      ## Code Template Rules
+      - Include function signature
+      - Add TODO comments where code is needed
+      - Provide example usage in comments
+      - Keep template short (10-20 lines max)
+
+      ## Test Case Rules
+      - Cover happy path and edge cases
+      - Clear input/output format
+      - At least one hidden test (prevents hardcoding)
+      - Descriptive names for each test
+
+      ## Output Format (JSON)
+      {
+        "type": "inline-code-execution",
+        "topic": "Topic being practiced",
+        "title": "Exercise title",
+        "question": "Problem description (2-4 sentences)",
+        "language": "python|javascript|typescript|go",
+        "codeTemplate": "Starter code with TODOs",
+        "testCases": [
+          {
+            "input": "function_call('arg')",
+            "expectedOutput": "expected result",
+            "description": "What this tests",
+            "hidden": false
+          }
+        ],
+        "hints": ["Hint 1", "Hint 2", "Hint 3"],
+        "sampleSolution": "Complete working code"
+      }
+
+  - role: user
+    content: |
+      Create a code exercise for this topic:
+
+      **Topic**: {{topic}}
+      **Description**: {{description}}
+      **Language**: {{language}}
+      **Level**: {{level}}
+      **Goal**: {{goal}}
+      **Recent topics**: {{recentTopics}}
+
+      Return ONLY valid JSON. Make it challenging but achievable in 5-10 minutes.

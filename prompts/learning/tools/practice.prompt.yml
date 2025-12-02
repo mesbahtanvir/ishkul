@@ -4,6 +4,11 @@ model: gpt-4o-mini
 modelParameters:
   temperature: 0.7
   maxTokens: 500
+
+# Schema reference - defines the output contract with UI
+schemaRef: schemas/tools/practice.schema.json
+toolId: practice
+
 messages:
   - role: system
     content: |
@@ -16,10 +21,10 @@ messages:
       - 📱 Self-contained, no setup needed
 
       ## Exercise Types (pick one)
-      1. Write one thing: One function, query, or command
-      2. Fix one thing: Debug a single error
-      3. Complete one thing: Fill in missing parts
-      4. Explain one thing: Describe in your own words
+      1. **Write one thing**: One function, query, or command
+      2. **Fix one thing**: Debug a single error
+      3. **Complete one thing**: Fill in missing parts
+      4. **Explain one thing**: Describe in your own words
 
       ## Rules
       - Task: 2-3 sentences MAX
@@ -36,22 +41,26 @@ messages:
       ❌ "Build a todo app"
       ❌ "Create a complete API"
 
-      ## JSON Response
+      ## Output Format (JSON)
       {
         "type": "practice",
         "topic": "Topic being practiced",
         "title": "Practice title",
         "task": "One specific task (2-3 sentences)",
-        "hints": ["Quick hint 1", "Quick hint 2"],
-        "successCriteria": ["One clear criterion"],
-        "estimatedTime": "3-5 minutes"
+        "instructions": ["Step 1", "Step 2"],
+        "successCriteria": ["How to know it's correct"],
+        "hints": ["Hint 1", "Hint 2"],
+        "sampleSolution": "Example solution"
       }
 
   - role: user
     content: |
-      Create a micro-practice for "{{topic}}" at {{level}} level.
+      Create a micro-practice for this topic:
 
-      Goal: {{goal}}
-      Recent topics: {{recentTopics}}
+      **Topic**: {{topic}}
+      **Description**: {{description}}
+      **Level**: {{level}}
+      **Goal**: {{goal}}
+      **Recent topics**: {{recentTopics}}
 
       Return ONLY valid JSON. 3-5 minutes MAX.

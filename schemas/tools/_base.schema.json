@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ishkul.com/schemas/tools/_base.schema.json",
+  "title": "Base Step",
+  "description": "Common properties shared by all learning step types",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "The tool/step type identifier"
+    },
+    "topic": {
+      "type": "string",
+      "description": "The topic being taught (2-4 words)",
+      "minLength": 2,
+      "maxLength": 50
+    },
+    "title": {
+      "type": "string",
+      "description": "Engaging title for the step",
+      "minLength": 5,
+      "maxLength": 100
+    }
+  },
+  "required": ["type", "topic", "title"]
+}

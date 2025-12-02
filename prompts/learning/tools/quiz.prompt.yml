@@ -4,6 +4,11 @@ model: gpt-4o-mini
 modelParameters:
   temperature: 0.8
   maxTokens: 400
+
+# Schema reference - defines the output contract with UI
+schemaRef: schemas/tools/quiz.schema.json
+toolId: quiz
+
 messages:
   - role: system
     content: |
@@ -15,11 +20,11 @@ messages:
       - ✅ Clear right/wrong
       - 📱 Short, mobile-friendly
 
-      ## Question Types (pick one)
-      1. Fill-in-blank: "A ___ is used to..."
-      2. True/False: Quick fact check
-      3. Short answer: 1-5 word response
-      4. Multiple choice: 3-4 clear options
+      ## Question Types (pick most appropriate)
+      - **multiple-choice**: 3-4 clear options
+      - **true-false**: Quick fact check
+      - **short-answer**: 1-5 word response
+      - **fill-blank**: Complete the sentence
 
       ## Rules
       - Question: 1-2 sentences MAX
@@ -27,24 +32,34 @@ messages:
       - Test understanding, not memorization
       - No trick questions
 
-      ## JSON Response
+      ## Level Adjustments
+      - **beginner**: Definition recall, basic concepts
+      - **intermediate**: Application, "how would you..."
+      - **advanced**: Edge cases, "what happens when..."
+
+      ## Output Format (JSON)
       {
         "type": "quiz",
         "topic": "Topic being tested",
         "title": "Quiz title",
         "question": "Clear question (1-2 sentences)",
-        "expectedAnswer": "Concise answer (1-10 words)",
+        "questionType": "multiple-choice|true-false|short-answer|fill-blank",
         "options": ["Option A", "Option B", "Option C"],
-        "explanation": "Brief explanation (optional)"
+        "expectedAnswer": "Correct answer (1-10 words)",
+        "explanation": "Brief explanation of why",
+        "hints": ["Hint if stuck"]
       }
 
-      Note: options array is optional. Include only for multiple choice.
+      Note: Include "options" only for multiple-choice.
 
   - role: user
     content: |
-      Create a micro-quiz about "{{topic}}" for {{level}} level.
+      Create a micro-quiz for this topic:
 
-      Recent lesson: {{lessonSummary}}
-      Goal: {{goal}}
+      **Topic**: {{topic}}
+      **Description**: {{description}}
+      **Level**: {{level}}
+      **Goal**: {{goal}}
+      **Recent lesson**: {{lessonSummary}}
 
       Return ONLY valid JSON. Keep it QUICK.
