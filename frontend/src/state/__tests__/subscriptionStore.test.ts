@@ -10,7 +10,7 @@ jest.mock('../../services/api/client', () => ({
   },
 }));
 
-// Mock react-native Linking and Platform
+// Mock react-native Linking, Platform, and AppState
 jest.mock('react-native', () => ({
   Linking: {
     canOpenURL: jest.fn().mockResolvedValue(true),
@@ -18,6 +18,9 @@ jest.mock('react-native', () => ({
   },
   Platform: {
     OS: 'ios',
+  },
+  AppState: {
+    addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
   },
 }));
 
@@ -40,6 +43,7 @@ describe('subscriptionStore', () => {
       error: null,
       showUpgradeModal: false,
       upgradeModalReason: null,
+      checkoutInProgress: false,
     });
     jest.clearAllMocks();
   });
@@ -56,6 +60,7 @@ describe('subscriptionStore', () => {
       expect(state.loading).toBe(false);
       expect(state.error).toBeNull();
       expect(state.showUpgradeModal).toBe(false);
+      expect(state.checkoutInProgress).toBe(false);
     });
   });
 
@@ -139,7 +144,33 @@ describe('subscriptionStore', () => {
       });
     });
 
-    it('should handle checkout error', async () => {
+    it('should set checkoutInProgress to true when starting checkout', async () => {
+      const mockResponse = {
+        checkoutUrl: 'https://checkout.stripe.com/session123',
+        sessionId: 'session123',
+      };
+
+      (apiClient.post as jest.Mock).mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve(mockResponse), 100))
+      );
+
+      const checkoutPromise = useSubscriptionStore
+        .getState()
+        .startCheckout('https://success.url', 'https://cancel.url');
+
+      // Check that checkoutInProgress is set during checkout
+      expect(useSubscriptionStore.getState().checkoutInProgress).toBe(true);
+
+      await act(async () => {
+        await checkoutPromise;
+      });
+
+      // checkoutInProgress should still be true after successful checkout
+      // (it's cleared by the visibility listener when user returns)
+      expect(useSubscriptionStore.getState().checkoutInProgress).toBe(true);
+    });
+
+    it('should handle checkout error and reset checkoutInProgress', async () => {
       (apiClient.post as jest.Mock).mockRejectedValue(new Error('Checkout failed'));
 
       let sessionId: string | null = null;
@@ -151,6 +182,7 @@ describe('subscriptionStore', () => {
 
       expect(sessionId).toBeNull();
       expect(useSubscriptionStore.getState().error).toBe('Checkout failed');
+      expect(useSubscriptionStore.getState().checkoutInProgress).toBe(false);
     });
   });
 
@@ -221,6 +253,7 @@ describe('subscriptionStore', () => {
         paidUntil: new Date(),
         error: 'Some error',
         showUpgradeModal: true,
+        checkoutInProgress: true,
       });
 
       act(() => {
@@ -233,6 +266,46 @@ describe('subscriptionStore', () => {
       expect(state.paidUntil).toBeNull();
       expect(state.error).toBeNull();
       expect(state.showUpgradeModal).toBe(false);
+      expect(state.checkoutInProgress).toBe(false);
+    });
+  });
+
+  describe('checkoutInProgress state', () => {
+    it('should be able to set checkoutInProgress directly', () => {
+      useSubscriptionStore.setState({ checkoutInProgress: true });
+      expect(useSubscriptionStore.getState().checkoutInProgress).toBe(true);
+
+      useSubscriptionStore.setState({ checkoutInProgress: false });
+      expect(useSubscriptionStore.getState().checkoutInProgress).toBe(false);
+    });
+
+    it('should persist checkoutInProgress through fetchStatus calls', async () => {
+      useSubscriptionStore.setState({ checkoutInProgress: true });
+
+      const mockResponse = {
+        tier: 'pro' as const,
+        status: 'active' as const,
+        paidUntil: '2025-12-31T00:00:00Z',
+        limits: {
+          dailySteps: { used: 50, limit: 1000 },
+          activePaths: { used: 3, limit: 5 },
+        },
+        canUpgrade: false,
+        canGenerateSteps: true,
+        canCreatePath: true,
+        dailyLimitResetAt: '2025-12-03T00:00:00Z',
+      };
+
+      (apiClient.get as jest.Mock).mockResolvedValue(mockResponse);
+
+      await act(async () => {
+        await useSubscriptionStore.getState().fetchStatus();
+      });
+
+      // fetchStatus should not clear checkoutInProgress
+      // (that's done by the visibility listener)
+      expect(useSubscriptionStore.getState().tier).toBe('pro');
+      expect(useSubscriptionStore.getState().checkoutInProgress).toBe(true);
     });
   });
 });

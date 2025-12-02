@@ -27,6 +27,7 @@ const defaultStoreState = {
   error: null,
   showUpgradeModal: true,
   upgradeModalReason: null,
+  checkoutInProgress: false,
   fetchStatus: jest.fn(),
   startCheckout: mockStartCheckout,
   openPortal: jest.fn(),

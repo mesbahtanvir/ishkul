@@ -38,6 +38,7 @@ const defaultStoreState = {
   error: null,
   showUpgradeModal: false,
   upgradeModalReason: null,
+  checkoutInProgress: false,
   fetchStatus: mockFetchStatus,
   startCheckout: mockStartCheckout,
   openPortal: mockOpenPortal,
