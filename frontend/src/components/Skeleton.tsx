@@ -4,16 +4,16 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ViewStyle, Animated } from 'react-native';
+import { View, StyleSheet, ViewStyle, Animated, DimensionValue } from 'react-native';
 import { useShimmer } from '../utils/animations';
 import { useTheme } from '../hooks/useTheme';
 import { Spacing } from '../theme/spacing';
 
 interface SkeletonProps {
   /** Width of the skeleton (number for pixels, string for percentage) */
-  width?: number | string;
+  width?: DimensionValue;
   /** Height of the skeleton (number for pixels, string for percentage) */
-  height?: number | string;
+  height?: DimensionValue;
   /** Border radius (default: md) */
   borderRadius?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full' | number;
   /** Additional styles */

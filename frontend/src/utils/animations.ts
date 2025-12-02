@@ -111,13 +111,13 @@ export const useFloat = (distance: number = 8, duration: number = 2000): Animate
         Animated.timing(floatValue, {
           toValue: -distance,
           duration: duration / 2,
-          easing: Easing.inOut(Easing.sine),
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(floatValue, {
           toValue: 0,
           duration: duration / 2,
-          easing: Easing.inOut(Easing.sine),
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
       ])

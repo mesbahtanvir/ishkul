@@ -21,8 +21,9 @@ import { getPathNextStep, getLearningPath } from '../services/memory';
 import { ApiError, ErrorCodes } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
-import { Step, StepType } from '../types/app';
+import { Step } from '../types/app';
 import { useScreenTracking, useAITracking } from '../services/analytics';
+import type { StepType as AnalyticsStepType } from '../services/analytics/events';
 
 type GeneratingStepScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -66,14 +67,17 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
       // Fetch the next step
       const { step: newStep } = await getPathNextStep(pathId);
 
-      // Track successful AI response
-      await completeRequest(
-        requestId,
-        pathId,
-        newStep.type as StepType,
-        newStep.topic,
-        'gemini-2.0-flash'
-      );
+      // Track successful AI response (only for analytics-supported step types)
+      const analyticsStepType = newStep.type as AnalyticsStepType;
+      if (['lesson', 'quiz', 'practice', 'review', 'summary'].includes(newStep.type)) {
+        await completeRequest(
+          requestId,
+          pathId,
+          analyticsStepType,
+          newStep.topic,
+          'gemini-2.0-flash'
+        );
+      }
 
       // Add step to local state
       addStep(pathId, newStep);
