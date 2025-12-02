@@ -41,9 +41,10 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ onDismiss, onUpgrade
       }
     } else {
       // Web: Use Stripe Checkout redirect
+      // Include {CHECKOUT_SESSION_ID} placeholder - Stripe replaces it with the actual session ID
       const baseUrl = window.location.origin;
       const sessionId = await startCheckout(
-        `${baseUrl}/subscription/success`,
+        `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
         `${baseUrl}/subscription/cancel`
       );
       if (sessionId) {

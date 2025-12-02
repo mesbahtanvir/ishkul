@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp, useRoute } from '@react-navigation/native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { useSubscriptionStore } from '../state/subscriptionStore';
@@ -14,6 +15,8 @@ type SubscriptionSuccessScreenNavigationProp = NativeStackNavigationProp<
   'SubscriptionSuccess'
 >;
 
+type SubscriptionSuccessScreenRouteProp = RouteProp<RootStackParamList, 'SubscriptionSuccess'>;
+
 interface SubscriptionSuccessScreenProps {
   navigation: SubscriptionSuccessScreenNavigationProp;
 }
@@ -22,7 +25,8 @@ export const SubscriptionSuccessScreen: React.FC<SubscriptionSuccessScreenProps>
   navigation,
 }) => {
   const { colors } = useTheme();
-  const { fetchStatus } = useSubscriptionStore();
+  const route = useRoute<SubscriptionSuccessScreenRouteProp>();
+  const { verifyCheckout, fetchStatus } = useSubscriptionStore();
 
   // Animation values
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -30,11 +34,21 @@ export const SubscriptionSuccessScreen: React.FC<SubscriptionSuccessScreenProps>
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Refresh subscription status
-    fetchStatus();
-
     // Mark checkout as complete
     useSubscriptionStore.setState({ checkoutInProgress: false });
+
+    // Get session ID from route params (set by Stripe redirect)
+    const sessionId = route.params?.session_id;
+
+    if (sessionId) {
+      // Verify the checkout session with Stripe (industry-standard approach)
+      // This synchronously updates the subscription status without waiting for webhooks
+      verifyCheckout(sessionId);
+    } else {
+      // Fallback: If no session ID, just fetch the current status
+      // This handles native checkout or direct navigation to this screen
+      fetchStatus();
+    }
 
     // Run animations
     Animated.sequence([
@@ -60,7 +74,7 @@ export const SubscriptionSuccessScreen: React.FC<SubscriptionSuccessScreenProps>
       delay: 300,
       useNativeDriver: true,
     }).start();
-  }, [fetchStatus, scaleAnim, checkmarkAnim, opacityAnim]);
+  }, [route.params?.session_id, verifyCheckout, fetchStatus, scaleAnim, checkmarkAnim, opacityAnim]);
 
   const handleContinue = () => {
     // Navigate back to main app

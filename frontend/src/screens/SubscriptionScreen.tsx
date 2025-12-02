@@ -46,7 +46,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
       }
     } else {
       // Web: Use Stripe Checkout redirect
-      const successUrl = `${window.location.origin}/subscription/success`;
+      // Include {CHECKOUT_SESSION_ID} placeholder - Stripe replaces it with the actual session ID
+      const successUrl = `${window.location.origin}/subscription/success?session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${window.location.origin}/subscription/cancel`;
       await startCheckout(successUrl, cancelUrl);
     }

@@ -9,6 +9,7 @@ import {
   SubscriptionStatus,
   CheckoutSessionResponse,
   PortalSessionResponse,
+  VerifyCheckoutResponse,
 } from '../types/app';
 
 interface SubscriptionState {
@@ -35,6 +36,7 @@ interface SubscriptionState {
   fetchStatus: () => Promise<void>;
   startCheckout: (successUrl: string, cancelUrl: string) => Promise<string | null>;
   startNativeCheckout: () => Promise<{ success: boolean; error?: string }>;
+  verifyCheckout: (sessionId: string) => Promise<{ success: boolean; tier: TierType; error?: string }>;
   openPortal: (returnUrl?: string) => Promise<string | null>;
   showUpgradePrompt: (reason: 'path_limit' | 'step_limit' | 'general') => void;
   hideUpgradePrompt: () => void;
@@ -148,6 +150,39 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     }
   },
 
+  verifyCheckout: async (sessionId: string) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await apiClient.post<VerifyCheckoutResponse>('/subscription/verify', {
+        sessionId,
+      });
+
+      if (response.success) {
+        // Verification successful - update local state and fetch full status
+        set({ tier: response.tier, checkoutInProgress: false });
+        await get().fetchStatus();
+        set({ loading: false });
+        return { success: true, tier: response.tier };
+      } else {
+        set({
+          loading: false,
+          checkoutInProgress: false,
+          error: response.message || 'Verification failed',
+        });
+        return { success: false, tier: response.tier, error: response.message };
+      }
+    } catch (error) {
+      console.error('Failed to verify checkout session:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Verification failed';
+      set({
+        loading: false,
+        checkoutInProgress: false,
+        error: errorMessage,
+      });
+      return { success: false, tier: 'free', error: errorMessage };
+    }
+  },
+
   openPortal: async (returnUrl?: string) => {
     set({ loading: true, error: null });
     try {
@@ -206,13 +241,15 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 }));
 
 // Set up app state change listener to refresh subscription after checkout
-// This handles the case where user returns from Stripe checkout
+// This handles the case where user returns from Stripe checkout (fallback for mobile)
 let appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null;
 let visibilityHandler: (() => void) | null = null;
 
 const setupVisibilityListener = () => {
   if (Platform.OS === 'web') {
     // Web: Use document visibility API
+    // Note: The primary verification happens via session ID on the success page
+    // This is a fallback for edge cases
     if (typeof document !== 'undefined' && !visibilityHandler) {
       visibilityHandler = () => {
         if (document.visibilityState === 'visible') {
