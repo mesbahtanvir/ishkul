@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Learning AI",
-    "slug": "learning-ai",
+    "name": "Learn Anything",
+    "slug": "learn-anything",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "scheme": "learningai",
+    "scheme": "learnanything",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

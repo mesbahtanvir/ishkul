@@ -15,6 +15,7 @@ import { learningPathsApi } from '../services/api';
 import { RootStackParamList } from '../types/navigation';
 
 // Screens
+import { LandingScreen } from '../screens/LandingScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { GoalSelectionScreen } from '../screens/GoalSelectionScreen';
 import { LevelSelectionScreen } from '../screens/LevelSelectionScreen';
@@ -125,7 +126,12 @@ const RootNavigator = () => {
       }}
     >
       {!user ? (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <>
+          <Stack.Screen name="Landing" component={LandingScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
+          <Stack.Screen name="LevelSelection" component={LevelSelectionScreen} />
+        </>
       ) : (
         <Stack.Screen name="Main" component={MainTabs} />
       )}
