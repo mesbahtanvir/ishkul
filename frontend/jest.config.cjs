@@ -7,6 +7,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^expo$': '<rootDir>/__mocks__/expo.js',
+    '^@stripe/stripe-react-native$': '<rootDir>/__mocks__/@stripe/stripe-react-native.js',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
   collectCoverageFrom: [
