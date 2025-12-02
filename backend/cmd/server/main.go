@@ -18,10 +18,20 @@ import (
 )
 
 func main() {
-	// Load .env file for local development (ignored in production)
-	// godotenv returns an error if file doesn't exist, which is fine -
-	// Cloud Run uses environment variables directly
-	_ = godotenv.Load()
+	// Load .env file only in development mode
+	// In production (Cloud Run), ENVIRONMENT is set to "production"
+	// and we use Cloud Run's native environment variables
+	if os.Getenv("ENVIRONMENT") == "" || os.Getenv("ENVIRONMENT") == "development" {
+		// Load .env file for local development
+		// godotenv returns an error if file doesn't exist, which is fine -
+		// if it doesn't exist, we'll use system environment variables
+		_ = godotenv.Load()
+
+		// Ensure ENVIRONMENT is set to development if not already set
+		if os.Getenv("ENVIRONMENT") == "" {
+			os.Setenv("ENVIRONMENT", "development")
+		}
+	}
 
 	// Initialize structured logger
 	appLogger := logger.New()
@@ -29,9 +39,10 @@ func main() {
 	ctx := context.Background()
 
 	// Log application startup
+	environment := os.Getenv("ENVIRONMENT")
 	logger.Info(appLogger, ctx, "application_startup",
 		slog.String("version", os.Getenv("APP_VERSION")),
-		slog.String("environment", os.Getenv("ENVIRONMENT")),
+		slog.String("environment", environment),
 	)
 
 	// Initialize Firebase
