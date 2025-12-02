@@ -18,11 +18,11 @@ type LearningPath struct {
 	Goal             string  `json:"goal" firestore:"goal"`
 	Level            string  `json:"level" firestore:"level"`
 	Emoji            string  `json:"emoji" firestore:"emoji"`
-	Status           string  `json:"status" firestore:"status"`                       // active, completed, archived, deleted
-	Progress         int     `json:"progress" firestore:"progress"`                   // 0-100
-	LessonsCompleted int     `json:"lessonsCompleted" firestore:"lessonsCompleted"`   // Number of completed steps
-	TotalLessons     int     `json:"totalLessons" firestore:"totalLessons"`           // Estimated total steps in path
-	Steps            []Step  `json:"steps" firestore:"steps"`                         // All steps (completed and current)
+	Status           string  `json:"status" firestore:"status"`                     // active, completed, archived, deleted
+	Progress         int     `json:"progress" firestore:"progress"`                 // 0-100
+	LessonsCompleted int     `json:"lessonsCompleted" firestore:"lessonsCompleted"` // Number of completed steps
+	TotalLessons     int     `json:"totalLessons" firestore:"totalLessons"`         // Estimated total steps in path
+	Steps            []Step  `json:"steps" firestore:"steps"`                       // All steps (completed and current)
 	Memory           *Memory `json:"memory" firestore:"memory"`
 	CreatedAt        int64   `json:"createdAt" firestore:"createdAt"`
 	UpdatedAt        int64   `json:"updatedAt" firestore:"updatedAt"`

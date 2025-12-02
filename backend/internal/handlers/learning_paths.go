@@ -27,8 +27,8 @@ const MaxLearningPathsPerUser = 5
 
 // Global cache and pre-generation service
 var (
-	stepCache           *cache.StepCache
-	pregenerateService  *services.PregenerateService
+	stepCache          *cache.StepCache
+	pregenerateService *services.PregenerateService
 )
 
 // Global logger instance - initialized in llm.go
@@ -194,7 +194,7 @@ func normalizeLearningPath(path *models.LearningPath) {
 // listLearningPaths returns learning paths for the authenticated user
 // Query params:
 //   - status: filter by status (active, completed, archived). Default shows active + completed.
-//             Deleted paths are never shown.
+//     Deleted paths are never shown.
 func listLearningPaths(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
