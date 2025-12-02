@@ -13,7 +13,9 @@ export type RootStackParamList = {
   // Legacy: Old session screen (redirect to LearningPath)
   LearningSession: { pathId: string };
   NextStep: undefined; // Legacy - keep for backward compatibility
-  // Step screens - now accept Step instead of NextStep
+  // Generic step screen - uses tool registry to render any step type
+  Step: { step: Step; pathId: string };
+  // Legacy step screens - kept for backward compatibility
   Lesson: { step: Step; pathId: string };
   Quiz: { step: Step; pathId: string };
   Practice: { step: Step; pathId: string };

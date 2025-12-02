@@ -136,19 +136,8 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   };
 
   const handleStartStep = (step: Step) => {
-    switch (step.type) {
-      case 'lesson':
-      case 'review':
-      case 'summary':
-        navigation.navigate('Lesson', { step, pathId });
-        break;
-      case 'quiz':
-        navigation.navigate('Quiz', { step, pathId });
-        break;
-      case 'practice':
-        navigation.navigate('Practice', { step, pathId });
-        break;
-    }
+    // Use generic StepScreen which uses tool registry for dynamic rendering
+    navigation.navigate('Step', { step, pathId });
   };
 
   const handleBack = () => {
