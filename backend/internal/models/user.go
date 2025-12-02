@@ -18,9 +18,9 @@ type User struct {
 	PermanentlyDeletedAt *time.Time `json:"permanentlyDeletedAt,omitempty" firestore:"permanentlyDeletedAt,omitempty"` // Hard delete timestamp
 
 	// Stripe integration fields
-	StripeCustomerID     string `json:"-" firestore:"stripeCustomerId,omitempty"`                                  // Stripe customer ID (not exposed to client)
-	StripeSubscriptionID string `json:"-" firestore:"stripeSubscriptionId,omitempty"`                              // Stripe subscription ID (not exposed to client)
-	SubscriptionStatus   string `json:"subscriptionStatus,omitempty" firestore:"subscriptionStatus,omitempty"`     // active, canceled, past_due, trialing
+	StripeCustomerID     string `json:"-" firestore:"stripeCustomerId,omitempty"`                              // Stripe customer ID (not exposed to client)
+	StripeSubscriptionID string `json:"-" firestore:"stripeSubscriptionId,omitempty"`                          // Stripe subscription ID (not exposed to client)
+	SubscriptionStatus   string `json:"subscriptionStatus,omitempty" firestore:"subscriptionStatus,omitempty"` // active, canceled, past_due, trialing
 }
 
 // UserDocument represents the full user document including learning data

@@ -900,13 +900,13 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":            fmt.Sprintf("Daily step limit reached (%d/%d).%s", stepsUsed, stepLimit, upgradeHint),
-			"code":             "DAILY_STEP_LIMIT_REACHED",
-			"canUpgrade":       userTier == models.TierFree,
-			"currentTier":      userTier,
-			"limits":           limits,
+			"error":             fmt.Sprintf("Daily step limit reached (%d/%d).%s", stepsUsed, stepLimit, upgradeHint),
+			"code":              "DAILY_STEP_LIMIT_REACHED",
+			"canUpgrade":        userTier == models.TierFree,
+			"currentTier":       userTier,
+			"limits":            limits,
 			"dailyLimitResetAt": resetTime,
-			"existingSteps":    path.Steps, // Allow viewing existing steps
+			"existingSteps":     path.Steps, // Allow viewing existing steps
 		})
 		return
 	}

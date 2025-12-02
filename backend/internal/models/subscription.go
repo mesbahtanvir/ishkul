@@ -32,14 +32,14 @@ type UsageLimit struct {
 
 // SubscriptionStatus represents the full subscription status response
 type SubscriptionStatus struct {
-	Tier               string      `json:"tier"`
-	Status             string      `json:"status,omitempty"`             // active, canceled, past_due, trialing
-	PaidUntil          *time.Time  `json:"paidUntil,omitempty"`
-	Limits             UsageLimits `json:"limits"`
-	CanUpgrade         bool        `json:"canUpgrade"`
-	CanGenerateSteps   bool        `json:"canGenerateSteps"`   // false if daily limit reached
-	CanCreatePath      bool        `json:"canCreatePath"`      // false if path limit reached
-	DailyLimitResetAt  *time.Time  `json:"dailyLimitResetAt,omitempty"` // When the daily limit resets (midnight UTC)
+	Tier              string      `json:"tier"`
+	Status            string      `json:"status,omitempty"` // active, canceled, past_due, trialing
+	PaidUntil         *time.Time  `json:"paidUntil,omitempty"`
+	Limits            UsageLimits `json:"limits"`
+	CanUpgrade        bool        `json:"canUpgrade"`
+	CanGenerateSteps  bool        `json:"canGenerateSteps"`            // false if daily limit reached
+	CanCreatePath     bool        `json:"canCreatePath"`               // false if path limit reached
+	DailyLimitResetAt *time.Time  `json:"dailyLimitResetAt,omitempty"` // When the daily limit resets (midnight UTC)
 }
 
 // CheckoutSessionRequest represents a request to create a Stripe checkout session
