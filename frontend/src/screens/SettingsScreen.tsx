@@ -99,13 +99,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
 
       if (mode === 'soft') {
         Alert.alert(
-          'Account Deleted',
-          'Your account has been marked for deletion. You have 30 days to recover it before permanent deletion.'
+          'Account Deactivated',
+          'Your account has been deactivated. You can sign back in anytime within 30 days to reactivate it.'
         );
       } else {
         Alert.alert(
-          'Account Permanently Deleted',
-          'Your account and all associated data have been permanently deleted.'
+          'Account Deleted',
+          'Your account and all learning progress have been permanently deleted.'
         );
       }
 
@@ -275,20 +275,20 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
       <ConfirmDialog
         visible={showDeleteDialog}
         title="Delete Account"
-        message="Choose how you want to delete your account:\n\nSoft Delete: Your account will be marked for deletion. You can recover it within 30 days.\n\nHard Delete: Your account and all data will be permanently deleted immediately."
-        confirmText="Soft Delete (30-day recovery)"
-        cancelText="Hard Delete (permanent)"
+        message="How would you like to delete your account?\n\nDeactivate (Recoverable): Your account will be deactivated. You can recover it within 30 days by signing back in.\n\nPermanently Delete: Your account and all data will be permanently deleted immediately."
+        confirmText="Deactivate (30-day recovery)"
+        cancelText="Permanently Delete"
         onConfirm={() => handleConfirmDelete('soft')}
         onCancel={() => handleConfirmDelete('hard')}
         loading={loading}
       />
 
-      {/* Hard Delete Confirmation Dialog */}
+      {/* Permanent Deletion Confirmation Dialog */}
       <ConfirmDialog
         visible={showDeleteConfirmDialog}
-        title="Permanent Deletion"
-        message="This will permanently delete your account and all associated data. This action cannot be undone."
-        confirmText="Delete Permanently"
+        title="Permanently Delete Account"
+        message="This will immediately and permanently delete your account and all your learning progress. This action cannot be undone. Are you sure?"
+        confirmText="Yes, Delete Everything"
         cancelText="Cancel"
         onConfirm={() => performDelete('hard')}
         onCancel={cancelDelete}
