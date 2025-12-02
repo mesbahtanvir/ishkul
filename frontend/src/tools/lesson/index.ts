@@ -4,7 +4,7 @@
  * Micro-lesson that teaches ONE concept in 2-3 minutes.
  */
 
-import { LearningTool } from '../types';
+import { LearningTool, JSONSchema } from '../types';
 import { LessonRenderer } from './LessonRenderer';
 import { LessonData, isLessonData } from './types';
 import lessonSchema from '../schemas/lesson.schema.json';
@@ -20,7 +20,7 @@ export const LessonTool: LearningTool<LessonData> = {
     targetMinutes: 3,
   },
 
-  schema: lessonSchema,
+  schema: lessonSchema as JSONSchema,
 
   Renderer: LessonRenderer,
 

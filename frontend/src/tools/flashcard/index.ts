@@ -4,7 +4,7 @@
  * Quick recall card with spaced repetition confidence rating.
  */
 
-import { LearningTool } from '../types';
+import { LearningTool, JSONSchema } from '../types';
 import { FlashcardRenderer } from './FlashcardRenderer';
 import { FlashcardData, isFlashcardData } from './types';
 import flashcardSchema from '../schemas/flashcard.schema.json';
@@ -20,7 +20,7 @@ export const FlashcardTool: LearningTool<FlashcardData> = {
     targetMinutes: 1,
   },
 
-  schema: flashcardSchema,
+  schema: flashcardSchema as JSONSchema,
 
   Renderer: FlashcardRenderer,
 

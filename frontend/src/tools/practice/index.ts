@@ -4,7 +4,7 @@
  * Small, focused exercise completable in 3-5 minutes.
  */
 
-import { LearningTool } from '../types';
+import { LearningTool, JSONSchema } from '../types';
 import { PracticeRenderer } from './PracticeRenderer';
 import { PracticeData, isPracticeData } from './types';
 import practiceSchema from '../schemas/practice.schema.json';
@@ -20,7 +20,7 @@ export const PracticeTool: LearningTool<PracticeData> = {
     targetMinutes: 5,
   },
 
-  schema: practiceSchema,
+  schema: practiceSchema as JSONSchema,
 
   Renderer: PracticeRenderer,
 

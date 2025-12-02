@@ -7,8 +7,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Card } from '../components/Card';
 import { getTool } from '../tools';
@@ -21,25 +20,16 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
-import { Step } from '../types/app';
 
-type StepScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'Lesson'
->;
-type StepScreenRouteProp = RouteProp<RootStackParamList, 'Lesson'>;
-
-interface StepScreenProps {
-  navigation: StepScreenNavigationProp;
-  route: StepScreenRouteProp;
-}
+type StepScreenProps = NativeStackScreenProps<RootStackParamList, 'Step'>;
 
 /**
  * Get badge color from theme based on tool metadata
  */
 function getBadgeColorFromTheme(
   badgeColorKey: string,
-  colors: Record<string, unknown>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  colors: any
 ): string {
   // Parse 'badge.lesson' -> colors.badge.lesson
   const parts = badgeColorKey.split('.');

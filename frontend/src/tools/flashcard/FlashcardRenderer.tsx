@@ -79,7 +79,7 @@ export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
             styles.card,
             styles.cardFront,
             frontAnimatedStyle,
-            { backgroundColor: colors.card.background },
+            { backgroundColor: colors.card.default },
           ]}
         >
           <Text style={[styles.cardLabel, { color: colors.text.secondary }]}>
@@ -186,7 +186,6 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     height: 250,
-    perspective: 1000,
   },
   card: {
     position: 'absolute',

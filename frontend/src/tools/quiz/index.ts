@@ -4,7 +4,7 @@
  * Quick comprehension check with ONE question (30-60 seconds).
  */
 
-import { LearningTool } from '../types';
+import { LearningTool, JSONSchema } from '../types';
 import { QuizRenderer } from './QuizRenderer';
 import { QuizData, isQuizData } from './types';
 import quizSchema from '../schemas/quiz.schema.json';
@@ -20,7 +20,7 @@ export const QuizTool: LearningTool<QuizData> = {
     targetMinutes: 1,
   },
 
-  schema: quizSchema,
+  schema: quizSchema as JSONSchema,
 
   Renderer: QuizRenderer,
 
