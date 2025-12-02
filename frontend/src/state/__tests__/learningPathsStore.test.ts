@@ -11,7 +11,6 @@ import { LearningPath, Step } from '../../types/app';
 // Helper to create mock learning path
 const createMockPath = (overrides: Partial<LearningPath> = {}): LearningPath => ({
   id: `path_${Date.now()}`,
-  userId: 'user-1',
   goal: 'Learn TypeScript',
   level: 'beginner',
   emoji: '💙',
