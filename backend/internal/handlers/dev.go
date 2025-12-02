@@ -52,8 +52,7 @@ func DevGetTestToken(w http.ResponseWriter, r *http.Request) {
 		"warning":      "This is a development-only endpoint and should never be used in production",
 	}); err != nil {
 		if appLogger != nil {
-			logger.Error(appLogger, r.Context(), "dev_token_encode_failed",
-			)
+			logger.Error(appLogger, r.Context(), "dev_token_encode_failed")
 		}
 	}
 }
