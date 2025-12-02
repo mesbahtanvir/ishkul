@@ -23,7 +23,12 @@ func main() {
 	defer firebase.Cleanup()
 
 	// Initialize LLM components (OpenAI + prompt loader)
-	if err := handlers.InitializeLLM("prompts"); err != nil {
+	// Use absolute path /app/prompts for Cloud Run, fallback to ./prompts for local dev
+	promptsDir := "/app/prompts"
+	if _, err := os.Stat(promptsDir); os.IsNotExist(err) {
+		promptsDir = "prompts"
+	}
+	if err := handlers.InitializeLLM(promptsDir); err != nil {
 		log.Printf("Warning: Failed to initialize LLM: %v", err)
 		log.Println("LLM endpoints will not be available")
 	}
