@@ -64,7 +64,7 @@ func (r *Renderer) RenderToRequest(template *PromptTemplate, vars Variables) (*o
 }
 
 // RenderToRequestWithTier creates a complete OpenAI request from a template with tier-aware model selection
-// If tier is "pro", uses gpt-4o for premium experience; otherwise uses the template's default model
+// Pro users get upgraded to gpt-5-pro for premium experience; free users use gpt-4o-mini
 func (r *Renderer) RenderToRequestWithTier(template *PromptTemplate, vars Variables, tier string) (*openai.ChatCompletionRequest, error) {
 	messages, err := r.Render(template, vars)
 	if err != nil {
@@ -72,9 +72,9 @@ func (r *Renderer) RenderToRequestWithTier(template *PromptTemplate, vars Variab
 	}
 
 	model := template.Model
-	// Pro users get upgraded to gpt-4o for learning steps if template is using mini
+	// Pro users get upgraded to gpt-5-pro for learning steps if template is using mini
 	if tier == "pro" && template.Model == "gpt-4o-mini" {
-		model = "gpt-4o"
+		model = "gpt-5-pro-2025-10-06"
 	}
 
 	req := &openai.ChatCompletionRequest{

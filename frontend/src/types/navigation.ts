@@ -21,4 +21,6 @@ export type RootStackParamList = {
   StepDetail: { step: Step; pathId: string };
   Progress: undefined;
   Settings: undefined;
+  // Subscription management
+  Subscription: undefined;
 };

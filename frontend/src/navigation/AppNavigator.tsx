@@ -29,7 +29,9 @@ import { QuizScreen } from '../screens/QuizScreen';
 import { PracticeScreen } from '../screens/PracticeScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 import { LoadingScreen } from '../components/LoadingScreen';
+import { UpgradeModal } from '../components/UpgradeModal';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -55,6 +57,8 @@ const LearnStack = () => {
       <Stack.Screen name="Lesson" component={LessonScreen} />
       <Stack.Screen name="Quiz" component={QuizScreen} />
       <Stack.Screen name="Practice" component={PracticeScreen} />
+      {/* Subscription management */}
+      <Stack.Screen name="Subscription" component={SubscriptionScreen} />
     </Stack.Navigator>
   );
 };
@@ -225,6 +229,7 @@ export const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer>
       <RootNavigator />
+      <UpgradeModal />
     </NavigationContainer>
   );
 };

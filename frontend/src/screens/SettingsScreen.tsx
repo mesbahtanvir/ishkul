@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Switch, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useUserStore } from '../state/userStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { signOut } from '../services/auth';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeMode } from '../theme/colors';
@@ -21,6 +22,7 @@ interface SettingsScreenProps {
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
   const { user, clearUser } = useUserStore();
+  const { tier, fetchStatus } = useSubscriptionStore();
   const { colors, themeMode, setThemeMode } = useTheme();
   const [dailyReminder, setDailyReminder] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const { responsive, isSmallPhone } = useResponsive();
+
+  // Fetch subscription status on mount
+  useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus]);
+
+  const isPro = tier === 'pro';
 
   // Theme mode options
   const themeModes: { value: ThemeMode; label: string }[] = [
@@ -178,11 +187,36 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
             )}
           </View>
           <View style={styles.profileInfo}>
-            {user?.displayName && (
-              <Text style={[styles.profileName, { color: colors.text.primary }]}>{user.displayName}</Text>
-            )}
+            <View style={styles.nameRow}>
+              {user?.displayName && (
+                <Text style={[styles.profileName, { color: colors.text.primary }]}>{user.displayName}</Text>
+              )}
+              {isPro && (
+                <View style={[styles.proBadge, { backgroundColor: colors.primary }]}>
+                  <Text style={[styles.proBadgeText, { color: colors.white }]}>PRO</Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.profileEmail, { color: colors.text.secondary }]}>{user?.email || 'Not available'}</Text>
           </View>
+        </View>
+
+        {/* Subscription Section */}
+        <View style={[styles.section, isSmallPhone && styles.sectionSmall]}>
+          <Text style={[styles.sectionTitle, { color: colors.ios.gray }]}>Account</Text>
+          <TouchableOpacity
+            style={[styles.settingRowClickable, { backgroundColor: colors.card.default }]}
+            onPress={() => navigation.navigate('Subscription')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: colors.text.primary }]}>Subscription</Text>
+              <Text style={[styles.settingDescription, { color: colors.ios.gray }]}>
+                {isPro ? 'Pro Plan' : 'Free Plan'}
+              </Text>
+            </View>
+            <Text style={[styles.chevron, { color: colors.text.tertiary }]}>{'\u203A'}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Preferences Section */}
@@ -347,13 +381,39 @@ const styles = StyleSheet.create({
   profileInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
   profileName: {
     ...Typography.body.large,
     fontWeight: '600',
-    marginBottom: Spacing.xs,
+  },
+  proBadge: {
+    marginLeft: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Spacing.borderRadius.sm,
+  },
+  proBadgeText: {
+    ...Typography.label.small,
+    fontWeight: '700',
   },
   profileEmail: {
     ...Typography.body.medium,
+  },
+  settingRowClickable: {
+    padding: Spacing.md,
+    borderRadius: Spacing.borderRadius.md,
+    marginBottom: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  chevron: {
+    fontSize: 24,
+    fontWeight: '300',
   },
   section: {
     marginBottom: Spacing.xl,
