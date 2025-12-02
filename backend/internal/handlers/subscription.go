@@ -662,11 +662,13 @@ func VerifyCheckoutSession(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
+		if err := json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
 			Success: false,
 			Tier:    models.TierFree,
 			Message: "Failed to retrieve checkout session",
-		})
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -679,11 +681,13 @@ func VerifyCheckoutSession(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
+		if err := json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
 			Success: false,
 			Tier:    models.TierFree,
 			Message: "Session does not belong to this user",
-		})
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -696,11 +700,13 @@ func VerifyCheckoutSession(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
+		if err := json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
 			Success: false,
 			Tier:    models.TierFree,
 			Message: "Payment not completed",
-		})
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -742,11 +748,13 @@ func VerifyCheckoutSession(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
+		if err := json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
 			Success: false,
 			Tier:    models.TierFree,
 			Message: "Failed to update subscription status",
-		})
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -758,10 +766,12 @@ func VerifyCheckoutSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
+	if err := json.NewEncoder(w).Encode(models.VerifyCheckoutResponse{
 		Success: true,
 		Tier:    models.TierPro,
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
 }
 
 // HandleStripeWebhook processes Stripe webhook events
