@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -182,13 +182,18 @@ const MainTabs = () => {
 };
 
 // Root Navigator
-const RootNavigator = () => {
+const RootNavigator = ({ tokensInitialized }: { tokensInitialized: boolean }) => {
   const { user, loading } = useUserStore();
-  const hasTokens = tokenStorage.hasTokens();
 
-  if (loading) {
+  // Show loading screen while:
+  // 1. User store is loading (auth validation in progress)
+  // 2. Token storage hasn't been initialized yet (tokens not loaded from localStorage)
+  if (loading || !tokensInitialized) {
     return <LoadingScreen />;
   }
+
+  // Now it's safe to check hasTokens - tokens have been loaded from storage
+  const hasTokens = tokenStorage.hasTokens();
 
   // User is authenticated if they have both user state AND valid tokens
   // This prevents showing Landing page when tokens exist but user state is temporarily null
@@ -219,6 +224,8 @@ export const AppNavigator: React.FC = () => {
   const { _hasHydrated, setUser, setUserDocument, setLoading } = useUserStore();
   const { setPaths, setLoading: setPathsLoading } = useLearningPathsStore();
   const { fetchStatus } = useSubscriptionStore();
+  // Track whether tokenStorage has been initialized (tokens loaded from localStorage/AsyncStorage)
+  const [tokensInitialized, setTokensInitialized] = useState(false);
 
   // Handle subscription success/cancel URLs on web
   useEffect(() => {
@@ -251,8 +258,10 @@ export const AppNavigator: React.FC = () => {
     // Check auth state on app startup
     const checkAuth = async () => {
       try {
-        // Initialize token storage
+        // Initialize token storage (loads tokens from localStorage/AsyncStorage)
         await initializeAuth();
+        // Mark tokens as initialized so RootNavigator can safely check hasTokens()
+        setTokensInitialized(true);
 
         // If we have a hydrated user, validate with backend
         // Otherwise check if we have stored tokens
@@ -318,7 +327,7 @@ export const AppNavigator: React.FC = () => {
     <>
       <PastDueBanner />
       <NavigationContainer linking={linking}>
-        <RootNavigator />
+        <RootNavigator tokensInitialized={tokensInitialized} />
         <UpgradeModal />
       </NavigationContainer>
     </>
