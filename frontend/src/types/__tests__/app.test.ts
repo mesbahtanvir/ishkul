@@ -98,6 +98,7 @@ describe('PathStatus', () => {
       index: 0,
       type: 'lesson',
       topic: 'Variables',
+      title: 'Default Title',
       completed: false,
       completedAt: 0,
       createdAt: Date.now(),

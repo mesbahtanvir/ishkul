@@ -201,13 +201,15 @@ describe('Error handling patterns', () => {
   });
 
   it('should support checking error codes for learning path status', () => {
+    const pathStatusCodes: string[] = [
+      ErrorCodes.PATH_COMPLETED,
+      ErrorCodes.PATH_ARCHIVED,
+      ErrorCodes.PATH_DELETED,
+    ];
+
     const isPathStatusError = (error: unknown): boolean => {
       if (error instanceof ApiError) {
-        return [
-          ErrorCodes.PATH_COMPLETED,
-          ErrorCodes.PATH_ARCHIVED,
-          ErrorCodes.PATH_DELETED,
-        ].includes(error.code as ErrorCode);
+        return pathStatusCodes.includes(error.code);
       }
       return false;
     };
