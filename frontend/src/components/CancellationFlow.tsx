@@ -25,12 +25,10 @@ interface CancellationFlowProps {
   paidUntil: Date | null;
   onCancel: (reason: CancellationReason, feedback?: string) => Promise<void>;
   onKeep: () => void;
-  onPause?: () => void;
-  onAcceptOffer?: (offerType: 'discount' | 'pause') => Promise<void>;
   loading?: boolean;
 }
 
-type Step = 'reason' | 'offer' | 'confirm';
+type Step = 'reason' | 'confirm';
 
 const REASONS: { value: CancellationReason; label: string; icon: string }[] = [
   { value: 'too_expensive', label: 'Too expensive', icon: '💰' },
@@ -41,57 +39,11 @@ const REASONS: { value: CancellationReason; label: string; icon: string }[] = [
   { value: 'other', label: 'Other reason', icon: '💭' },
 ];
 
-const OFFERS: Record<CancellationReason, {
-  title: string;
-  description: string;
-  offerType: 'discount' | 'pause' | null;
-  buttonText: string;
-}> = {
-  too_expensive: {
-    title: 'How about 50% off?',
-    description: 'We\'d hate to see you go. Enjoy Pro for just $1/month for the next 2 months.',
-    offerType: 'discount',
-    buttonText: 'Accept $1/month offer',
-  },
-  not_using_enough: {
-    title: 'Take a break instead?',
-    description: 'Pause your subscription for up to 3 months. Your progress will be saved, and you can resume anytime.',
-    offerType: 'pause',
-    buttonText: 'Pause subscription',
-  },
-  missing_features: {
-    title: 'We\'re always improving',
-    description: 'What features would help you? We read every piece of feedback and prioritize based on user needs.',
-    offerType: null,
-    buttonText: '',
-  },
-  technical_issues: {
-    title: 'Let us help!',
-    description: 'We\'re sorry you\'re experiencing issues. Our team would love to help resolve them. Email us at support@ishkul.org',
-    offerType: null,
-    buttonText: '',
-  },
-  found_alternative: {
-    title: 'We\'d love your feedback',
-    description: 'What made the alternative a better fit? Your feedback helps us improve.',
-    offerType: null,
-    buttonText: '',
-  },
-  other: {
-    title: 'Before you go...',
-    description: 'Would you like to pause instead? Your progress stays safe.',
-    offerType: 'pause',
-    buttonText: 'Pause subscription',
-  },
-};
-
 export const CancellationFlow: React.FC<CancellationFlowProps> = ({
   visible,
   paidUntil,
   onCancel,
   onKeep,
-  onPause,
-  onAcceptOffer,
   loading = false,
 }) => {
   const { colors } = useTheme();
@@ -114,21 +66,7 @@ export const CancellationFlow: React.FC<CancellationFlowProps> = ({
 
   const handleContinue = () => {
     if (selectedReason) {
-      const offer = OFFERS[selectedReason];
-      if (offer.offerType && onAcceptOffer) {
-        setStep('offer');
-      } else {
-        setStep('confirm');
-      }
-    }
-  };
-
-  const handleAcceptOffer = async () => {
-    if (selectedReason && onAcceptOffer) {
-      const offer = OFFERS[selectedReason];
-      if (offer.offerType) {
-        await onAcceptOffer(offer.offerType);
-      }
+      setStep('confirm');
     }
   };
 
@@ -203,46 +141,6 @@ export const CancellationFlow: React.FC<CancellationFlowProps> = ({
     </>
   );
 
-  const renderOfferStep = () => {
-    if (!selectedReason) return null;
-    const offer = OFFERS[selectedReason];
-
-    return (
-      <>
-        <View style={[styles.offerIcon, { backgroundColor: colors.primary + '20' }]}>
-          <Text style={styles.offerIconText}>🎁</Text>
-        </View>
-
-        <Text style={[styles.title, { color: colors.text.primary }]}>
-          {offer.title}
-        </Text>
-        <Text style={[styles.offerDescription, { color: colors.text.secondary }]}>
-          {offer.description}
-        </Text>
-
-        <View style={styles.buttonRow}>
-          {offer.offerType && (
-            <Button
-              title={offer.buttonText}
-              onPress={handleAcceptOffer}
-              loading={loading}
-              style={styles.button}
-            />
-          )}
-          <TouchableOpacity
-            onPress={() => setStep('confirm')}
-            style={styles.skipButton}
-            disabled={loading}
-          >
-            <Text style={[styles.skipText, { color: colors.text.tertiary }]}>
-              No thanks, cancel anyway
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </>
-    );
-  };
-
   const renderConfirmStep = () => (
     <>
       <View style={[styles.warningIcon, { backgroundColor: colors.ios.orange + '20' }]}>
@@ -315,7 +213,6 @@ export const CancellationFlow: React.FC<CancellationFlowProps> = ({
             contentContainerStyle={styles.scrollContent}
           >
             {step === 'reason' && renderReasonStep()}
-            {step === 'offer' && renderOfferStep()}
             {step === 'confirm' && renderConfirmStep()}
           </ScrollView>
         </View>
@@ -397,30 +294,6 @@ const styles = StyleSheet.create({
   keepText: {
     ...Typography.body.medium,
     fontWeight: '600',
-  },
-  offerIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: Spacing.md,
-  },
-  offerIconText: {
-    fontSize: 32,
-  },
-  offerDescription: {
-    ...Typography.body.medium,
-    textAlign: 'center',
-    marginBottom: Spacing.xl,
-    lineHeight: 22,
-  },
-  skipButton: {
-    paddingVertical: Spacing.sm,
-  },
-  skipText: {
-    ...Typography.body.small,
   },
   warningIcon: {
     width: 64,

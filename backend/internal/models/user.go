@@ -36,12 +36,9 @@ type User struct {
 	HasUsedTrial   bool       `json:"hasUsedTrial,omitempty" firestore:"hasUsedTrial,omitempty"`     // Whether user has used trial
 	TrialStartedAt *time.Time `json:"trialStartedAt,omitempty" firestore:"trialStartedAt,omitempty"` // When trial started
 
-	// Retention info
-	CancellationReason    string     `json:"cancellationReason,omitempty" firestore:"cancellationReason,omitempty"`       // Why user canceled
-	CancellationFeedback  string     `json:"-" firestore:"cancellationFeedback,omitempty"`                                // Additional feedback
-	RetentionOfferApplied bool       `json:"retentionOfferApplied,omitempty" firestore:"retentionOfferApplied,omitempty"` // Whether retention offer was applied
-	RetentionOfferType    string     `json:"retentionOfferType,omitempty" firestore:"retentionOfferType,omitempty"`       // discount, pause
-	RetentionOfferDate    *time.Time `json:"retentionOfferDate,omitempty" firestore:"retentionOfferDate,omitempty"`       // When offer was applied
+	// Cancellation info (for analytics)
+	CancellationReason   string `json:"cancellationReason,omitempty" firestore:"cancellationReason,omitempty"` // Why user canceled
+	CancellationFeedback string `json:"-" firestore:"cancellationFeedback,omitempty"`                          // Additional feedback
 }
 
 // UserDocument represents the full user document including learning data

@@ -85,42 +85,6 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
     }
   };
 
-  const handleAcceptOffer = async (offerType: 'discount' | 'pause') => {
-    setCanceling(true);
-    try {
-      if (offerType === 'discount') {
-        // Apply discount coupon via backend
-        await apiClient.post('/subscription/apply-retention-offer', { offerType: 'discount' });
-        await fetchStatus();
-        setShowCancellationFlow(false);
-        Alert.alert(
-          'Offer Applied!',
-          'You now have 50% off for the next 2 months. Thank you for staying with us!',
-          [{ text: 'Great!' }]
-        );
-      } else if (offerType === 'pause') {
-        // Pause subscription
-        await apiClient.post('/subscription/pause', { months: 1 });
-        await fetchStatus();
-        setShowCancellationFlow(false);
-        Alert.alert(
-          'Subscription Paused',
-          'Your subscription has been paused for 1 month. You can resume anytime.',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
-      }
-    } catch (error) {
-      console.error('Failed to apply offer:', error);
-      Alert.alert(
-        'Error',
-        'Failed to apply offer. Please try again or contact support.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setCanceling(false);
-    }
-  };
-
   const handleReactivate = async () => {
     // For reactivation, send to Stripe portal
     await openPortal();
@@ -249,7 +213,6 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
         paidUntil={paidUntil}
         onCancel={handleCancelConfirm}
         onKeep={() => setShowCancellationFlow(false)}
-        onAcceptOffer={handleAcceptOffer}
         loading={canceling}
       />
     </Container>
