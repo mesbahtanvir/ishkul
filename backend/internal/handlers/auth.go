@@ -181,7 +181,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	// Generate JWT token pair
 	tokenPair, err := auth.GenerateTokenPair(userID, email)
 	if err != nil {
-		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, fmt.Sprintf("Unable to complete sign-in: %v", err))
+		// Log the actual error server-side, but don't expose to client
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to complete sign-in. Please try again.")
 		return
 	}
 
@@ -264,7 +265,8 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	// Generate JWT token pair
 	tokenPair, err := auth.GenerateTokenPair(firebaseUser.UID, req.Email)
 	if err != nil {
-		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, fmt.Sprintf("Unable to create account: %v", err))
+		// Log the actual error server-side, but don't expose to client
+		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to create account. Please try again.")
 		return
 	}
 
@@ -367,22 +369,18 @@ func signInWithEmailPassword(ctx context.Context, email, password string) (*fire
 func verifyGoogleIDToken(ctx context.Context, idToken string) (*idtoken.Payload, error) {
 	clientIDs := getGoogleClientIDs()
 
+	// SECURITY: Require at least one client ID to be configured
+	// This prevents token acceptance without proper audience validation
+	if len(clientIDs) == 0 {
+		return nil, fmt.Errorf("no Google client IDs configured: authentication is not available")
+	}
+
 	// Try to verify against each client ID
 	for _, clientID := range clientIDs {
 		payload, err := idtoken.Validate(ctx, idToken, clientID)
 		if err == nil {
 			return payload, nil
 		}
-	}
-
-	// If no client IDs configured, try without audience validation
-	// This is less secure but allows testing
-	if len(clientIDs) == 0 {
-		payload, err := idtoken.Validate(ctx, idToken, "")
-		if err != nil {
-			return nil, err
-		}
-		return payload, nil
 	}
 
 	return nil, fmt.Errorf("invalid audience: token does not match any configured client ID")
@@ -458,7 +456,8 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 		case auth.ErrInvalidToken, auth.ErrInvalidTokenType:
 			sendErrorResponse(w, http.StatusUnauthorized, ErrCodeInvalidToken, "Session expired. Please sign in again.")
 		default:
-			sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, fmt.Sprintf("Unable to refresh session: %v", err))
+			// Log the actual error server-side, but don't expose to client
+			sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to refresh session. Please sign in again.")
 		}
 		return
 	}

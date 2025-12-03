@@ -7,7 +7,9 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -23,6 +25,66 @@ import (
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 )
+
+// allowedRedirectHosts contains the list of hosts that are allowed for Stripe redirect URLs
+// This prevents open redirect vulnerabilities where attackers could redirect users to phishing sites
+var allowedRedirectHosts = []string{
+	"ishkul.vercel.app",
+	"ishkul.org",
+	"www.ishkul.org",
+	"localhost",          // For local development
+	"127.0.0.1",          // For local development
+	"ishkul-org.web.app", // Firebase hosting
+}
+
+// isValidRedirectURL validates that a redirect URL is safe to use
+// It ensures the URL is well-formed, uses HTTPS (except for localhost), and belongs to an allowed host
+func isValidRedirectURL(rawURL string) bool {
+	if rawURL == "" {
+		return false
+	}
+
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+
+	// Must have a scheme
+	if u.Scheme == "" {
+		return false
+	}
+
+	// Allow http only for localhost/127.0.0.1, otherwise require https
+	host := strings.ToLower(u.Hostname())
+	if host == "localhost" || host == "127.0.0.1" {
+		if u.Scheme != "http" && u.Scheme != "https" {
+			return false
+		}
+	} else {
+		if u.Scheme != "https" {
+			return false
+		}
+	}
+
+	// Check against allowed hosts
+	for _, allowed := range allowedRedirectHosts {
+		if host == allowed {
+			return true
+		}
+	}
+
+	// Also check environment variable for additional allowed hosts
+	additionalHosts := os.Getenv("ALLOWED_REDIRECT_HOSTS")
+	if additionalHosts != "" {
+		for _, h := range strings.Split(additionalHosts, ",") {
+			if strings.TrimSpace(strings.ToLower(h)) == host {
+				return true
+			}
+		}
+	}
+
+	return false
+}
 
 // InitializeStripe sets up the Stripe client with the API key
 func InitializeStripe() error {
@@ -149,6 +211,16 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate redirect URLs to prevent open redirect attacks
+	if !isValidRedirectURL(req.SuccessURL) {
+		http.Error(w, "Invalid successUrl: must be HTTPS and from an allowed domain", http.StatusBadRequest)
+		return
+	}
+	if !isValidRedirectURL(req.CancelURL) {
+		http.Error(w, "Invalid cancelUrl: must be HTTPS and from an allowed domain", http.StatusBadRequest)
+		return
+	}
+
 	fs := firebase.GetFirestore()
 	if fs == nil {
 		http.Error(w, "Database not available", http.StatusInternalServerError)
@@ -209,7 +281,8 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 					slog.String("error", err.Error()),
 				)
 			}
-			http.Error(w, "Failed to create customer: "+err.Error(), http.StatusInternalServerError)
+			// Don't expose internal error details to client
+			http.Error(w, "Failed to create customer. Please try again.", http.StatusInternalServerError)
 			return
 		}
 		stripeCustomerID = c.ID
@@ -602,7 +675,12 @@ func CreatePortalSession(w http.ResponseWriter, r *http.Request) {
 		ReturnURL string `json:"returnUrl"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		// Allow empty body
+		// Allow empty body, use default
+		req.ReturnURL = ""
+	}
+
+	// Use default URL if not provided or invalid
+	if req.ReturnURL == "" || !isValidRedirectURL(req.ReturnURL) {
 		req.ReturnURL = os.Getenv("APP_URL")
 		if req.ReturnURL == "" {
 			req.ReturnURL = "https://ishkul.org"
