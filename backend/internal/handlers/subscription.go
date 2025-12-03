@@ -1277,4 +1277,3 @@ func GetUserTierAndLimits(ctx context.Context, userID string) (string, *models.U
 
 	return tier, limits, nil
 }
-
