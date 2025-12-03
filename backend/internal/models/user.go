@@ -21,6 +21,10 @@ type User struct {
 	StripeCustomerID     string `json:"-" firestore:"stripeCustomerId,omitempty"`                              // Stripe customer ID (not exposed to client)
 	StripeSubscriptionID string `json:"-" firestore:"stripeSubscriptionId,omitempty"`                          // Stripe subscription ID (not exposed to client)
 	SubscriptionStatus   string `json:"subscriptionStatus,omitempty" firestore:"subscriptionStatus,omitempty"` // active, canceled, past_due, trialing
+
+	// Trial info
+	TrialEndsAt  *time.Time `json:"trialEndsAt,omitempty" firestore:"trialEndsAt,omitempty"`   // When trial ends
+	HasUsedTrial bool       `json:"hasUsedTrial,omitempty" firestore:"hasUsedTrial,omitempty"` // Whether user has used trial
 }
 
 // UserDocument represents the full user document including learning data

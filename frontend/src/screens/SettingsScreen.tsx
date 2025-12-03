@@ -14,8 +14,47 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { useScreenTracking, useAnalytics } from '../services/analytics';
+import { SubscriptionStatusType } from '../types/app';
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
+
+// Helper functions for subscription display
+const getStatusLabel = (status: SubscriptionStatusType): string => {
+  switch (status) {
+    case 'active':
+      return 'Active';
+    case 'canceled':
+      return 'Canceling';
+    case 'past_due':
+      return 'Past Due';
+    case 'trialing':
+      return 'Trial';
+    default:
+      return '';
+  }
+};
+
+const getStatusColor = (status: SubscriptionStatusType, colors: ReturnType<typeof useTheme>['colors']): string => {
+  switch (status) {
+    case 'active':
+    case 'trialing':
+      return colors.ios.green;
+    case 'canceled':
+      return colors.ios.orange;
+    case 'past_due':
+      return colors.danger;
+    default:
+      return colors.text.secondary;
+  }
+};
+
+const formatSubscriptionDate = (date: Date | null): string => {
+  if (!date) return '';
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+};
 
 interface SettingsScreenProps {
   navigation: SettingsScreenNavigationProp;
@@ -25,7 +64,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   useScreenTracking('Settings', 'SettingsScreen');
   const { trackLogout, trackThemeChanged, trackDeleteAccountInitiated, getActiveTime } = useAnalytics();
   const { user, clearUser } = useUserStore();
-  const { tier, fetchStatus } = useSubscriptionStore();
+  const { tier, status, paidUntil, fetchStatus } = useSubscriptionStore();
   const { colors, themeMode, setThemeMode } = useTheme();
   const [dailyReminder, setDailyReminder] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -233,15 +272,25 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
         <View style={[styles.section, isSmallPhone && styles.sectionSmall]}>
           <Text style={[styles.sectionTitle, { color: colors.ios.gray }]}>Account</Text>
           <TouchableOpacity
-            style={[styles.settingRowClickable, { backgroundColor: colors.card.default }]}
+            style={[styles.settingRow, { backgroundColor: colors.card.default }]}
             onPress={() => navigation.navigate('Subscription')}
             activeOpacity={0.7}
           >
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: colors.text.primary }]}>Subscription</Text>
-              <Text style={[styles.settingDescription, { color: colors.ios.gray }]}>
-                {isPro ? 'Pro Plan' : 'Free Plan'}
+              <Text style={[styles.settingLabel, { color: colors.text.primary }]}>
+                {isPro ? 'Pro Subscription' : 'Free Plan'}
               </Text>
+              {isPro && (
+                <Text style={[styles.settingDescription, { color: getStatusColor(status, colors) }]}>
+                  {getStatusLabel(status)}
+                  {paidUntil && ` - ${status === 'canceled' ? 'until' : 'renews'} ${formatSubscriptionDate(paidUntil)}`}
+                </Text>
+              )}
+              {!isPro && (
+                <Text style={[styles.settingDescription, { color: colors.text.secondary }]}>
+                  Upgrade to Pro for more features
+                </Text>
+              )}
             </View>
             <Text style={[styles.chevron, { color: colors.text.tertiary }]}>{'\u203A'}</Text>
           </TouchableOpacity>

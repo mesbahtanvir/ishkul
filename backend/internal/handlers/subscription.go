@@ -258,6 +258,18 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	// Add 7-day free trial for users who haven't used it before
+	// Trial ends without auto-renew - user must explicitly choose to continue
+	if !user.HasUsedTrial {
+		params.SubscriptionData.TrialPeriodDays = stripe.Int64(7)
+		// Set trial to NOT auto-convert to paid subscription
+		params.SubscriptionData.TrialSettings = &stripe.CheckoutSessionSubscriptionDataTrialSettingsParams{
+			EndBehavior: &stripe.CheckoutSessionSubscriptionDataTrialSettingsEndBehaviorParams{
+				MissingPaymentMethod: stripe.String("cancel"),
+			},
+		}
+	}
+
 	session, err := checkoutsession.New(params)
 	if err != nil {
 		if appLogger != nil {

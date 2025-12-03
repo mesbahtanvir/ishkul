@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { CancellationFlow } from '../components/CancellationFlow';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
@@ -34,7 +35,7 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
   } = useSubscriptionStore();
 
   const [canceling, setCanceling] = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showCancellationFlow, setShowCancellationFlow] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -57,25 +58,15 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
   };
 
   const handleCancelSubscription = () => {
-    if (Platform.OS === 'web') {
-      // Web: Use confirm dialog
-      const confirmed = window.confirm(
-        `Are you sure you want to cancel your Pro subscription?\n\nYou'll keep Pro features until ${formatDate(paidUntil)}, then your account will revert to the Free plan.`
-      );
-      if (confirmed) {
-        performCancellation();
-      }
-    } else {
-      // Mobile: Show confirmation state
-      setShowCancelConfirm(true);
-    }
+    setShowCancellationFlow(true);
   };
 
-  const performCancellation = async () => {
+  const handleCancelConfirm = async () => {
     setCanceling(true);
     try {
       await apiClient.post('/subscription/cancel', {});
       await fetchStatus();
+      setShowCancellationFlow(false);
 
       Alert.alert(
         'Subscription Canceled',
@@ -91,7 +82,6 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
       );
     } finally {
       setCanceling(false);
-      setShowCancelConfirm(false);
     }
   };
 
@@ -175,36 +165,8 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
           </View>
         </View>
 
-        {/* Cancellation Warning (if showing confirmation) */}
-        {showCancelConfirm && (
-          <View style={[styles.cancelConfirmCard, { backgroundColor: colors.ios.orange + '15' }]}>
-            <Text style={[styles.cancelConfirmTitle, { color: colors.ios.orange }]}>
-              Cancel Subscription?
-            </Text>
-            <Text style={[styles.cancelConfirmText, { color: colors.text.secondary }]}>
-              Your Pro features will remain active until {formatDate(paidUntil)}. After that,
-              your account will revert to the Free plan with limited features.
-            </Text>
-
-            <View style={styles.cancelConfirmButtons}>
-              <Button
-                title="Keep Pro"
-                onPress={() => setShowCancelConfirm(false)}
-                style={styles.keepButton}
-              />
-              <Button
-                title="Cancel Anyway"
-                onPress={performCancellation}
-                variant="secondary"
-                loading={canceling}
-                style={styles.cancelButton}
-              />
-            </View>
-          </View>
-        )}
-
         {/* Actions */}
-        {!showCancelConfirm && (
+        {(
           <View style={styles.actionsSection}>
             <Button
               title="Update Payment Method"
@@ -244,6 +206,15 @@ export const ManageSubscriptionScreen: React.FC<ManageSubscriptionScreenProps> =
           </Text>
         </View>
       </ScrollView>
+
+      {/* Cancellation Flow Modal */}
+      <CancellationFlow
+        visible={showCancellationFlow}
+        paidUntil={paidUntil}
+        onCancel={handleCancelConfirm}
+        onKeep={() => setShowCancellationFlow(false)}
+        loading={canceling}
+      />
     </Container>
   );
 };
