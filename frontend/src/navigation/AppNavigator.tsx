@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, Platform, Linking } from 'react-native';
+import { Platform, Linking } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 // Stores
 import { useUserStore } from '../state/userStore';
@@ -156,8 +157,8 @@ const MainTabs = () => {
         name="Learn"
         component={LearnStack}
         options={{
-          tabBarIcon: () => (
-            <Text style={{ fontSize: 24 }}>🎓</Text>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="school-outline" size={size} color={color} />
           ),
         }}
       />
@@ -165,8 +166,8 @@ const MainTabs = () => {
         name="Progress"
         component={ProgressScreen}
         options={{
-          tabBarIcon: () => (
-            <Text style={{ fontSize: 24 }}>📊</Text>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="stats-chart-outline" size={size} color={color} />
           ),
         }}
       />
@@ -175,8 +176,8 @@ const MainTabs = () => {
         component={SettingsStack}
         options={{
           tabBarLabel: 'Settings',
-          tabBarIcon: () => (
-            <Text style={{ fontSize: 24 }}>⚙️</Text>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
       />
