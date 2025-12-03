@@ -48,7 +48,7 @@ export const CancellationFlow: React.FC<CancellationFlowProps> = ({
       onRequestClose={onKeep}
     >
       <View style={styles.overlay}>
-        <View style={[styles.modal, { backgroundColor: colors.background }]}>
+        <View style={[styles.modal, { backgroundColor: colors.background.primary }]}>
           <Text style={[styles.title, { color: colors.text.primary }]}>
             Cancel subscription?
           </Text>
