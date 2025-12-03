@@ -302,9 +302,10 @@ export const HomeScreen: React.FC = () => {
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={handleCreatePath}
           activeOpacity={0.8}
+          accessibilityLabel="Create new learning path"
+          accessibilityRole="button"
         >
-          <Text style={styles.fabIcon}>✨</Text>
-          <Text style={[styles.fabText, { color: colors.white }]}>New Path</Text>
+          <Text style={[styles.fabIcon, { color: colors.white }]}>+</Text>
         </TouchableOpacity>
       )}
 
@@ -385,13 +386,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: Spacing.lg,
     right: Spacing.lg,
-    width: 120,
+    width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    gap: Spacing.xs,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -399,11 +398,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   fabIcon: {
-    fontSize: 20,
-  },
-  fabText: {
-    ...Typography.button.medium,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '300',
+    lineHeight: 32,
   },
 });
 
