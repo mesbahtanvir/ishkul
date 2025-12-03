@@ -42,15 +42,14 @@ func SetAppLogger(log *slog.Logger) {
 
 // LearningPathsHandler handles all /api/learning-paths routes
 // Routes:
-//   - GET    /api/learning-paths                    -> list paths
-//   - POST   /api/learning-paths                    -> create path
-//   - GET    /api/learning-paths/{id}               -> get path
-//   - PATCH  /api/learning-paths/{id}               -> update path
-//   - DELETE /api/learning-paths/{id}               -> delete path
-//   - POST   /api/learning-paths/{id}/next          -> get/generate next step
-//   - POST   /api/learning-paths/{id}/next-prefetch -> trigger background step generation
-//   - POST   /api/learning-paths/{id}/archive       -> archive path
-//   - POST   /api/learning-paths/{id}/memory        -> update memory
+//   - GET    /api/learning-paths              -> list paths
+//   - POST   /api/learning-paths              -> create path
+//   - GET    /api/learning-paths/{id}         -> get path
+//   - PATCH  /api/learning-paths/{id}         -> update path
+//   - DELETE /api/learning-paths/{id}         -> delete path
+//   - POST   /api/learning-paths/{id}/next    -> get/generate next step (triggers pregeneration of next)
+//   - POST   /api/learning-paths/{id}/archive -> archive path
+//   - POST   /api/learning-paths/{id}/memory  -> update memory
 //   - POST   /api/learning-paths/{id}/steps/{stepId}/complete -> complete step
 //   - POST   /api/learning-paths/{id}/steps/{stepId}/view     -> view step
 func LearningPathsHandler(w http.ResponseWriter, r *http.Request) {
@@ -133,8 +132,6 @@ func handlePathAction(w http.ResponseWriter, r *http.Request, pathID, action str
 	switch action {
 	case "next", "session": // "session" kept for backward compatibility
 		getPathNextStep(w, r, pathID)
-	case "next-prefetch":
-		prefetchPathNextStep(w, r, pathID)
 	case "complete": // Legacy endpoint - complete the current step
 		completeCurrentStep(w, r, pathID)
 	case "archive":
@@ -957,12 +954,10 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	// No current step - try to get from cache first (instant response)
 	var nextStep *models.Step
-	cacheHit := false
 
 	if stepCache != nil {
 		nextStep = stepCache.Get(pathID, userID)
 		if nextStep != nil {
-			cacheHit = true
 			// Update step index to match current path state
 			nextStep.Index = len(path.Steps)
 			// Remove from cache since we're using it
@@ -1030,9 +1025,9 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		)
 	}
 
-	// Trigger pre-generation for the NEXT step (background)
-	// Only do this if we had a cache hit - if we had a miss, no point pre-generating again immediately
-	if cacheHit && pregenerateService != nil {
+	// Always trigger pre-generation for the NEXT step (background)
+	// This ensures the next call to /next will have a cached step ready
+	if pregenerateService != nil {
 		// Fetch user to get their tier for pregeneration
 		userDoc, userErr := fs.Collection("users").Doc(path.UserID).Get(ctx)
 		var user models.User
@@ -1055,154 +1050,6 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
-}
-
-// prefetchPathNextStep triggers background generation for the next step
-// This endpoint returns immediately with acknowledgement (202 Accepted)
-// The frontend can call /next later to get the cached result
-func prefetchPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
-	ctx := r.Context()
-	userID := middleware.GetUserID(ctx)
-	if userID == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	fs := firebase.GetFirestore()
-	if fs == nil {
-		http.Error(w, "Database not available", http.StatusInternalServerError)
-		return
-	}
-
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Learning path not found: %v", err), http.StatusNotFound)
-		return
-	}
-
-	var path models.LearningPath
-	if err := doc.DataTo(&path); err != nil {
-		http.Error(w, fmt.Sprintf("Error reading learning path: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	if path.UserID != userID {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
-	// Handle legacy paths without status (treat as active)
-	if path.Status == "" {
-		path.Status = models.PathStatusActive
-	}
-
-	// Block prefetch for non-active paths
-	switch path.Status {
-	case models.PathStatusCompleted:
-		sendErrorResponse(w, http.StatusBadRequest, ErrCodePathCompleted,
-			"This learning path is completed. No new steps to prefetch.")
-		return
-	case models.PathStatusArchived:
-		sendErrorResponse(w, http.StatusBadRequest, ErrCodePathArchived,
-			"This learning path is archived. Unarchive it to continue learning.")
-		return
-	case models.PathStatusDeleted:
-		sendErrorResponse(w, http.StatusNotFound, ErrCodePathDeleted,
-			"This learning path has been deleted.")
-		return
-	}
-
-	// Normalize to ensure valid defaults
-	normalizeLearningPath(&path)
-
-	// Check for existing incomplete step - no need to prefetch
-	currentStep := getCurrentStep(path.Steps)
-	if currentStep != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"acknowledged":  true,
-			"status":        "current_step_exists",
-			"message":       "There is already an incomplete step to complete",
-			"hasStep":       true,
-			"isGenerating":  false,
-			"currentStepId": currentStep.ID,
-		})
-		return
-	}
-
-	// Check if already cached
-	if stepCache != nil && stepCache.Has(pathID, userID) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"acknowledged": true,
-			"status":       "cached",
-			"message":      "Next step is already cached and ready",
-			"hasStep":      true,
-			"isGenerating": false,
-		})
-		return
-	}
-
-	// Check if already generating
-	if pregenerateService != nil && pregenerateService.IsGenerating(pathID, userID) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"acknowledged": true,
-			"status":       "generating",
-			"message":      "Step generation is already in progress",
-			"hasStep":      false,
-			"isGenerating": true,
-		})
-		return
-	}
-
-	// Trigger pregeneration
-	if pregenerateService != nil {
-		// Fetch user tier for pregeneration
-		userDoc, userErr := fs.Collection("users").Doc(userID).Get(ctx)
-		var user models.User
-		pregenerateTier := models.TierFree
-		if userErr == nil {
-			if dataErr := userDoc.DataTo(&user); dataErr == nil {
-				pregenerateTier = user.GetCurrentTier()
-			}
-		}
-
-		pregenerateService.TriggerPregeneration(&path, pregenerateTier)
-
-		if appLogger != nil {
-			logger.Info(appLogger, ctx, "prefetch_triggered",
-				slog.String("path_id", pathID),
-				slog.String("user_id", userID),
-				slog.String("user_tier", pregenerateTier),
-			)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"acknowledged": true,
-			"status":       "generating",
-			"message":      "Step generation started in background",
-			"hasStep":      false,
-			"isGenerating": true,
-		})
-		return
-	}
-
-	// Pregeneration service not available
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusServiceUnavailable)
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"acknowledged": false,
-		"status":       "unavailable",
-		"message":      "Pregeneration service is not available",
-		"hasStep":      false,
-		"isGenerating": false,
-	})
 }
 
 // generateNextStepForPath generates the next learning step using the LLM
