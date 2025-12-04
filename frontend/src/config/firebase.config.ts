@@ -30,14 +30,53 @@ export const firebaseConfig = {
 };
 
 /**
+ * GCP Project configuration
+ * Used to construct Cloud Run URLs for preview environments
+ */
+const GCP_PROJECT_NUMBER = "863006625304";
+const GCP_REGION = "northamerica-northeast2";
+
+/**
+ * Get the API base URL based on environment
+ *
+ * Priority:
+ * 1. Explicit EXPO_PUBLIC_API_URL environment variable
+ * 2. Vercel preview with matching backend (auto-constructed URL)
+ * 3. Production URL
+ * 4. Localhost for development
+ */
+function getApiBaseUrl(): string {
+  // 1. Explicit override always wins
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. Vercel preview deployment - try to connect to matching backend preview
+  // VERCEL_GIT_PULL_REQUEST_ID is set by Vercel for preview deployments
+  const prNumber = process.env.VERCEL_GIT_PULL_REQUEST_ID;
+  if (prNumber) {
+    // Construct the Cloud Run preview URL
+    // Format: https://{service-name}-{project-number}.{region}.run.app/api
+    const previewUrl = `https://ishkul-backend-pr-${prNumber}-${GCP_PROJECT_NUMBER}.${GCP_REGION}.run.app/api`;
+    console.log(`[API Config] Preview detected (PR #${prNumber}), using: ${previewUrl}`);
+    return previewUrl;
+  }
+
+  // 3. Production environment (Vercel production deployment)
+  if (process.env.VERCEL_ENV === 'production') {
+    return `https://ishkul-backend-${GCP_PROJECT_NUMBER}.${GCP_REGION}.run.app/api`;
+  }
+
+  // 4. Default to localhost for local development
+  return "http://localhost:8080/api";
+}
+
+/**
  * API Configuration
- * This will be automatically set during deployment
+ * Automatically detects environment and sets appropriate backend URL
  */
 export const apiConfig = {
-  // Backend API URL - will be set during deployment
-  // For local development, use: http://localhost:8080/api
-  // For production, this will be your Cloud Run URL
-  baseURL: process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080/api",
+  baseURL: getApiBaseUrl(),
 };
 
 /**
@@ -45,3 +84,4 @@ export const apiConfig = {
  */
 export const isDevelopment = process.env.NODE_ENV === "development";
 export const isProduction = process.env.NODE_ENV === "production";
+export const isPreview = !!process.env.VERCEL_GIT_PULL_REQUEST_ID;
