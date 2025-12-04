@@ -13,6 +13,9 @@ const defaultAllowedOrigins = "http://localhost:3000,http://localhost:8081,http:
 // Production allowed origins (only ishkul.org domains)
 const productionAllowedOrigins = "https://ishkul.org,https://www.ishkul.org"
 
+// Staging allowed origins
+const stagingAllowedOrigins = "https://staging.ishkul.org"
+
 // isProductionEnvironment checks if running in production
 func isProductionEnvironment() bool {
 	env := os.Getenv("ENVIRONMENT")
@@ -22,6 +25,11 @@ func isProductionEnvironment() bool {
 // isProductionDomain checks if the origin is the production ishkul.org domain
 func isProductionDomain(origin string) bool {
 	return origin == "https://ishkul.org" || origin == "https://www.ishkul.org"
+}
+
+// isStagingDomain checks if the origin is the staging ishkul.org domain
+func isStagingDomain(origin string) bool {
+	return origin == "https://staging.ishkul.org"
 }
 
 // isVercelPreviewDomain checks if the origin is a Vercel preview deployment
@@ -72,10 +80,15 @@ func CORS(next http.Handler) http.Handler {
 			normalizedOrigin := strings.TrimSuffix(origin, "/")
 
 			if isProduction {
-				// PRODUCTION: Only allow ishkul.org and www.ishkul.org
+				// PRODUCTION: Allow ishkul.org, www.ishkul.org, and staging.ishkul.org
 				if isProductionDomain(normalizedOrigin) {
 					allowed = true
 					log.Printf("[CORS] Production: Allowing origin: %s", origin)
+				}
+				// Also allow staging domain in production backend
+				if !allowed && isStagingDomain(normalizedOrigin) {
+					allowed = true
+					log.Printf("[CORS] Production: Allowing staging origin: %s", origin)
 				}
 			} else {
 				// NON-PRODUCTION (PR deployments, development):
@@ -91,6 +104,12 @@ func CORS(next http.Handler) http.Handler {
 				if !allowed && isProductionDomain(normalizedOrigin) {
 					allowed = true
 					log.Printf("[CORS] Preview: Allowing production domain: %s", origin)
+				}
+
+				// Check staging domain
+				if !allowed && isStagingDomain(normalizedOrigin) {
+					allowed = true
+					log.Printf("[CORS] Preview: Allowing staging domain: %s", origin)
 				}
 
 				// Check localhost/development origins
