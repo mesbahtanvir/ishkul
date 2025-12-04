@@ -253,7 +253,7 @@ func TestRegister(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "Please enter your email and password")
 	})
 
-	t.Run("rejects password shorter than 6 characters", func(t *testing.T) {
+	t.Run("rejects weak password", func(t *testing.T) {
 		body := `{"email": "test@example.com", "password": "12345", "displayName": "Test User"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewBufferString(body))
 		rr := httptest.NewRecorder()
@@ -261,7 +261,7 @@ func TestRegister(t *testing.T) {
 		Register(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Password must be at least 6 characters")
+		assert.Contains(t, rr.Body.String(), "WEAK_PASSWORD")
 	})
 }
 

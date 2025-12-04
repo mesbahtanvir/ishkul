@@ -52,7 +52,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 		Auth(handler).ServeHTTP(rr, req)
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Authorization header required")
+		assert.Contains(t, rr.Body.String(), "Authentication required")
 	})
 
 	t.Run("rejects request with empty Authorization header", func(t *testing.T) {
@@ -79,7 +79,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 		Auth(handler).ServeHTTP(rr, req)
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Invalid authorization header format")
+		assert.Contains(t, rr.Body.String(), "Authentication required")
 	})
 
 	t.Run("rejects request with invalid format (Basic instead of Bearer)", func(t *testing.T) {
