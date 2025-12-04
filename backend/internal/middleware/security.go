@@ -54,9 +54,6 @@ func SecurityHeaders(next http.Handler) http.Handler {
 
 // buildCSP constructs the Content-Security-Policy header
 func buildCSP() string {
-	env := os.Getenv("ENVIRONMENT")
-	isProduction := env == "production"
-
 	// Base CSP directives
 	directives := []string{
 		"default-src 'self'",
@@ -68,12 +65,6 @@ func buildCSP() string {
 		"frame-ancestors 'none'",
 		"base-uri 'self'",
 		"form-action 'self'",
-	}
-
-	// Add report-uri in production for CSP violation reporting
-	if isProduction {
-		// You can add a CSP reporting endpoint here
-		// directives = append(directives, "report-uri /api/csp-report")
 	}
 
 	return strings.Join(directives, "; ")
