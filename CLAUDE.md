@@ -175,11 +175,32 @@ For detailed information, see:
 
 ## 🚀 Quick Deploy
 
+### 🎯 Production Release (Recommended)
+
 ```bash
-# Frontend (auto-deploys on push to main, if frontend/* changed)
+# Create a release tag (e.g., v1.0.3)
+git tag v1.0.3
+
+# Push tag to trigger automated production deployment
+git push origin v1.0.3
+
+# That's it! ✅
+# The workflow automatically:
+# - Builds & deploys backend to Cloud Run
+# - Updates prod branch
+# - Triggers Vercel frontend deployment
+# - Completes in ~5-10 minutes
+```
+
+**Check deployment status**: https://github.com/mesbahtanvir/ishkul/actions
+
+### 🔄 Development Deployments
+
+```bash
+# Frontend staging (auto-deploys on push to main, if frontend/* changed)
 git push origin main
 
-# Backend (auto-deploys on push to main, if backend/* changed)
+# Backend staging (auto-deploys on push to main, if backend/* changed)
 git push origin main
 
 # Update Cloud Run env vars from backend/.env
@@ -187,6 +208,18 @@ git push origin main
 
 # Deploy Firebase rules (manual)
 cd firebase && firebase deploy --only firestore:rules,storage --project=ishkul-org
+```
+
+### 🚨 Emergency Backend Hotfix
+
+```bash
+# Only if you need to redeploy without new frontend changes
+# Edit code → Commit to main → Then:
+git tag v1.0.3.1
+git push origin v1.0.3.1
+
+# Or manually trigger if needed:
+gh workflow run deploy-backend.yml --ref prod -F confirm_production=production
 ```
 
 ## 🔗 Quick Links
@@ -225,4 +258,5 @@ For more, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
-**Last Updated**: 2025-12-01 | **Version**: 2.1.0 | **Status**: Production Ready ✅
+**Last Updated**: 2025-12-04 | **Version**: 2.2.0 | **Status**: Production Ready ✅
+*Updated: Unified production deployment workflow - single command release*

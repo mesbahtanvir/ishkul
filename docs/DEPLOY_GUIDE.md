@@ -447,8 +447,143 @@ Ishkul Platform
 - [Secret Manager Documentation](https://cloud.google.com/secret-manager/docs)
 - [Expo Documentation](https://docs.expo.dev)
 
+## 🎯 Production Release Process (Unified Workflow)
+
+### Quick Release (No Manual Steps Required!)
+
+```bash
+# 1. Create a release tag
+git tag v1.0.3
+
+# 2. Push tag to GitHub
+git push origin v1.0.3
+
+# Done! ✅ Everything deploys automatically
+```
+
+### What Happens Automatically
+
+When you push a release tag (v*), the `prod-deploy.yml` workflow:
+
+1. **Validates** the tag is properly formatted
+2. **Updates** the `prod` branch to the tagged commit
+3. **Builds** the backend Docker image
+4. **Pushes** image to Google Artifact Registry
+5. **Deploys** to Cloud Run with production configuration:
+   - Environment: Production
+   - Stripe Mode: Live (real payments)
+   - Min Instances: 1 (always running)
+   - Max Instances: 100 (auto-scales)
+   - Memory: 1Gi per instance
+   - CPU: 2 vCPU per instance
+6. **Triggers** Vercel frontend deployment (via prod branch webhook)
+7. **Posts** deployment summary with URLs and status
+
+### Timeline
+
+- **Total time**: ~5-10 minutes from tag push to live
+  - Docker build: 2-3 min
+  - Cloud Run deploy: 1-2 min
+  - Frontend deploy: 2-3 min
+  - Health checks: 1 min
+
+### Version Scheme
+
+- **Major/Minor releases**: `git tag v1.0.3`
+- **Patch/Hotfix releases**: `git tag v1.0.3.1`
+- **Pre-releases** (if needed): `git tag v1.0.3-rc1`
+
+All follow the same unified workflow.
+
+### Verify Production Deployment
+
+```bash
+# Check GitHub Actions status
+gh run list --workflow prod-deploy.yml -L 1
+
+# View deployment details
+gh run view <run-id> --log
+
+# Test backend health
+curl https://ishkul-backend-*.run.app/health
+
+# Check live frontend
+open https://ishkul.org
+```
+
+### Rollback (Emergency)
+
+If you need to rollback to a previous version:
+
+```bash
+# 1. Check available versions
+git tag -l "v*"
+
+# 2. Find the previous version (e.g., v1.0.2)
+# 3. Create a new tag pointing to the old version
+git tag v1.0.2.1 v1.0.2
+
+# 4. Push to trigger rollback deployment
+git push origin v1.0.2.1
+
+# Wait for deployment to complete
+```
+
+### Edge Cases
+
+#### Wrong commit tagged
+```bash
+# Delete local tag
+git tag -d v1.0.3
+
+# Delete remote tag
+git push origin --delete v1.0.3
+
+# Create correct tag
+git tag v1.0.3
+git push origin v1.0.3
+```
+
+#### Need to redeploy same version
+```bash
+# Can't reuse same tag (Git restriction)
+# Instead, bump patch version:
+git tag v1.0.3.1 v1.0.3^  # Points to commit before v1.0.3
+git push origin v1.0.3.1
+```
+
+#### Emergency hotfix without frontend
+```bash
+# This rarely happens (frontend is just static files)
+# But if needed, manually trigger backend-only:
+gh workflow run deploy-backend.yml --ref prod -F confirm_production=production
+```
+
+### Monitoring Production
+
+After release, monitor:
+
+1. **GitHub Actions**: https://github.com/mesbahtanvir/ishkul/actions?workflow=prod-deploy.yml
+2. **Cloud Run**: https://console.cloud.google.com/run?project=ishkul-org
+3. **Vercel**: https://vercel.com/mesbahtanvir/ishkul
+4. **Errors**: Check Cloud Run logs for any issues
+
+### Troubleshooting
+
+**"Tag push didn't trigger deployment"**
+- Verify tag matches pattern: `v*` (e.g., `v1.0.3`, not `version-1.0.3`)
+- Check Actions tab: https://github.com/mesbahtanvir/ishkul/actions
+
+**"Deployment succeeded but frontend not updating"**
+- Vercel webhook updates on `prod` branch changes
+- Manual trigger: https://vercel.com/mesbahtanvir/ishkul > Deployments > Redeploy
+
+**"Health check failing after deployment"**
+- Might need warm-up time (Cloud Run cold starts)
+- Check logs: `gcloud run services logs read ishkul-backend --limit=50`
+
 ---
 
 **Questions?** Check [CICD_SETUP.md](CICD_SETUP.md) for automated deployment with GitHub Actions.
 
-**Ready to deploy?** Run `git push origin main  # Triggers GitHub Actions deployment` 🚀
+**Ready to release?** Run `git tag v1.0.X && git push origin v1.0.X` 🚀
