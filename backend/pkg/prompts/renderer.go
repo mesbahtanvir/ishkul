@@ -35,16 +35,20 @@ func (r *Renderer) Render(template *PromptTemplate, vars Variables) ([]openai.Me
 }
 
 // substituteVariables replaces {{variable}} placeholders with actual values
+// and processes {{#if variable}}...{{/if}} conditional blocks
 func (r *Renderer) substituteVariables(content string, vars Variables) (string, error) {
 	result := content
 
-	// Find all variables in the format {{variableName}}
+	// First, process conditional blocks: {{#if variable}}...{{/if}}
+	result = r.processConditionalBlocks(result, vars)
+
+	// Then, substitute simple variables in the format {{variableName}}
 	for key, value := range vars {
 		placeholder := fmt.Sprintf("{{%s}}", key)
 		result = strings.ReplaceAll(result, placeholder, value)
 	}
 
-	// Check for unsubstituted variables
+	// Check for unsubstituted variables (excluding comments and escaped braces)
 	if strings.Contains(result, "{{") && strings.Contains(result, "}}") {
 		// Extract the unsubstituted variable name
 		start := strings.Index(result, "{{")
@@ -56,6 +60,58 @@ func (r *Renderer) substituteVariables(content string, vars Variables) (string, 
 	}
 
 	return result, nil
+}
+
+// processConditionalBlocks handles {{#if variable}}...{{/if}} blocks
+// If the variable is set and non-empty, the content is kept; otherwise, the entire block is removed
+func (r *Renderer) processConditionalBlocks(content string, vars Variables) string {
+	result := content
+
+	// Process all {{#if variable}}...{{/if}} blocks
+	// We need to handle nested blocks, so process from innermost to outermost
+	for {
+		// Find the last {{#if ...}} to handle nested blocks correctly
+		ifStart := strings.LastIndex(result, "{{#if ")
+		if ifStart == -1 {
+			break
+		}
+
+		// Find the closing }} for this #if
+		ifTagEnd := strings.Index(result[ifStart:], "}}")
+		if ifTagEnd == -1 {
+			break
+		}
+		ifTagEnd += ifStart + 2 // Position after }}
+
+		// Extract the variable name
+		varStart := ifStart + 6 // len("{{#if ")
+		varEnd := ifTagEnd - 2  // Position before }}
+		varName := strings.TrimSpace(result[varStart:varEnd])
+
+		// Find the matching {{/if}}
+		endifTag := "{{/if}}"
+		endifStart := strings.Index(result[ifTagEnd:], endifTag)
+		if endifStart == -1 {
+			break
+		}
+		endifStart += ifTagEnd
+		endifEnd := endifStart + len(endifTag)
+
+		// Extract the content between {{#if}} and {{/if}}
+		blockContent := result[ifTagEnd:endifStart]
+
+		// Check if the variable is set and non-empty
+		value, exists := vars[varName]
+		if exists && value != "" {
+			// Keep the content (remove only the {{#if}} and {{/if}} tags)
+			result = result[:ifStart] + blockContent + result[endifEnd:]
+		} else {
+			// Remove the entire block
+			result = result[:ifStart] + result[endifEnd:]
+		}
+	}
+
+	return result
 }
 
 // RenderToRequest creates a complete OpenAI request from a template

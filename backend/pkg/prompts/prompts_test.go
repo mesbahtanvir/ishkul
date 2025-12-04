@@ -558,3 +558,167 @@ func TestVariables(t *testing.T) {
 		assert.Equal(t, "", vars["missing"])
 	})
 }
+
+// =============================================================================
+// Conditional Block Tests
+// =============================================================================
+
+func TestProcessConditionalBlocks(t *testing.T) {
+	renderer := NewRenderer()
+
+	t.Run("keeps content when variable is set", func(t *testing.T) {
+		content := "Before {{#if topic}}Topic: {{topic}}{{/if}} After"
+		vars := Variables{"topic": "Go Programming"}
+
+		result := renderer.processConditionalBlocks(content, vars)
+		assert.Equal(t, "Before Topic: {{topic}} After", result)
+	})
+
+	t.Run("removes block when variable is not set", func(t *testing.T) {
+		content := "Before {{#if topic}}Topic: {{topic}}{{/if}} After"
+		vars := Variables{}
+
+		result := renderer.processConditionalBlocks(content, vars)
+		assert.Equal(t, "Before  After", result)
+	})
+
+	t.Run("removes block when variable is empty string", func(t *testing.T) {
+		content := "Before {{#if topic}}Topic: {{topic}}{{/if}} After"
+		vars := Variables{"topic": ""}
+
+		result := renderer.processConditionalBlocks(content, vars)
+		assert.Equal(t, "Before  After", result)
+	})
+
+	t.Run("handles multiple conditional blocks", func(t *testing.T) {
+		content := "{{#if a}}A={{a}}{{/if}} {{#if b}}B={{b}}{{/if}}"
+		vars := Variables{"a": "1"}
+
+		result := renderer.processConditionalBlocks(content, vars)
+		assert.Equal(t, "A={{a}} ", result)
+	})
+
+	t.Run("handles nested conditional blocks", func(t *testing.T) {
+		content := "{{#if outer}}Outer {{#if inner}}Inner{{/if}} End{{/if}}"
+		vars := Variables{"outer": "yes", "inner": "yes"}
+
+		result := renderer.processConditionalBlocks(content, vars)
+		assert.Equal(t, "Outer Inner End", result)
+	})
+
+	t.Run("handles nested blocks with missing inner", func(t *testing.T) {
+		content := "{{#if outer}}Outer {{#if inner}}Inner{{/if}} End{{/if}}"
+		vars := Variables{"outer": "yes"}
+
+		result := renderer.processConditionalBlocks(content, vars)
+		assert.Equal(t, "Outer  End", result)
+	})
+
+	t.Run("handles multiline blocks", func(t *testing.T) {
+		content := `Start
+{{#if topic}}
+Topic: {{topic}}
+Description: {{description}}
+{{/if}}
+End`
+		vars := Variables{"topic": "Go", "description": "A language"}
+
+		result := renderer.processConditionalBlocks(content, vars)
+		expected := `Start
+
+Topic: {{topic}}
+Description: {{description}}
+
+End`
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("handles block with no content", func(t *testing.T) {
+		content := "Before{{#if empty}}{{/if}}After"
+		vars := Variables{"empty": "yes"}
+
+		result := renderer.processConditionalBlocks(content, vars)
+		assert.Equal(t, "BeforeAfter", result)
+	})
+}
+
+func TestSubstituteVariablesWithConditionals(t *testing.T) {
+	renderer := NewRenderer()
+
+	t.Run("processes conditionals and substitutes variables", func(t *testing.T) {
+		content := "Goal: {{goal}} {{#if topic}}Topic: {{topic}}{{/if}}"
+		vars := Variables{"goal": "Learn Go", "topic": "Concurrency"}
+
+		result, err := renderer.substituteVariables(content, vars)
+		require.NoError(t, err)
+		assert.Equal(t, "Goal: Learn Go Topic: Concurrency", result)
+	})
+
+	t.Run("removes conditional and substitutes remaining", func(t *testing.T) {
+		content := "Goal: {{goal}} {{#if topic}}Topic: {{topic}}{{/if}}"
+		vars := Variables{"goal": "Learn Go"}
+
+		result, err := renderer.substituteVariables(content, vars)
+		require.NoError(t, err)
+		assert.Equal(t, "Goal: Learn Go ", result)
+	})
+
+	t.Run("handles real-world next-step prompt pattern", func(t *testing.T) {
+		content := `User Context:
+- Goal: {{goal}}
+- Level: {{level}}
+
+{{#if currentTopic}}
+## CURRENT TOPIC
+- Module: {{currentModule}}
+- Topic: {{currentTopic}}
+{{/if}}
+
+Generate the next step.`
+
+		// Test without outline (no currentTopic)
+		varsWithoutTopic := Variables{
+			"goal":  "Learn Python",
+			"level": "beginner",
+		}
+
+		result, err := renderer.substituteVariables(content, varsWithoutTopic)
+		require.NoError(t, err)
+		assert.NotContains(t, result, "{{#if")
+		assert.NotContains(t, result, "{{/if}}")
+		assert.NotContains(t, result, "currentTopic")
+		assert.Contains(t, result, "Learn Python")
+		assert.Contains(t, result, "beginner")
+	})
+
+	t.Run("handles real-world next-step prompt with topic", func(t *testing.T) {
+		content := `User Context:
+- Goal: {{goal}}
+- Level: {{level}}
+
+{{#if currentTopic}}
+## CURRENT TOPIC
+- Module: {{currentModule}}
+- Topic: {{currentTopic}}
+{{/if}}
+
+Generate the next step.`
+
+		// Test with outline (has currentTopic)
+		varsWithTopic := Variables{
+			"goal":          "Learn Python",
+			"level":         "beginner",
+			"currentTopic":  "Variables",
+			"currentModule": "Basics",
+		}
+
+		result, err := renderer.substituteVariables(content, varsWithTopic)
+		require.NoError(t, err)
+		assert.NotContains(t, result, "{{#if")
+		assert.NotContains(t, result, "{{/if}}")
+		assert.Contains(t, result, "Learn Python")
+		assert.Contains(t, result, "beginner")
+		assert.Contains(t, result, "Variables")
+		assert.Contains(t, result, "Basics")
+	})
+}
