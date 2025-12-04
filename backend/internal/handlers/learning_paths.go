@@ -15,6 +15,7 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/internal/services"
+	"github.com/mesbahtanvir/ishkul/backend/internal/tools"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/cache"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
@@ -1636,15 +1637,96 @@ func viewStep(w http.ResponseWriter, r *http.Request, pathID string, stepID stri
 	}
 }
 
+// inferCategory determines the course category from the goal text
+func inferCategory(goal string) string {
+	goalLower := strings.ToLower(goal)
+
+	// Programming/coding keywords
+	programmingKeywords := []string{"python", "javascript", "java", "go", "golang", "rust", "c++", "c#",
+		"typescript", "ruby", "php", "swift", "kotlin", "programming", "coding", "code", "developer",
+		"software", "algorithm", "data structure", "web development", "backend", "frontend", "api",
+		"react", "vue", "angular", "node", "django", "flask", "spring", "docker", "kubernetes"}
+	for _, kw := range programmingKeywords {
+		if strings.Contains(goalLower, kw) {
+			return "programming"
+		}
+	}
+
+	// Language learning keywords
+	languageKeywords := []string{"spanish", "french", "german", "japanese", "chinese", "mandarin",
+		"korean", "italian", "portuguese", "arabic", "russian", "hindi", "language", "vocabulary",
+		"grammar", "speaking", "conversation", "fluent", "learn english", "esl"}
+	for _, kw := range languageKeywords {
+		if strings.Contains(goalLower, kw) {
+			return "language"
+		}
+	}
+
+	// Data science keywords
+	dataKeywords := []string{"data science", "machine learning", "deep learning", "ai", "artificial intelligence",
+		"statistics", "analytics", "data analysis", "pandas", "numpy", "tensorflow", "pytorch", "ml"}
+	for _, kw := range dataKeywords {
+		if strings.Contains(goalLower, kw) {
+			return "data-science"
+		}
+	}
+
+	// Business keywords
+	businessKeywords := []string{"business", "marketing", "management", "finance", "accounting",
+		"entrepreneurship", "startup", "leadership", "sales", "strategy", "mba", "product management"}
+	for _, kw := range businessKeywords {
+		if strings.Contains(goalLower, kw) {
+			return "business"
+		}
+	}
+
+	// Math keywords
+	mathKeywords := []string{"math", "mathematics", "calculus", "algebra", "geometry", "trigonometry",
+		"linear algebra", "probability", "equations"}
+	for _, kw := range mathKeywords {
+		if strings.Contains(goalLower, kw) {
+			return "mathematics"
+		}
+	}
+
+	// Science keywords
+	scienceKeywords := []string{"physics", "chemistry", "biology", "science", "astronomy", "geology"}
+	for _, kw := range scienceKeywords {
+		if strings.Contains(goalLower, kw) {
+			return "science"
+		}
+	}
+
+	// Design keywords
+	designKeywords := []string{"design", "ui", "ux", "user interface", "user experience", "graphic",
+		"figma", "photoshop", "illustrator", "sketch"}
+	for _, kw := range designKeywords {
+		if strings.Contains(goalLower, kw) {
+			return "design"
+		}
+	}
+
+	// Default to general education
+	return "general"
+}
+
 // generateCourseOutline generates a course outline using the LLM
 func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
 	if openaiClient == nil || promptLoader == nil {
 		return nil, fmt.Errorf("LLM not initialized")
 	}
 
+	// Get tool descriptions from the registry
+	toolDescriptions := tools.GetToolDescriptions()
+
+	// Infer course category from the goal
+	category := inferCategory(goal)
+
 	vars := prompts.Variables{
-		"goal":  goal,
-		"level": level,
+		"goal":             goal,
+		"level":            level,
+		"toolDescriptions": toolDescriptions,
+		"category":         category,
 	}
 
 	// Load the course-outline prompt template
