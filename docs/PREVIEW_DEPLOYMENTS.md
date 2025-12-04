@@ -259,6 +259,35 @@ If the cleanup workflow didn't trigger:
      --filter="tags:pr-X-*"
    ```
 
+## Frontend Staging Deployment
+
+For complete staging isolation, the frontend also needs staging-specific configuration:
+
+### Vercel Environment Variables for Staging
+
+Create a separate Vercel deployment (or branch) for `staging.ishkul.org` with these environment variables:
+
+| Variable | Purpose | Example Value |
+|----------|---------|---------------|
+| `EXPO_PUBLIC_FIREBASE_API_KEY` | Staging Firebase API key | `AIzaSy...` |
+| `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` | Staging auth domain | `ishkul-staging.firebaseapp.com` |
+| `EXPO_PUBLIC_FIREBASE_PROJECT_ID` | Staging project ID | `ishkul-staging` |
+| `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET` | Staging storage | `ishkul-staging.appspot.com` |
+| `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Staging sender ID | `123456789` |
+| `EXPO_PUBLIC_FIREBASE_APP_ID` | Staging app ID | `1:123...` |
+| `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID` | Staging analytics | `G-XXXXXXX` |
+| `EXPO_PUBLIC_GCP_PROJECT_NUMBER` | Staging GCP project number | `123456789` |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Staging OAuth web client | `xxx.apps.googleusercontent.com` |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Staging OAuth iOS client | `xxx.apps.googleusercontent.com` |
+| `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Staging OAuth Android client | `xxx.apps.googleusercontent.com` |
+
+### Setting Up Vercel Staging
+
+1. In Vercel, go to Project Settings → Domains
+2. Add `staging.ishkul.org` as a custom domain
+3. In Settings → Environment Variables, add staging variables for "Preview" or create a staging branch
+4. Deploy to the staging branch or configure preview deployments for `staging.ishkul.org`
+
 ## Security Considerations
 
 1. **Stripe Mode Separation**: Test keys never see real money, live keys never in non-production
@@ -266,6 +295,7 @@ If the cleanup workflow didn't trigger:
 3. **OAuth Separation**: Staging uses separate Google OAuth credentials from production
 4. **Public URLs**: All environment URLs are publicly accessible (same as production)
 5. **Credential Separation**: Staging credentials are stored in separate GitHub secrets (`STAGING_*`)
+6. **JWT Isolation**: Each GCP project has its own JWT_SECRET in Secret Manager
 
 ## Related Documentation
 

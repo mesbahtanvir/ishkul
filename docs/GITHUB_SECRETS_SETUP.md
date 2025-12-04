@@ -62,6 +62,11 @@ Staging uses a completely separate Firebase/GCP project for full data isolation:
 | `STAGING_GOOGLE_IOS_CLIENT_ID` | `xxx.apps.googleusercontent.com` | Staging OAuth credentials |
 | `STAGING_GOOGLE_ANDROID_CLIENT_ID` | `xxx.apps.googleusercontent.com` | Staging OAuth credentials |
 | `STAGING_APP_URL` | `https://staging.ishkul.org` | Staging app URL |
+| `STAGING_OPENAI_API_KEY` | `sk-...` (optional) | Separate OpenAI key for cost tracking |
+| `STAGING_JWT_SECRET` | `random-string` (optional) | Separate JWT secret for token isolation |
+| `STAGING_ENCRYPTION_KEY` | `base64-key` (optional) | Separate encryption key for PII |
+
+**Note:** Security secrets (`JWT_SECRET`, `ENCRYPTION_KEY`) fall back to production values if staging-specific secrets are not set. For complete isolation, set staging-specific values.
 
 ### Step 3: Add to GitHub Actions Workflow
 

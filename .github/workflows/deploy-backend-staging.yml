@@ -57,7 +57,8 @@ jobs:
       GCP_SA_KEY: ${{ secrets.STAGING_GCP_SA_KEY }}
       FIREBASE_DATABASE_URL: ${{ secrets.STAGING_FIREBASE_DATABASE_URL }}
       FIREBASE_STORAGE_BUCKET: ${{ secrets.STAGING_FIREBASE_STORAGE_BUCKET }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # Use staging OpenAI key if set, otherwise fall back to shared key
+      OPENAI_API_KEY: ${{ secrets.STAGING_OPENAI_API_KEY || secrets.OPENAI_API_KEY }}
       # Staging uses separate Google OAuth credentials
       GOOGLE_WEB_CLIENT_ID: ${{ secrets.STAGING_GOOGLE_WEB_CLIENT_ID }}
       GOOGLE_IOS_CLIENT_ID: ${{ secrets.STAGING_GOOGLE_IOS_CLIENT_ID }}
