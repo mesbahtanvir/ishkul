@@ -91,6 +91,12 @@ messages:
           "difficulty": "beginner|intermediate|advanced",
           "category": "programming|language|data-science|business|etc",
           "tags": ["tag1", "tag2"]
+        },
+        "reasoning": {
+          "structureRationale": "Why this module ordering makes sense for the learner",
+          "toolChoices": "Key decisions about tool selection and why",
+          "learningProgression": "How topics build on each other",
+          "coverageAnalysis": "What concepts are covered and why this is comprehensive"
         }
       }
 
@@ -102,6 +108,15 @@ messages:
       - Specialized tools used when course category matches
       - Topic titles are specific, not generic
       - Prerequisites form a valid dependency graph
+
+      ## Reasoning About Your Outline
+      Before finalizing, think through and include your reasoning in the response:
+      - **Why this structure?** Explain why you chose this specific module ordering and topic sequence
+      - **Why these tools?** Justify tool selection for key topics (e.g., "Using quiz after X because learner needs to verify understanding before moving to Y")
+      - **Learning path rationale**: Describe how topics build on each other to achieve the learning outcomes
+      - **Gap analysis**: Confirm the outline covers all essential concepts without redundancy
+
+      Include a "reasoning" field in your JSON output that explains your pedagogical decisions.
 
       IMPORTANT: Return ONLY valid JSON. No markdown code blocks, no explanation.
 
