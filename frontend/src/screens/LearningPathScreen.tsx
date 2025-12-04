@@ -15,6 +15,7 @@ import { Button } from '../components/Button';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { ProgressBar } from '../components/ProgressBar';
 import { StepCard } from '../components/StepCard';
+import { CourseOutlineDrawer } from '../components/CourseOutlineDrawer';
 import { useLearningPathsStore, getCurrentStep } from '../state/learningPathsStore';
 import { getLearningPath, viewStep } from '../services/memory';
 import { useTheme } from '../hooks/useTheme';
@@ -45,6 +46,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   const { activePath, setActivePath } = useLearningPathsStore();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [outlineDrawerVisible, setOutlineDrawerVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const { responsive } = useResponsive();
   const { colors } = useTheme();
@@ -182,13 +184,24 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   return (
     <Container>
       <View style={styles.content}>
-        {/* Top bar with back button */}
+        {/* Top bar with back button and outline button */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <Text style={[styles.backButtonText, { color: colors.primary }]}>
               ← Back
             </Text>
           </TouchableOpacity>
+          {activePath.outline && (
+            <TouchableOpacity
+              onPress={() => setOutlineDrawerVisible(true)}
+              style={[styles.outlineButton, { backgroundColor: colors.background.secondary }]}
+            >
+              <Text style={styles.outlineButtonIcon}>📋</Text>
+              <Text style={[styles.outlineButtonText, { color: colors.text.primary }]}>
+                Outline
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Path header */}
@@ -319,6 +332,29 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
           )}
         </View>
       </View>
+
+      {/* Course Outline Drawer */}
+      <CourseOutlineDrawer
+        visible={outlineDrawerVisible}
+        onClose={() => setOutlineDrawerVisible(false)}
+        outline={activePath.outline || null}
+        currentPosition={activePath.outlinePosition}
+        onTopicPress={(moduleIndex, topicIndex, topic) => {
+          // Close drawer and optionally navigate to topic
+          setOutlineDrawerVisible(false);
+          // If topic has a stepId, find and navigate to that step
+          if (topic.stepId) {
+            const step = activePath.steps.find((s) => s.id === topic.stepId);
+            if (step) {
+              if (step.completed) {
+                navigation.navigate('StepDetail', { step, pathId });
+              } else {
+                navigation.navigate('Step', { step, pathId });
+              }
+            }
+          }
+        }}
+      />
     </Container>
   );
 };
@@ -330,6 +366,7 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: Spacing.md,
   },
   backButton: {
@@ -338,6 +375,21 @@ const styles = StyleSheet.create({
   backButtonText: {
     ...Typography.body.medium,
     fontWeight: '600',
+  },
+  outlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Spacing.borderRadius.md,
+  },
+  outlineButtonIcon: {
+    fontSize: 16,
+    marginRight: 4,
+  },
+  outlineButtonText: {
+    ...Typography.body.small,
+    fontWeight: '500',
   },
   pathHeader: {
     borderRadius: Spacing.borderRadius.lg,
