@@ -3,7 +3,6 @@ package middleware
 import (
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -233,18 +232,4 @@ func (b *IPBlocker) cleanupStaleViolations() {
 		}
 		b.mu.Unlock()
 	}
-}
-
-// Environment variable helpers for IP blocker configuration
-func getEnvDuration(key string, defaultVal time.Duration) time.Duration {
-	val := os.Getenv(key)
-	if val == "" {
-		return defaultVal
-	}
-	d, err := time.ParseDuration(val)
-	if err != nil {
-		log.Printf("Warning: invalid duration for %s, using default %v", key, defaultVal)
-		return defaultVal
-	}
-	return d
 }

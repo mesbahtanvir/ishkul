@@ -100,34 +100,3 @@ func (c *limitedConn) Close() error {
 func DefaultMaxConnections() int {
 	return getEnvInt("MAX_CONNECTIONS", 1000)
 }
-
-// PerIPConnLimiter limits connections per IP address
-type PerIPConnLimiter struct {
-	net.Listener
-	maxPerIP   int64
-	ipConns    map[string]*int64
-	mu         rwMutex
-	totalConns int64
-}
-
-// rwMutex is a simple interface for read-write mutex operations
-type rwMutex interface {
-	Lock()
-	Unlock()
-	RLock()
-	RUnlock()
-}
-
-// SimpleRWMutex implements rwMutex
-type simpleRWMutex struct {
-	ch chan struct{}
-}
-
-func newSimpleRWMutex() *simpleRWMutex {
-	return &simpleRWMutex{ch: make(chan struct{}, 1)}
-}
-
-func (m *simpleRWMutex) Lock()    { m.ch <- struct{}{} }
-func (m *simpleRWMutex) Unlock()  { <-m.ch }
-func (m *simpleRWMutex) RLock()   { m.Lock() }
-func (m *simpleRWMutex) RUnlock() { m.Unlock() }
