@@ -32,6 +32,14 @@ messages:
       - Short sentences (15 words max)
       - Short paragraphs (2-3 sentences)
 
+      ## Citations
+      - Cite sources inline using superscript notation: `[^1]`, `[^2]`, etc.
+      - Include a "Sources" section at the end with full citations
+      - Format: `[^1]: Author/Source Name - "Title" (Year if applicable)`
+      - Cite authoritative sources: official docs, textbooks, research papers
+      - Every factual claim should have a citation where possible
+      - Keep citations concise but attributable
+
       ## Level Adjustments
       - **beginner**: Define terms, use analogies
       - **intermediate**: Skip basics, focus on "how"
@@ -53,6 +61,27 @@ messages:
       **Description**: {{description}}
       **Level**: {{level}}
       **Goal**: {{goal}}
-      **Previous topics**: {{previousTopics}}
+      **Previous topics covered**: {{previousTopics}}
+
+      ## Previous Lessons Context
+      Use this to avoid repeating content and build on what the learner already knows:
+
+      {{#if previousLessons}}
+      {{#each previousLessons}}
+      ### {{this.title}}
+      - **Key concepts taught**: {{this.summary}}
+      - **User performance**: {{this.performance}}
+      - **Avoid repeating**: {{this.keyPoints}}
+      {{/each}}
+      {{else}}
+      No previous lessons in this module yet.
+      {{/if}}
+
+      ## Instructions
+      - Do NOT repeat concepts already covered in previous lessons
+      - Build on the learner's existing knowledge from prior lessons
+      - Reference previous content when relevant (e.g., "As we saw in...")
+      - Adjust depth based on user's past performance
+      - Include inline citations for factual claims
 
       Return ONLY valid JSON. 100-200 words MAX.
