@@ -1,10 +1,31 @@
-# Preview Deployments
+# Backend Deployment Environments
 
-This guide explains how preview deployments work for the Ishkul backend.
+This guide explains how the different deployment environments work for the Ishkul backend.
 
 ## Overview
 
-When you create a Pull Request that modifies backend code, a preview environment is automatically deployed to Google Cloud Run. This allows you to test your changes in an isolated environment before merging.
+The backend has three deployment environments:
+
+| Environment | Trigger | Service Name | Data Prefix |
+|-------------|---------|--------------|-------------|
+| **Preview** | PR opened/updated | `ishkul-backend-pr-{N}` | `pr_{N}_` |
+| **Staging** | Push to main | `ishkul-backend-staging` | `staging_` |
+| **Production** | Release tag `v*` | `ishkul-backend` | (none) |
+
+## Deployment Flow
+
+```
+Feature Branch → PR → Preview (isolated per PR)
+                 ↓
+              Merge
+                 ↓
+            Main Branch → Staging (shared staging env)
+                 ↓
+           Create Release
+           git tag v1.0.0
+                 ↓
+            Production
+```
 
 ## How It Works
 
