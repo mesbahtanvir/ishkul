@@ -148,7 +148,7 @@ func (b *TokenBlacklist) CleanupExpiredTokens(ctx context.Context) (int, error) 
 	// Use BulkWriter for batch deletion (replaces deprecated Batch API)
 	bulkWriter := b.client.BulkWriter(ctx)
 	for _, doc := range docs {
-		bulkWriter.Delete(doc.Ref)
+		_, _ = bulkWriter.Delete(doc.Ref) // Errors are collected and handled by Flush
 	}
 
 	bulkWriter.End()
