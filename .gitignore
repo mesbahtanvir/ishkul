@@ -35,6 +35,9 @@ yarn-error.*
 .env*.local
 frontend/.env
 frontend/.env.local
+backend/.env
+backend/.env.staging
+backend/.env.production
 
 # typescript
 *.tsbuildinfo
@@ -59,10 +62,12 @@ backend/cmd/server/server
 backend/vendor/
 go.work
 backend/serviceAccountKey.json
+backend/serviceAccountKey.staging.json
 backend/firebase-credentials.json
 *-firebase-adminsdk-*.json
 *.json.key
 ishkul-org*.json
+staging-ishkul-org*.json
 # Firebase
 .firebase/
 firebase-debug.log
