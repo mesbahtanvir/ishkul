@@ -391,9 +391,10 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		Level:            req.Level,
 		Emoji:            req.Emoji,
 		Status:           models.PathStatusActive,
+		OutlineStatus:    models.OutlineStatusGenerating, // Outline is being generated
 		Progress:         0,
 		LessonsCompleted: 0,
-		TotalLessons:     10, // Default estimate
+		TotalLessons:     0, // Will be set when outline is ready
 		Steps:            []models.Step{},
 		Memory: &models.Memory{
 			Topics: make(map[string]models.TopicMemory),
@@ -409,8 +410,10 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate course outline in the background
+	// NOTE: First step pregeneration happens AFTER outline is ready (inside this goroutine)
 	go func(pathID, goal, level, userID string) {
 		bgCtx := context.Background()
+		bgFs := firebase.GetFirestore()
 
 		if appLogger != nil {
 			logger.Info(appLogger, bgCtx, "outline_generation_started",
@@ -426,6 +429,13 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 					slog.String("path_id", pathID),
 					slog.String("error", err.Error()),
 				)
+			}
+			// Update status to failed
+			if bgFs != nil {
+				_, _ = bgFs.Collection("learning_paths").Doc(pathID).Update(bgCtx, []firestore.Update{
+					{Path: "outlineStatus", Value: models.OutlineStatusFailed},
+					{Path: "updatedAt", Value: time.Now().UnixMilli()},
+				})
 			}
 			return
 		}
@@ -445,12 +455,12 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Update the path with the generated outline
-		bgFs := firebase.GetFirestore()
+		// Update the path with the generated outline and set status to ready
 		if bgFs != nil {
 			_, updateErr := bgFs.Collection("learning_paths").Doc(pathID).Update(bgCtx, []firestore.Update{
 				{Path: "outline", Value: outline},
 				{Path: "outlinePosition", Value: outlinePosition},
+				{Path: "outlineStatus", Value: models.OutlineStatusReady},
 				{Path: "totalLessons", Value: totalTopics},
 				{Path: "updatedAt", Value: time.Now().UnixMilli()},
 			})
@@ -461,37 +471,58 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 						slog.String("error", updateErr.Error()),
 					)
 				}
-			} else if appLogger != nil {
+				// Update status to failed
+				_, _ = bgFs.Collection("learning_paths").Doc(pathID).Update(bgCtx, []firestore.Update{
+					{Path: "outlineStatus", Value: models.OutlineStatusFailed},
+					{Path: "updatedAt", Value: time.Now().UnixMilli()},
+				})
+				return
+			}
+
+			if appLogger != nil {
 				logger.Info(appLogger, bgCtx, "outline_generation_completed",
 					slog.String("path_id", pathID),
 					slog.Int("modules", len(outline.Modules)),
 					slog.Int("total_topics", totalTopics),
 				)
 			}
-		}
-	}(pathID, req.Goal, req.Level, userID)
 
-	// Trigger pre-generation of the first step in the background
-	if pregenerateService != nil {
-		// Fetch user to get their tier for pregeneration
-		userDoc, userErr := fs.Collection("users").Doc(userID).Get(ctx)
-		var user models.User
-		pregenerateTier := models.TierFree // Default to free tier
-		if userErr == nil {
-			if dataErr := userDoc.DataTo(&user); dataErr == nil {
-				pregenerateTier = user.GetCurrentTier()
+			// NOW trigger pre-generation of first step (outline is ready)
+			if pregenerateService != nil {
+				// Build path with outline for pregeneration
+				pathWithOutline := models.LearningPath{
+					ID:              pathID,
+					UserID:          userID,
+					Goal:            goal,
+					Level:           level,
+					Steps:           []models.Step{},
+					Outline:         outline,
+					OutlinePosition: outlinePosition,
+					Memory: &models.Memory{
+						Topics: make(map[string]models.TopicMemory),
+					},
+				}
+
+				// Get user tier for pregeneration
+				userDoc, userErr := bgFs.Collection("users").Doc(userID).Get(bgCtx)
+				pregenerateTier := models.TierFree
+				if userErr == nil {
+					var user models.User
+					if dataErr := userDoc.DataTo(&user); dataErr == nil {
+						pregenerateTier = user.GetCurrentTier()
+					}
+				}
+
+				pregenerateService.TriggerPregeneration(&pathWithOutline, pregenerateTier)
+				if appLogger != nil {
+					logger.Info(appLogger, bgCtx, "pregeneration_triggered_after_outline",
+						slog.String("path_id", pathID),
+						slog.String("user_tier", pregenerateTier),
+					)
+				}
 			}
 		}
-
-		pregenerateService.TriggerPregeneration(&path, pregenerateTier)
-		if appLogger != nil {
-			logger.Info(appLogger, ctx, "pregeneration_triggered_on_create",
-				slog.String("path_id", pathID),
-				slog.String("goal", path.Goal),
-				slog.String("user_tier", userTier),
-			)
-		}
-	}
+	}(pathID, req.Goal, req.Level, userID)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

@@ -30,6 +30,7 @@ import { QuizScreen } from '../screens/QuizScreen';
 import { PracticeScreen } from '../screens/PracticeScreen';
 import { StepScreen } from '../screens/StepScreen';
 import { GeneratingStepScreen } from '../screens/GeneratingStepScreen';
+import { CourseGeneratingScreen } from '../screens/CourseGeneratingScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 
 // Initialize tool registry
@@ -96,6 +97,8 @@ const LearnStack = () => {
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
       <Stack.Screen name="LevelSelection" component={LevelSelectionScreen} />
+      {/* Course generation screen - shows progress while outline is being generated */}
+      <Stack.Screen name="CourseGenerating" component={CourseGeneratingScreen} />
       {/* New: Main timeline view for learning path */}
       <Stack.Screen name="LearningPath" component={LearningPathScreen} />
       {/* Legacy: Redirect to LearningPath for backward compatibility */}

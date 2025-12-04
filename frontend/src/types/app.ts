@@ -85,6 +85,68 @@ export const PathStatuses = {
   DELETED: 'deleted' as PathStatus,
 } as const;
 
+// Outline status constants (must match backend)
+export type OutlineStatus = 'generating' | 'ready' | 'failed';
+
+export const OutlineStatuses = {
+  GENERATING: 'generating' as OutlineStatus,
+  READY: 'ready' as OutlineStatus,
+  FAILED: 'failed' as OutlineStatus,
+} as const;
+
+// Course outline types
+export interface TopicPerformance {
+  score: number;
+  timeSpent: number; // seconds
+  completedAt: number;
+}
+
+export interface OutlineTopic {
+  id: string;
+  title: string;
+  toolId: string; // lesson, quiz, practice, flashcard, etc.
+  estimatedMinutes: number;
+  description: string;
+  prerequisites: string[];
+  status: 'pending' | 'completed' | 'skipped' | 'needs_review';
+  stepId?: string; // Links to generated Step
+  performance?: TopicPerformance;
+}
+
+export interface OutlineModule {
+  id: string;
+  title: string;
+  description: string;
+  estimatedMinutes: number;
+  learningOutcomes: string[];
+  topics: OutlineTopic[];
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+}
+
+export interface OutlineMetadata {
+  difficulty: string;
+  category: string;
+  tags: string[];
+}
+
+export interface CourseOutline {
+  title: string;
+  description: string;
+  estimatedMinutes: number;
+  prerequisites: string[];
+  learningOutcomes: string[];
+  modules: OutlineModule[];
+  metadata: OutlineMetadata;
+  generatedAt: number;
+}
+
+export interface OutlinePosition {
+  moduleIndex: number;
+  topicIndex: number;
+  moduleId: string;
+  topicId: string;
+}
+
 // Learning Path - represents a single learning journey
 export interface LearningPath {
   id: string;
@@ -92,11 +154,15 @@ export interface LearningPath {
   level: LevelType;
   emoji: string;
   status?: PathStatus; // Path status: active, completed, archived, deleted
+  outlineStatus?: OutlineStatus; // Outline generation status
   progress: number; // 0-100
   lessonsCompleted: number;
   totalLessons: number;
   steps: Step[]; // All steps (completed and current)
   memory: Memory;
+  // Course outline - auto-generated curriculum structure
+  outline?: CourseOutline;
+  outlinePosition?: OutlinePosition;
   createdAt: number;
   updatedAt: number;
   lastAccessedAt: number;

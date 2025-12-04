@@ -8,6 +8,8 @@ export type RootStackParamList = {
   Main: undefined;
   Learn: undefined;
   Home: undefined;
+  // Course generation screen - shows progress while outline is being generated
+  CourseGenerating: { pathId: string };
   // New: Main learning path timeline view
   LearningPath: { pathId: string };
   // Legacy: Old session screen (redirect to LearningPath)
