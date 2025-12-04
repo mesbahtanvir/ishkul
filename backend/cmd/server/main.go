@@ -97,9 +97,10 @@ func main() {
 	// Setup router
 	mux := http.NewServeMux()
 
-	// Wrap mux with logging middleware
+	// Wrap mux with middleware stack (order matters: body limit -> logging)
 	var handler http.Handler = mux
 	handler = middleware.LoggingMiddleware(appLogger)(handler)
+	handler = middleware.BodyLimit(handler) // Prevent DoS via large request bodies
 
 	logger.Info(appLogger, ctx, "router_setup_complete")
 
@@ -196,13 +197,14 @@ func main() {
 		port = "8080"
 	}
 
-	// Create server
+	// Create server with security settings
 	srv := &http.Server{
-		Addr:         ":" + port,
-		Handler:      handler,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:           ":" + port,
+		Handler:        handler,
+		ReadTimeout:    15 * time.Second,
+		WriteTimeout:   15 * time.Second,
+		IdleTimeout:    60 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1 MB max header size (prevents header-based DoS)
 	}
 
 	// Start server in goroutine
