@@ -2,7 +2,7 @@ name: Deploy Backend to Staging
 
 # STAGING DEPLOYMENT
 # Triggered on pushes to main branch
-# Uses a separate Cloud Run service for staging environment
+# Uses the reusable workflow for consistent deployment architecture
 
 on:
   push:
@@ -13,159 +13,78 @@ on:
       - 'cloudbuild.yaml'
       - '.dockerignore'
       - '.github/workflows/deploy-backend-staging.yml'
+      - '.github/workflows/deploy-backend-reusable.yml'
   workflow_dispatch:  # Allow manual trigger
 
 # Only one staging deployment at a time
+# New pushes cancel in-progress deployments
 concurrency:
   group: staging-deploy
   cancel-in-progress: true
 
-env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GCP_REGION: northamerica-northeast2
-  SERVICE_NAME: ishkul-backend-staging
-  IMAGE_NAME: ishkul-backend
-
 jobs:
-  build-and-deploy-staging:
-    name: Build and Deploy to Staging
+  prepare:
+    name: Prepare Staging Config
     runs-on: ubuntu-latest
-
-    # Use GitHub Environment for staging
-    environment:
-      name: staging
-      url: https://ishkul-backend-staging-${{ secrets.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app
-
-    permissions:
-      contents: read
-      id-token: write
+    outputs:
+      image_tag: ${{ steps.config.outputs.image_tag }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker for GCP Artifact Registry
+      - name: Generate configuration
+        id: config
         run: |
-          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
-
-      - name: Build Docker image
-        run: |
-          REGISTRY="${{ env.GCP_REGION }}-docker.pkg.dev"
           SHORT_SHA="${{ github.sha }}"
           SHORT_SHA="${SHORT_SHA:0:7}"
+          echo "image_tag=staging-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
-          IMAGE_TAG="${REGISTRY}/${{ env.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:staging-${SHORT_SHA}"
-          STAGING_LATEST="${REGISTRY}/${{ env.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:staging-latest"
+  deploy:
+    name: Deploy Staging
+    needs: prepare
+    uses: ./.github/workflows/deploy-backend-reusable.yml
+    with:
+      environment: staging
+      service_name: ishkul-backend-staging
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+      collection_prefix: 'staging_'
+      min_instances: 0
+      max_instances: 10
+      memory: '512Mi'
+      cpu: 1
+      stripe_mode: 'test'
+    secrets:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+      FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+      GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+      GOOGLE_ANDROID_CLIENT_ID: ${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}
+      STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+      STRIPE_TEST_WEBHOOK_SECRET: ${{ secrets.STRIPE_TEST_WEBHOOK_SECRET }}
+      STRIPE_TEST_PRO_PRICE_ID: ${{ secrets.STRIPE_TEST_PRO_PRICE_ID }}
+      APP_URL: ${{ secrets.APP_URL }}
 
-          echo "Building image: $IMAGE_TAG"
-          docker build -t "$IMAGE_TAG" -t "$STAGING_LATEST" -f backend/Dockerfile .
+  summary:
+    name: Deployment Summary
+    needs: [prepare, deploy]
+    runs-on: ubuntu-latest
 
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-          echo "STAGING_LATEST=$STAGING_LATEST" >> $GITHUB_ENV
-
-      - name: Push Docker image to Artifact Registry
-        run: |
-          docker push ${{ env.IMAGE_TAG }}
-          docker push ${{ env.STAGING_LATEST }}
-
-      - name: Prepare environment variables
-        run: |
-          # Create env vars YAML file for staging
-          cat > /tmp/env-vars.yaml << 'ENVEOF'
-          ENVIRONMENT: staging
-          FIRESTORE_COLLECTION_PREFIX: "staging_"
-          FIREBASE_DATABASE_URL: "${{ secrets.FIREBASE_DATABASE_URL }}"
-          FIREBASE_STORAGE_BUCKET: "${{ secrets.FIREBASE_STORAGE_BUCKET }}"
-          ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:8081,http://localhost:19006,https://ishkul.vercel.app,https://ishkul.org,https://ishkul-*.vercel.app"
-          ENVEOF
-
-          # Add optional secrets
-          if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
-            echo "OPENAI_API_KEY: \"${{ secrets.OPENAI_API_KEY }}\"" >> /tmp/env-vars.yaml
-          fi
-          if [ -n "${{ secrets.GOOGLE_WEB_CLIENT_ID }}" ]; then
-            echo "GOOGLE_WEB_CLIENT_ID: \"${{ secrets.GOOGLE_WEB_CLIENT_ID }}\"" >> /tmp/env-vars.yaml
-          fi
-          if [ -n "${{ secrets.GOOGLE_IOS_CLIENT_ID }}" ]; then
-            echo "GOOGLE_IOS_CLIENT_ID: \"${{ secrets.GOOGLE_IOS_CLIENT_ID }}\"" >> /tmp/env-vars.yaml
-          fi
-          if [ -n "${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}" ]; then
-            echo "GOOGLE_ANDROID_CLIENT_ID: \"${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}\"" >> /tmp/env-vars.yaml
-          fi
-
-          # Stripe in TEST mode for staging
-          if [ -n "${{ secrets.STRIPE_TEST_SECRET_KEY }}" ]; then
-            echo "STRIPE_SECRET_KEY: \"${{ secrets.STRIPE_TEST_SECRET_KEY }}\"" >> /tmp/env-vars.yaml
-          fi
-          if [ -n "${{ secrets.STRIPE_TEST_WEBHOOK_SECRET }}" ]; then
-            echo "STRIPE_WEBHOOK_SECRET: \"${{ secrets.STRIPE_TEST_WEBHOOK_SECRET }}\"" >> /tmp/env-vars.yaml
-          fi
-          if [ -n "${{ secrets.STRIPE_TEST_PRO_PRICE_ID }}" ]; then
-            echo "STRIPE_PRO_PRICE_ID: \"${{ secrets.STRIPE_TEST_PRO_PRICE_ID }}\"" >> /tmp/env-vars.yaml
-          fi
-          if [ -n "${{ secrets.APP_URL }}" ]; then
-            echo "APP_URL: \"${{ secrets.APP_URL }}\"" >> /tmp/env-vars.yaml
-          fi
-
-          echo "Env vars file created:"
-          cat /tmp/env-vars.yaml
-
-      - name: Deploy to Cloud Run (Staging)
-        id: deploy
-        run: |
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image=${{ env.IMAGE_TAG }} \
-            --region=${{ env.GCP_REGION }} \
-            --allow-unauthenticated \
-            --project=${{ env.GCP_PROJECT_ID }} \
-            --env-vars-file=/tmp/env-vars.yaml \
-            --min-instances=0 \
-            --max-instances=10 \
-            --memory=512Mi \
-            --cpu=1 \
-            --timeout=300 \
-            --labels="environment=staging"
-
-          # Get the service URL
-          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region=${{ env.GCP_REGION }} \
-            --project=${{ env.GCP_PROJECT_ID }} \
-            --format='value(status.url)')
-
-          echo "staging_url=${SERVICE_URL}" >> $GITHUB_OUTPUT
-
-      - name: Verify deployment
-        run: |
-          echo "Checking health endpoint..."
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ steps.deploy.outputs.staging_url }}/health" || echo "000")
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Health check passed!"
-          else
-            echo "⚠️ Health check returned: $HTTP_CODE (may need warm-up time)"
-          fi
-
-      - name: Deployment Summary
+    steps:
+      - name: Post Summary
         run: |
           echo "## 🎭 Staging Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **URL** | ${{ steps.deploy.outputs.staging_url }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Service** | ${{ env.SERVICE_NAME }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Region** | ${{ env.GCP_REGION }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Image** | ${{ env.IMAGE_TAG }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **URL** | ${{ needs.deploy.outputs.service_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Service** | \`ishkul-backend-staging\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Data Prefix** | \`staging_\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit** | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Stripe** | 🧪 Test Mode |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Environment" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Isolated Firestore data (staging_ prefix)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Stripe TEST mode (if configured)" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment Features" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Isolated Firestore data (\`staging_\` prefix)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Stripe TEST mode (test cards accepted)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ OpenAI enabled for testing" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Can be used for QA before production release" >> $GITHUB_STEP_SUMMARY
