@@ -13,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/mesbahtanvir/ishkul/backend/internal/handlers"
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/crypto"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 )
@@ -53,6 +54,25 @@ func main() {
 	}
 	defer firebase.Cleanup()
 	logger.Info(appLogger, ctx, "firebase_initialized")
+
+	// Initialize encryption for PII protection
+	if err := crypto.InitEncryption(); err != nil {
+		// In production, this is a fatal error
+		if environment == "production" {
+			logger.ErrorWithErr(appLogger, ctx, "encryption_initialization_failed", err)
+			log.Fatalf("Failed to initialize encryption: %v", err)
+		}
+		// In development, just warn - encryption will be disabled
+		logger.Warn(appLogger, ctx, "encryption_disabled",
+			slog.String("reason", err.Error()),
+		)
+	} else if crypto.IsEnabled() {
+		logger.Info(appLogger, ctx, "encryption_initialized")
+	} else {
+		logger.Warn(appLogger, ctx, "encryption_disabled",
+			slog.String("reason", "ENCRYPTION_KEY not set"),
+		)
+	}
 
 	// Initialize LLM components (OpenAI + prompt loader)
 	// Try multiple paths: /app/prompts (Cloud Run), ../prompts (running from backend dir), ./prompts (running from project root)
@@ -98,10 +118,12 @@ func main() {
 	// Setup router
 	mux := http.NewServeMux()
 
-	// Wrap mux with middleware stack (order matters: body limit -> logging)
+	// Wrap mux with middleware stack (order matters: security -> body limit -> logging)
 	var handler http.Handler = mux
 	handler = middleware.LoggingMiddleware(appLogger)(handler)
-	handler = middleware.BodyLimit(handler) // Prevent DoS via large request bodies
+	handler = middleware.BodyLimit(handler)        // Prevent DoS via large request bodies
+	handler = middleware.SecurityHeaders(handler)  // Add security headers (HSTS, CSP, etc.)
+	handler = middleware.SecureRedirect(handler)   // Redirect HTTP to HTTPS in production
 
 	logger.Info(appLogger, ctx, "router_setup_complete")
 

@@ -16,23 +16,33 @@ const (
 )
 
 // Auth middleware validates JWT session tokens
+// It checks for tokens in the following order:
+// 1. Authorization header (Bearer token)
+// 2. HttpOnly cookie (for web clients)
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get token from Authorization header
+		var token string
+
+		// First, try to get token from Authorization header
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, "Authorization header required", http.StatusUnauthorized)
-			return
+		if authHeader != "" {
+			// Extract token from "Bearer <token>"
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				token = parts[1]
+			}
 		}
 
-		// Extract token from "Bearer <token>"
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			http.Error(w, "Invalid authorization header format", http.StatusUnauthorized)
-			return
+		// If no header token, try to get from HttpOnly cookie
+		if token == "" {
+			token = GetAccessTokenFromCookie(r)
 		}
 
-		token := parts[1]
+		// If still no token, reject the request
+		if token == "" {
+			http.Error(w, "Authentication required", http.StatusUnauthorized)
+			return
+		}
 
 		// Validate JWT session token
 		claims, err := auth.ValidateAccessToken(token)

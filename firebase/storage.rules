@@ -1,11 +1,21 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // User uploads - users can only access their own files
     match /uploads/{userId}/{allPaths=**} {
-      allow read: if request.auth != null;
+      // Users can only read their own uploads
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Users can only write to their own folder with size limit
       allow write: if request.auth != null &&
                       request.auth.uid == userId &&
-                      request.resource.size < 10 * 1024 * 1024; // Max 10MB
+                      request.resource.size < 10 * 1024 * 1024 && // Max 10MB
+                      request.resource.contentType.matches('image/.*|application/pdf'); // Only images and PDFs
+    }
+
+    // Public assets (if needed in future)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false; // Only writable via Admin SDK
     }
   }
 }

@@ -8,11 +8,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	firebaseauth "firebase.google.com/go/v4/auth"
 	"github.com/mesbahtanvir/ishkul/backend/internal/auth"
+	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"google.golang.org/api/idtoken"
@@ -68,6 +71,89 @@ const (
 	ErrCodePathArchived  = "PATH_ARCHIVED"
 	ErrCodePathDeleted   = "PATH_DELETED"
 )
+
+// Password requirements
+const (
+	MinPasswordLength = 12
+	MaxPasswordLength = 128
+)
+
+// emailRegex is a simple regex for basic email format validation
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+
+// PasswordValidationResult contains the result of password validation
+type PasswordValidationResult struct {
+	Valid    bool
+	Message  string
+	Feedback []string
+}
+
+// validatePassword checks if a password meets security requirements:
+// - Minimum 12 characters
+// - Maximum 128 characters
+// - At least one uppercase letter
+// - At least one lowercase letter
+// - At least one digit
+// - At least one special character
+func validatePassword(password string) PasswordValidationResult {
+	var feedback []string
+
+	// Check length
+	if len(password) < MinPasswordLength {
+		feedback = append(feedback, fmt.Sprintf("at least %d characters", MinPasswordLength))
+	}
+	if len(password) > MaxPasswordLength {
+		return PasswordValidationResult{
+			Valid:   false,
+			Message: fmt.Sprintf("Password must be at most %d characters", MaxPasswordLength),
+		}
+	}
+
+	var hasUpper, hasLower, hasDigit, hasSpecial bool
+	for _, char := range password {
+		switch {
+		case unicode.IsUpper(char):
+			hasUpper = true
+		case unicode.IsLower(char):
+			hasLower = true
+		case unicode.IsDigit(char):
+			hasDigit = true
+		case unicode.IsPunct(char) || unicode.IsSymbol(char):
+			hasSpecial = true
+		}
+	}
+
+	if !hasUpper {
+		feedback = append(feedback, "one uppercase letter")
+	}
+	if !hasLower {
+		feedback = append(feedback, "one lowercase letter")
+	}
+	if !hasDigit {
+		feedback = append(feedback, "one number")
+	}
+	if !hasSpecial {
+		feedback = append(feedback, "one special character (!@#$%^&*)")
+	}
+
+	if len(feedback) > 0 {
+		return PasswordValidationResult{
+			Valid:    false,
+			Message:  "Password must contain: " + strings.Join(feedback, ", "),
+			Feedback: feedback,
+		}
+	}
+
+	return PasswordValidationResult{Valid: true}
+}
+
+// validateEmail checks if an email address has a valid format
+func validateEmail(email string) bool {
+	if len(email) > 254 {
+		return false
+	}
+	return emailRegex.MatchString(email)
+}
 
 // sendErrorResponse sends a structured JSON error response
 func sendErrorResponse(w http.ResponseWriter, statusCode int, code string, message string) {
@@ -186,7 +272,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send response
+	// Set HttpOnly cookies for web clients
+	// These cookies provide XSS protection by being inaccessible to JavaScript
+	middleware.SetAccessTokenCookie(w, tokenPair.AccessToken, auth.AccessTokenExpiry)
+	middleware.SetRefreshTokenCookie(w, tokenPair.RefreshToken, auth.RefreshTokenExpiry)
+
+	// Send JSON response (for mobile clients and backwards compatibility)
 	response := LoginResponse{
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
@@ -219,8 +310,16 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.Password) < 6 {
-		sendErrorResponse(w, http.StatusBadRequest, ErrCodeWeakPassword, "Password must be at least 6 characters")
+	// Validate email format
+	if !validateEmail(req.Email) {
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodeInvalidEmail, "Please enter a valid email address")
+		return
+	}
+
+	// Validate password strength
+	passwordResult := validatePassword(req.Password)
+	if !passwordResult.Valid {
+		sendErrorResponse(w, http.StatusBadRequest, ErrCodeWeakPassword, passwordResult.Message)
 		return
 	}
 
@@ -270,7 +369,11 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send response
+	// Set HttpOnly cookies for web clients
+	middleware.SetAccessTokenCookie(w, tokenPair.AccessToken, auth.AccessTokenExpiry)
+	middleware.SetRefreshTokenCookie(w, tokenPair.RefreshToken, auth.RefreshTokenExpiry)
+
+	// Send JSON response
 	response := LoginResponse{
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
@@ -436,6 +539,8 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
+
 	var req RefreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendErrorResponse(w, http.StatusBadRequest, ErrCodeInvalidRequest, "Invalid request format")
@@ -447,20 +552,33 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate and refresh tokens
-	tokenPair, err := auth.RefreshTokens(req.RefreshToken)
+	// Get blacklist for token validation
+	var blacklist *auth.TokenBlacklist
+	fs := firebase.GetFirestore()
+	if fs != nil {
+		blacklist = auth.NewTokenBlacklist(fs)
+	}
+
+	// Validate and refresh tokens with blacklist check
+	tokenPair, err := auth.RefreshTokensWithBlacklist(ctx, req.RefreshToken, blacklist)
 	if err != nil {
 		switch err {
 		case auth.ErrExpiredToken:
 			sendErrorResponse(w, http.StatusUnauthorized, ErrCodeTokenExpired, "Session expired. Please sign in again.")
 		case auth.ErrInvalidToken, auth.ErrInvalidTokenType:
 			sendErrorResponse(w, http.StatusUnauthorized, ErrCodeInvalidToken, "Session expired. Please sign in again.")
+		case auth.ErrTokenBlacklisted:
+			sendErrorResponse(w, http.StatusUnauthorized, ErrCodeInvalidToken, "Session has been revoked. Please sign in again.")
 		default:
 			// Log the actual error server-side, but don't expose to client
 			sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to refresh session. Please sign in again.")
 		}
 		return
 	}
+
+	// Set HttpOnly cookies for web clients
+	middleware.SetAccessTokenCookie(w, tokenPair.AccessToken, auth.AccessTokenExpiry)
+	middleware.SetRefreshTokenCookie(w, tokenPair.RefreshToken, auth.RefreshTokenExpiry)
 
 	response := RefreshResponse{
 		AccessToken:  tokenPair.AccessToken,
@@ -475,19 +593,51 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Logout handles user logout (client-side token deletion)
-// In a production system, you might want to blacklist the refresh token
+// LogoutRequest represents the logout request body
+type LogoutRequest struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+// Logout handles user logout by blacklisting the refresh token and clearing cookies
 func Logout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// For now, logout is handled client-side by deleting tokens
-	// In production, you could:
-	// 1. Add the refresh token to a blacklist
-	// 2. Store refresh tokens in database and delete on logout
-	// 3. Use short-lived access tokens only
+	ctx := r.Context()
+
+	var refreshToken string
+
+	// Try to get refresh token from request body
+	var req LogoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err == nil && req.RefreshToken != "" {
+		refreshToken = req.RefreshToken
+	}
+
+	// If no token in body, try to get from cookie
+	if refreshToken == "" {
+		refreshToken = middleware.GetRefreshTokenFromCookie(r)
+	}
+
+	// If refresh token found, blacklist it
+	if refreshToken != "" {
+		// Validate token to get claims (expiration time)
+		claims, err := auth.ValidateRefreshToken(refreshToken)
+		if err == nil && claims != nil {
+			// Get Firestore client for blacklist
+			fs := firebase.GetFirestore()
+			if fs != nil {
+				blacklist := auth.NewTokenBlacklist(fs)
+				expiresAt := claims.ExpiresAt.Time
+				// Blacklist the token - ignore errors (best effort)
+				_ = blacklist.BlacklistToken(ctx, refreshToken, claims.UserID, expiresAt, auth.RevocationReasonLogout)
+			}
+		}
+	}
+
+	// Clear auth cookies (for web clients)
+	middleware.ClearAuthCookies(w)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]string{

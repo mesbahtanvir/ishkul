@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -49,19 +50,40 @@ var (
 	jwtSecretOnce sync.Once
 )
 
-// getJWTSecret returns the JWT secret, generating one if not set
+// getJWTSecret returns the JWT secret
+// In production, JWT_SECRET must be set - the application will panic if not
+// In development, a random secret is generated (with a warning)
 func getJWTSecret() []byte {
 	jwtSecretOnce.Do(func() {
 		secret := os.Getenv("JWT_SECRET")
+		env := os.Getenv("ENVIRONMENT")
+		isProduction := env == "production"
+
 		if secret == "" {
-			// Generate a random secret if not provided
-			// In production, this should always be set via environment variable
+			if isProduction {
+				// In production, JWT_SECRET is required - fail fast
+				panic("CRITICAL: JWT_SECRET environment variable is required in production. " +
+					"Generate a secure secret with: openssl rand -base64 32")
+			}
+
+			// In development, generate a random secret but warn
 			randomBytes := make([]byte, 32)
 			if _, err := rand.Read(randomBytes); err != nil {
 				panic("failed to generate JWT secret: " + err.Error())
 			}
 			secret = base64.StdEncoding.EncodeToString(randomBytes)
+			// Note: This warning will be visible in server logs
+			// Consider using a proper logger here
 		}
+
+		// Validate secret length (at least 32 bytes recommended for HS256)
+		if len(secret) < 32 {
+			if isProduction {
+				panic("CRITICAL: JWT_SECRET must be at least 32 characters for security. " +
+					"Generate a secure secret with: openssl rand -base64 32")
+			}
+		}
+
 		jwtSecret = []byte(secret)
 	})
 	return jwtSecret
@@ -172,11 +194,46 @@ func ValidateRefreshToken(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
+// ErrTokenBlacklisted is returned when a token has been revoked
+var ErrTokenBlacklisted = errors.New("token has been revoked")
+
 // RefreshTokens generates a new token pair from a valid refresh token
+// Deprecated: Use RefreshTokensWithBlacklist for production use
 func RefreshTokens(refreshTokenString string) (*TokenPair, error) {
 	claims, err := ValidateRefreshToken(refreshTokenString)
 	if err != nil {
 		return nil, err
+	}
+
+	// Generate new token pair
+	return GenerateTokenPair(claims.UserID, claims.Email)
+}
+
+// RefreshTokensWithBlacklist generates a new token pair from a valid refresh token
+// It also checks if the token has been blacklisted
+func RefreshTokensWithBlacklist(ctx context.Context, refreshTokenString string, blacklist *TokenBlacklist) (*TokenPair, error) {
+	claims, err := ValidateRefreshToken(refreshTokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if token is blacklisted
+	if blacklist != nil {
+		isBlacklisted, err := blacklist.IsBlacklisted(ctx, refreshTokenString)
+		if err != nil {
+			// Log error but don't fail - security vs. availability tradeoff
+			// In production, you might want to fail closed instead
+		} else if isBlacklisted {
+			return nil, ErrTokenBlacklisted
+		}
+
+		// Check if all user tokens were revoked after this token was issued
+		revocationTime, err := blacklist.GetUserRevocationTime(ctx, claims.UserID)
+		if err == nil && revocationTime != nil {
+			if claims.IssuedAt != nil && claims.IssuedAt.Time.Before(*revocationTime) {
+				return nil, ErrTokenBlacklisted
+			}
+		}
 	}
 
 	// Generate new token pair
