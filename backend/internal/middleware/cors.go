@@ -13,15 +13,29 @@ const defaultAllowedOrigins = "http://localhost:3000,http://localhost:8081,http:
 // Production allowed origins (only ishkul.org domains)
 const productionAllowedOrigins = "https://ishkul.org,https://www.ishkul.org"
 
+// Staging allowed origins
+const stagingAllowedOrigins = "https://staging.ishkul.org"
+
 // isProductionEnvironment checks if running in production
 func isProductionEnvironment() bool {
 	env := os.Getenv("ENVIRONMENT")
 	return env == "production"
 }
 
+// isStagingEnvironment checks if running in staging
+func isStagingEnvironment() bool {
+	env := os.Getenv("ENVIRONMENT")
+	return env == "staging"
+}
+
 // isProductionDomain checks if the origin is the production ishkul.org domain
 func isProductionDomain(origin string) bool {
 	return origin == "https://ishkul.org" || origin == "https://www.ishkul.org"
+}
+
+// isStagingDomain checks if the origin is the staging ishkul.org domain
+func isStagingDomain(origin string) bool {
+	return origin == "https://staging.ishkul.org"
 }
 
 // isVercelPreviewDomain checks if the origin is a Vercel preview deployment
@@ -67,6 +81,7 @@ func CORS(next http.Handler) http.Handler {
 		if origin != "" {
 			allowed := false
 			isProduction := isProductionEnvironment()
+			isStaging := isStagingEnvironment()
 
 			// Normalize origin by removing trailing slash for comparison
 			normalizedOrigin := strings.TrimSuffix(origin, "/")
@@ -77,8 +92,14 @@ func CORS(next http.Handler) http.Handler {
 					allowed = true
 					log.Printf("[CORS] Production: Allowing origin: %s", origin)
 				}
+			} else if isStaging {
+				// STAGING: Only allow staging.ishkul.org
+				if isStagingDomain(normalizedOrigin) {
+					allowed = true
+					log.Printf("[CORS] Staging: Allowing origin: %s", origin)
+				}
 			} else {
-				// NON-PRODUCTION (PR deployments, development):
+				// DEVELOPMENT (PR deployments, local development):
 				// Allow Vercel preview domains + localhost for development
 
 				// Check Vercel preview domains
@@ -91,6 +112,12 @@ func CORS(next http.Handler) http.Handler {
 				if !allowed && isProductionDomain(normalizedOrigin) {
 					allowed = true
 					log.Printf("[CORS] Preview: Allowing production domain: %s", origin)
+				}
+
+				// Check staging domain (also allowed in preview for testing)
+				if !allowed && isStagingDomain(normalizedOrigin) {
+					allowed = true
+					log.Printf("[CORS] Preview: Allowing staging domain: %s", origin)
 				}
 
 				// Check localhost/development origins
@@ -117,7 +144,7 @@ func CORS(next http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Vary", "Origin")
 			} else {
-				log.Printf("[CORS] Rejected origin: %s (production=%v)", origin, isProduction)
+				log.Printf("[CORS] Rejected origin: %s (production=%v, staging=%v)", origin, isProduction, isStaging)
 			}
 		}
 

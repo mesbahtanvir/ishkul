@@ -111,6 +111,92 @@ func TestIsProductionDomain(t *testing.T) {
 	}
 }
 
+func TestIsStagingEnvironment(t *testing.T) {
+	originalEnv := os.Getenv("ENVIRONMENT")
+	defer os.Setenv("ENVIRONMENT", originalEnv)
+
+	tests := []struct {
+		name     string
+		envValue string
+		expected bool
+	}{
+		{
+			name:     "staging environment",
+			envValue: "staging",
+			expected: true,
+		},
+		{
+			name:     "production environment",
+			envValue: "production",
+			expected: false,
+		},
+		{
+			name:     "development environment",
+			envValue: "development",
+			expected: false,
+		},
+		{
+			name:     "empty environment",
+			envValue: "",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			os.Setenv("ENVIRONMENT", tt.envValue)
+			result := isStagingEnvironment()
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsStagingDomain(t *testing.T) {
+	tests := []struct {
+		name     string
+		origin   string
+		expected bool
+	}{
+		{
+			name:     "staging.ishkul.org",
+			origin:   "https://staging.ishkul.org",
+			expected: true,
+		},
+		{
+			name:     "http staging.ishkul.org",
+			origin:   "http://staging.ishkul.org",
+			expected: false,
+		},
+		{
+			name:     "production domain",
+			origin:   "https://ishkul.org",
+			expected: false,
+		},
+		{
+			name:     "www staging subdomain",
+			origin:   "https://www.staging.ishkul.org",
+			expected: false,
+		},
+		{
+			name:     "vercel domain",
+			origin:   "https://ishkul.vercel.app",
+			expected: false,
+		},
+		{
+			name:     "other domain",
+			origin:   "https://example.com",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isStagingDomain(tt.origin)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestCORSMiddleware(t *testing.T) {
 	// Ensure non-production environment for these tests
 	originalEnv := os.Getenv("ENVIRONMENT")
@@ -356,6 +442,10 @@ func TestCORSDefaultAllowedOrigins(t *testing.T) {
 		assert.Contains(t, productionAllowedOrigins, "https://www.ishkul.org")
 		assert.NotContains(t, productionAllowedOrigins, "vercel.app")
 	})
+
+	t.Run("staging origins constant is correct", func(t *testing.T) {
+		assert.Contains(t, stagingAllowedOrigins, "https://staging.ishkul.org")
+	})
 }
 
 func TestCORSProductionEnvironment(t *testing.T) {
@@ -383,6 +473,20 @@ func TestCORSProductionEnvironment(t *testing.T) {
 		rr = httptest.NewRecorder()
 		CORS(handler).ServeHTTP(rr, req)
 		assert.Equal(t, "https://www.ishkul.org", rr.Header().Get("Access-Control-Allow-Origin"))
+	})
+
+	t.Run("production rejects staging.ishkul.org", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "production")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Origin", "https://staging.ishkul.org")
+		rr := httptest.NewRecorder()
+		CORS(handler).ServeHTTP(rr, req)
+		assert.Empty(t, rr.Header().Get("Access-Control-Allow-Origin"), "Staging domain should be rejected in production")
 	})
 
 	t.Run("production rejects Vercel preview domains", func(t *testing.T) {
@@ -456,6 +560,89 @@ func TestCORSProductionEnvironment(t *testing.T) {
 		rr := httptest.NewRecorder()
 		CORS(handler).ServeHTTP(rr, req)
 		assert.Equal(t, "https://ishkul.org", rr.Header().Get("Access-Control-Allow-Origin"))
+	})
+
+	t.Run("development allows staging domain", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "development")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Origin", "https://staging.ishkul.org")
+		rr := httptest.NewRecorder()
+		CORS(handler).ServeHTTP(rr, req)
+		assert.Equal(t, "https://staging.ishkul.org", rr.Header().Get("Access-Control-Allow-Origin"))
+	})
+}
+
+func TestCORSStagingEnvironment(t *testing.T) {
+	// Save and restore original environment
+	originalEnv := os.Getenv("ENVIRONMENT")
+	defer os.Setenv("ENVIRONMENT", originalEnv)
+
+	t.Run("staging allows only staging.ishkul.org", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "staging")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Origin", "https://staging.ishkul.org")
+		rr := httptest.NewRecorder()
+		CORS(handler).ServeHTTP(rr, req)
+		assert.Equal(t, "https://staging.ishkul.org", rr.Header().Get("Access-Control-Allow-Origin"))
+	})
+
+	t.Run("staging rejects production domain ishkul.org", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "staging")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Origin", "https://ishkul.org")
+		rr := httptest.NewRecorder()
+		CORS(handler).ServeHTTP(rr, req)
+		assert.Empty(t, rr.Header().Get("Access-Control-Allow-Origin"), "Production domain should be rejected in staging")
+	})
+
+	t.Run("staging rejects Vercel preview domains", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "staging")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		vercelOrigins := []string{
+			"https://ishkul.vercel.app",
+			"https://ishkul-abc123.vercel.app",
+		}
+
+		for _, origin := range vercelOrigins {
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req.Header.Set("Origin", origin)
+			rr := httptest.NewRecorder()
+			CORS(handler).ServeHTTP(rr, req)
+			assert.Empty(t, rr.Header().Get("Access-Control-Allow-Origin"), "Vercel domain %s should be rejected in staging", origin)
+		}
+	})
+
+	t.Run("staging rejects localhost", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "staging")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Origin", "http://localhost:3000")
+		rr := httptest.NewRecorder()
+		CORS(handler).ServeHTTP(rr, req)
+		assert.Empty(t, rr.Header().Get("Access-Control-Allow-Origin"), "Localhost should be rejected in staging")
 	})
 }
 
