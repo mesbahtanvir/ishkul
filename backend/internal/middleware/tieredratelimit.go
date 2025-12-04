@@ -117,16 +117,16 @@ func defaultEndpointTiers() map[string]EndpointTier {
 		"/health": TierHealth,
 
 		// Auth endpoints - stricter limits
-		"/api/auth/":    TierAuth,
-		"/api/auth/login": TierAuth,
+		"/api/auth/":         TierAuth,
+		"/api/auth/login":    TierAuth,
 		"/api/auth/register": TierAuth,
-		"/api/auth/refresh": TierAuth,
-		"/api/auth/logout": TierAuth,
+		"/api/auth/refresh":  TierAuth,
+		"/api/auth/logout":   TierAuth,
 
 		// Expensive operations - very strict limits
-		"/api/me/next-step":     TierExpensive, // LLM operations
-		"/api/learning-paths":   TierExpensive, // May involve LLM
-		"/api/learning-paths/":  TierExpensive,
+		"/api/me/next-step":    TierExpensive, // LLM operations
+		"/api/learning-paths":  TierExpensive, // May involve LLM
+		"/api/learning-paths/": TierExpensive,
 
 		// Webhooks - higher limits for third-party services
 		"/api/webhooks/":       TierWebhook,

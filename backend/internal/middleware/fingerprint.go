@@ -28,9 +28,9 @@ type RequestFingerprinter struct {
 }
 
 type fingerprintRecord struct {
-	ips       map[string]bool
-	limiter   *rate.Limiter
-	lastSeen  time.Time
+	ips          map[string]bool
+	limiter      *rate.Limiter
+	lastSeen     time.Time
 	requestCount int64
 }
 
@@ -38,7 +38,7 @@ type fingerprintRecord struct {
 func NewRequestFingerprinter() *RequestFingerprinter {
 	rf := &RequestFingerprinter{
 		fingerprints:              make(map[string]*fingerprintRecord),
-		suspiciousAgents:         defaultSuspiciousAgents(),
+		suspiciousAgents:          defaultSuspiciousAgents(),
 		maxRequestsPerFingerprint: int64(getEnvInt("FINGERPRINT_MAX_REQUESTS", 100)),
 		fingerprintWindow:         time.Duration(getEnvInt("FINGERPRINT_WINDOW_MINUTES", 5)) * time.Minute,
 		suspiciousThreshold:       getEnvInt("FINGERPRINT_SUSPICIOUS_THRESHOLD", 10),
@@ -56,8 +56,8 @@ func NewRequestFingerprinter() *RequestFingerprinter {
 func defaultSuspiciousAgents() map[string]bool {
 	return map[string]bool{
 		// Empty or missing
-		"":      true,
-		"-":     true,
+		"":  true,
+		"-": true,
 
 		// Known attack tools (legitimate pentest tools, but block in production)
 		"python-requests": true,
@@ -68,21 +68,21 @@ func defaultSuspiciousAgents() map[string]bool {
 		"postman":         true, // Usually fine, but can be used for attacks
 
 		// Common bot patterns
-		"bot":      true,
-		"crawler":  true,
-		"spider":   true,
-		"scraper":  true,
+		"bot":     true,
+		"crawler": true,
+		"spider":  true,
+		"scraper": true,
 
 		// Suspicious patterns
-		"scanner":    true,
-		"nikto":      true,
-		"sqlmap":     true,
-		"nmap":       true,
-		"masscan":    true,
-		"zap":        true,
-		"burp":       true,
-		"acunetix":   true,
-		"nessus":     true,
+		"scanner":  true,
+		"nikto":    true,
+		"sqlmap":   true,
+		"nmap":     true,
+		"masscan":  true,
+		"zap":      true,
+		"burp":     true,
+		"acunetix": true,
+		"nessus":   true,
 	}
 }
 

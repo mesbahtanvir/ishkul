@@ -97,7 +97,7 @@ func TestRequestFingerprinter_RecordRequest(t *testing.T) {
 func TestRequestFingerprinter_DistributedAttackDetection(t *testing.T) {
 	rf := &RequestFingerprinter{
 		fingerprints:              make(map[string]*fingerprintRecord),
-		suspiciousAgents:         defaultSuspiciousAgents(),
+		suspiciousAgents:          defaultSuspiciousAgents(),
 		maxRequestsPerFingerprint: 100,
 		fingerprintWindow:         300000000000, // 5 minutes
 		suspiciousThreshold:       3,            // Lower threshold for testing
@@ -188,9 +188,9 @@ func TestRequestFingerprinter_FingerprintMiddleware(t *testing.T) {
 func TestRequestFingerprinter_AllowRateLimiting(t *testing.T) {
 	rf := &RequestFingerprinter{
 		fingerprints:              make(map[string]*fingerprintRecord),
-		suspiciousAgents:         make(map[string]bool),
-		maxRequestsPerFingerprint: 100,              // High limit
-		fingerprintWindow:         5 * time.Minute,  // Use proper time.Duration
+		suspiciousAgents:          make(map[string]bool),
+		maxRequestsPerFingerprint: 100,             // High limit
+		fingerprintWindow:         5 * time.Minute, // Use proper time.Duration
 		suspiciousThreshold:       100,
 	}
 

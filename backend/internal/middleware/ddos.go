@@ -124,7 +124,7 @@ func (d *DDoSProtection) Stats() map[string]interface{} {
 
 	return map[string]interface{}{
 		"ip_blocker": map[string]interface{}{
-			"blocked_ips":   blockedCount,
+			"blocked_ips":        blockedCount,
 			"pending_violations": violationCount,
 		},
 		"circuit_breaker": d.CircuitBreaker.Stats(),

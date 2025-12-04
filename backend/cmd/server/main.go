@@ -206,11 +206,11 @@ func main() {
 	srv := &http.Server{
 		Addr:              ":" + port,
 		Handler:           handler,
-		ReadTimeout:       15 * time.Second,                  // Max time to read request (prevents slowloris)
-		ReadHeaderTimeout: 5 * time.Second,                   // Max time to read headers (prevents slow header attacks)
-		WriteTimeout:      15 * time.Second,                  // Max time to write response
-		IdleTimeout:       30 * time.Second,                  // Reduced from 60s for better connection turnover
-		MaxHeaderBytes:    1 << 20,                           // 1 MB max header size (prevents header-based DoS)
+		ReadTimeout:       15 * time.Second, // Max time to read request (prevents slowloris)
+		ReadHeaderTimeout: 5 * time.Second,  // Max time to read headers (prevents slow header attacks)
+		WriteTimeout:      15 * time.Second, // Max time to write response
+		IdleTimeout:       30 * time.Second, // Reduced from 60s for better connection turnover
+		MaxHeaderBytes:    1 << 20,          // 1 MB max header size (prevents header-based DoS)
 	}
 
 	// Start server in goroutine
