@@ -108,7 +108,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
           <Text style={[styles.planPeriod, { color: colors.text.secondary }]}>forever</Text>
 
           <View style={styles.featureList}>
-            <FeatureItem text="2 active learning paths" colors={colors} />
+            <FeatureItem text="2 active tracks" colors={colors} />
             <FeatureItem text="100 steps per day" colors={colors} />
             <FeatureItem text="GPT-4o-mini AI model" colors={colors} />
             <FeatureItem text="Lesson and Quiz content" colors={colors} />
@@ -141,7 +141,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
           </View>
 
           <View style={styles.featureList}>
-            <FeatureItem text="5 active learning paths" colors={colors} highlight />
+            <FeatureItem text="5 active tracks" colors={colors} highlight />
             <FeatureItem text="1,000 steps per day" colors={colors} highlight />
             <FeatureItem text="GPT-5 Pro AI model" colors={colors} highlight />
             <FeatureItem text="All content types" colors={colors} />

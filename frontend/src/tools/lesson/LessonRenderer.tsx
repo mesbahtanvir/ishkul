@@ -28,7 +28,7 @@ export const LessonRenderer: React.FC<ToolRendererProps<LessonData>> = ({
       </Card>
 
       <Button
-        title="I Understand →"
+        title="Got It →"
         onPress={handleComplete}
         loading={context.isCompleting}
       />

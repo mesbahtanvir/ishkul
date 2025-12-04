@@ -78,7 +78,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       }
     } catch (error) {
       console.error('Error loading learning path:', error);
-      Alert.alert('Error', 'Failed to load learning path. Please try again.');
+      Alert.alert('Error', 'Failed to load track. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -226,7 +226,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
             Path Not Found
           </Text>
           <Text style={[styles.errorText, { color: colors.ios.gray }]}>
-            Unable to load this learning path.
+            Unable to load this track.
           </Text>
           <Button title="Go Back" onPress={handleBack} />
         </View>
@@ -345,7 +345,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
                 Congratulations!
               </Text>
               <Text style={[styles.completedText, { color: colors.text.secondary }]}>
-                You&apos;ve completed this learning path!
+                You&apos;ve completed this track!
               </Text>
               <View style={[styles.completedBadge, { backgroundColor: colors.success + '20' }]}>
                 <Text style={[styles.completedBadgeText, { color: colors.success }]}>
@@ -404,7 +404,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
         <View style={[styles.buttonContainer, { backgroundColor: colors.background.primary }]}>
           {isPathCompleted ? (
             <Button
-              title="Start New Learning Path"
+              title="Start New Track"
               onPress={handleStartNewPath}
             />
           ) : isPathArchived ? (

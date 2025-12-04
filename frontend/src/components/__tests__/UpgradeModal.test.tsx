@@ -93,7 +93,7 @@ describe('UpgradeModal', () => {
 
     it('should render default features', () => {
       const { getByText } = render(<UpgradeModal />);
-      expect(getByText('5 active learning paths')).toBeTruthy();
+      expect(getByText('5 active tracks')).toBeTruthy();
       expect(getByText('1,000 steps per day')).toBeTruthy();
       expect(getByText('GPT-5 Pro AI model')).toBeTruthy();
       expect(getByText('Priority generation')).toBeTruthy();
@@ -126,17 +126,17 @@ describe('UpgradeModal', () => {
 
     it('should render path limit title', () => {
       const { getByText } = render(<UpgradeModal />);
-      expect(getByText('Learning Path Limit Reached')).toBeTruthy();
+      expect(getByText('Track Limit Reached')).toBeTruthy();
     });
 
     it('should render path limit message', () => {
       const { getByText } = render(<UpgradeModal />);
-      expect(getByText(/You've reached the free limit of 2 active learning paths/)).toBeTruthy();
+      expect(getByText(/You've reached the free limit of 2 active tracks/)).toBeTruthy();
     });
 
     it('should render path limit features', () => {
       const { getByText } = render(<UpgradeModal />);
-      expect(getByText('5 active learning paths')).toBeTruthy();
+      expect(getByText('5 active tracks')).toBeTruthy();
       expect(getByText('1,000 steps per day')).toBeTruthy();
       expect(getByText('GPT-5 Pro AI model')).toBeTruthy();
     });
@@ -293,7 +293,7 @@ describe('UpgradeModal', () => {
       });
       const { getByText } = render(<UpgradeModal />);
       // Should fall back to default values
-      expect(getByText(/You've reached the free limit of 2 active learning paths/)).toBeTruthy();
+      expect(getByText(/You've reached the free limit of 2 active tracks/)).toBeTruthy();
     });
 
     it('should handle null limits for step_limit reason', () => {

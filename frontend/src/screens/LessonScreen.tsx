@@ -154,7 +154,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({
         </Card>
 
           <Button
-            title="I Understand →"
+            title="Got It →"
             onPress={handleUnderstand}
             loading={loading}
           />

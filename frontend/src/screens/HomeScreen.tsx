@@ -39,21 +39,21 @@ const EMPTY_STATES: Record<TabValue, EmptyStateConfig> = {
   active: {
     emoji: '📚',
     title: 'Start Your Learning Journey',
-    subtitle: 'Create your first learning path and begin mastering new skills!',
-    actionLabel: 'Create Path',
+    subtitle: 'Create your first track and begin mastering new skills!',
+    actionLabel: 'Create Track',
     actionTarget: 'create',
   },
   completed: {
     emoji: '🎓',
-    title: 'No Completed Paths Yet',
-    subtitle: 'Complete your first learning path to see it here. Keep learning!',
+    title: 'No Completed Tracks Yet',
+    subtitle: 'Complete your first track to see it here. Keep learning!',
     actionLabel: 'Continue Learning',
     actionTarget: 'active',
   },
   archived: {
     emoji: '🗃️',
-    title: 'No Archived Paths',
-    subtitle: 'Archived paths will appear here. Archive paths you want to revisit later.',
+    title: 'No Archived Tracks',
+    subtitle: 'Archived tracks will appear here. Archive tracks you want to revisit later.',
   },
 };
 
@@ -131,9 +131,9 @@ export const HomeScreen: React.FC = () => {
           console.error('Error refreshing learning paths:', { message: errorMessage, error });
           // Show alert to user about sync failure
           if (Platform.OS === 'web') {
-            window.alert('Failed to sync learning paths. Please try again.');
+            window.alert('Failed to sync tracks. Please try again.');
           } else {
-            Alert.alert('Sync Error', 'Failed to sync learning paths. Please try again.');
+            Alert.alert('Sync Error', 'Failed to sync tracks. Please try again.');
           }
         }
       };
@@ -168,9 +168,9 @@ export const HomeScreen: React.FC = () => {
       console.error('Error deleting path:', error);
       // Show error using platform-appropriate method
       if (Platform.OS === 'web') {
-        window.alert('Failed to delete learning path. Please try again.');
+        window.alert('Failed to delete track. Please try again.');
       } else {
-        Alert.alert('Error', 'Failed to delete learning path. Please try again.');
+        Alert.alert('Error', 'Failed to delete track. Please try again.');
       }
     } finally {
       setDeleteLoading(false);
@@ -199,9 +199,9 @@ export const HomeScreen: React.FC = () => {
     } catch (error) {
       console.error('Error archiving path:', error);
       if (Platform.OS === 'web') {
-        window.alert('Failed to archive learning path. Please try again.');
+        window.alert('Failed to archive track. Please try again.');
       } else {
-        Alert.alert('Error', 'Failed to archive learning path. Please try again.');
+        Alert.alert('Error', 'Failed to archive track. Please try again.');
       }
     } finally {
       setArchiveLoading(false);
@@ -220,9 +220,9 @@ export const HomeScreen: React.FC = () => {
     } catch (error) {
       console.error('Error restoring path:', error);
       if (Platform.OS === 'web') {
-        window.alert('Failed to restore learning path. Please try again.');
+        window.alert('Failed to restore track. Please try again.');
       } else {
-        Alert.alert('Error', 'Failed to restore learning path. Please try again.');
+        Alert.alert('Error', 'Failed to restore track. Please try again.');
       }
     }
   };
@@ -302,7 +302,7 @@ export const HomeScreen: React.FC = () => {
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={handleCreatePath}
           activeOpacity={0.8}
-          accessibilityLabel="Create new learning path"
+          accessibilityLabel="Create new track"
           accessibilityRole="button"
         >
           <Text style={[styles.fabIcon, { color: colors.white }]}>+</Text>
@@ -312,7 +312,7 @@ export const HomeScreen: React.FC = () => {
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         visible={showDeleteDialog}
-        title="Delete Learning Path"
+        title="Delete Track"
         message={pathToDelete ? `Are you sure you want to delete "${pathToDelete.goal}"? This action cannot be undone.` : ''}
         confirmText="Delete"
         cancelText="Cancel"
@@ -325,7 +325,7 @@ export const HomeScreen: React.FC = () => {
       {/* Archive Confirmation Dialog */}
       <ConfirmDialog
         visible={showArchiveDialog}
-        title="Archive Learning Path"
+        title="Archive Track"
         message={pathToArchive ? `Archive "${pathToArchive.goal}"? You can restore it anytime from the Archived tab.` : ''}
         confirmText="Archive"
         cancelText="Cancel"
