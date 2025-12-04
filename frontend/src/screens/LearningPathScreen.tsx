@@ -17,7 +17,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { StepCard } from '../components/StepCard';
 import { CourseOutlineDrawer } from '../components/CourseOutlineDrawer';
 import { useLearningPathsStore, getCurrentStep } from '../state/learningPathsStore';
-import { getLearningPath, viewStep } from '../services/memory';
+import { getLearningPath, viewStep, archiveLearningPath, deleteLearningPath, restoreLearningPath } from '../services/memory';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -43,7 +43,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
 }) => {
   useScreenTracking('LearningPath', 'LearningPathScreen');
   const { pathId } = route.params;
-  const { activePath, setActivePath } = useLearningPathsStore();
+  const { activePath, setActivePath, archivePath, deletePath, restorePath } = useLearningPathsStore();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [outlineDrawerVisible, setOutlineDrawerVisible] = useState(false);
@@ -130,6 +130,66 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
     navigation.goBack();
   };
 
+  const handleArchive = () => {
+    Alert.alert(
+      'Archive Path',
+      'Are you sure you want to archive this learning path? You can restore it later.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Archive',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await archiveLearningPath(pathId);
+              archivePath(pathId);
+              navigation.goBack();
+            } catch (error) {
+              console.error('Error archiving path:', error);
+              Alert.alert('Error', 'Failed to archive learning path. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRestore = async () => {
+    try {
+      await restoreLearningPath(pathId);
+      restorePath(pathId);
+      // Reload the path to get updated status
+      await loadPath();
+    } catch (error) {
+      console.error('Error restoring path:', error);
+      Alert.alert('Error', 'Failed to restore learning path. Please try again.');
+    }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Path',
+      'Are you sure you want to delete this learning path? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteLearningPath(pathId);
+              deletePath(pathId);
+              navigation.goBack();
+            } catch (error) {
+              console.error('Error deleting path:', error);
+              Alert.alert('Error', 'Failed to delete learning path. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleContinue = () => {
     if (!activePath) return;
 
@@ -184,24 +244,53 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   return (
     <Container>
       <View style={styles.content}>
-        {/* Top bar with back button and outline button */}
+        {/* Top bar with back button and action buttons */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <Text style={[styles.backButtonText, { color: colors.primary }]}>
               ← Back
             </Text>
           </TouchableOpacity>
-          {activePath.outline && (
+          <View style={styles.topBarActions}>
+            {activePath.outline && (
+              <TouchableOpacity
+                onPress={() => setOutlineDrawerVisible(true)}
+                style={[styles.outlineButton, { backgroundColor: colors.background.secondary }]}
+              >
+                <Text style={styles.outlineButtonIcon}>📋</Text>
+                <Text style={[styles.outlineButtonText, { color: colors.text.primary }]}>
+                  Outline
+                </Text>
+              </TouchableOpacity>
+            )}
+            {isPathArchived ? (
+              <TouchableOpacity
+                onPress={handleRestore}
+                style={[styles.actionButton, { backgroundColor: colors.primaryLight }]}
+              >
+                <Text style={[styles.actionButtonText, { color: colors.primary }]}>
+                  Restore
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={handleArchive}
+                style={[styles.actionButton, { backgroundColor: colors.background.secondary }]}
+              >
+                <Text style={[styles.actionButtonText, { color: colors.text.secondary }]}>
+                  Archive
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              onPress={() => setOutlineDrawerVisible(true)}
-              style={[styles.outlineButton, { backgroundColor: colors.background.secondary }]}
+              onPress={handleDelete}
+              style={[styles.actionButton, { backgroundColor: colors.background.secondary }]}
             >
-              <Text style={styles.outlineButtonIcon}>📋</Text>
-              <Text style={[styles.outlineButtonText, { color: colors.text.primary }]}>
-                Outline
+              <Text style={[styles.actionButtonText, { color: colors.danger }]}>
+                Delete
               </Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
 
         {/* Path header */}
@@ -388,6 +477,20 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   outlineButtonText: {
+    ...Typography.body.small,
+    fontWeight: '500',
+  },
+  topBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  actionButton: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Spacing.borderRadius.md,
+  },
+  actionButtonText: {
     ...Typography.body.small,
     fontWeight: '500',
   },
