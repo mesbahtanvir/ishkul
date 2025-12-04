@@ -9,14 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsVercelDomain(t *testing.T) {
+func TestIsVercelPreviewDomain(t *testing.T) {
 	tests := []struct {
 		name     string
 		origin   string
 		expected bool
 	}{
 		{
-			name:     "production domain",
+			name:     "vercel production domain",
 			origin:   "https://ishkul.vercel.app",
 			expected: true,
 		},
@@ -64,14 +64,60 @@ func TestIsVercelDomain(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isVercelDomain(tt.origin)
+			result := isVercelPreviewDomain(tt.origin)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsProductionDomain(t *testing.T) {
+	tests := []struct {
+		name     string
+		origin   string
+		expected bool
+	}{
+		{
+			name:     "ishkul.org",
+			origin:   "https://ishkul.org",
+			expected: true,
+		},
+		{
+			name:     "www.ishkul.org",
+			origin:   "https://www.ishkul.org",
+			expected: true,
+		},
+		{
+			name:     "http ishkul.org",
+			origin:   "http://ishkul.org",
+			expected: false,
+		},
+		{
+			name:     "vercel domain",
+			origin:   "https://ishkul.vercel.app",
+			expected: false,
+		},
+		{
+			name:     "other domain",
+			origin:   "https://example.com",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isProductionDomain(tt.origin)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
 func TestCORSMiddleware(t *testing.T) {
-	t.Run("allows production origin", func(t *testing.T) {
+	// Ensure non-production environment for these tests
+	originalEnv := os.Getenv("ENVIRONMENT")
+	os.Setenv("ENVIRONMENT", "development")
+	defer os.Setenv("ENVIRONMENT", originalEnv)
+
+	t.Run("allows Vercel origin in non-production", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})
@@ -260,9 +306,11 @@ func TestCORSWithCustomOrigins(t *testing.T) {
 		assert.Equal(t, "https://custom.example.com", rr.Header().Get("Access-Control-Allow-Origin"))
 	})
 
-	t.Run("still allows Vercel domains with custom origins set", func(t *testing.T) {
+	t.Run("allows Vercel domains with custom origins in non-production", func(t *testing.T) {
 		os.Setenv("ALLOWED_ORIGINS", "https://custom.example.com")
+		os.Setenv("ENVIRONMENT", "development")
 		defer os.Unsetenv("ALLOWED_ORIGINS")
+		defer os.Unsetenv("ENVIRONMENT")
 
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -274,7 +322,7 @@ func TestCORSWithCustomOrigins(t *testing.T) {
 
 		CORS(handler).ServeHTTP(rr, req)
 
-		// Vercel domains should still be allowed
+		// Vercel domains should be allowed in non-production
 		assert.Equal(t, "https://ishkul.vercel.app", rr.Header().Get("Access-Control-Allow-Origin"))
 	})
 
@@ -297,11 +345,117 @@ func TestCORSWithCustomOrigins(t *testing.T) {
 }
 
 func TestCORSDefaultAllowedOrigins(t *testing.T) {
-	t.Run("default origins constant is correct", func(t *testing.T) {
+	t.Run("default origins constant is correct for development", func(t *testing.T) {
 		assert.Contains(t, defaultAllowedOrigins, "http://localhost:3000")
 		assert.Contains(t, defaultAllowedOrigins, "http://localhost:8081")
 		assert.Contains(t, defaultAllowedOrigins, "http://localhost:19006")
-		assert.Contains(t, defaultAllowedOrigins, "https://ishkul.vercel.app")
+	})
+
+	t.Run("production origins constant is correct", func(t *testing.T) {
+		assert.Contains(t, productionAllowedOrigins, "https://ishkul.org")
+		assert.Contains(t, productionAllowedOrigins, "https://www.ishkul.org")
+		assert.NotContains(t, productionAllowedOrigins, "vercel.app")
+	})
+}
+
+func TestCORSProductionEnvironment(t *testing.T) {
+	// Save and restore original environment
+	originalEnv := os.Getenv("ENVIRONMENT")
+	defer os.Setenv("ENVIRONMENT", originalEnv)
+
+	t.Run("production allows only ishkul.org domains", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "production")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		// Test ishkul.org is allowed
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Origin", "https://ishkul.org")
+		rr := httptest.NewRecorder()
+		CORS(handler).ServeHTTP(rr, req)
+		assert.Equal(t, "https://ishkul.org", rr.Header().Get("Access-Control-Allow-Origin"))
+
+		// Test www.ishkul.org is allowed
+		req = httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Origin", "https://www.ishkul.org")
+		rr = httptest.NewRecorder()
+		CORS(handler).ServeHTTP(rr, req)
+		assert.Equal(t, "https://www.ishkul.org", rr.Header().Get("Access-Control-Allow-Origin"))
+	})
+
+	t.Run("production rejects Vercel preview domains", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "production")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		// Vercel preview domains should be rejected in production
+		vercelOrigins := []string{
+			"https://ishkul.vercel.app",
+			"https://ishkul-abc123.vercel.app",
+			"https://ishkul-pr-42.vercel.app",
+		}
+
+		for _, origin := range vercelOrigins {
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req.Header.Set("Origin", origin)
+			rr := httptest.NewRecorder()
+			CORS(handler).ServeHTTP(rr, req)
+			assert.Empty(t, rr.Header().Get("Access-Control-Allow-Origin"), "Origin %s should be rejected in production", origin)
+		}
+	})
+
+	t.Run("production rejects localhost", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "production")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Origin", "http://localhost:3000")
+		rr := httptest.NewRecorder()
+		CORS(handler).ServeHTTP(rr, req)
+		assert.Empty(t, rr.Header().Get("Access-Control-Allow-Origin"))
+	})
+
+	t.Run("non-production allows Vercel preview domains", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "development")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		vercelOrigins := []string{
+			"https://ishkul.vercel.app",
+			"https://ishkul-abc123.vercel.app",
+			"https://ishkul-pr-42.vercel.app",
+		}
+
+		for _, origin := range vercelOrigins {
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req.Header.Set("Origin", origin)
+			rr := httptest.NewRecorder()
+			CORS(handler).ServeHTTP(rr, req)
+			assert.Equal(t, origin, rr.Header().Get("Access-Control-Allow-Origin"), "Origin %s should be allowed in development", origin)
+		}
+	})
+
+	t.Run("non-production also allows production domains", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "development")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Origin", "https://ishkul.org")
+		rr := httptest.NewRecorder()
+		CORS(handler).ServeHTTP(rr, req)
+		assert.Equal(t, "https://ishkul.org", rr.Header().Get("Access-Control-Allow-Origin"))
 	})
 }
 
