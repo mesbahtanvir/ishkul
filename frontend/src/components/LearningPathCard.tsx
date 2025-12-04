@@ -142,13 +142,15 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
       </View>
 
       <View style={styles.progressContainer}>
-        <ProgressBar
-          progress={path.progress}
-          height={6}
-          progressColor={progressColor}
-        />
+        <View style={styles.progressBarWrapper}>
+          <ProgressBar
+            progress={path.progress}
+            height={6}
+            progressColor={progressColor}
+          />
+        </View>
         <Text style={[styles.progressText, { color: progressColor }]}>
-          {Math.round(path.progress)}%
+          {Math.min(100, Math.round(path.progress))}%
         </Text>
       </View>
 
@@ -286,10 +288,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  progressBarWrapper: {
+    flex: 1,
+  },
   progressText: {
     ...Typography.label.medium,
     marginLeft: Spacing.sm,
     minWidth: 36,
+    textAlign: 'right',
   },
   footer: {
     flexDirection: 'row',
