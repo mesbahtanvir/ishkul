@@ -17,9 +17,19 @@
  * 4. Scroll to "Your apps" section
  * 5. Select your web app or create one
  * 6. Copy the config values
+ *
+ * For staging environment, set these environment variables:
+ * - EXPO_PUBLIC_FIREBASE_API_KEY
+ * - EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+ * - EXPO_PUBLIC_FIREBASE_PROJECT_ID
+ * - EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+ * - EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+ * - EXPO_PUBLIC_FIREBASE_APP_ID
+ * - EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
  */
 
-export const firebaseConfig = {
+// Production Firebase config (default)
+const productionFirebaseConfig = {
   apiKey: "AIzaSyDC-AtXHpF7jZ1iLIpsvhM6zzGF8WCPHFM",
   authDomain: "ishkul-org.firebaseapp.com",
   projectId: "ishkul-org",
@@ -29,11 +39,24 @@ export const firebaseConfig = {
   measurementId: "G-RP26X5QB33"
 };
 
+// Get Firebase config from environment variables (for staging) or use production defaults
+export const firebaseConfig = {
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || productionFirebaseConfig.apiKey,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || productionFirebaseConfig.authDomain,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || productionFirebaseConfig.projectId,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || productionFirebaseConfig.storageBucket,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || productionFirebaseConfig.messagingSenderId,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || productionFirebaseConfig.appId,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || productionFirebaseConfig.measurementId
+};
+
 /**
  * GCP Project configuration
  * Used to construct Cloud Run URLs for preview environments
+ *
+ * For staging, set EXPO_PUBLIC_GCP_PROJECT_NUMBER to the staging project number
  */
-const GCP_PROJECT_NUMBER = "863006625304";
+const GCP_PROJECT_NUMBER = process.env.EXPO_PUBLIC_GCP_PROJECT_NUMBER || "863006625304";
 const GCP_REGION = "northamerica-northeast2";
 
 /**

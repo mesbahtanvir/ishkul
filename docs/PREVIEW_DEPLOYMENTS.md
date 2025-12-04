@@ -6,25 +6,25 @@ This guide explains how the different deployment environments work for the Ishku
 
 The backend has three deployment environments:
 
-| Environment | Trigger | Service Name | Data Prefix | Stripe |
-|-------------|---------|--------------|-------------|--------|
-| **Preview** | PR opened/updated | `ishkul-backend-pr-{N}` | `pr_{N}_` | Disabled |
-| **Staging** | Push to main | `ishkul-backend-staging` | `staging_` | Test Mode |
-| **Production** | Release tag `v*` | `ishkul-backend` | (none) | Live Mode |
+| Environment | Trigger | Service Name | Data Isolation | Stripe |
+|-------------|---------|--------------|----------------|--------|
+| **Preview** | PR opened/updated | `ishkul-backend-pr-{N}` | `pr_{N}_` prefix | Disabled |
+| **Staging** | Push to main | `ishkul-backend-staging` | Separate Firebase project | Test Mode |
+| **Production** | Release tag `v*` | `ishkul-backend` | Production Firebase | Live Mode |
 
 ## Deployment Flow
 
 ```
-Feature Branch → PR → Preview (isolated per PR)
+Feature Branch → PR → Preview (isolated per PR, uses collection prefix)
                  ↓
               Merge
                  ↓
-            Main Branch → Staging (shared staging env)
+            Main Branch → Staging (separate Firebase project)
                  ↓
            Create Release
            git tag v1.0.0
                  ↓
-            Production
+            Production (production Firebase project)
 ```
 
 ## Reusable Architecture
@@ -91,18 +91,33 @@ Configure in [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/webhoo
 
 ## Data Isolation
 
-Preview and staging environments use **Firestore collection prefixes** to isolate data from production:
+Each environment has its own data isolation strategy:
 
-| Environment | Collection Prefix | Example Collection |
-|-------------|-------------------|-------------------|
-| Production | (none) | `users` |
-| Staging | `staging_` | `staging_users` |
-| Preview PR-123 | `pr_123_` | `pr_123_users` |
+| Environment | Isolation Method | Firebase Project | Collection Names |
+|-------------|------------------|------------------|------------------|
+| Production | Separate project | `ishkul-org` | `users`, `lessons`, etc. |
+| Staging | Separate project | `ishkul-staging` | `users`, `lessons`, etc. |
+| Preview PR-123 | Collection prefix | `ishkul-org` | `pr_123_users`, `pr_123_lessons`, etc. |
+
+### Staging: Separate Firebase Project
+
+Staging uses a completely separate Firebase/GCP project:
+- **Complete isolation**: No shared data with production
+- **Separate OAuth**: Uses staging-specific Google OAuth credentials
+- **No collection prefixes needed**: Collections have normal names (`users` not `staging_users`)
+- **Independent scaling**: Staging issues don't affect production
+
+### Preview: Collection Prefix
+
+Preview environments share the production Firebase project but use collection prefixes:
+- **Quick to create/destroy**: No separate project needed per PR
+- **Easy cleanup**: Just delete prefixed collections when PR closes
+- **Lower cost**: No additional Firebase project costs
 
 This means:
 - Preview data never mixes with production data
 - Each PR has its own isolated data
-- Staging can be used for QA without affecting production
+- Staging is completely independent from production
 - No risk of data corruption
 
 ## Resource Allocation
@@ -183,11 +198,24 @@ All environments receive these variables (values vary):
 | Variable | Purpose |
 |----------|---------|
 | `ENVIRONMENT` | `preview`, `staging`, or `production` |
-| `FIRESTORE_COLLECTION_PREFIX` | Data isolation prefix |
+| `FIRESTORE_COLLECTION_PREFIX` | Data isolation prefix (preview only) |
+| `FIREBASE_DATABASE_URL` | Firebase Realtime Database URL |
+| `FIREBASE_STORAGE_BUCKET` | Firebase Storage bucket |
+| `GOOGLE_WEB_CLIENT_ID` | Google OAuth web client ID |
+| `GOOGLE_IOS_CLIENT_ID` | Google OAuth iOS client ID |
+| `GOOGLE_ANDROID_CLIENT_ID` | Google OAuth Android client ID |
 | `STRIPE_SECRET_KEY` | Stripe API key (mode-appropriate) |
 | `STRIPE_WEBHOOK_SECRET` | Webhook verification |
 | `STRIPE_PRO_PRICE_ID` | Pro subscription price |
 | `ALLOWED_ORIGINS` | CORS configuration |
+
+### Environment-Specific Secrets
+
+| Secret | Preview | Staging | Production |
+|--------|---------|---------|------------|
+| `GCP_PROJECT_ID` | Production | `STAGING_GCP_PROJECT_ID` | Production |
+| `FIREBASE_DATABASE_URL` | Production | `STAGING_FIREBASE_DATABASE_URL` | Production |
+| `GOOGLE_*_CLIENT_ID` | Production | `STAGING_GOOGLE_*_CLIENT_ID` | Production |
 
 ## Troubleshooting
 
@@ -211,9 +239,10 @@ All environments receive these variables (values vary):
 
 ### Data Not Showing Up
 
-Remember that each environment uses different collections:
-- In Firebase Console, look for `staging_users` not `users` for staging
-- Look for `pr_X_users` for preview environments
+Remember that each environment uses different data sources:
+- **Staging**: Uses a separate Firebase project (`ishkul-staging`) - check that console
+- **Preview**: Look for `pr_X_users` collections in the production Firebase console
+- **Production**: Normal collection names (`users`) in production Firebase console
 
 ### Cleanup Didn't Run
 
@@ -230,12 +259,43 @@ If the cleanup workflow didn't trigger:
      --filter="tags:pr-X-*"
    ```
 
+## Frontend Staging Deployment
+
+For complete staging isolation, the frontend also needs staging-specific configuration:
+
+### Vercel Environment Variables for Staging
+
+Create a separate Vercel deployment (or branch) for `staging.ishkul.org` with these environment variables:
+
+| Variable | Purpose | Example Value |
+|----------|---------|---------------|
+| `EXPO_PUBLIC_FIREBASE_API_KEY` | Staging Firebase API key | `AIzaSy...` |
+| `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` | Staging auth domain | `ishkul-staging.firebaseapp.com` |
+| `EXPO_PUBLIC_FIREBASE_PROJECT_ID` | Staging project ID | `ishkul-staging` |
+| `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET` | Staging storage | `ishkul-staging.appspot.com` |
+| `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Staging sender ID | `123456789` |
+| `EXPO_PUBLIC_FIREBASE_APP_ID` | Staging app ID | `1:123...` |
+| `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID` | Staging analytics | `G-XXXXXXX` |
+| `EXPO_PUBLIC_GCP_PROJECT_NUMBER` | Staging GCP project number | `123456789` |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Staging OAuth web client | `xxx.apps.googleusercontent.com` |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Staging OAuth iOS client | `xxx.apps.googleusercontent.com` |
+| `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Staging OAuth Android client | `xxx.apps.googleusercontent.com` |
+
+### Setting Up Vercel Staging
+
+1. In Vercel, go to Project Settings → Domains
+2. Add `staging.ishkul.org` as a custom domain
+3. In Settings → Environment Variables, add staging variables for "Preview" or create a staging branch
+4. Deploy to the staging branch or configure preview deployments for `staging.ishkul.org`
+
 ## Security Considerations
 
 1. **Stripe Mode Separation**: Test keys never see real money, live keys never in non-production
-2. **Data Isolation**: Collection prefixes prevent cross-environment data access
-3. **Same Auth**: Uses same Google OAuth clients (test with existing users)
+2. **Data Isolation**: Staging uses a separate Firebase project; preview uses collection prefixes
+3. **OAuth Separation**: Staging uses separate Google OAuth credentials from production
 4. **Public URLs**: All environment URLs are publicly accessible (same as production)
+5. **Credential Separation**: Staging credentials are stored in separate GitHub secrets (`STAGING_*`)
+6. **JWT Isolation**: Each GCP project has its own JWT_SECRET in Secret Manager
 
 ## Related Documentation
 

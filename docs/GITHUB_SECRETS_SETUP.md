@@ -32,8 +32,12 @@ Cloud Run Environment Variables (production)
 
 Add each secret from `backend/.env.example` that you want to sync to Cloud Run:
 
+#### Production Secrets
+
 | Secret Name | Value | Source |
 |---|---|---|
+| `GCP_PROJECT_ID` | `ishkul-org` | Google Cloud Console → Project ID |
+| `GCP_SA_KEY` | `{...}` | Service account JSON key |
 | `FIREBASE_DATABASE_URL` | `https://ishkul-org.firebaseio.com` | Firebase Console → Realtime Database → Data |
 | `FIREBASE_STORAGE_BUCKET` | `ishkul-org.appspot.com` | Firebase Console → Storage → Settings |
 | `OPENAI_API_KEY` | `sk-...` | OpenAI Platform → API Keys |
@@ -42,6 +46,27 @@ Add each secret from `backend/.env.example` that you want to sync to Cloud Run:
 | `GOOGLE_ANDROID_CLIENT_ID` | `xxx.apps.googleusercontent.com` | Google Cloud Console → APIs & Services → Credentials |
 | `ALLOWED_ORIGINS` | `https://ishkul.vercel.app,https://ishkul.org` | Your app domains |
 | `JWT_SECRET` | `your-secure-random-string` | Generate a random secret (for production) |
+| `APP_URL` | `https://ishkul.org` | Production app URL |
+
+#### Staging Secrets (Separate Firebase Project)
+
+Staging uses a completely separate Firebase/GCP project for full data isolation:
+
+| Secret Name | Value | Source |
+|---|---|---|
+| `STAGING_GCP_PROJECT_ID` | `ishkul-staging` | Staging GCP project ID |
+| `STAGING_GCP_SA_KEY` | `{...}` | Staging service account JSON key |
+| `STAGING_FIREBASE_DATABASE_URL` | `https://ishkul-staging.firebaseio.com` | Staging Firebase Console |
+| `STAGING_FIREBASE_STORAGE_BUCKET` | `ishkul-staging.appspot.com` | Staging Firebase Console |
+| `STAGING_GOOGLE_WEB_CLIENT_ID` | `xxx.apps.googleusercontent.com` | Staging OAuth credentials |
+| `STAGING_GOOGLE_IOS_CLIENT_ID` | `xxx.apps.googleusercontent.com` | Staging OAuth credentials |
+| `STAGING_GOOGLE_ANDROID_CLIENT_ID` | `xxx.apps.googleusercontent.com` | Staging OAuth credentials |
+| `STAGING_APP_URL` | `https://staging.ishkul.org` | Staging app URL |
+| `STAGING_OPENAI_API_KEY` | `sk-...` (optional) | Separate OpenAI key for cost tracking |
+| `STAGING_JWT_SECRET` | `random-string` (optional) | Separate JWT secret for token isolation |
+| `STAGING_ENCRYPTION_KEY` | `base64-key` (optional) | Separate encryption key for PII |
+
+**Note:** Security secrets (`JWT_SECRET`, `ENCRYPTION_KEY`) fall back to production values if staging-specific secrets are not set. For complete isolation, set staging-specific values.
 
 ### Step 3: Add to GitHub Actions Workflow
 
