@@ -1,135 +1,112 @@
-name: Deploy Backend to Cloud Run
+name: Deploy Backend to Production
+
+# PRODUCTION DEPLOYMENT
+# Only triggered on release tags (v*) or manual dispatch
+# Uses the reusable workflow for consistent deployment architecture
+# Uses GitHub Environment protection for approval workflow
 
 on:
   push:
-    branches: [main, master]
-    paths:
-      - 'backend/**'
-      - 'prompts/**'
-      - 'cloudbuild.yaml'
-      - '.dockerignore'
-      - '.github/workflows/deploy-backend.yml'
-  workflow_dispatch: # Allow manual trigger
-
-env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GCP_REGION: northamerica-northeast2
-  SERVICE_NAME: ishkul-backend
-  IMAGE_NAME: ishkul-backend
+    tags:
+      - 'v*'  # Triggers on version tags like v1.0.0, v2.1.3, etc.
+  workflow_dispatch:  # Allow manual trigger for hotfixes
+    inputs:
+      confirm_production:
+        description: 'Type "production" to confirm deployment'
+        required: true
+        type: string
 
 jobs:
-  build-and-deploy:
-    name: Build Docker Image and Deploy to Cloud Run
+  # Validation job for manual dispatch
+  validate:
+    name: Validate Deployment
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Validate confirmation
+        if: github.event.inputs.confirm_production != 'production'
+        run: |
+          echo "❌ You must type 'production' to confirm deployment"
+          exit 1
 
-    permissions:
-      contents: read
-      id-token: write
+  prepare:
+    name: Prepare Production Config
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: always() && (needs.validate.result == 'success' || needs.validate.result == 'skipped')
+    outputs:
+      version: ${{ steps.config.outputs.version }}
+      image_tag: ${{ steps.config.outputs.image_tag }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker for GCP Artifact Registry
+      - name: Generate configuration
+        id: config
         run: |
-          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="manual-${{ github.sha }}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "image_tag=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Deploying version: ${VERSION}"
 
-      - name: Build Docker image
+  deploy:
+    name: Deploy Production
+    needs: prepare
+    uses: ./.github/workflows/deploy-backend-reusable.yml
+
+    # Use GitHub Environment for protection rules
+    # Configure in: Settings > Environments > production
+    # - Add required reviewers
+    # - Restrict to protected branches/tags
+
+    with:
+      environment: production
+      service_name: ishkul-backend
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+      collection_prefix: ''  # No prefix for production
+      min_instances: 1
+      max_instances: 100
+      memory: '1Gi'
+      cpu: 2
+      stripe_mode: 'live'
+      also_tag_latest: true
+    secrets:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+      FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+      GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+      GOOGLE_ANDROID_CLIENT_ID: ${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}
+      ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+      STRIPE_PRO_PRICE_ID: ${{ secrets.STRIPE_PRO_PRICE_ID }}
+      APP_URL: ${{ secrets.APP_URL }}
+
+  summary:
+    name: Deployment Summary
+    needs: [prepare, deploy]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Post Summary
         run: |
-          REGISTRY="${{ env.GCP_REGION }}-docker.pkg.dev"
-          # Use IMAGE_TAG_SUFFIX secret if set, otherwise default to commit hash
-          TAG_SUFFIX="${{ secrets.IMAGE_TAG_SUFFIX }}"
-          if [ -z "$TAG_SUFFIX" ]; then
-            TAG_SUFFIX="${{ github.sha }}"
-          fi
-
-          IMAGE_TAG="${REGISTRY}/${{ env.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:${TAG_SUFFIX}"
-          LATEST_TAG="${REGISTRY}/${{ env.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:latest"
-
-          echo "Building image: $IMAGE_TAG"
-          docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" -f backend/Dockerfile .
-
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
-
-      - name: Push Docker image to Artifact Registry
-        run: |
-          docker push ${{ env.IMAGE_TAG }}
-          docker push ${{ env.LATEST_TAG }}
-
-      - name: Prepare environment variables for Cloud Run
-        id: prepare-env
-        run: |
-          # Build env vars string from GitHub secrets
-          # Regular env vars (all secrets except those starting with underscore)
-          ENV_VARS="ENVIRONMENT=production"
-          ENV_VARS="${ENV_VARS},FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }}"
-          ENV_VARS="${ENV_VARS},FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}"
-
-          # Add other standard vars if they exist
-          if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
-            ENV_VARS="${ENV_VARS},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
-          fi
-          if [ -n "${{ secrets.GOOGLE_WEB_CLIENT_ID }}" ]; then
-            ENV_VARS="${ENV_VARS},GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}"
-          fi
-          if [ -n "${{ secrets.GOOGLE_IOS_CLIENT_ID }}" ]; then
-            ENV_VARS="${ENV_VARS},GOOGLE_IOS_CLIENT_ID=${{ secrets.GOOGLE_IOS_CLIENT_ID }}"
-          fi
-          if [ -n "${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}" ]; then
-            ENV_VARS="${ENV_VARS},GOOGLE_ANDROID_CLIENT_ID=${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}"
-          fi
-          if [ -n "${{ secrets.ALLOWED_ORIGINS }}" ]; then
-            ENV_VARS="${ENV_VARS},ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}"
-          fi
-
-          # Stripe integration secrets
-          if [ -n "${{ secrets.STRIPE_SECRET_KEY }}" ]; then
-            ENV_VARS="${ENV_VARS},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}"
-          fi
-          if [ -n "${{ secrets.STRIPE_PRO_PRICE_ID }}" ]; then
-            ENV_VARS="${ENV_VARS},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }}"
-          fi
-          if [ -n "${{ secrets.STRIPE_WEBHOOK_SECRET }}" ]; then
-            ENV_VARS="${ENV_VARS},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}"
-          fi
-          if [ -n "${{ secrets.APP_URL }}" ]; then
-            ENV_VARS="${ENV_VARS},APP_URL=${{ secrets.APP_URL }}"
-          fi
-
-          echo "env_vars=${ENV_VARS}" >> $GITHUB_OUTPUT
-
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image=${{ env.IMAGE_TAG }} \
-            --region=${{ env.GCP_REGION }} \
-            --allow-unauthenticated \
-            --project=${{ env.GCP_PROJECT_ID }} \
-            --set-env-vars=${{ steps.prepare-env.outputs.env_vars }}
-
-      - name: Verify deployment
-        run: |
-          gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region=${{ env.GCP_REGION }} \
-            --project=${{ env.GCP_PROJECT_ID }} \
-            --format='value(status.url)'
-
-      - name: Deployment Summary
-        run: |
-          echo "## Backend Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Production Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Service:** ${{ env.SERVICE_NAME }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Region:** ${{ env.GCP_REGION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image:** ${{ env.IMAGE_TAG }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **URL** | ${{ needs.deploy.outputs.service_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | \`${{ needs.prepare.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Service** | \`ishkul-backend\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Stripe** | ✅ Live Mode |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Deployment completed successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "### Production Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Production Firestore (no prefix)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Stripe LIVE mode (real payments)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Always-on (min 1 instance)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ High resources (2 CPU, 1Gi RAM)" >> $GITHUB_STEP_SUMMARY

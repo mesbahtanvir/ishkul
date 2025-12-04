@@ -117,7 +117,7 @@ func GetSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user data
-	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -228,7 +228,7 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user data
-	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -288,7 +288,7 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		stripeCustomerID = c.ID
 
 		// Save customer ID to user
-		_, err = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+		_, err = Collection(fs, "users").Doc(userID).Update(ctx, []firestore.Update{
 			{Path: "stripeCustomerId", Value: stripeCustomerID},
 			{Path: "updatedAt", Value: time.Now()},
 		})
@@ -393,7 +393,7 @@ func GetPaymentSheetParams(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user data
-	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -443,7 +443,7 @@ func GetPaymentSheetParams(w http.ResponseWriter, r *http.Request) {
 		stripeCustomerID = c.ID
 
 		// Save customer ID to user
-		_, _ = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+		_, _ = Collection(fs, "users").Doc(userID).Update(ctx, []firestore.Update{
 			{Path: "stripeCustomerId", Value: stripeCustomerID},
 			{Path: "updatedAt", Value: time.Now()},
 		})
@@ -562,7 +562,7 @@ func CancelSubscription(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user data
-	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -598,7 +598,7 @@ func CancelSubscription(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update user's subscription status in Firestore
-	_, err = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+	_, err = Collection(fs, "users").Doc(userID).Update(ctx, []firestore.Update{
 		{Path: "subscriptionStatus", Value: models.SubscriptionStatusCanceled},
 		{Path: "updatedAt", Value: time.Now()},
 	})
@@ -653,7 +653,7 @@ func CreatePortalSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user data
-	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -828,7 +828,7 @@ func VerifyCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err = fs.Collection("users").Doc(userID).Update(ctx, updates)
+	_, err = Collection(fs, "users").Doc(userID).Update(ctx, updates)
 	if err != nil {
 		if appLogger != nil {
 			logger.Error(appLogger, ctx, "verify_checkout_update_failed",
@@ -987,7 +987,7 @@ func handleCheckoutCompleted(ctx context.Context, fs *firestore.Client, event *s
 		}
 	}
 
-	_, err := fs.Collection("users").Doc(userID).Update(ctx, updates)
+	_, err := Collection(fs, "users").Doc(userID).Update(ctx, updates)
 	if err != nil {
 		if appLogger != nil {
 			logger.Error(appLogger, ctx, "webhook_checkout_update_failed",
@@ -1030,7 +1030,7 @@ func handleSubscriptionCreated(ctx context.Context, fs *firestore.Client, event 
 		{Path: "updatedAt", Value: time.Now()},
 	}
 
-	_, err := fs.Collection("users").Doc(userID).Update(ctx, updates)
+	_, err := Collection(fs, "users").Doc(userID).Update(ctx, updates)
 	if err != nil {
 		if appLogger != nil {
 			logger.Error(appLogger, ctx, "webhook_subscription_created_update_failed",
@@ -1071,7 +1071,7 @@ func handleSubscriptionUpdated(ctx context.Context, fs *firestore.Client, event 
 		{Path: "updatedAt", Value: time.Now()},
 	}
 
-	_, err := fs.Collection("users").Doc(userID).Update(ctx, updates)
+	_, err := Collection(fs, "users").Doc(userID).Update(ctx, updates)
 	if err != nil {
 		if appLogger != nil {
 			logger.Error(appLogger, ctx, "webhook_subscription_updated_failed",
@@ -1111,7 +1111,7 @@ func handleSubscriptionDeleted(ctx context.Context, fs *firestore.Client, event 
 		{Path: "updatedAt", Value: time.Now()},
 	}
 
-	_, err := fs.Collection("users").Doc(userID).Update(ctx, updates)
+	_, err := Collection(fs, "users").Doc(userID).Update(ctx, updates)
 	if err != nil {
 		if appLogger != nil {
 			logger.Error(appLogger, ctx, "webhook_subscription_deleted_failed",
@@ -1148,7 +1148,7 @@ func handlePaymentFailed(ctx context.Context, fs *firestore.Client, event *strip
 		{Path: "updatedAt", Value: time.Now()},
 	}
 
-	_, err := fs.Collection("users").Doc(userID).Update(ctx, updates)
+	_, err := Collection(fs, "users").Doc(userID).Update(ctx, updates)
 	if err != nil {
 		if appLogger != nil {
 			logger.Error(appLogger, ctx, "webhook_payment_failed_update_failed",
@@ -1181,7 +1181,7 @@ func handlePaymentSucceeded(ctx context.Context, fs *firestore.Client, event *st
 	}
 
 	// Reactivate subscription if it was past due
-	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
 		return
 	}
@@ -1198,7 +1198,7 @@ func handlePaymentSucceeded(ctx context.Context, fs *firestore.Client, event *st
 			{Path: "updatedAt", Value: time.Now()},
 		}
 
-		_, err = fs.Collection("users").Doc(userID).Update(ctx, updates)
+		_, err = Collection(fs, "users").Doc(userID).Update(ctx, updates)
 		if err != nil {
 			if appLogger != nil {
 				logger.Error(appLogger, ctx, "webhook_payment_succeeded_update_failed",
@@ -1217,7 +1217,7 @@ func handlePaymentSucceeded(ctx context.Context, fs *firestore.Client, event *st
 }
 
 func findUserByStripeCustomer(ctx context.Context, fs *firestore.Client, customerID string) string {
-	iter := fs.Collection("users").Where("stripeCustomerId", "==", customerID).Limit(1).Documents(ctx)
+	iter := Collection(fs, "users").Where("stripeCustomerId", "==", customerID).Limit(1).Documents(ctx)
 	defer iter.Stop()
 
 	doc, err := iter.Next()
@@ -1231,7 +1231,7 @@ func findUserByStripeCustomer(ctx context.Context, fs *firestore.Client, custome
 // getDailyUsage retrieves the daily usage for a user
 func getDailyUsage(ctx context.Context, fs *firestore.Client, userID string) (*models.DailyUsage, error) {
 	today := models.GetTodayDateString()
-	doc, err := fs.Collection("users").Doc(userID).Collection("usage").Doc(today).Get(ctx)
+	doc, err := Collection(fs, "users").Doc(userID).Collection("usage").Doc(today).Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1253,7 +1253,7 @@ func IncrementDailyUsage(ctx context.Context, userID string, tier string) (int, 
 	}
 
 	today := models.GetTodayDateString()
-	usageRef := fs.Collection("users").Doc(userID).Collection("usage").Doc(today)
+	usageRef := Collection(fs, "users").Doc(userID).Collection("usage").Doc(today)
 
 	// Use transaction to safely increment
 	var newCount int
@@ -1318,7 +1318,7 @@ func GetUserTierAndLimits(ctx context.Context, userID string) (string, *models.U
 	}
 
 	// Get user
-	userDoc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
 		return "", nil, err
 	}

@@ -9,10 +9,17 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+// Collection returns a Firestore collection reference with any configured prefix applied.
+// This should be used for all collection access to support preview environment isolation.
+func Collection(fs *firestore.Client, name string) *firestore.CollectionRef {
+	prefix := firebase.GetCollectionPrefix()
+	return fs.Collection(prefix + name)
+}
+
 // CountUserActivePaths counts only active paths (not completed, archived, or deleted)
 // This is a shared function used by both learning_paths and subscription handlers
 func CountUserActivePaths(ctx context.Context, fs *firestore.Client, userID string) (int, error) {
-	iter := fs.Collection("learning_paths").
+	iter := Collection(fs, "learning_paths").
 		Where("userId", "==", userID).
 		Where("status", "==", models.PathStatusActive).
 		Documents(ctx)
