@@ -145,6 +145,9 @@ jobs:
           echo "Region: ${{ env.GCP_REGION }}"
           echo "Image: ${{ env.IMAGE_TAG }}"
 
+          # Format version label (replace dots with dashes for GCP compliance)
+          VERSION_LABEL=$(echo "${{ github.ref_name }}" | tr '.' '-')
+
           gcloud run deploy ${SERVICE_NAME} \
             --image=${{ env.IMAGE_TAG }} \
             --region=${{ env.GCP_REGION }} \
@@ -156,7 +159,7 @@ jobs:
             --memory='1Gi' \
             --cpu=2 \
             --timeout=300 \
-            --labels="environment=production,version=${{ github.ref_name }}"
+            --labels="environment=production,version=${VERSION_LABEL}"
 
           # Get the service URL
           SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} \
