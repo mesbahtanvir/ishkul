@@ -104,7 +104,7 @@ describe('SubscriptionScreen', () => {
 
     it('should render Free plan features', () => {
       const { getByText } = render(<SubscriptionScreen navigation={mockNavigation} />);
-      expect(getByText('2 active learning paths')).toBeTruthy();
+      expect(getByText('2 active tracks')).toBeTruthy();
       expect(getByText('100 steps per day')).toBeTruthy();
       expect(getByText('GPT-4o-mini AI model')).toBeTruthy();
       expect(getByText('Lesson and Quiz content')).toBeTruthy();
@@ -112,7 +112,7 @@ describe('SubscriptionScreen', () => {
 
     it('should render Pro plan features', () => {
       const { getByText } = render(<SubscriptionScreen navigation={mockNavigation} />);
-      expect(getByText('5 active learning paths')).toBeTruthy();
+      expect(getByText('5 active tracks')).toBeTruthy();
       expect(getByText('1,000 steps per day')).toBeTruthy();
       expect(getByText('GPT-5 Pro AI model')).toBeTruthy();
       expect(getByText('All content types')).toBeTruthy();

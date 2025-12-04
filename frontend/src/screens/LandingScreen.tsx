@@ -224,7 +224,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ navigation }) => {
                 },
               ]}
             >
-              Master any skill with AI-powered, adaptive learning paths
+              Master any skill with AI-powered, adaptive learning tracks
             </Animated.Text>
           </LinearGradient>
         </Animated.View>

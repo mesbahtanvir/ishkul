@@ -24,12 +24,12 @@ export const CreatePathCard: React.FC<CreatePathCardProps> = ({
       <View style={styles.content}>
         <Text style={styles.emoji}>✨</Text>
         <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: colors.primary }]}>Start New Learning Path</Text>
+          <Text style={[styles.title, { color: colors.primary }]}>Start New Track</Text>
           <Text style={[styles.subtitle, { color: colors.text.secondary }]}>What do you want to learn?</Text>
         </View>
       </View>
       <View style={[styles.button, { backgroundColor: colors.primary }]}>
-        <Text style={[styles.buttonText, { color: colors.white }]}>+ Create Path</Text>
+        <Text style={[styles.buttonText, { color: colors.white }]}>+ Create Track</Text>
       </View>
     </TouchableOpacity>
   );

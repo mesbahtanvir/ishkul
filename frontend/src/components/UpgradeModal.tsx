@@ -59,10 +59,10 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ onDismiss, onUpgrade
     switch (upgradeModalReason) {
       case 'path_limit':
         return {
-          title: 'Learning Path Limit Reached',
-          message: `You've reached the free limit of ${limits?.activePaths.limit || 2} active learning paths. Upgrade to Pro for up to 5 active paths.`,
+          title: 'Track Limit Reached',
+          message: `You've reached the free limit of ${limits?.activePaths.limit || 2} active tracks. Upgrade to Pro for up to 5 active tracks.`,
           features: [
-            '5 active learning paths',
+            '5 active tracks',
             '1,000 steps per day',
             'GPT-5 Pro AI model',
           ],
@@ -82,7 +82,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ onDismiss, onUpgrade
           title: 'Upgrade to Pro',
           message: 'Unlock the full power of Ishkul with a Pro subscription.',
           features: [
-            '5 active learning paths',
+            '5 active tracks',
             '1,000 steps per day',
             'GPT-5 Pro AI model',
             'Priority generation',

@@ -171,22 +171,22 @@ describe('LessonScreen', () => {
       expect(getByText(/Variables in Python are containers/)).toBeTruthy();
     });
 
-    it('should render I Understand button', () => {
+    it('should render Got It button', () => {
       const { getByText } = render(
         <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
-      expect(getByText('I Understand →')).toBeTruthy();
+      expect(getByText('Got It →')).toBeTruthy();
     });
   });
 
   describe('understanding flow', () => {
-    it('should call completeStep when I Understand is pressed', async () => {
+    it('should call completeStep when Got It is pressed', async () => {
       const { getByText } = render(
         <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
-      fireEvent.press(getByText('I Understand →'));
+      fireEvent.press(getByText('Got It →'));
 
       await waitFor(() => {
         expect(mockCompleteStep).toHaveBeenCalledWith('test-path-123', 'step-1');
@@ -198,7 +198,7 @@ describe('LessonScreen', () => {
         <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
-      fireEvent.press(getByText('I Understand →'));
+      fireEvent.press(getByText('Got It →'));
 
       await waitFor(() => {
         expect(mockUpdatePath).toHaveBeenCalledWith('test-path-123', mockPathResult.path);
@@ -210,7 +210,7 @@ describe('LessonScreen', () => {
         <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
-      fireEvent.press(getByText('I Understand →'));
+      fireEvent.press(getByText('Got It →'));
 
       await waitFor(() => {
         expect(mockUpdatePath).toHaveBeenCalledWith('test-path-123', mockPathResult.path);
@@ -222,7 +222,7 @@ describe('LessonScreen', () => {
         <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
-      fireEvent.press(getByText('I Understand →'));
+      fireEvent.press(getByText('Got It →'));
 
       await waitFor(() => {
         expect(mockGetUserDocument).toHaveBeenCalled();
@@ -238,7 +238,7 @@ describe('LessonScreen', () => {
         <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
-      fireEvent.press(getByText('I Understand →'));
+      fireEvent.press(getByText('Got It →'));
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('LearningPath', { pathId: 'test-path-123' });
@@ -254,7 +254,7 @@ describe('LessonScreen', () => {
         <LessonScreen navigation={mockNavigation} route={mockRoute} />
       );
 
-      fireEvent.press(getByText('I Understand →'));
+      fireEvent.press(getByText('Got It →'));
 
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(

@@ -219,7 +219,7 @@ describe('LearningPathScreen', () => {
 
         await waitFor(() => {
           expect(getByText('Congratulations!')).toBeTruthy();
-          expect(getByText("You've completed this learning path!")).toBeTruthy();
+          expect(getByText("You've completed this track!")).toBeTruthy();
         });
       });
 
@@ -233,26 +233,26 @@ describe('LearningPathScreen', () => {
         });
       });
 
-      it('should show Start New Learning Path button', async () => {
+      it('should show Start New Track button', async () => {
         const { getByText } = render(
           <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
-          expect(getByText('Start New Learning Path')).toBeTruthy();
+          expect(getByText('Start New Track')).toBeTruthy();
         });
       });
 
-      it('should navigate to GoalSelection when Start New Path is pressed', async () => {
+      it('should navigate to GoalSelection when Start New Track is pressed', async () => {
         const { getByText } = render(
           <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
-          expect(getByText('Start New Learning Path')).toBeTruthy();
+          expect(getByText('Start New Track')).toBeTruthy();
         });
 
-        fireEvent.press(getByText('Start New Learning Path'));
+        fireEvent.press(getByText('Start New Track'));
 
         expect(mockNavigate).toHaveBeenCalledWith('GoalSelection', { isCreatingNewPath: true });
       });
@@ -414,7 +414,7 @@ describe('LearningPathScreen', () => {
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
           'Error',
-          'Failed to load learning path. Please try again.'
+          'Failed to load track. Please try again.'
         );
       });
     });

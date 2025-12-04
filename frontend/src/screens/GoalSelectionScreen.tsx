@@ -88,7 +88,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
             What do you want to learn?
           </Text>
           <Text style={[styles.subtitle, { color: colors.ios.gray }]}>
-            Set your learning goal and we'll create a personalized learning path for you
+            Set your learning goal and we'll create a personalized track for you
           </Text>
         </View>
 
