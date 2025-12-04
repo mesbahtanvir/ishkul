@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/mesbahtanvir/ishkul/backend/pkg/crypto"
+)
 
 // User represents a user in the system (basic profile)
 type User struct {
@@ -100,4 +104,80 @@ type Lesson struct {
 	Order       int      `json:"order" firestore:"order"`
 	Duration    int      `json:"duration" firestore:"duration"`
 	Tags        []string `json:"tags,omitempty" firestore:"tags,omitempty"`
+}
+
+// EncryptPII encrypts sensitive user fields before storing in database
+// Fields encrypted: Email, DisplayName
+// Returns a copy with encrypted fields
+func (u *User) EncryptPII() (*User, error) {
+	if !crypto.IsEnabled() {
+		return u, nil
+	}
+
+	encrypted := *u
+
+	// Encrypt email
+	if u.Email != "" {
+		encEmail, err := crypto.EncryptEmail(u.Email)
+		if err != nil {
+			return nil, err
+		}
+		encrypted.Email = encEmail
+	}
+
+	// Encrypt display name
+	if u.DisplayName != "" {
+		encName, err := crypto.EncryptPII(u.DisplayName)
+		if err != nil {
+			return nil, err
+		}
+		encrypted.DisplayName = encName
+	}
+
+	return &encrypted, nil
+}
+
+// DecryptPII decrypts sensitive user fields after reading from database
+// Modifies the user in place
+func (u *User) DecryptPII() error {
+	if !crypto.IsEnabled() {
+		return nil
+	}
+
+	// Decrypt email
+	if u.Email != "" {
+		decEmail, err := crypto.DecryptEmail(u.Email)
+		if err != nil {
+			return err
+		}
+		u.Email = decEmail
+	}
+
+	// Decrypt display name
+	if u.DisplayName != "" {
+		decName, err := crypto.DecryptPII(u.DisplayName)
+		if err != nil {
+			return err
+		}
+		u.DisplayName = decName
+	}
+
+	return nil
+}
+
+// EncryptPII encrypts sensitive user document fields
+func (ud *UserDocument) EncryptPII() (*UserDocument, error) {
+	encUser, err := ud.User.EncryptPII()
+	if err != nil {
+		return nil, err
+	}
+
+	encrypted := *ud
+	encrypted.User = *encUser
+	return &encrypted, nil
+}
+
+// DecryptPII decrypts sensitive user document fields
+func (ud *UserDocument) DecryptPII() error {
+	return ud.User.DecryptPII()
 }

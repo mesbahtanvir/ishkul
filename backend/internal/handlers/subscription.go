@@ -26,19 +26,41 @@ import (
 	"github.com/stripe/stripe-go/v81/webhook"
 )
 
-// allowedRedirectHosts contains the list of hosts that are allowed for Stripe redirect URLs
-// This prevents open redirect vulnerabilities where attackers could redirect users to phishing sites
-var allowedRedirectHosts = []string{
+// productionRedirectHosts contains the list of hosts allowed in production
+var productionRedirectHosts = []string{
 	"ishkul.vercel.app",
 	"ishkul.org",
 	"www.ishkul.org",
-	"localhost",          // For local development
-	"127.0.0.1",          // For local development
 	"ishkul-org.web.app", // Firebase hosting
 }
 
+// developmentRedirectHosts contains additional hosts allowed only in development
+var developmentRedirectHosts = []string{
+	"localhost",
+	"127.0.0.1",
+}
+
+// isDevEnvironment returns true if running in development mode
+func isDevEnvironment() bool {
+	env := os.Getenv("ENVIRONMENT")
+	return env == "" || env == "development"
+}
+
+// getAllowedRedirectHosts returns the list of allowed redirect hosts based on environment
+func getAllowedRedirectHosts() []string {
+	hosts := make([]string, len(productionRedirectHosts))
+	copy(hosts, productionRedirectHosts)
+
+	// Only allow localhost/127.0.0.1 in development
+	if isDevEnvironment() {
+		hosts = append(hosts, developmentRedirectHosts...)
+	}
+
+	return hosts
+}
+
 // isValidRedirectURL validates that a redirect URL is safe to use
-// It ensures the URL is well-formed, uses HTTPS (except for localhost), and belongs to an allowed host
+// It ensures the URL is well-formed, uses HTTPS (except for localhost in dev), and belongs to an allowed host
 func isValidRedirectURL(rawURL string) bool {
 	if rawURL == "" {
 		return false
@@ -54,9 +76,15 @@ func isValidRedirectURL(rawURL string) bool {
 		return false
 	}
 
-	// Allow http only for localhost/127.0.0.1, otherwise require https
 	host := strings.ToLower(u.Hostname())
+	isDev := isDevEnvironment()
+
+	// Allow http only for localhost/127.0.0.1 in development, otherwise require https
 	if host == "localhost" || host == "127.0.0.1" {
+		// Only allow localhost in development
+		if !isDev {
+			return false
+		}
 		if u.Scheme != "http" && u.Scheme != "https" {
 			return false
 		}
@@ -66,8 +94,9 @@ func isValidRedirectURL(rawURL string) bool {
 		}
 	}
 
-	// Check against allowed hosts
-	for _, allowed := range allowedRedirectHosts {
+	// Check against allowed hosts (environment-aware)
+	allowedHosts := getAllowedRedirectHosts()
+	for _, allowed := range allowedHosts {
 		if host == allowed {
 			return true
 		}

@@ -100,6 +100,11 @@ on:
         required: false
       APP_URL:
         required: false
+      # Security secrets
+      JWT_SECRET:
+        required: false
+      ENCRYPTION_KEY:
+        required: false
 
 env:
   GCP_REGION: northamerica-northeast2
@@ -220,6 +225,14 @@ jobs:
           # App URL for Stripe redirects
           if [ -n "${{ secrets.APP_URL }}" ]; then
             echo "APP_URL: \"${{ secrets.APP_URL }}\"" >> /tmp/env-vars.yaml
+          fi
+
+          # Security secrets
+          if [ -n "${{ secrets.JWT_SECRET }}" ]; then
+            echo "JWT_SECRET: \"${{ secrets.JWT_SECRET }}\"" >> /tmp/env-vars.yaml
+          fi
+          if [ -n "${{ secrets.ENCRYPTION_KEY }}" ]; then
+            echo "ENCRYPTION_KEY: \"${{ secrets.ENCRYPTION_KEY }}\"" >> /tmp/env-vars.yaml
           fi
 
           echo "Environment variables prepared for ${{ inputs.environment }}:"

@@ -1,13 +1,64 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Helper function: Check if a string field is valid
+    function isValidString(field, maxLength) {
+      return field is string && field.size() <= maxLength;
+    }
+
+    // Helper function: Validate user profile data
+    function isValidUserData(data) {
+      // Required fields
+      let hasRequiredFields = data.keys().hasAll(['email', 'createdAt']);
+
+      // Field type validation
+      let validEmail = isValidString(data.email, 254);
+      let validDisplayName = !('displayName' in data) || isValidString(data.displayName, 100);
+      let validPhotoURL = !('photoURL' in data) || isValidString(data.photoURL, 2048);
+      let validGoal = !('goal' in data) || isValidString(data.goal, 500);
+      let validLevel = !('level' in data) || isValidString(data.level, 50);
+
+      // Tier must be 'free' or 'pro' if present
+      let validTier = !('tier' in data) || data.tier in ['free', 'pro'];
+
+      // Prevent setting admin role from client
+      let noAdminRole = !('role' in data) || data.role != 'admin';
+
+      // Document size limit (100KB)
+      let validSize = request.resource.size() < 100 * 1024;
+
+      return hasRequiredFields && validEmail && validDisplayName && validPhotoURL &&
+             validGoal && validLevel && validTier && noAdminRole && validSize;
+    }
+
     // Users collection - users can only read/write their own documents
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
 
-      // Subcollections under user (e.g., usage)
+      // Create: validate data structure
+      allow create: if request.auth != null &&
+                       request.auth.uid == userId &&
+                       isValidUserData(request.resource.data);
+
+      // Update: validate data and prevent changing immutable fields
+      allow update: if request.auth != null &&
+                       request.auth.uid == userId &&
+                       isValidUserData(request.resource.data) &&
+                       // Prevent changing createdAt
+                       request.resource.data.createdAt == resource.data.createdAt &&
+                       // Prevent escalating to admin via client
+                       (!('role' in request.resource.data) || request.resource.data.role == resource.data.role);
+
+      // Delete: only via backend Admin SDK
+      allow delete: if false;
+
+      // Subcollections under user (e.g., usage, learning data)
       match /{subcollection}/{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null &&
+                        request.auth.uid == userId &&
+                        request.resource.size() < 50 * 1024; // 50KB limit for subcollection docs
       }
     }
 
@@ -15,15 +66,35 @@ service cloud.firestore {
     match /progress/{progressId} {
       allow read: if request.auth != null &&
                      request.auth.uid == resource.data.userId;
-      allow write: if request.auth != null &&
-                      request.auth.uid == request.resource.data.userId;
+      allow create: if request.auth != null &&
+                       request.auth.uid == request.resource.data.userId &&
+                       request.resource.size() < 50 * 1024;
+      allow update: if request.auth != null &&
+                       request.auth.uid == resource.data.userId &&
+                       request.resource.data.userId == resource.data.userId && // Can't change userId
+                       request.resource.size() < 50 * 1024;
+      allow delete: if request.auth != null &&
+                       request.auth.uid == resource.data.userId;
     }
 
-    // Lessons collection (public read, admin write)
+    // Lessons collection (authenticated read, admin write via backend)
+    // Note: Admin writes go through backend Admin SDK which bypasses rules
     match /lessons/{lessonId} {
-      allow read: if true;
-      allow write: if request.auth != null &&
-                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow read: if request.auth != null;
+      allow write: if false; // All writes must go through backend Admin SDK
+    }
+
+    // Learning paths collection - managed by backend
+    match /learning_paths/{pathId} {
+      allow read: if request.auth != null &&
+                     request.auth.uid == resource.data.userId;
+      allow write: if false; // All writes must go through backend Admin SDK
+    }
+
+    // Token blacklist - server-side only (Admin SDK bypasses rules)
+    // No client access allowed
+    match /token_blacklist/{tokenId} {
+      allow read, write: if false;
     }
   }
 }
