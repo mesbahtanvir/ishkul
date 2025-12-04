@@ -7,17 +7,32 @@ import (
 	"strings"
 )
 
-// Default allowed origins for development and production
-const defaultAllowedOrigins = "http://localhost:3000,http://localhost:8081,http://localhost:19006,https://ishkul.vercel.app,https://www.ishkul.org,https://ishkul.org"
+// Default allowed origins for development
+const defaultAllowedOrigins = "http://localhost:3000,http://localhost:8081,http://localhost:19006"
 
-// isVercelDomain checks if the origin is a Vercel deployment (production or preview)
-func isVercelDomain(origin string) bool {
+// Production allowed origins (only ishkul.org domains)
+const productionAllowedOrigins = "https://ishkul.org,https://www.ishkul.org"
+
+// isProductionEnvironment checks if running in production
+func isProductionEnvironment() bool {
+	env := os.Getenv("ENVIRONMENT")
+	return env == "production"
+}
+
+// isProductionDomain checks if the origin is the production ishkul.org domain
+func isProductionDomain(origin string) bool {
+	return origin == "https://ishkul.org" || origin == "https://www.ishkul.org"
+}
+
+// isVercelPreviewDomain checks if the origin is a Vercel preview deployment
+// Only allowed in non-production environments (PR deployments)
+func isVercelPreviewDomain(origin string) bool {
 	if !strings.HasPrefix(origin, "https://") {
 		return false
 	}
 	domain := strings.TrimPrefix(origin, "https://")
 
-	// Production domain
+	// Vercel production domain for the project
 	if domain == "ishkul.vercel.app" {
 		return true
 	}
@@ -51,31 +66,48 @@ func CORS(next http.Handler) http.Handler {
 		// Check if origin is allowed
 		if origin != "" {
 			allowed := false
+			isProduction := isProductionEnvironment()
 
-			// First, check if it's a Vercel domain (production or preview)
-			if isVercelDomain(origin) {
-				allowed = true
-				log.Printf("[CORS] Allowing Vercel domain: %s", origin)
-			}
+			// Normalize origin by removing trailing slash for comparison
+			normalizedOrigin := strings.TrimSuffix(origin, "/")
 
-			// Then check explicit allowed origins from env or default
-			if !allowed {
-				allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-				if allowedOrigins == "" {
-					allowedOrigins = defaultAllowedOrigins
+			if isProduction {
+				// PRODUCTION: Only allow ishkul.org and www.ishkul.org
+				if isProductionDomain(normalizedOrigin) {
+					allowed = true
+					log.Printf("[CORS] Production: Allowing origin: %s", origin)
+				}
+			} else {
+				// NON-PRODUCTION (PR deployments, development):
+				// Allow Vercel preview domains + localhost for development
+
+				// Check Vercel preview domains
+				if isVercelPreviewDomain(normalizedOrigin) {
+					allowed = true
+					log.Printf("[CORS] Preview: Allowing Vercel domain: %s", origin)
 				}
 
-				// Normalize origin by removing trailing slash for comparison
-				normalizedOrigin := strings.TrimSuffix(origin, "/")
+				// Check production domains (also allowed in preview for testing)
+				if !allowed && isProductionDomain(normalizedOrigin) {
+					allowed = true
+					log.Printf("[CORS] Preview: Allowing production domain: %s", origin)
+				}
 
-				origins := strings.Split(allowedOrigins, ",")
-				for _, o := range origins {
-					// Trim whitespace and trailing slash from allowed origin
-					trimmed := strings.TrimSuffix(strings.TrimSpace(o), "/")
-					if trimmed == normalizedOrigin {
-						allowed = true
-						log.Printf("[CORS] Allowing explicit origin: %s (matched: %s)", origin, o)
-						break
+				// Check localhost/development origins
+				if !allowed {
+					allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+					if allowedOrigins == "" {
+						allowedOrigins = defaultAllowedOrigins
+					}
+
+					origins := strings.Split(allowedOrigins, ",")
+					for _, o := range origins {
+						trimmed := strings.TrimSuffix(strings.TrimSpace(o), "/")
+						if trimmed == normalizedOrigin {
+							allowed = true
+							log.Printf("[CORS] Development: Allowing origin: %s (matched: %s)", origin, o)
+							break
+						}
 					}
 				}
 			}
@@ -85,7 +117,7 @@ func CORS(next http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Vary", "Origin")
 			} else {
-				log.Printf("[CORS] Rejected origin: %s", origin)
+				log.Printf("[CORS] Rejected origin: %s (production=%v)", origin, isProduction)
 			}
 		}
 
