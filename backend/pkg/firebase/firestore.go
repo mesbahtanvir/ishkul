@@ -70,39 +70,34 @@ func DeleteCollectionWithPrefix(ctx context.Context) error {
 		return nil
 	}
 
-	// Delete documents from prefixed collections
+	// Delete documents from prefixed collections using BulkWriter
 	collections := []string{"users", "learning_paths"}
 	for _, col := range collections {
 		prefixedCol := collectionPrefix + col
 		log.Printf("Cleaning up collection: %s", prefixedCol)
 
+		// Use BulkWriter for efficient bulk deletes (replaces deprecated Batch API)
+		bulkWriter := firestoreClient.BulkWriter(ctx)
 		iter := firestoreClient.Collection(prefixedCol).Documents(ctx)
-		batch := firestoreClient.Batch()
-		batchSize := 0
-		maxBatchSize := 500 // Firestore batch limit
+		totalDeleted := 0
 
 		for {
 			doc, err := iter.Next()
 			if err != nil {
 				break
 			}
-			batch.Delete(doc.Ref)
-			batchSize++
-
-			if batchSize >= maxBatchSize {
-				if _, err := batch.Commit(ctx); err != nil {
-					log.Printf("Error committing batch delete: %v", err)
-				}
-				batch = firestoreClient.Batch()
-				batchSize = 0
+			_, err = bulkWriter.Delete(doc.Ref)
+			if err != nil {
+				log.Printf("Error queuing delete for %s: %v", doc.Ref.Path, err)
+				continue
 			}
+			totalDeleted++
 		}
 
-		if batchSize > 0 {
-			if _, err := batch.Commit(ctx); err != nil {
-				log.Printf("Error committing final batch delete: %v", err)
-			}
-		}
+		// Flush and close the bulk writer
+		bulkWriter.End()
+
+		log.Printf("Deleted %d documents from %s", totalDeleted, prefixedCol)
 	}
 
 	log.Printf("Cleanup completed for prefix: %s", collectionPrefix)

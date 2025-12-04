@@ -133,6 +133,7 @@ jobs:
           context: .
           file: backend/Dockerfile
           push: false
+          load: true  # Load image into local Docker daemon
           tags: ishkul-backend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
