@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main, master]
 
+# Cancel previous CI runs for the same ref (branch/PR)
+# For PRs: cancel in-progress when new commits are pushed
+# For main: don't cancel (we want all commits tested)
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
+
 jobs:
   frontend:
     name: Frontend CI

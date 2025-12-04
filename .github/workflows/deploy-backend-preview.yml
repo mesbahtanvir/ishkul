@@ -1,5 +1,9 @@
 name: Deploy Backend Preview
 
+# PREVIEW DEPLOYMENT
+# Triggered on PRs that modify backend code
+# Automatically cancels previous runs when new commits are pushed
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -9,6 +13,12 @@ on:
       - 'cloudbuild.yaml'
       - '.dockerignore'
       - '.github/workflows/deploy-backend-preview.yml'
+
+# Cancel previous runs for the same PR when new commits are pushed
+# This saves resources and ensures only the latest code is deployed
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
