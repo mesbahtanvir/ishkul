@@ -59,7 +59,8 @@
     "typescript": "~5.9.2"
   },
   "overrides": {
-    "markdown-it": ">=12.3.2"
+    "markdown-it": ">=12.3.2",
+    "react-server-dom-webpack": "19.0.1"
   },
   "private": true
 }
