@@ -1,20 +1,23 @@
 name: Deploy Backend to Production
 
 # PRODUCTION DEPLOYMENT
-# Only triggered on release tags (v*) or manual dispatch
+# Triggered when prod branch is updated (via release.yml workflow)
 # Uses the reusable workflow for consistent deployment architecture
-# Uses GitHub Environment protection for approval workflow
 
 on:
   push:
-    tags:
-      - 'v*'  # Triggers on version tags like v1.0.0, v2.1.3, etc.
+    branches: [prod]
   workflow_dispatch:  # Allow manual trigger for hotfixes
     inputs:
       confirm_production:
         description: 'Type "production" to confirm deployment'
         required: true
         type: string
+
+# Only one production deployment at a time
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
 
 jobs:
   # Validation job for manual dispatch
@@ -39,13 +42,19 @@ jobs:
       image_tag: ${{ steps.config.outputs.image_tag }}
 
     steps:
+      - name: Checkout to get tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Generate configuration
         id: config
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION="${{ github.ref_name }}"
-          else
-            VERSION="manual-${{ github.sha }}"
+          # Try to get version from tag pointing to this commit
+          VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "")
+          if [ -z "$VERSION" ]; then
+            SHORT_SHA="${{ github.sha }}"
+            VERSION="prod-${SHORT_SHA:0:7}"
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "image_tag=${VERSION}" >> $GITHUB_OUTPUT
