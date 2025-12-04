@@ -66,39 +66,33 @@ jobs:
       - name: Prepare environment variables for Preview
         id: prepare-env
         run: |
-          # Build env vars string for preview environment
-          # Use FIRESTORE_COLLECTION_PREFIX to isolate preview data
-          ENV_VARS="ENVIRONMENT=preview"
-          ENV_VARS="${ENV_VARS},FIRESTORE_COLLECTION_PREFIX=${{ steps.pr.outputs.collection_prefix }}"
-          ENV_VARS="${ENV_VARS},FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }}"
-          ENV_VARS="${ENV_VARS},FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}"
+          # Create env vars YAML file for Cloud Run (avoids escaping issues with URLs)
+          cat > /tmp/env-vars.yaml << 'ENVEOF'
+          ENVIRONMENT: preview
+          FIRESTORE_COLLECTION_PREFIX: "${{ steps.pr.outputs.collection_prefix }}"
+          FIREBASE_DATABASE_URL: "${{ secrets.FIREBASE_DATABASE_URL }}"
+          FIREBASE_STORAGE_BUCKET: "${{ secrets.FIREBASE_STORAGE_BUCKET }}"
+          ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:8081,http://localhost:19006,https://ishkul.vercel.app,https://ishkul.org,https://ishkul-*.vercel.app"
+          ENVEOF
 
-          # Add OAuth client IDs for preview testing
+          # Add optional secrets if they exist
           if [ -n "${{ secrets.GOOGLE_WEB_CLIENT_ID }}" ]; then
-            ENV_VARS="${ENV_VARS},GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}"
+            echo "GOOGLE_WEB_CLIENT_ID: \"${{ secrets.GOOGLE_WEB_CLIENT_ID }}\"" >> /tmp/env-vars.yaml
           fi
           if [ -n "${{ secrets.GOOGLE_IOS_CLIENT_ID }}" ]; then
-            ENV_VARS="${ENV_VARS},GOOGLE_IOS_CLIENT_ID=${{ secrets.GOOGLE_IOS_CLIENT_ID }}"
+            echo "GOOGLE_IOS_CLIENT_ID: \"${{ secrets.GOOGLE_IOS_CLIENT_ID }}\"" >> /tmp/env-vars.yaml
           fi
           if [ -n "${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}" ]; then
-            ENV_VARS="${ENV_VARS},GOOGLE_ANDROID_CLIENT_ID=${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}"
+            echo "GOOGLE_ANDROID_CLIENT_ID: \"${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}\"" >> /tmp/env-vars.yaml
           fi
-
-          # Allow CORS from Vercel preview deployments
-          ALLOWED_ORIGINS="http://localhost:3000,http://localhost:8081,http://localhost:19006,https://ishkul.vercel.app,https://ishkul.org"
-          # Add Vercel preview URL pattern
-          ALLOWED_ORIGINS="${ALLOWED_ORIGINS},https://ishkul-*.vercel.app"
-          ENV_VARS="${ENV_VARS},ALLOWED_ORIGINS=${ALLOWED_ORIGINS}"
-
-          # Add OpenAI for preview testing (optional)
           if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
-            ENV_VARS="${ENV_VARS},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
+            echo "OPENAI_API_KEY: \"${{ secrets.OPENAI_API_KEY }}\"" >> /tmp/env-vars.yaml
           fi
 
           # NOTE: Stripe is NOT configured for preview to avoid accidental charges
-          # Use test mode or mock payments for preview testing
 
-          echo "env_vars=${ENV_VARS}" >> $GITHUB_OUTPUT
+          echo "Env vars file created:"
+          cat /tmp/env-vars.yaml
 
       - name: Deploy Preview to Cloud Run
         id: deploy
@@ -109,7 +103,7 @@ jobs:
             --region=${{ env.GCP_REGION }} \
             --allow-unauthenticated \
             --project=${{ env.GCP_PROJECT_ID }} \
-            --set-env-vars=${{ steps.prepare-env.outputs.env_vars }} \
+            --env-vars-file=/tmp/env-vars.yaml \
             --min-instances=0 \
             --max-instances=2 \
             --memory=512Mi \
