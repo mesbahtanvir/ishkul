@@ -91,8 +91,9 @@ func main() {
 		logger.Info(appLogger, ctx, "stripe_initialized")
 	}
 
-	// Initialize rate limiter
-	rateLimiter := middleware.DefaultRateLimiter()
+	// Initialize DDoS protection system
+	ddosProtection := middleware.NewDDoSProtection()
+	logger.Info(appLogger, ctx, "ddos_protection_initialized")
 
 	// Setup router
 	mux := http.NewServeMux()
@@ -111,19 +112,17 @@ func main() {
 	mux.HandleFunc("/dev/test-token", handlers.DevGetTestToken)
 
 	// Auth routes (no auth required - these issue tokens)
-	// Rate limiting applied to prevent brute force attacks
+	// DDoS protection with auth tier rate limiting (stricter to prevent brute force)
 	authMux := http.NewServeMux()
 	authMux.HandleFunc("/api/auth/login", handlers.Login)
 	authMux.HandleFunc("/api/auth/register", handlers.Register)
 	authMux.HandleFunc("/api/auth/refresh", handlers.Refresh)
 	authMux.HandleFunc("/api/auth/logout", handlers.Logout)
-	mux.Handle("/api/auth/", rateLimiter.Limit(middleware.CORS(authMux)))
+	mux.Handle("/api/auth/", ddosProtection.ProtectAuth(middleware.CORS(authMux)))
 
-	// Protected API routes (auth required)
-	api := http.NewServeMux()
-
-	// User profile and document endpoints
-	api.HandleFunc("/api/me", func(w http.ResponseWriter, r *http.Request) {
+	// Standard protected routes - standard rate limits
+	standardAPI := http.NewServeMux()
+	standardAPI.HandleFunc("/api/me", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			handlers.GetMe(w, r)
@@ -133,7 +132,7 @@ func main() {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
-	api.HandleFunc("/api/me/document", func(w http.ResponseWriter, r *http.Request) {
+	standardAPI.HandleFunc("/api/me/document", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			handlers.GetMeDocument(w, r)
@@ -143,9 +142,9 @@ func main() {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
-	api.HandleFunc("/api/me/history", handlers.AddHistory)
-	api.HandleFunc("/api/me/memory", handlers.UpdateMemory)
-	api.HandleFunc("/api/me/delete", func(w http.ResponseWriter, r *http.Request) {
+	standardAPI.HandleFunc("/api/me/history", handlers.AddHistory)
+	standardAPI.HandleFunc("/api/me/memory", handlers.UpdateMemory)
+	standardAPI.HandleFunc("/api/me/delete", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodDelete, http.MethodPost:
 			handlers.DeleteAccount(w, r)
@@ -153,7 +152,16 @@ func main() {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
-	api.HandleFunc("/api/me/next-step", func(w http.ResponseWriter, r *http.Request) {
+	standardAPI.HandleFunc("/api/subscription/status", handlers.GetSubscriptionStatus)
+	standardAPI.HandleFunc("/api/subscription/checkout", handlers.CreateCheckoutSession)
+	standardAPI.HandleFunc("/api/subscription/verify", handlers.VerifyCheckoutSession)
+	standardAPI.HandleFunc("/api/subscription/portal", handlers.CreatePortalSession)
+	standardAPI.HandleFunc("/api/subscription/cancel", handlers.CancelSubscription)
+	standardAPI.HandleFunc("/api/subscription/payment-sheet", handlers.GetPaymentSheetParams)
+
+	// Expensive operations (LLM calls) - stricter rate limits
+	expensiveAPI := http.NewServeMux()
+	expensiveAPI.HandleFunc("/api/me/next-step", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			handlers.GetNextStep(w, r)
@@ -165,31 +173,28 @@ func main() {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+	expensiveAPI.HandleFunc("/api/learning-paths", handlers.LearningPathsHandler)
+	expensiveAPI.HandleFunc("/api/learning-paths/", handlers.LearningPathsHandler)
 
-	// Learning paths endpoints
-	api.HandleFunc("/api/learning-paths", handlers.LearningPathsHandler)
-	api.HandleFunc("/api/learning-paths/", handlers.LearningPathsHandler)
+	// Apply DDoS protection with appropriate tiers
+	standardProtected := ddosProtection.ProtectStandard(middleware.CORS(middleware.Auth(standardAPI)))
+	expensiveProtected := ddosProtection.ProtectExpensive(middleware.CORS(middleware.Auth(expensiveAPI)))
 
-	// Subscription endpoints (protected)
-	api.HandleFunc("/api/subscription/status", handlers.GetSubscriptionStatus)
-	api.HandleFunc("/api/subscription/checkout", handlers.CreateCheckoutSession)
-	api.HandleFunc("/api/subscription/verify", handlers.VerifyCheckoutSession)
-	api.HandleFunc("/api/subscription/portal", handlers.CreatePortalSession)
-	api.HandleFunc("/api/subscription/cancel", handlers.CancelSubscription)
-	api.HandleFunc("/api/subscription/payment-sheet", handlers.GetPaymentSheetParams)
-
-	// Apply middleware to protected routes (rate limit -> CORS -> auth)
-	protectedHandler := rateLimiter.Limit(middleware.CORS(middleware.Auth(api)))
-	mux.Handle("/api/me", protectedHandler)
-	mux.Handle("/api/me/", protectedHandler)
-	mux.Handle("/api/learning-paths", protectedHandler)
-	mux.Handle("/api/learning-paths/", protectedHandler)
-	mux.Handle("/api/subscription/", protectedHandler)
+	mux.Handle("/api/me", standardProtected)
+	mux.Handle("/api/me/document", standardProtected)
+	mux.Handle("/api/me/history", standardProtected)
+	mux.Handle("/api/me/memory", standardProtected)
+	mux.Handle("/api/me/delete", standardProtected)
+	mux.Handle("/api/subscription/", standardProtected)
+	mux.Handle("/api/me/next-step", expensiveProtected)
+	mux.Handle("/api/learning-paths", expensiveProtected)
+	mux.Handle("/api/learning-paths/", expensiveProtected)
 
 	// Stripe webhook (no auth - uses signature verification)
+	// DDoS protection with webhook tier (higher limits for third-party services)
 	webhookMux := http.NewServeMux()
 	webhookMux.HandleFunc("/api/webhooks/stripe", handlers.HandleStripeWebhook)
-	mux.Handle("/api/webhooks/", middleware.CORS(webhookMux))
+	mux.Handle("/api/webhooks/", ddosProtection.ProtectWebhook(middleware.CORS(webhookMux)))
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")
@@ -197,14 +202,15 @@ func main() {
 		port = "8080"
 	}
 
-	// Create server with security settings
+	// Create server with enhanced security settings for DDoS protection
 	srv := &http.Server{
-		Addr:           ":" + port,
-		Handler:        handler,
-		ReadTimeout:    15 * time.Second,
-		WriteTimeout:   15 * time.Second,
-		IdleTimeout:    60 * time.Second,
-		MaxHeaderBytes: 1 << 20, // 1 MB max header size (prevents header-based DoS)
+		Addr:              ":" + port,
+		Handler:           handler,
+		ReadTimeout:       15 * time.Second,                  // Max time to read request (prevents slowloris)
+		ReadHeaderTimeout: 5 * time.Second,                   // Max time to read headers (prevents slow header attacks)
+		WriteTimeout:      15 * time.Second,                  // Max time to write response
+		IdleTimeout:       30 * time.Second,                  // Reduced from 60s for better connection turnover
+		MaxHeaderBytes:    1 << 20,                           // 1 MB max header size (prevents header-based DoS)
 	}
 
 	// Start server in goroutine
