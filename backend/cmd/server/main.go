@@ -121,9 +121,9 @@ func main() {
 	// Wrap mux with middleware stack (order matters: security -> body limit -> logging)
 	var handler http.Handler = mux
 	handler = middleware.LoggingMiddleware(appLogger)(handler)
-	handler = middleware.BodyLimit(handler)        // Prevent DoS via large request bodies
-	handler = middleware.SecurityHeaders(handler)  // Add security headers (HSTS, CSP, etc.)
-	handler = middleware.SecureRedirect(handler)   // Redirect HTTP to HTTPS in production
+	handler = middleware.BodyLimit(handler)       // Prevent DoS via large request bodies
+	handler = middleware.SecurityHeaders(handler) // Add security headers (HSTS, CSP, etc.)
+	handler = middleware.SecureRedirect(handler)  // Redirect HTTP to HTTPS in production
 
 	logger.Info(appLogger, ctx, "router_setup_complete")
 
