@@ -33,7 +33,7 @@ func GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	doc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	doc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -100,7 +100,7 @@ func UpdateMe(w http.ResponseWriter, r *http.Request) {
 		updates = append(updates, firestore.Update{Path: "displayName", Value: *req.DisplayName})
 	}
 
-	docRef := fs.Collection("users").Doc(userID)
+	docRef := Collection(fs, "users").Doc(userID)
 	if _, err := docRef.Update(ctx, updates); err != nil {
 		http.Error(w, "Error updating user", http.StatusInternalServerError)
 		return
@@ -146,7 +146,7 @@ func GetMeDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	doc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	doc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -197,7 +197,7 @@ func CreateMeDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docRef := fs.Collection("users").Doc(userID)
+	docRef := Collection(fs, "users").Doc(userID)
 	doc, _ := docRef.Get(ctx)
 
 	now := time.Now()
@@ -299,7 +299,7 @@ func AddHistory(w http.ResponseWriter, r *http.Request) {
 		Timestamp: time.Now().UnixMilli(),
 	}
 
-	docRef := fs.Collection("users").Doc(userID)
+	docRef := Collection(fs, "users").Doc(userID)
 	_, err := docRef.Update(ctx, []firestore.Update{
 		{Path: "history", Value: firestore.ArrayUnion(entry)},
 		{Path: "updatedAt", Value: time.Now()},
@@ -340,7 +340,7 @@ func GetNextStep(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	doc, err := fs.Collection("users").Doc(userID).Get(ctx)
+	doc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -401,7 +401,7 @@ func SetNextStep(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docRef := fs.Collection("users").Doc(userID)
+	docRef := Collection(fs, "users").Doc(userID)
 	_, err := docRef.Update(ctx, []firestore.Update{
 		{Path: "nextStep", Value: nextStep},
 		{Path: "updatedAt", Value: time.Now()},
@@ -442,7 +442,7 @@ func ClearNextStep(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docRef := fs.Collection("users").Doc(userID)
+	docRef := Collection(fs, "users").Doc(userID)
 	_, err := docRef.Update(ctx, []firestore.Update{
 		{Path: "nextStep", Value: firestore.Delete},
 		{Path: "updatedAt", Value: time.Now()},
@@ -505,7 +505,7 @@ func UpdateMemory(w http.ResponseWriter, r *http.Request) {
 		TimesTested:  req.TimesTested,
 	}
 
-	docRef := fs.Collection("users").Doc(userID)
+	docRef := Collection(fs, "users").Doc(userID)
 	_, err := docRef.Update(ctx, []firestore.Update{
 		{Path: "memory.topics." + req.Topic, Value: topicMemory},
 		{Path: "updatedAt", Value: time.Now()},
@@ -565,7 +565,7 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docRef := fs.Collection("users").Doc(userID)
+	docRef := Collection(fs, "users").Doc(userID)
 
 	if req.Type == "soft" {
 		// Soft delete: Set deletedAt timestamp
@@ -594,7 +594,7 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		pathCount := 0
 		err := fs.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 			// Query all learning paths for this user
-			pathsIter := fs.Collection("learning_paths").Where("userId", "==", userID).Documents(ctx)
+			pathsIter := Collection(fs, "learning_paths").Where("userId", "==", userID).Documents(ctx)
 			defer pathsIter.Stop()
 
 			// Collect all document references to delete

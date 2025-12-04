@@ -1,0 +1,197 @@
+name: Deploy Backend Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'backend/**'
+      - 'prompts/**'
+      - 'cloudbuild.yaml'
+      - '.dockerignore'
+      - '.github/workflows/deploy-backend-preview.yml'
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: northamerica-northeast2
+  IMAGE_NAME: ishkul-backend
+
+jobs:
+  build-and-deploy-preview:
+    name: Deploy Backend Preview
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get PR Number
+        id: pr
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+          echo "service_name=ishkul-backend-pr-${PR_NUMBER}" >> $GITHUB_OUTPUT
+          echo "collection_prefix=pr_${PR_NUMBER}_" >> $GITHUB_OUTPUT
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCP Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
+          REGISTRY="${{ env.GCP_REGION }}-docker.pkg.dev"
+          IMAGE_TAG="${REGISTRY}/${{ env.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:pr-${{ steps.pr.outputs.number }}-${{ github.sha }}"
+
+          echo "Building image: $IMAGE_TAG"
+          docker build -t "$IMAGE_TAG" -f backend/Dockerfile .
+
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push ${{ env.IMAGE_TAG }}
+
+      - name: Prepare environment variables for Preview
+        id: prepare-env
+        run: |
+          # Build env vars string for preview environment
+          # Use FIRESTORE_COLLECTION_PREFIX to isolate preview data
+          ENV_VARS="ENVIRONMENT=preview"
+          ENV_VARS="${ENV_VARS},FIRESTORE_COLLECTION_PREFIX=${{ steps.pr.outputs.collection_prefix }}"
+          ENV_VARS="${ENV_VARS},FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }}"
+          ENV_VARS="${ENV_VARS},FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}"
+
+          # Add OAuth client IDs for preview testing
+          if [ -n "${{ secrets.GOOGLE_WEB_CLIENT_ID }}" ]; then
+            ENV_VARS="${ENV_VARS},GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}"
+          fi
+          if [ -n "${{ secrets.GOOGLE_IOS_CLIENT_ID }}" ]; then
+            ENV_VARS="${ENV_VARS},GOOGLE_IOS_CLIENT_ID=${{ secrets.GOOGLE_IOS_CLIENT_ID }}"
+          fi
+          if [ -n "${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}" ]; then
+            ENV_VARS="${ENV_VARS},GOOGLE_ANDROID_CLIENT_ID=${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}"
+          fi
+
+          # Allow CORS from Vercel preview deployments
+          ALLOWED_ORIGINS="http://localhost:3000,http://localhost:8081,http://localhost:19006,https://ishkul.vercel.app,https://ishkul.org"
+          # Add Vercel preview URL pattern
+          ALLOWED_ORIGINS="${ALLOWED_ORIGINS},https://ishkul-*.vercel.app"
+          ENV_VARS="${ENV_VARS},ALLOWED_ORIGINS=${ALLOWED_ORIGINS}"
+
+          # Add OpenAI for preview testing (optional)
+          if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
+            ENV_VARS="${ENV_VARS},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
+          fi
+
+          # NOTE: Stripe is NOT configured for preview to avoid accidental charges
+          # Use test mode or mock payments for preview testing
+
+          echo "env_vars=${ENV_VARS}" >> $GITHUB_OUTPUT
+
+      - name: Deploy Preview to Cloud Run
+        id: deploy
+        run: |
+          # Deploy as a new Cloud Run service for this PR
+          gcloud run deploy ${{ steps.pr.outputs.service_name }} \
+            --image=${{ env.IMAGE_TAG }} \
+            --region=${{ env.GCP_REGION }} \
+            --allow-unauthenticated \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --set-env-vars=${{ steps.prepare-env.outputs.env_vars }} \
+            --min-instances=0 \
+            --max-instances=2 \
+            --memory=512Mi \
+            --cpu=1 \
+            --timeout=300 \
+            --labels="environment=preview,pr=${{ steps.pr.outputs.number }}"
+
+          # Get the service URL
+          SERVICE_URL=$(gcloud run services describe ${{ steps.pr.outputs.service_name }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --format='value(status.url)')
+
+          echo "preview_url=${SERVICE_URL}" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR with Preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const previewUrl = '${{ steps.deploy.outputs.preview_url }}';
+            const prNumber = ${{ steps.pr.outputs.number }};
+            const collectionPrefix = '${{ steps.pr.outputs.collection_prefix }}';
+
+            const body = `## 🚀 Backend Preview Deployed!
+
+            | Resource | Value |
+            |----------|-------|
+            | **Preview URL** | ${previewUrl} |
+            | **Service** | \`${{ steps.pr.outputs.service_name }}\` |
+            | **Data Prefix** | \`${collectionPrefix}\` |
+            | **Region** | ${{ env.GCP_REGION }} |
+            | **Commit** | \`${{ github.sha }}\` |
+
+            ### ⚠️ Preview Environment Notes
+            - Uses **isolated Firestore collections** (prefixed with \`${collectionPrefix}\`)
+            - Data will be **automatically cleaned up** when PR is closed/merged
+            - Stripe payments are **disabled** in preview
+            - Min instances: 0 (may have cold start delay)
+
+            ### 🔗 Test Endpoints
+            - Health: ${previewUrl}/health
+            - API Base: ${previewUrl}/api
+
+            ---
+            *This preview will be automatically deleted when the PR is closed.*`;
+
+            // Find existing comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const existingComment = comments.find(c =>
+              c.user.login === 'github-actions[bot]' &&
+              c.body.includes('Backend Preview Deployed')
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: body,
+              });
+            }
+
+      - name: Summary
+        run: |
+          echo "## Backend Preview Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service:** ${{ steps.pr.outputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${{ steps.deploy.outputs.preview_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ env.GCP_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Collection Prefix:** ${{ steps.pr.outputs.collection_prefix }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** ${{ env.IMAGE_TAG }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Preview deployment completed successfully!" >> $GITHUB_STEP_SUMMARY

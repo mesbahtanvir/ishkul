@@ -214,7 +214,7 @@ func listLearningPaths(w http.ResponseWriter, r *http.Request) {
 
 	// Build query based on status filter
 	var query firestore.Query
-	baseQuery := fs.Collection("learning_paths").Where("userId", "==", userID)
+	baseQuery := Collection(fs, "learning_paths").Where("userId", "==", userID)
 
 	switch statusFilter {
 	case models.PathStatusActive:
@@ -285,7 +285,7 @@ func getLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Learning path not found", http.StatusNotFound)
 		return
@@ -305,7 +305,7 @@ func getLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	// Update last accessed time (intentionally ignoring error for non-critical update)
 	now := time.Now().UnixMilli()
-	_, _ = fs.Collection("learning_paths").Doc(pathID).Update(ctx, []firestore.Update{
+	_, _ = Collection(fs, "learning_paths").Doc(pathID).Update(ctx, []firestore.Update{
 		{Path: "lastAccessedAt", Value: now},
 	})
 	path.LastAccessedAt = now
@@ -404,7 +404,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		LastAccessedAt: now,
 	}
 
-	if _, err := fs.Collection("learning_paths").Doc(pathID).Set(ctx, path); err != nil {
+	if _, err := Collection(fs, "learning_paths").Doc(pathID).Set(ctx, path); err != nil {
 		http.Error(w, "Error creating learning path", http.StatusInternalServerError)
 		return
 	}
@@ -432,7 +432,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 			}
 			// Update status to failed
 			if bgFs != nil {
-				_, _ = bgFs.Collection("learning_paths").Doc(pathID).Update(bgCtx, []firestore.Update{
+				_, _ = Collection(bgFs, "learning_paths").Doc(pathID).Update(bgCtx, []firestore.Update{
 					{Path: "outlineStatus", Value: models.OutlineStatusFailed},
 					{Path: "updatedAt", Value: time.Now().UnixMilli()},
 				})
@@ -457,7 +457,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 
 		// Update the path with the generated outline and set status to ready
 		if bgFs != nil {
-			_, updateErr := bgFs.Collection("learning_paths").Doc(pathID).Update(bgCtx, []firestore.Update{
+			_, updateErr := Collection(bgFs, "learning_paths").Doc(pathID).Update(bgCtx, []firestore.Update{
 				{Path: "outline", Value: outline},
 				{Path: "outlinePosition", Value: outlinePosition},
 				{Path: "outlineStatus", Value: models.OutlineStatusReady},
@@ -472,7 +472,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 					)
 				}
 				// Update status to failed
-				_, _ = bgFs.Collection("learning_paths").Doc(pathID).Update(bgCtx, []firestore.Update{
+				_, _ = Collection(bgFs, "learning_paths").Doc(pathID).Update(bgCtx, []firestore.Update{
 					{Path: "outlineStatus", Value: models.OutlineStatusFailed},
 					{Path: "updatedAt", Value: time.Now().UnixMilli()},
 				})
@@ -504,7 +504,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 				}
 
 				// Get user tier for pregeneration
-				userDoc, userErr := bgFs.Collection("users").Doc(userID).Get(bgCtx)
+				userDoc, userErr := Collection(bgFs, "users").Doc(userID).Get(bgCtx)
 				pregenerateTier := models.TierFree
 				if userErr == nil {
 					var user models.User
@@ -550,7 +550,7 @@ func updateLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 	}
 
 	// First verify ownership
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Learning path not found", http.StatusNotFound)
 		return
@@ -598,13 +598,13 @@ func updateLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 		updates = append(updates, firestore.Update{Path: "totalLessons", Value: *req.TotalLessons})
 	}
 
-	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
+	if _, err := Collection(fs, "learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
 		http.Error(w, "Error updating learning path", http.StatusInternalServerError)
 		return
 	}
 
 	// Fetch updated document
-	doc, err = fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err = Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Error fetching updated path", http.StatusInternalServerError)
 		return
@@ -644,7 +644,7 @@ func deleteLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 	}
 
 	// First verify ownership
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Learning path not found", http.StatusNotFound)
 		return
@@ -675,7 +675,7 @@ func deleteLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 		{Path: "updatedAt", Value: now},
 	}
 
-	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
+	if _, err := Collection(fs, "learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
 		http.Error(w, "Error deleting learning path", http.StatusInternalServerError)
 		return
 	}
@@ -710,7 +710,7 @@ func archiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string) 
 		return
 	}
 
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Learning path not found", http.StatusNotFound)
 		return
@@ -740,7 +740,7 @@ func archiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string) 
 		{Path: "updatedAt", Value: now},
 	}
 
-	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
+	if _, err := Collection(fs, "learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
 		http.Error(w, fmt.Sprintf("Error archiving learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -775,7 +775,7 @@ func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string
 		return
 	}
 
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Learning path not found", http.StatusNotFound)
 		return
@@ -837,7 +837,7 @@ func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string
 		{Path: "lastAccessedAt", Value: now},
 	}
 
-	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
+	if _, err := Collection(fs, "learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
 		http.Error(w, fmt.Sprintf("Error unarchiving learning path: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -846,7 +846,7 @@ func unarchiveLearningPath(w http.ResponseWriter, r *http.Request, pathID string
 	path.Status = models.PathStatusActive
 	if pregenerateService != nil {
 		// Fetch user to get their tier for pregeneration
-		userDoc, userErr := fs.Collection("users").Doc(userID).Get(ctx)
+		userDoc, userErr := Collection(fs, "users").Doc(userID).Get(ctx)
 		var user models.User
 		pregenerateTier := models.TierFree // Default to free tier
 		if userErr == nil {
@@ -893,7 +893,7 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 		return
 	}
 
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Learning path not found", http.StatusNotFound)
 		return
@@ -942,7 +942,7 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	// Update last accessed (intentionally ignoring error for non-critical update)
 	now := time.Now().UnixMilli()
-	_, _ = fs.Collection("learning_paths").Doc(pathID).Update(ctx, []firestore.Update{
+	_, _ = Collection(fs, "learning_paths").Doc(pathID).Update(ctx, []firestore.Update{
 		{Path: "lastAccessedAt", Value: now},
 	})
 
@@ -1030,7 +1030,7 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	path.Steps = append(path.Steps, *nextStep)
 
 	// Save the updated path to Firestore
-	_, err = fs.Collection("learning_paths").Doc(pathID).Update(ctx, []firestore.Update{
+	_, err = Collection(fs, "learning_paths").Doc(pathID).Update(ctx, []firestore.Update{
 		{Path: "steps", Value: path.Steps},
 		{Path: "updatedAt", Value: time.Now().UnixMilli()},
 	})
@@ -1060,7 +1060,7 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 	// This ensures the next call to /next will have a cached step ready
 	if pregenerateService != nil {
 		// Fetch user to get their tier for pregeneration
-		userDoc, userErr := fs.Collection("users").Doc(path.UserID).Get(ctx)
+		userDoc, userErr := Collection(fs, "users").Doc(path.UserID).Get(ctx)
 		var user models.User
 		pregenerateTier := models.TierFree // Default to free tier
 		if userErr == nil {
@@ -1273,7 +1273,7 @@ func completeCurrentStep(w http.ResponseWriter, r *http.Request, pathID string) 
 		return
 	}
 
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Learning path not found", http.StatusNotFound)
 		return
@@ -1323,7 +1323,7 @@ func completeStep(w http.ResponseWriter, r *http.Request, pathID string, stepID 
 		return
 	}
 
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Learning path not found", http.StatusNotFound)
 		return
@@ -1480,13 +1480,13 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 		}
 	}
 
-	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
+	if _, err := Collection(fs, "learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
 		http.Error(w, "Error updating learning path", http.StatusInternalServerError)
 		return
 	}
 
 	// Fetch updated path
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Error fetching updated path", http.StatusInternalServerError)
 		return
@@ -1505,7 +1505,7 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 	nextStepNeeded := !pathCompleted && path.Status == models.PathStatusActive
 	if nextStepNeeded && pregenerateService != nil {
 		// Fetch user to get their tier for pregeneration
-		userDoc, userErr := fs.Collection("users").Doc(path.UserID).Get(ctx)
+		userDoc, userErr := Collection(fs, "users").Doc(path.UserID).Get(ctx)
 		var user models.User
 		pregenerateTier := models.TierFree // Default to free tier
 		if userErr == nil {
@@ -1575,7 +1575,7 @@ func viewStep(w http.ResponseWriter, r *http.Request, pathID string, stepID stri
 		return
 	}
 
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Learning path not found", http.StatusNotFound)
 		return
@@ -1621,7 +1621,7 @@ func viewStep(w http.ResponseWriter, r *http.Request, pathID string, stepID stri
 		{Path: "lastAccessedAt", Value: now.UnixMilli()},
 	}
 
-	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
+	if _, err := Collection(fs, "learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
 		http.Error(w, fmt.Sprintf("Error updating memory: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -1878,7 +1878,7 @@ func updatePathMemory(w http.ResponseWriter, r *http.Request, pathID string) {
 	}
 
 	// Verify ownership
-	doc, err := fs.Collection("learning_paths").Doc(pathID).Get(ctx)
+	doc, err := Collection(fs, "learning_paths").Doc(pathID).Get(ctx)
 	if err != nil {
 		http.Error(w, "Learning path not found", http.StatusNotFound)
 		return
@@ -1908,7 +1908,7 @@ func updatePathMemory(w http.ResponseWriter, r *http.Request, pathID string) {
 		{Path: "lastAccessedAt", Value: now.UnixMilli()},
 	}
 
-	if _, err := fs.Collection("learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
+	if _, err := Collection(fs, "learning_paths").Doc(pathID).Update(ctx, updates); err != nil {
 		http.Error(w, fmt.Sprintf("Error updating memory: %v", err), http.StatusInternalServerError)
 		return
 	}

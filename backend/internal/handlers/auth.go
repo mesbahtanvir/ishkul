@@ -393,7 +393,7 @@ func getOrCreateUser(ctx context.Context, userID, email, displayName, photoURL s
 		return nil, fmt.Errorf("firestore client not available")
 	}
 
-	docRef := fs.Collection("users").Doc(userID)
+	docRef := Collection(fs, "users").Doc(userID)
 	doc, err := docRef.Get(ctx)
 
 	now := time.Now()
