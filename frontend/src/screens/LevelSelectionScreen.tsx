@@ -93,8 +93,8 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
           is_first_path: false,
         });
 
-        // Navigate directly to LearningPath to start the new path
-        navigation.navigate('LearningPath', { pathId: createdPath.id });
+        // Navigate to CourseGenerating to show outline generation progress
+        navigation.navigate('CourseGenerating', { pathId: createdPath.id });
       } else {
         // First-time user - create user document with first learning path
         const firstPathData = {
@@ -125,11 +125,11 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
             is_first_path: true,
           });
 
-          // Navigate to Main first, then to LearningPath
+          // Navigate to Main first, then to CourseGenerating
           navigation.replace('Main');
-          // Use setTimeout to ensure Main is mounted before navigating to LearningPath
+          // Use setTimeout to ensure Main is mounted before navigating to CourseGenerating
           setTimeout(() => {
-            navigation.navigate('LearningPath', { pathId: createdPath.id });
+            navigation.navigate('CourseGenerating', { pathId: createdPath.id });
           }, 100);
         } else {
           // Fallback: just navigate to Main

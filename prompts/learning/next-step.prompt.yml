@@ -26,6 +26,17 @@ messages:
       - Total Steps Completed: {{historyCount}}
       - Recent Topics: {{recentHistory}}
 
+      {{#if currentTopic}}
+      ## CURRENT CURRICULUM POSITION (IMPORTANT - Follow this!)
+      You MUST teach the following topic from the course outline:
+      - Module: {{currentModule}}
+      - Topic: {{currentTopic}}
+      - Topic Type: {{currentTopicType}}
+      - Topic Description: {{currentTopicDescription}}
+
+      Generate content specifically for this topic. Do NOT skip ahead or go back.
+      {{/if}}
+
       Learning Memory:
       {{memory}}
 
@@ -103,6 +114,13 @@ messages:
       Level: {{level}}
       Steps Completed: {{historyCount}}
       Recent Topics: {{recentHistory}}
+      {{#if currentTopic}}
+
+      CURRENT TOPIC TO TEACH: {{currentTopic}}
+      Module: {{currentModule}}
+      Description: {{currentTopicDescription}}
+      Suggested Type: {{currentTopicType}}
+      {{/if}}
 
       Learning Memory:
       {{memory}}
