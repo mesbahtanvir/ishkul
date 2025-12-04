@@ -45,27 +45,30 @@ jobs:
       environment: staging
       service_name: ishkul-backend-staging
       image_tag: ${{ needs.prepare.outputs.image_tag }}
-      collection_prefix: 'staging_'
+      # No collection_prefix - staging uses a separate Firebase project
       min_instances: 0
       max_instances: 10
       memory: '512Mi'
       cpu: 1
       stripe_mode: 'test'
     secrets:
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-      FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-      FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+      # Staging uses separate GCP/Firebase project
+      GCP_PROJECT_ID: ${{ secrets.STAGING_GCP_PROJECT_ID }}
+      GCP_SA_KEY: ${{ secrets.STAGING_GCP_SA_KEY }}
+      FIREBASE_DATABASE_URL: ${{ secrets.STAGING_FIREBASE_DATABASE_URL }}
+      FIREBASE_STORAGE_BUCKET: ${{ secrets.STAGING_FIREBASE_STORAGE_BUCKET }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-      GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
-      GOOGLE_ANDROID_CLIENT_ID: ${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}
+      # Staging uses separate Google OAuth credentials
+      GOOGLE_WEB_CLIENT_ID: ${{ secrets.STAGING_GOOGLE_WEB_CLIENT_ID }}
+      GOOGLE_IOS_CLIENT_ID: ${{ secrets.STAGING_GOOGLE_IOS_CLIENT_ID }}
+      GOOGLE_ANDROID_CLIENT_ID: ${{ secrets.STAGING_GOOGLE_ANDROID_CLIENT_ID }}
       STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
       STRIPE_TEST_WEBHOOK_SECRET: ${{ secrets.STRIPE_TEST_WEBHOOK_SECRET }}
       STRIPE_TEST_PRO_PRICE_ID: ${{ secrets.STRIPE_TEST_PRO_PRICE_ID }}
-      APP_URL: ${{ secrets.APP_URL }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      APP_URL: ${{ secrets.STAGING_APP_URL }}
+      # Security: Use staging-specific secrets for complete isolation
+      JWT_SECRET: ${{ secrets.STAGING_JWT_SECRET || secrets.JWT_SECRET }}
+      ENCRYPTION_KEY: ${{ secrets.STAGING_ENCRYPTION_KEY || secrets.ENCRYPTION_KEY }}
 
   summary:
     name: Deployment Summary
@@ -81,12 +84,13 @@ jobs:
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **URL** | ${{ needs.deploy.outputs.service_url }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Service** | \`ishkul-backend-staging\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Data Prefix** | \`staging_\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Firebase** | Separate staging project |" >> $GITHUB_STEP_SUMMARY
           echo "| **Stripe** | 🧪 Test Mode |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Environment Features" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Isolated Firestore data (\`staging_\` prefix)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Separate Firebase project (complete data isolation)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Separate Google OAuth credentials" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Stripe TEST mode (test cards accepted)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ OpenAI enabled for testing" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Can be used for QA before production release" >> $GITHUB_STEP_SUMMARY
