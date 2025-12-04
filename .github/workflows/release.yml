@@ -1,0 +1,53 @@
+name: Release to Production
+
+# When a release tag is pushed, update the prod branch
+# This triggers both:
+# - Vercel production deployment (frontend)
+# - Backend production deployment (via deploy-backend.yml)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  update-prod-branch:
+    name: Update prod branch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update prod branch to tag commit
+        run: |
+          VERSION="${{ github.ref_name }}"
+          COMMIT="${{ github.sha }}"
+
+          echo "🚀 Releasing ${VERSION}"
+          echo "Commit: ${COMMIT}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Force update prod branch to this tag's commit
+          git push origin ${COMMIT}:refs/heads/prod --force
+
+          echo "✅ prod branch updated to ${VERSION}"
+
+      - name: Summary
+        run: |
+          echo "## 🚀 Release ${GITHUB_REF_NAME}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The \`prod\` branch has been updated to this release." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Triggered Deployments" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Frontend**: Vercel will deploy to \`ishkul.org\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Backend**: Cloud Run will deploy \`ishkul-backend\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | \`${GITHUB_REF_NAME}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY

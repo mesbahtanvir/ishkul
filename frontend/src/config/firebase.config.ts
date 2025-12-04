@@ -46,11 +46,29 @@ const BACKEND_SERVICES = {
 };
 
 /**
+ * Get current hostname (works in browser, returns null in SSR/native)
+ */
+function getHostname(): string | null {
+  if (typeof window !== 'undefined' && window.location) {
+    return window.location.hostname;
+  }
+  return null;
+}
+
+/**
+ * Check if running on staging domain
+ */
+function isStagingDomain(): boolean {
+  const hostname = getHostname();
+  return hostname === 'staging.ishkul.org';
+}
+
+/**
  * Get the API base URL based on environment
  *
  * Priority:
  * 1. Explicit EXPO_PUBLIC_API_URL environment variable
- * 2. EXPO_PUBLIC_USE_STAGING=true → Staging backend
+ * 2. Staging domain (staging.ishkul.org) → Staging backend
  * 3. Vercel preview with matching backend (auto-constructed URL)
  * 4. Production URL
  * 5. Localhost for development
@@ -61,10 +79,10 @@ function getApiBaseUrl(): string {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
-  // 2. Use staging backend if explicitly requested
-  if (process.env.EXPO_PUBLIC_USE_STAGING === 'true') {
+  // 2. Staging domain detection (staging.ishkul.org)
+  if (isStagingDomain()) {
     const stagingUrl = `https://${BACKEND_SERVICES.staging}-${GCP_PROJECT_NUMBER}.${GCP_REGION}.run.app/api`;
-    console.log(`[API Config] Staging mode enabled, using: ${stagingUrl}`);
+    console.log(`[API Config] Staging domain detected, using: ${stagingUrl}`);
     return stagingUrl;
   }
 
@@ -100,6 +118,6 @@ export const apiConfig = {
  * Environment helper
  */
 export const isDevelopment = process.env.NODE_ENV === "development";
-export const isProduction = process.env.NODE_ENV === "production" && !process.env.EXPO_PUBLIC_USE_STAGING;
-export const isStaging = process.env.EXPO_PUBLIC_USE_STAGING === 'true';
+export const isStaging = isStagingDomain();
 export const isPreview = !!process.env.VERCEL_GIT_PULL_REQUEST_ID;
+export const isProduction = process.env.NODE_ENV === "production" && !isStaging && !isPreview;
