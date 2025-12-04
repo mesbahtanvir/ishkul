@@ -106,7 +106,7 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
       const fetchedPath = await learningPathsApi.getPath(pathId);
       if (fetchedPath) {
         setPath(fetchedPath);
-        updatePath(fetchedPath);
+        updatePath(pathId, fetchedPath);
 
         // If outline is ready or failed, stop polling
         if (fetchedPath.outlineStatus === OutlineStatuses.READY ||

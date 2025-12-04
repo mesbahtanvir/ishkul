@@ -136,6 +136,24 @@ func (s *PregenerateService) generateStep(ctx context.Context, path *models.Lear
 		"recentHistory": recentHistory,
 	}
 
+	// Add outline context if available
+	if path.Outline != nil && path.OutlinePosition != nil {
+		moduleIdx := path.OutlinePosition.ModuleIndex
+		topicIdx := path.OutlinePosition.TopicIndex
+
+		if moduleIdx < len(path.Outline.Modules) {
+			module := path.Outline.Modules[moduleIdx]
+			vars["currentModule"] = module.Title
+
+			if topicIdx < len(module.Topics) {
+				topic := module.Topics[topicIdx]
+				vars["currentTopic"] = topic.Title
+				vars["currentTopicType"] = topic.ToolID
+				vars["currentTopicDescription"] = topic.Description
+			}
+		}
+	}
+
 	// Load the next-step prompt template
 	template, err := s.loader.LoadByName("learning/next-step")
 	if err != nil {
