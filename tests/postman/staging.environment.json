@@ -1,0 +1,19 @@
+{
+  "id": "staging-env",
+  "name": "Staging",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "https://ishkul-backend-staging-1086267507068.northamerica-northeast1.run.app",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

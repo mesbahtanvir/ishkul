@@ -1,0 +1,88 @@
+# Maestro Quiz Completion Flow
+# Tests taking and completing a quiz
+# Run: maestro test .maestro/flows/learning/complete-quiz.yaml
+
+appId: com.ishkul.app
+tags:
+  - learning
+  - quiz
+---
+
+# Launch app (assumes logged in state)
+- launchApp
+
+# Navigate to a quiz (via learning path)
+- extendedWaitUntil:
+    visible: "Learning|Path|Home"
+    regex: true
+    timeout: 15000
+
+# Find and tap on a quiz
+- tapOn:
+    text: "Quiz|Test|Assessment|Practice"
+    regex: true
+
+- extendedWaitUntil:
+    visible: "Question|Start Quiz|Begin"
+    regex: true
+    timeout: 10000
+
+- takeScreenshot: quiz-start
+
+# Start the quiz if there's a start button
+- runFlow:
+    when:
+      visible: "Start Quiz|Begin|Start"
+    commands:
+      - tapOn:
+          text: "Start Quiz|Begin|Start"
+          regex: true
+
+# Wait for first question
+- extendedWaitUntil:
+    visible: "Question|1|\\?"
+    regex: true
+    timeout: 10000
+
+- takeScreenshot: quiz-question-1
+
+# Answer questions (tap first available option for testing)
+- repeat:
+    times: 5
+    commands:
+      # Select an answer option
+      - tapOn:
+          text: "A\\)|B\\)|C\\)|D\\)|Option|Answer"
+          regex: true
+          index: 0
+          optional: true
+
+      # Submit/Next
+      - tapOn:
+          text: "Next|Submit|Continue|Check"
+          regex: true
+          optional: true
+
+      # Wait briefly
+      - extendedWaitUntil:
+          visible: ".*"
+          timeout: 3000
+
+# Wait for results/completion screen
+- extendedWaitUntil:
+    visible: "Complete|Results|Score|Finish|Done|Correct"
+    regex: true
+    timeout: 15000
+
+- takeScreenshot: quiz-complete
+
+# Verify completion state
+- assertVisible:
+    text: "Complete|Score|Results|%|points|Correct|Done"
+    regex: true
+
+# Return to learning path
+- tapOn:
+    text: "Done|Continue|Back|Home|Return"
+    regex: true
+    optional: true

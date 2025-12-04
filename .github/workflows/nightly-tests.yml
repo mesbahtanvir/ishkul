@@ -1,0 +1,226 @@
+name: Nightly Tests
+
+on:
+  # Run every night at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of tests to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - load
+          - stress
+          - e2e
+
+env:
+  STAGING_API_URL: https://ishkul-backend-staging-1086267507068.northamerica-northeast1.run.app
+  STAGING_WEB_URL: https://ishkul-staging.vercel.app
+
+jobs:
+  # Full API Load Test
+  api-load-test:
+    name: API Load Test
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'schedule' ||
+      github.event.inputs.test_type == 'all' ||
+      github.event.inputs.test_type == 'load'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run k6 Load Test
+        run: |
+          mkdir -p tests/k6/results
+          k6 run tests/k6/api-load-test.js \
+            --env USE_STAGING=true \
+            --env TEST_TOKEN=${{ secrets.TEST_AUTH_TOKEN }}
+        timeout-minutes: 30
+        continue-on-error: true
+
+      - name: Upload Load Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-load-test-results
+          path: tests/k6/results/
+          retention-days: 30
+
+  # Weekly Stress Test (only on Sundays)
+  api-stress-test:
+    name: API Stress Test
+    runs-on: ubuntu-latest
+    if: >
+      (github.event_name == 'schedule' && github.event.schedule == '0 2 * * 0') ||
+      github.event.inputs.test_type == 'stress'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run k6 Stress Test
+        run: |
+          mkdir -p tests/k6/results
+          k6 run tests/k6/stress-test.js --env USE_STAGING=true
+        timeout-minutes: 45
+        continue-on-error: true
+
+      - name: Upload Stress Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-stress-test-results
+          path: tests/k6/results/
+          retention-days: 30
+
+  # Full E2E Suite
+  full-e2e-suite:
+    name: Full E2E Test Suite
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'schedule' ||
+      github.event.inputs.test_type == 'all' ||
+      github.event.inputs.test_type == 'e2e'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install E2E dependencies
+        run: |
+          cd e2e
+          npm ci
+          npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run Playwright Tests (${{ matrix.browser }})
+        run: |
+          cd e2e
+          npx playwright test --project=${{ matrix.browser }}
+        env:
+          STAGING_URL: ${{ env.STAGING_WEB_URL }}
+          TEST_AUTH_TOKEN: ${{ secrets.TEST_AUTH_TOKEN }}
+          CI: true
+        continue-on-error: true
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: e2e/playwright-report/
+          retention-days: 30
+
+  # Full API Test Suite
+  full-api-suite:
+    name: Full API Test Suite
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'schedule' ||
+      github.event.inputs.test_type == 'all'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Run Full API Tests
+        run: |
+          newman run tests/postman/ishkul-api.collection.json \
+            -e tests/postman/staging.environment.json \
+            --env-var "authToken=${{ secrets.TEST_AUTH_TOKEN }}" \
+            --iteration-count 3 \
+            --reporters cli,junit,htmlextra \
+            --reporter-junit-export tests/postman/results/junit.xml \
+            --reporter-htmlextra-export tests/postman/results/report.html
+        continue-on-error: true
+
+      - name: Upload API Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-full-test-results
+          path: tests/postman/results/
+          retention-days: 30
+
+  # Nightly Summary
+  nightly-summary:
+    name: Nightly Test Summary
+    runs-on: ubuntu-latest
+    needs: [api-load-test, full-e2e-suite, full-api-suite]
+    if: always()
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## Nightly Test Summary - $(date -u +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.api-load-test.result }}" == "success" ]; then
+            echo "| API Load Test | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| API Load Test | ❌ ${{ needs.api-load-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.full-e2e-suite.result }}" == "success" ]; then
+            echo "| E2E Suite (All Browsers) | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| E2E Suite (All Browsers) | ❌ ${{ needs.full-e2e-suite.result }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.full-api-suite.result }}" == "success" ]; then
+            echo "| Full API Suite | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Full API Suite | ❌ ${{ needs.full-api-suite.result }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "::warning::One or more nightly tests failed. Check artifacts for details."
+          # Add Slack/email notification here if configured

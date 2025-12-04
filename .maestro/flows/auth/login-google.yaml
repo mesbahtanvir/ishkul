@@ -1,0 +1,69 @@
+# Maestro Login Flow - Google Sign In
+# Tests the complete Google OAuth login flow
+# Run: maestro test .maestro/flows/auth/login-google.yaml
+
+appId: com.ishkul.app
+tags:
+  - auth
+  - critical
+env:
+  TEST_EMAIL: ${TEST_EMAIL}
+---
+
+# Launch fresh app
+- launchApp:
+    clearState: true
+
+# Wait for welcome/login screen
+- extendedWaitUntil:
+    visible: "Sign|Google|Continue"
+    regex: true
+    timeout: 15000
+
+- takeScreenshot: login-initial-screen
+
+# Tap on Google Sign In button
+- tapOn:
+    text: "Google|Sign in with Google|Continue with Google"
+    regex: true
+
+# Wait for Google OAuth flow
+# Note: In CI, this may use a test account or mock
+- extendedWaitUntil:
+    visible: "Choose an account|Email|${TEST_EMAIL}|Welcome"
+    regex: true
+    timeout: 20000
+
+# If we see account picker, select test account
+- runFlow:
+    when:
+      visible: "Choose an account"
+    commands:
+      - tapOn:
+          text: ${TEST_EMAIL}
+
+# Wait for redirect back to app
+- extendedWaitUntil:
+    visible: "Welcome|Dashboard|Learning|Home|Path"
+    regex: true
+    timeout: 30000
+
+- takeScreenshot: login-success
+
+# Verify user is logged in - should see main app content
+- assertVisible:
+    text: "Learning|Path|Lesson|Quiz|Profile|Home"
+    regex: true
+
+# Verify sign out option is available (confirms logged in state)
+- tapOn:
+    text: "Profile|Settings|Menu|Account"
+    regex: true
+    optional: true
+
+- assertVisible:
+    text: "Sign Out|Logout|Log out"
+    regex: true
+    optional: true
+
+- takeScreenshot: login-verified

@@ -1,0 +1,50 @@
+# Maestro Logout Flow
+# Tests signing out of the application
+# Run: maestro test .maestro/flows/auth/logout.yaml
+
+appId: com.ishkul.app
+tags:
+  - auth
+---
+
+# Assumes user is already logged in
+- launchApp
+
+# Navigate to profile/settings
+- tapOn:
+    text: "Profile|Settings|Account|Menu"
+    regex: true
+
+- extendedWaitUntil:
+    visible: "Sign Out|Logout|Log out"
+    regex: true
+    timeout: 10000
+
+- takeScreenshot: logout-before
+
+# Tap sign out
+- tapOn:
+    text: "Sign Out|Logout|Log out"
+    regex: true
+
+# Handle confirmation dialog if present
+- runFlow:
+    when:
+      visible: "Are you sure|Confirm"
+    commands:
+      - tapOn:
+          text: "Yes|Confirm|Sign Out|OK"
+          regex: true
+
+# Verify we're back to login screen
+- extendedWaitUntil:
+    visible: "Sign|Google|Welcome|Get Started"
+    regex: true
+    timeout: 10000
+
+- takeScreenshot: logout-complete
+
+# Verify logged out state
+- assertVisible:
+    text: "Sign in|Sign up|Google|Continue"
+    regex: true

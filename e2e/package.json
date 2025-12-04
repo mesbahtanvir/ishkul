@@ -1,0 +1,25 @@
+{
+  "name": "ishkul-e2e",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Ishkul web application",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:smoke": "playwright test tests/smoke.spec.ts",
+    "test:auth": "playwright test tests/auth.spec.ts",
+    "test:learning": "playwright test tests/learning.spec.ts",
+    "test:a11y": "playwright test tests/accessibility.spec.ts",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:mobile": "playwright test --project='Mobile Chrome' --project='Mobile Safari'",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.10.1"
+  }
+}
