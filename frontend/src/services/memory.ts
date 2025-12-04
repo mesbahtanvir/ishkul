@@ -84,6 +84,20 @@ export const deleteLearningPath = async (pathId: string): Promise<void> => {
 };
 
 /**
+ * Archive a learning path
+ */
+export const archiveLearningPath = async (pathId: string): Promise<LearningPath> => {
+  return learningPathsApi.archivePath(pathId);
+};
+
+/**
+ * Restore an archived learning path
+ */
+export const restoreLearningPath = async (pathId: string): Promise<LearningPath> => {
+  return learningPathsApi.restorePath(pathId);
+};
+
+/**
  * Get next step - returns existing incomplete step or generates new one
  */
 export const getPathNextStep = async (
