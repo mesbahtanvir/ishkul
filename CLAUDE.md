@@ -211,14 +211,12 @@ git push origin main
 ./scripts/sync-env.sh production   # backend/.env.production → GitHub production
 ```
 
-### GitHub Workflows (5 total)
+### GitHub Workflows (3 total)
 
 | Workflow | Trigger | Environment | Purpose |
 |----------|---------|-------------|---------|
 | `ci.yml` | Push/PR | - | Lint, test, type-check |
 | `deploy-backend.yml` | Push to main / Tag v* | staging / production | Backend → Cloud Run |
-| `deploy-backend-preview.yml` | PR | staging | PR preview → staging project |
-| `cleanup-preview.yml` | PR closed | staging | Delete preview resources |
 | `deploy-firebase.yml` | Push to main / Manual | staging / production | Firestore/Storage rules |
 
 ## 🔗 Quick Links
