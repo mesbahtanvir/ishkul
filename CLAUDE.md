@@ -109,6 +109,15 @@ See [docs/PRE_COMMIT_HOOKS.md](docs/PRE_COMMIT_HOOKS.md) for detailed testing en
 
 ## 💡 Development Guidelines
 
+### Documentation Files
+- **Always place markdown files in `docs/` folder** - Keep all `.md` documentation
+  organized in the `docs/` directory
+- **Exception**: `CLAUDE.md`, `README.md`, and `frontend/DESIGN_SYSTEM.md` remain
+  in their current locations
+- Never create markdown files in the root directory or scattered across the project
+- Update existing docs files when adding information; don't create new scattered
+  markdown files
+
 ### Frontend
 - **TypeScript required** - No plain JavaScript, avoid `any` keyword
 - **Run `npx tsc --noEmit`** - Always verify TypeScript after changes (from `frontend/` dir)
@@ -123,7 +132,7 @@ See [docs/PRE_COMMIT_HOOKS.md](docs/PRE_COMMIT_HOOKS.md) for detailed testing en
 - **Firebase Admin SDK** - For server-side operations
 - **Error handling** - Proper HTTP status codes
 - **Auth middleware** - Required for `/api/*` endpoints
-- **Environment vars** - Use `.env` file with `./scripts/update-backend-env.sh`
+- **Environment vars** - Use `.env` files, sync with `./scripts/sync-env.sh`
 
 ## 🔐 Firebase
 
@@ -175,52 +184,43 @@ For detailed information, see:
 
 ## 🚀 Quick Deploy
 
-### 🎯 Production Release (Recommended)
+### 🎯 Production Release
 
 ```bash
-# Create a release tag (e.g., v1.0.3)
-git tag v1.0.3
+# Create and push release tag
+git tag v1.0.3 && git push origin v1.0.3
 
-# Push tag to trigger automated production deployment
-git push origin v1.0.3
-
-# That's it! ✅
-# The workflow automatically:
-# - Builds & deploys backend to Cloud Run
-# - Updates prod branch
-# - Triggers Vercel frontend deployment
-# - Completes in ~5-10 minutes
+# Workflow automatically:
+# - Deploys backend to Cloud Run (production environment)
+# - Updates prod branch → triggers Vercel frontend
+# - ~5 min to complete
 ```
 
-**Check deployment status**: https://github.com/mesbahtanvir/ishkul/actions
-
-### 🔄 Development Deployments
+### 🔄 Staging Deployment
 
 ```bash
-# Frontend staging (auto-deploys on push to main, if frontend/* changed)
+# Push to main - auto-deploys if backend/* changed
 git push origin main
-
-# Backend staging (auto-deploys on push to main, if backend/* changed)
-git push origin main
-
-# Update Cloud Run env vars from backend/.env
-./scripts/update-backend-env.sh
-
-# Deploy Firebase rules (manual)
-cd firebase && firebase deploy --only firestore:rules,storage --project=ishkul-org
 ```
 
-### 🚨 Emergency Backend Hotfix
+### 🔐 Sync Environment Secrets
 
 ```bash
-# Only if you need to redeploy without new frontend changes
-# Edit code → Commit to main → Then:
-git tag v1.0.3.1
-git push origin v1.0.3.1
-
-# Or manually trigger if needed:
-gh workflow run deploy-backend.yml --ref prod -F confirm_production=production
+# Sync local .env files to GitHub Environments
+./scripts/sync-env.sh staging      # backend/.env.staging → GitHub staging
+./scripts/sync-env.sh production   # backend/.env.production → GitHub production
 ```
+
+### GitHub Workflows (6 total)
+
+| Workflow | Trigger | Environment | Purpose |
+|----------|---------|-------------|---------|
+| `ci.yml` | Push/PR | - | Lint, test, type-check |
+| `deploy-staging.yml` | Push to main | staging | Backend → staging Cloud Run |
+| `deploy-production.yml` | Tag v* | production | Backend → production Cloud Run |
+| `deploy-backend-preview.yml` | PR | staging | PR preview → staging project |
+| `cleanup-preview.yml` | PR closed | staging | Delete preview resources |
+| `deploy-firebase.yml` | Push to main | production | Firestore/Storage rules |
 
 ## 🔗 Quick Links
 
@@ -242,9 +242,10 @@ gh workflow run deploy-backend.yml --ref prod -F confirm_production=production
 3. Test locally with `go run cmd/server/main.go`
 
 ### Add Environment Variable
-1. Edit `backend/.env` and `backend/.env.example`
-2. Run: `./scripts/update-backend-env.sh`
-3. Variable synced to Cloud Run automatically
+1. Add to `backend/.env.example` (template)
+2. Add to `backend/.env.staging` and/or `backend/.env.production`
+3. Run: `./scripts/sync-env.sh staging` or `./scripts/sync-env.sh production`
+4. Push to trigger deployment (secrets auto-applied)
 
 ## ⚠️ Top 5 Troubleshooting Tips
 
@@ -258,5 +259,5 @@ For more, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
-**Last Updated**: 2025-12-04 | **Version**: 2.2.0 | **Status**: Production Ready ✅
-*Updated: Unified production deployment workflow - single command release*
+**Last Updated**: 2025-12-05 | **Version**: 2.3.0 | **Status**: Production Ready ✅
+*Updated: Simplified workflows (9→6), unified env sync script, preview→staging isolation*

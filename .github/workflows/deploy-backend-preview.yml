@@ -2,7 +2,7 @@ name: Deploy Backend Preview
 
 # PREVIEW DEPLOYMENT
 # Triggered on PRs that modify backend code
-# Uses the reusable workflow for consistent deployment architecture
+# Deploys to STAGING GCP project for isolation from production
 
 on:
   pull_request:
@@ -13,26 +13,31 @@ on:
       - 'cloudbuild.yaml'
       - '.dockerignore'
       - '.github/workflows/deploy-backend-preview.yml'
-      - '.github/workflows/deploy-backend-reusable.yml'
 
 # Cancel previous runs for the same PR when new commits are pushed
 concurrency:
   group: preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+env:
+  GCP_REGION: northamerica-northeast2
+  IMAGE_NAME: ishkul-backend
+
 jobs:
-  prepare:
-    name: Prepare Preview Config
+  deploy:
+    name: Deploy Preview PR-${{ github.event.pull_request.number }}
     runs-on: ubuntu-latest
+    # Use staging environment - all secrets come from here
+    environment: staging
     outputs:
-      pr_number: ${{ steps.config.outputs.pr_number }}
-      service_name: ${{ steps.config.outputs.service_name }}
-      collection_prefix: ${{ steps.config.outputs.collection_prefix }}
-      image_tag: ${{ steps.config.outputs.image_tag }}
+      service_url: ${{ steps.deploy.outputs.service_url }}
 
     steps:
-      - name: Generate configuration
-        id: config
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set variables
+        id: vars
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
           echo "pr_number=${PR_NUMBER}" >> $GITHUB_OUTPUT
@@ -40,36 +45,81 @@ jobs:
           echo "collection_prefix=pr_${PR_NUMBER}_" >> $GITHUB_OUTPUT
           echo "image_tag=pr-${PR_NUMBER}-${{ github.sha }}" >> $GITHUB_OUTPUT
 
-  deploy:
-    name: Deploy Preview
-    needs: prepare
-    uses: ./.github/workflows/deploy-backend-reusable.yml
-    with:
-      environment: preview
-      service_name: ${{ needs.prepare.outputs.service_name }}
-      image_tag: ${{ needs.prepare.outputs.image_tag }}
-      collection_prefix: ${{ needs.prepare.outputs.collection_prefix }}
-      min_instances: 0
-      max_instances: 2
-      memory: '512Mi'
-      cpu: 1
-      stripe_mode: 'disabled'
-      pr_number: ${{ needs.prepare.outputs.pr_number }}
-    secrets:
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-      FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-      FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-      GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
-      GOOGLE_ANDROID_CLIENT_ID: ${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCP Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
+          REGISTRY="${{ env.GCP_REGION }}-docker.pkg.dev"
+          IMAGE_TAG="${REGISTRY}/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.image_tag }}"
+          echo "Building image: $IMAGE_TAG"
+          docker build -t "$IMAGE_TAG" -f backend/Dockerfile .
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Push Docker image
+        run: docker push ${{ env.IMAGE_TAG }}
+
+      - name: Prepare environment variables
+        run: |
+          cat > /tmp/env-vars.yaml << 'EOF'
+          ENVIRONMENT: "preview"
+          FIREBASE_DATABASE_URL: "${{ secrets.FIREBASE_DATABASE_URL }}"
+          FIREBASE_STORAGE_BUCKET: "${{ secrets.FIREBASE_STORAGE_BUCKET }}"
+          FIRESTORE_COLLECTION_PREFIX: "${{ steps.vars.outputs.collection_prefix }}"
+          ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:8081,https://ishkul.vercel.app,https://ishkul-*.vercel.app"
+          EOF
+
+          # Add optional secrets if available
+          [ -n "${{ secrets.OPENAI_API_KEY }}" ] && echo "OPENAI_API_KEY: \"${{ secrets.OPENAI_API_KEY }}\"" >> /tmp/env-vars.yaml
+          [ -n "${{ secrets.GOOGLE_WEB_CLIENT_ID }}" ] && echo "GOOGLE_WEB_CLIENT_ID: \"${{ secrets.GOOGLE_WEB_CLIENT_ID }}\"" >> /tmp/env-vars.yaml
+          [ -n "${{ secrets.JWT_SECRET }}" ] && echo "JWT_SECRET: \"${{ secrets.JWT_SECRET }}\"" >> /tmp/env-vars.yaml
+          [ -n "${{ secrets.ENCRYPTION_KEY }}" ] && echo "ENCRYPTION_KEY: \"${{ secrets.ENCRYPTION_KEY }}\"" >> /tmp/env-vars.yaml
+
+          echo "Environment variables prepared"
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        run: |
+          gcloud run deploy ${{ steps.vars.outputs.service_name }} \
+            --image=${{ env.IMAGE_TAG }} \
+            --region=${{ env.GCP_REGION }} \
+            --allow-unauthenticated \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --env-vars-file=/tmp/env-vars.yaml \
+            --min-instances=0 \
+            --max-instances=2 \
+            --memory=512Mi \
+            --cpu=1 \
+            --timeout=300 \
+            --labels="environment=preview,pr=${{ steps.vars.outputs.pr_number }}"
+
+          SERVICE_URL=$(gcloud run services describe ${{ steps.vars.outputs.service_name }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --format='value(status.url)')
+          echo "service_url=${SERVICE_URL}" >> $GITHUB_OUTPUT
+
+      - name: Verify deployment
+        run: |
+          sleep 3
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ steps.deploy.outputs.service_url }}/health" || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Health check passed!"
+          else
+            echo "Health check returned: $HTTP_CODE (may need warm-up)"
+          fi
 
   comment:
     name: Comment on PR
-    needs: [prepare, deploy]
+    needs: deploy
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -80,34 +130,31 @@ jobs:
         with:
           script: |
             const previewUrl = '${{ needs.deploy.outputs.service_url }}';
-            const prNumber = ${{ needs.prepare.outputs.pr_number }};
-            const collectionPrefix = '${{ needs.prepare.outputs.collection_prefix }}';
-            const serviceName = '${{ needs.prepare.outputs.service_name }}';
+            const prNumber = ${{ github.event.pull_request.number }};
 
-            const body = `## 🚀 Backend Preview Deployed!
+            const body = `## Backend Preview Deployed
 
             | Resource | Value |
             |----------|-------|
             | **Preview URL** | ${previewUrl} |
-            | **Service** | \`${serviceName}\` |
-            | **Data Prefix** | \`${collectionPrefix}\` |
-            | **Region** | northamerica-northeast2 |
+            | **Service** | \`ishkul-backend-pr-${prNumber}\` |
+            | **Data Prefix** | \`pr_${prNumber}_\` |
+            | **Environment** | Staging GCP project |
             | **Commit** | \`${{ github.sha }}\` |
 
-            ### ⚠️ Preview Environment Notes
-            - Uses **isolated Firestore collections** (prefixed with \`${collectionPrefix}\`)
-            - Data will be **automatically cleaned up** when PR is closed/merged
-            - Stripe payments are **disabled** in preview
-            - Min instances: 0 (may have cold start delay)
+            ### Preview Notes
+            - Deployed to **staging GCP project** (isolated from production)
+            - Uses **prefixed Firestore collections** for data isolation
+            - Data cleaned up automatically when PR closes
+            - Stripe payments **disabled**
 
-            ### 🔗 Test Endpoints
+            ### Test Endpoints
             - Health: ${previewUrl}/health
-            - API Base: ${previewUrl}/api
+            - API: ${previewUrl}/api
 
             ---
-            *This preview will be automatically deleted when the PR is closed.*`;
+            *Preview auto-deleted when PR closes.*`;
 
-            // Find existing comment to update
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,

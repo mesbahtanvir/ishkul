@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "ishkul-org"
+    "default": "ishkul-org",
+    "production": "ishkul-org",
+    "staging": "staging-ishkul-org"
   }
 }
