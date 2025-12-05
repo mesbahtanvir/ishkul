@@ -21,47 +21,10 @@ on:
           - production
 
 jobs:
-  deploy-staging:
-    name: Deploy to Staging
+  deploy:
+    name: Deploy Firebase Rules
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    environment: staging
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
-      - name: Deploy to Staging
-        working-directory: firebase
-        run: |
-          firebase deploy --only firestore,storage --project=${{ secrets.GCP_PROJECT_ID }} --non-interactive
-          echo "Firebase rules deployed to staging"
-
-      - name: Summary
-        run: |
-          echo "## Firebase Rules Deployed to Staging" >> $GITHUB_STEP_SUMMARY
-          echo "- Project: ${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Firestore rules and indexes" >> $GITHUB_STEP_SUMMARY
-          echo "- Storage rules" >> $GITHUB_STEP_SUMMARY
-
-  deploy-manual:
-    name: Deploy to ${{ inputs.environment }}
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    environment: ${{ inputs.environment }}
+    environment: ${{ github.event_name == 'push' && 'staging' || inputs.environment }}
 
     steps:
       - name: Checkout code
@@ -84,12 +47,11 @@ jobs:
         working-directory: firebase
         run: |
           firebase deploy --only firestore,storage --project=${{ secrets.GCP_PROJECT_ID }} --non-interactive
-          echo "Firebase rules deployed to ${{ inputs.environment }}"
 
       - name: Summary
         run: |
           echo "## Firebase Rules Deployed" >> $GITHUB_STEP_SUMMARY
-          echo "- Environment: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment: ${{ github.event_name == 'push' && 'staging' || inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "- Project: ${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_STEP_SUMMARY
           echo "- Firestore rules and indexes" >> $GITHUB_STEP_SUMMARY
           echo "- Storage rules" >> $GITHUB_STEP_SUMMARY
