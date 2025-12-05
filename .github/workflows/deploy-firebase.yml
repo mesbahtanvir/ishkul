@@ -1,7 +1,7 @@
 name: Deploy Firebase Rules
 
-# Deploys Firestore and Storage rules to Firebase projects
-# - Push to main (firebase/** changes): deploys to staging
+# Firebase deployment workflow
+# - Push to main: always deploys to staging
 # - Tag v*: deploys to production
 # - Manual dispatch: choose environment
 
@@ -22,57 +22,29 @@ on:
           - production
 
 jobs:
-  # Check if we should deploy (path filtering for main branch)
-  changes:
-    name: Check Changes
+  setup:
+    name: Setup
     runs-on: ubuntu-latest
     outputs:
-      should_deploy: ${{ steps.check.outputs.should_deploy }}
-      environment: ${{ steps.check.outputs.environment }}
+      environment: ${{ steps.set-env.outputs.environment }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Check if deployment needed
-        id: check
+      - name: Determine environment
+        id: set-env
         run: |
-          # Tags always deploy to production
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "should_deploy=true" >> $GITHUB_OUTPUT
-            echo "environment=production" >> $GITHUB_OUTPUT
-            echo "Deploying: production release tag"
-            exit 0
-          fi
-
-          # Manual dispatch
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "should_deploy=true" >> $GITHUB_OUTPUT
-            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
-            echo "Deploying: manual trigger to ${{ inputs.environment }}"
-            exit 0
-          fi
-
-          # For main branch pushes, check if firebase files changed
-          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E '^firebase/' || true)
-          if [ -n "$CHANGED" ]; then
-            echo "should_deploy=true" >> $GITHUB_OUTPUT
-            echo "environment=staging" >> $GITHUB_OUTPUT
-            echo "Deploying: firebase files changed"
-            echo "$CHANGED"
+            ENV="${{ inputs.environment }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            ENV="production"
           else
-            echo "should_deploy=false" >> $GITHUB_OUTPUT
-            echo "environment=staging" >> $GITHUB_OUTPUT
-            echo "Skipping: no firebase files changed"
+            ENV="staging"
           fi
+          echo "environment=${ENV}" >> $GITHUB_OUTPUT
 
   deploy:
-    name: Deploy to ${{ needs.changes.outputs.environment }}
-    needs: changes
-    if: needs.changes.outputs.should_deploy == 'true'
+    name: Deploy to ${{ needs.setup.outputs.environment }}
+    needs: setup
     runs-on: ubuntu-latest
-    environment: ${{ needs.changes.outputs.environment }}
+    environment: ${{ needs.setup.outputs.environment }}
 
     steps:
       - name: Checkout code
@@ -99,7 +71,7 @@ jobs:
       - name: Summary
         run: |
           echo "## Firebase Rules Deployed" >> $GITHUB_STEP_SUMMARY
-          echo "- Environment: ${{ needs.changes.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment: ${{ needs.setup.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "- Project: ${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_STEP_SUMMARY
           echo "- Firestore rules and indexes" >> $GITHUB_STEP_SUMMARY
           echo "- Storage rules" >> $GITHUB_STEP_SUMMARY

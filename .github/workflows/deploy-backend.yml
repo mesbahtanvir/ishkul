@@ -1,7 +1,7 @@
 name: Deploy Backend
 
-# Unified backend deployment workflow
-# - Push to main (backend changes): deploys to staging
+# Backend deployment workflow
+# - Push to main: always deploys to staging
 # - Tag v*: deploys to production
 # - Manual dispatch: choose environment
 
@@ -29,44 +29,8 @@ env:
   IMAGE_NAME: ishkul-backend
 
 jobs:
-  # Check if we should run (path filtering for main branch pushes)
-  changes:
-    name: Check Changes
-    runs-on: ubuntu-latest
-    outputs:
-      should_deploy: ${{ steps.check.outputs.should_deploy }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Check if deployment needed
-        id: check
-        run: |
-          # Always deploy for tags and manual dispatch
-          if [[ "${{ github.ref }}" == refs/tags/v* ]] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "should_deploy=true" >> $GITHUB_OUTPUT
-            echo "Deploying: tag or manual trigger"
-            exit 0
-          fi
-
-          # For main branch pushes, check if relevant files changed
-          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E '^(backend/|prompts/|\.dockerignore|\.github/workflows/deploy-backend\.yml)' || true)
-          if [ -n "$CHANGED" ]; then
-            echo "should_deploy=true" >> $GITHUB_OUTPUT
-            echo "Deploying: relevant files changed"
-            echo "$CHANGED"
-          else
-            echo "should_deploy=false" >> $GITHUB_OUTPUT
-            echo "Skipping: no relevant files changed"
-          fi
-
-  # Determine which environment to deploy to
   setup:
     name: Setup
-    needs: changes
-    if: needs.changes.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.set-env.outputs.environment }}
