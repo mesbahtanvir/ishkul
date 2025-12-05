@@ -21,9 +21,15 @@ env:
   IMAGE_NAME: ishkul-backend
 
 jobs:
+  check-environment:
+    name: Check Production Environment
+    runs-on: ubuntu-latest
+    environment: production
+
   release:
     name: Release v${{ github.ref_name }}
     runs-on: ubuntu-latest
+    needs: check-environment
 
     steps:
       # Step 1: Checkout code

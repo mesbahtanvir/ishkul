@@ -107,42 +107,92 @@ Go to: https://github.com/mesbahtanvir/ishkul/settings/environments
 
 ### Step 2: Update Workflow Files
 
-The workflow files have already been updated to use `environment:` and `secrets: inherit`:
+The workflow files have been updated to use environment protection with a gating job:
 
 #### `.github/workflows/deploy-backend-staging.yml`
 ```yaml
-deploy:
-  name: Deploy to Cloud Run (Staging)
-  runs-on: ubuntu-latest
-  environment: staging  # ← Uses staging environment
+jobs:
+  check-environment:
+    name: Check Staging Environment
+    runs-on: ubuntu-latest
+    needs: prepare
+    environment: staging  # ← Gate with staging environment
 
-  steps:
-    # ... build steps ...
-
-    - name: Deploy to Cloud Run
-      run: gcloud run deploy ishkul-backend-staging ...
-      env:
-        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        # ... other secrets from environment ...
+  deploy:
+    name: Deploy Staging
+    needs: [prepare, check-environment]  # ← Depends on environment check
+    uses: ./.github/workflows/deploy-backend-reusable.yml
+    with:
+      environment: staging
+      service_name: ishkul-backend-staging
+      # ... other configuration ...
+    secrets:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # ... other secrets from staging environment ...
 ```
 
 #### `.github/workflows/deploy-backend.yml`
 ```yaml
-deploy:
-  name: Deploy to Cloud Run (Production)
-  runs-on: ubuntu-latest
-  environment: production  # ← Uses production environment
+jobs:
+  check-environment:
+    name: Check Production Environment
+    runs-on: ubuntu-latest
+    needs: prepare
+    environment: production  # ← Gate with production environment
+    outputs:
+      approved: 'true'
 
-  steps:
-    # ... build steps ...
+  deploy:
+    name: Deploy Production
+    needs: [prepare, check-environment]  # ← Depends on environment check
+    uses: ./.github/workflows/deploy-backend-reusable.yml
+    with:
+      environment: production
+      service_name: ishkul-backend
+      # ... other configuration ...
+    secrets:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # ... other secrets from production environment ...
+```
 
-    - name: Deploy to Cloud Run
-      run: gcloud run deploy ishkul-backend ...
-      env:
-        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        # ... other secrets from environment ...
+#### `.github/workflows/deploy.yml` (Firebase)
+```yaml
+jobs:
+  check-environment:
+    name: Check Production Environment
+    runs-on: ubuntu-latest
+    environment: production  # ← Gate Firebase deployments with production environment
+
+  deploy-firestore:
+    name: Deploy Firestore Rules & Indexes
+    runs-on: ubuntu-latest
+    needs: check-environment  # ← Depends on environment check
+    # ... rest of job ...
+
+  deploy-storage:
+    name: Deploy Storage Rules
+    runs-on: ubuntu-latest
+    needs: check-environment  # ← Depends on environment check
+    # ... rest of job ...
+```
+
+#### `.github/workflows/prod-deploy.yml` (Release)
+```yaml
+jobs:
+  check-environment:
+    name: Check Production Environment
+    runs-on: ubuntu-latest
+    environment: production  # ← Gate production release with environment
+
+  release:
+    name: Release v${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    needs: check-environment  # ← Depends on environment check
+    # ... rest of job ...
 ```
 
 ### Step 3: Add Secrets to Environments
@@ -260,9 +310,10 @@ git push origin main
 
 **What happens**:
 1. GitHub Actions runs `deploy-backend-staging.yml`
-2. Loads secrets from `staging` environment
-3. Builds and deploys to `ishkul-backend-staging` on Cloud Run
-4. **No approval needed** - deploys immediately
+2. `check-environment` job runs first - loads staging environment secrets
+3. `deploy` job waits for `check-environment` to pass
+4. Builds and deploys to `ishkul-backend-staging` on Cloud Run
+5. **No approval needed** - deploys immediately
 
 **Monitor**:
 ```bash
@@ -280,7 +331,28 @@ gh run view <RUN_ID> --log
 curl https://ishkul-backend-staging.run.app/health
 ```
 
-### Production Deployments
+### Production Deployments (via Deploy Workflow)
+
+**Trigger**: Push to `main` (Firebase rules only)
+
+```bash
+git push origin main
+```
+
+**What happens** (for Firebase):
+1. GitHub Actions runs `deploy.yml`
+2. `check-environment` job runs first - requires production environment
+3. **If approval enabled**: Workflow waits for reviewer approval
+4. `deploy-firestore` and `deploy-storage` jobs run in parallel
+5. Deploys Firestore security rules and Storage rules
+
+**Monitor**:
+```bash
+gh run list --workflow deploy.yml --limit 1
+gh run view <RUN_ID> --log
+```
+
+### Production Deployments (via Release Tag)
 
 **Trigger**: Create a git tag (release)
 
@@ -290,23 +362,23 @@ git push origin v1.0.0
 ```
 
 **What happens**:
-1. GitHub Actions runs `deploy-backend.yml`
-2. Loads secrets from `production` environment
-3. **If approval enabled**: Waits for reviewer approval
-   - Go to workflow run page
-   - Click "Review deployments"
-   - Select "production"
-   - Approve and deploy
-4. Builds and deploys to `ishkul-backend` on Cloud Run
-5. Updates `prod` branch with new version
+1. GitHub Actions runs `prod-deploy.yml`
+2. `check-environment` job runs first - requires production environment
+3. **If approval enabled**: Workflow waits for reviewer approval
+4. `release` job runs:
+   - Builds Docker image
+   - Pushes to Artifact Registry
+   - Deploys to `ishkul-backend` on Cloud Run
+   - Updates `prod` branch with new version
+5. Vercel auto-deploys frontend from `prod` branch
 
 **Monitor**:
 ```bash
 # Check workflow status
-gh run list --workflow deploy-backend.yml --limit 1
+gh run list --workflow prod-deploy.yml --limit 1
 
 # View pending approvals
-gh run view <RUN_ID> --exit-status
+gh run view <RUN_ID> --log
 
 # Or visit: https://github.com/mesbahtanvir/ishkul/actions
 ```
@@ -315,6 +387,21 @@ gh run view <RUN_ID> --exit-status
 ```bash
 curl https://ishkul.org/health
 ```
+
+### Manual Production Deployment (Hotfix)
+
+If you need to deploy without creating a tag:
+
+```bash
+# Trigger the production deployment workflow manually
+gh workflow run deploy-backend.yml --ref prod --field confirm_production=production
+```
+
+**What happens**:
+1. Workflow asks for confirmation (type "production")
+2. `check-environment` job runs - requires production environment
+3. **If approval enabled**: Waits for reviewer approval
+4. Builds and deploys to Cloud Run
 
 ---
 

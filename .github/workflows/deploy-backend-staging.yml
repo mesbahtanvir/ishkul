@@ -37,9 +37,17 @@ jobs:
           SHORT_SHA="${SHORT_SHA:0:7}"
           echo "image_tag=staging-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
+  # Environment protection job
+  # This job checks the staging environment and gates the deployment
+  check-environment:
+    name: Check Staging Environment
+    runs-on: ubuntu-latest
+    needs: prepare
+    environment: staging
+
   deploy:
     name: Deploy Staging
-    needs: prepare
+    needs: [prepare, check-environment]
     uses: ./.github/workflows/deploy-backend-reusable.yml
     with:
       environment: staging

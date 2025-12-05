@@ -6,17 +6,23 @@ on:
       - main
   workflow_dispatch: # Allow manual trigger
 
-env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: us-central1
-
 jobs:
+  check-environment:
+    name: Check Production Environment
+    runs-on: ubuntu-latest
+    environment: production
+
   deploy-firestore:
     name: Deploy Firestore Rules & Indexes
     runs-on: ubuntu-latest
+    needs: check-environment
 
     permissions:
       contents: read
+
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      REGION: us-central1
 
     steps:
       - name: Checkout code
@@ -68,9 +74,14 @@ jobs:
   deploy-storage:
     name: Deploy Storage Rules
     runs-on: ubuntu-latest
+    needs: check-environment
 
     permissions:
       contents: read
+
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      REGION: us-central1
 
     steps:
       - name: Checkout code
@@ -144,7 +155,7 @@ jobs:
   notify-deployment:
     name: Notify Deployment Status
     runs-on: ubuntu-latest
-    needs: [deploy-firestore, deploy-storage]
+    needs: [check-environment, deploy-firestore, deploy-storage]
     if: always()
 
     steps:
