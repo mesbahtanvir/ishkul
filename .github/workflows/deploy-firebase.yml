@@ -47,13 +47,13 @@ jobs:
       - name: Deploy to Staging
         working-directory: firebase
         run: |
-          firebase deploy --only firestore,storage --project=staging-ishkul-org --non-interactive
+          firebase deploy --only firestore,storage --project=${{ secrets.GCP_PROJECT_ID }} --non-interactive
           echo "Firebase rules deployed to staging"
 
       - name: Summary
         run: |
           echo "## Firebase Rules Deployed to Staging" >> $GITHUB_STEP_SUMMARY
-          echo "- Project: staging-ishkul-org" >> $GITHUB_STEP_SUMMARY
+          echo "- Project: ${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_STEP_SUMMARY
           echo "- Firestore rules and indexes" >> $GITHUB_STEP_SUMMARY
           echo "- Storage rules" >> $GITHUB_STEP_SUMMARY
 
@@ -80,25 +80,16 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Set Firebase project
-        id: project
-        run: |
-          if [ "${{ inputs.environment }}" = "production" ]; then
-            echo "project=ishkul-org" >> $GITHUB_OUTPUT
-          else
-            echo "project=staging-ishkul-org" >> $GITHUB_OUTPUT
-          fi
-
       - name: Deploy Firebase Rules
         working-directory: firebase
         run: |
-          firebase deploy --only firestore,storage --project=${{ steps.project.outputs.project }} --non-interactive
+          firebase deploy --only firestore,storage --project=${{ secrets.GCP_PROJECT_ID }} --non-interactive
           echo "Firebase rules deployed to ${{ inputs.environment }}"
 
       - name: Summary
         run: |
           echo "## Firebase Rules Deployed" >> $GITHUB_STEP_SUMMARY
           echo "- Environment: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Project: ${{ steps.project.outputs.project }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Project: ${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_STEP_SUMMARY
           echo "- Firestore rules and indexes" >> $GITHUB_STEP_SUMMARY
           echo "- Storage rules" >> $GITHUB_STEP_SUMMARY
