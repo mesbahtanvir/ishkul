@@ -48,7 +48,7 @@ n: 2
 		assert.Contains(t, string(data), "temperature: 0.5")
 		assert.Contains(t, string(data), "maxTokens: 500")
 		assert.Contains(t, string(data), "topP: 0.8")
-		assert.Contains(t, string(data), "n: 1")
+		assert.Contains(t, string(data), "\"n\": 1")
 	})
 }
 

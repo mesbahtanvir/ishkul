@@ -23,7 +23,9 @@ jest.mock('../offlineQueue', () => ({
 describe('AnalyticsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset analytics internal state by creating fresh spy
+    // Reset analytics internal state
+    // @ts-expect-error - accessing private property for testing
+    analytics.isInitialized = false;
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
   });

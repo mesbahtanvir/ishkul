@@ -23,8 +23,20 @@ jest.mock('../../hooks/useTheme', () => ({
   }),
 }));
 
-jest.mock('../../state/learningPathsStore', () => ({
-  useLearningPathsStore: jest.fn(() => ({
+const mockStoreState = {
+  paths: [],
+  setPaths: jest.fn(),
+  setActivePath: jest.fn(),
+  deletePath: jest.fn(),
+  archivePath: jest.fn(),
+  restorePath: jest.fn(),
+  loading: false,
+  listCache: null,
+  isCacheValid: jest.fn().mockReturnValue(false),
+};
+
+jest.mock('../../state/learningPathsStore', () => {
+  const fn = jest.fn(() => ({
     paths: [],
     setPaths: jest.fn(),
     setActivePath: jest.fn(),
@@ -32,8 +44,16 @@ jest.mock('../../state/learningPathsStore', () => ({
     archivePath: jest.fn(),
     restorePath: jest.fn(),
     loading: false,
-  })),
-}));
+    listCache: null,
+    isCacheValid: jest.fn().mockReturnValue(false),
+  })) as jest.Mock & { getState: jest.Mock };
+  fn.getState = jest.fn(() => ({
+    paths: [],
+    listCache: null,
+    isCacheValid: jest.fn().mockReturnValue(false),
+  }));
+  return { useLearningPathsStore: fn };
+});
 
 jest.mock('../../services/api', () => ({
   learningPathsApi: {
@@ -90,6 +110,17 @@ jest.mock('../../components/SegmentedControl', () => ({
 describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset mock to default state (non-loading)
+    const { useLearningPathsStore } = require('../../state/learningPathsStore');
+    useLearningPathsStore.mockReturnValue({
+      ...mockStoreState,
+      loading: false,
+    });
+    useLearningPathsStore.getState.mockReturnValue({
+      paths: [],
+      listCache: null,
+      isCacheValid: jest.fn().mockReturnValue(false),
+    });
   });
 
   it('should render without crashing', () => {
@@ -108,21 +139,18 @@ describe('HomeScreen', () => {
     expect(useScreenTracking).toHaveBeenCalledWith('Home', 'HomeScreen');
   });
 
-  it('should display loading screen when loading', () => {
+  it('should return LoadingScreen when loading', () => {
     const { useLearningPathsStore } = require('../../state/learningPathsStore');
-    useLearningPathsStore.mockReturnValue({
-      paths: [],
-      setPaths: jest.fn(),
-      setActivePath: jest.fn(),
-      deletePath: jest.fn(),
-      archivePath: jest.fn(),
-      restorePath: jest.fn(),
+    const loadingState = {
+      ...mockStoreState,
       loading: true,
-    });
+    };
+    useLearningPathsStore.mockReturnValue(loadingState);
+    useLearningPathsStore.getState.mockReturnValue(loadingState);
 
-    // LoadingScreen is mocked to return null, but we can verify the component structure
+    // LoadingScreen is mocked to return null, so toJSON returns null
     const { toJSON } = render(<HomeScreen />);
-    expect(toJSON()).toBeTruthy();
+    expect(toJSON()).toBeNull();
   });
 
   it('should display FAB on active tab', () => {
@@ -146,7 +174,8 @@ describe('HomeScreen with paths', () => {
     jest.clearAllMocks();
 
     const { useLearningPathsStore } = require('../../state/learningPathsStore');
-    useLearningPathsStore.mockReturnValue({
+    const stateWithPaths = {
+      ...mockStoreState,
       paths: [
         {
           id: 'path-1',
@@ -165,13 +194,9 @@ describe('HomeScreen with paths', () => {
           steps: [],
         },
       ],
-      setPaths: jest.fn(),
-      setActivePath: jest.fn(),
-      deletePath: jest.fn(),
-      archivePath: jest.fn(),
-      restorePath: jest.fn(),
-      loading: false,
-    });
+    };
+    useLearningPathsStore.mockReturnValue(stateWithPaths);
+    useLearningPathsStore.getState.mockReturnValue(stateWithPaths);
   });
 
   it('should render with paths', () => {
