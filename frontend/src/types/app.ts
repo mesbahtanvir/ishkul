@@ -1,6 +1,5 @@
 // Type definitions for the learning app
 
-export type LevelType = 'beginner' | 'intermediate' | 'advanced';
 export type StepType = 'lesson' | 'quiz' | 'practice' | 'review' | 'summary' | 'flashcard';
 
 // Maximum character length for step content
@@ -151,7 +150,6 @@ export interface OutlinePosition {
 export interface LearningPath {
   id: string;
   goal: string;
-  level: LevelType;
   emoji: string;
   status?: PathStatus; // Path status: active, completed, archived, deleted
   outlineStatus?: OutlineStatus; // Outline generation status
@@ -177,7 +175,6 @@ export interface UserDocument {
   learningPaths: LearningPath[];
   // Legacy fields for backward compatibility (will be migrated)
   goal?: string;
-  level?: LevelType;
   memory?: Memory;
   history?: HistoryEntry[];
   nextStep?: NextStep;
@@ -187,7 +184,6 @@ export interface UserDocument {
 
 export interface LLMRequest {
   goal: string;
-  level: LevelType;
   memory: Memory;
   history: HistoryEntry[];
 }

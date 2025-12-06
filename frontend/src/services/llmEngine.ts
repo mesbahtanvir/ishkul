@@ -125,7 +125,6 @@ export const getNextStep = async (request: LLMRequest): Promise<LLMResponse> => 
       },
       body: JSON.stringify({
         goal: request.goal,
-        level: request.level,
         history: request.history.map((h) => h.topic),
         memory: JSON.stringify(request.memory),
         recentHistory: request.history

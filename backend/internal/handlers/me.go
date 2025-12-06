@@ -55,7 +55,6 @@ func GetMe(w http.ResponseWriter, r *http.Request) {
 // UpdateMeRequest represents the update profile request
 type UpdateMeRequest struct {
 	Goal        *string `json:"goal,omitempty"`
-	Level       *string `json:"level,omitempty"`
 	DisplayName *string `json:"displayName,omitempty"`
 }
 
@@ -92,9 +91,6 @@ func UpdateMe(w http.ResponseWriter, r *http.Request) {
 
 	if req.Goal != nil {
 		updates = append(updates, firestore.Update{Path: "goal", Value: *req.Goal})
-	}
-	if req.Level != nil {
-		updates = append(updates, firestore.Update{Path: "level", Value: *req.Level})
 	}
 	if req.DisplayName != nil {
 		updates = append(updates, firestore.Update{Path: "displayName", Value: *req.DisplayName})
@@ -166,10 +162,8 @@ func GetMeDocument(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateUserDocumentRequest represents the request to create/initialize a user document
-// Level is optional and defaults to "beginner" if not provided
 type CreateUserDocumentRequest struct {
-	Goal  string `json:"goal"`
-	Level string `json:"level,omitempty"`
+	Goal string `json:"goal"`
 }
 
 // CreateMeDocument creates or initializes a user document with learning data
@@ -192,11 +186,6 @@ func CreateMeDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Default level to "beginner" if not provided - AI adapts based on user context
-	if req.Level == "" {
-		req.Level = "beginner"
-	}
-
 	fs := firebase.GetFirestore()
 	if fs == nil {
 		http.Error(w, "Database not available", http.StatusInternalServerError)
@@ -211,7 +200,6 @@ func CreateMeDocument(w http.ResponseWriter, r *http.Request) {
 	// Initialize or update user document
 	updates := map[string]interface{}{
 		"goal":      req.Goal,
-		"level":     req.Level,
 		"updatedAt": now,
 	}
 

@@ -167,10 +167,6 @@ describe('AnalyticsService', () => {
       await analytics.trackGoalSelected({ goal: 'Learn Python' });
     });
 
-    it('should track level selected', async () => {
-      await analytics.trackLevelSelected({ level: 'beginner' });
-    });
-
     it('should track onboarding complete', async () => {
       await analytics.trackOnboardingComplete({
         goal: 'Learn Python',
@@ -363,7 +359,6 @@ describe('EventNames', () => {
   it('should have all onboarding event names', () => {
     expect(EventNames.ONBOARDING_START).toBe('onboarding_start');
     expect(EventNames.GOAL_SELECTED).toBe('goal_selected');
-    expect(EventNames.LEVEL_SELECTED).toBe('level_selected');
     expect(EventNames.ONBOARDING_COMPLETE).toBe('onboarding_complete');
   });
 

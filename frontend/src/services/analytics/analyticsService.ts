@@ -21,7 +21,6 @@ import type {
   LogoutParams,
   OnboardingStartParams,
   GoalSelectedParams,
-  LevelSelectedParams,
   OnboardingCompleteParams,
   LearningPathCreatedParams,
   LearningPathOpenedParams,
@@ -416,10 +415,6 @@ class AnalyticsService {
 
   async trackGoalSelected(params: GoalSelectedParams): Promise<void> {
     await this.logEvent(EventNames.GOAL_SELECTED, params);
-  }
-
-  async trackLevelSelected(params: LevelSelectedParams): Promise<void> {
-    await this.logEvent(EventNames.LEVEL_SELECTED, params);
   }
 
   async trackOnboardingComplete(

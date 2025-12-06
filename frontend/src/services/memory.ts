@@ -11,7 +11,6 @@ import {
   UserDocument,
   HistoryEntry,
   NextStep,
-  LevelType,
   LearningPath,
   Step,
   StepCompleteRequest,
@@ -155,13 +154,12 @@ export const completePathStep = async (
 };
 
 /**
- * Update user's goal and level
+ * Update user's goal
  */
-export const updateUserGoalAndLevel = async (
-  goal: string,
-  level: LevelType
+export const updateUserGoal = async (
+  goal: string
 ): Promise<void> => {
-  await userApi.updateGoalAndLevel(goal, level);
+  await userApi.updateGoal(goal);
 };
 
 /**

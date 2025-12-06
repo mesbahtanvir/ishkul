@@ -20,11 +20,10 @@ const (
 
 // LearningPath represents a user's learning journey for a specific goal
 type LearningPath struct {
-	ID               string  `json:"id" firestore:"id"`
-	UserID           string  `json:"userId" firestore:"userId"`
-	Goal             string  `json:"goal" firestore:"goal"`
-	Level            string  `json:"level" firestore:"level"`
-	Emoji            string  `json:"emoji" firestore:"emoji"`
+	ID    string `json:"id" firestore:"id"`
+	UserID string `json:"userId" firestore:"userId"`
+	Goal   string `json:"goal" firestore:"goal"`
+	Emoji  string `json:"emoji" firestore:"emoji"`
 	Status           string  `json:"status" firestore:"status"`                     // active, completed, archived, deleted
 	OutlineStatus    string  `json:"outlineStatus" firestore:"outlineStatus"`       // generating, ready, failed
 	Progress         int     `json:"progress" firestore:"progress"`                 // 0-100
@@ -64,17 +63,14 @@ type Step struct {
 }
 
 // LearningPathCreate represents the request to create a new learning path
-// Level is optional and defaults to "beginner" if not provided
 type LearningPathCreate struct {
 	Goal  string `json:"goal"`
-	Level string `json:"level,omitempty"`
 	Emoji string `json:"emoji"`
 }
 
 // LearningPathUpdate represents the request to update a learning path
 type LearningPathUpdate struct {
 	Goal             *string `json:"goal,omitempty"`
-	Level            *string `json:"level,omitempty"`
 	Emoji            *string `json:"emoji,omitempty"`
 	Progress         *int    `json:"progress,omitempty"`
 	LessonsCompleted *int    `json:"lessonsCompleted,omitempty"`

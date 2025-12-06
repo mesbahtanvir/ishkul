@@ -296,7 +296,6 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
                 {activePath.goal}
               </Text>
               <Text style={[styles.pathLevel, { color: colors.text.secondary }]}>
-                {activePath.level.charAt(0).toUpperCase() + activePath.level.slice(1)} •{' '}
                 {completedSteps.length} steps completed
               </Text>
             </View>

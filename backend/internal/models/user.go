@@ -15,7 +15,6 @@ type User struct {
 	CreatedAt            time.Time  `json:"createdAt" firestore:"createdAt"`
 	UpdatedAt            time.Time  `json:"updatedAt" firestore:"updatedAt"`
 	Goal                 string     `json:"goal,omitempty" firestore:"goal,omitempty"`
-	Level                string     `json:"level,omitempty" firestore:"level,omitempty"`
 	Tier                 string     `json:"tier" firestore:"tier"`                                                     // "free" or "pro"
 	PaidUntil            *time.Time `json:"paidUntil,omitempty" firestore:"paidUntil,omitempty"`                       // Subscription expiration
 	DeletedAt            *time.Time `json:"deletedAt,omitempty" firestore:"deletedAt,omitempty"`                       // Soft delete timestamp

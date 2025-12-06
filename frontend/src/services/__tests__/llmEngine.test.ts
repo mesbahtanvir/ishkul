@@ -58,7 +58,6 @@ describe('llmEngine', () => {
       historyLength: number = 0
     ): LLMRequest => ({
       goal,
-      level: 'beginner',
       memory: { topics: {} },
       history: Array(historyLength).fill({
         type: 'lesson' as const,
@@ -199,7 +198,6 @@ describe('llmEngine', () => {
 
       const request: LLMRequest = {
         goal: 'Learn Python',
-        level: 'beginner',
         memory: { topics: {} },
         history: [],
       };
@@ -220,7 +218,6 @@ describe('llmEngine', () => {
 
       const request: LLMRequest = {
         goal: 'Test',
-        level: 'beginner',
         memory: { topics: {} },
         history: [],
       };
