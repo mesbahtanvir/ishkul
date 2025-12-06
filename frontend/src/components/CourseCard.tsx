@@ -6,19 +6,19 @@ import {
   TouchableOpacity,
   ViewStyle,
 } from 'react-native';
-import { LearningPath, PathStatus } from '../types/app';
+import { Course, CourseStatus } from '../types/app';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { ProgressBar } from './ProgressBar';
 
-interface LearningPathCardProps {
-  path: LearningPath;
-  onPress: (path: LearningPath) => void;
-  onDelete?: (path: LearningPath) => void;
-  onArchive?: (path: LearningPath) => void;
-  onRestore?: (path: LearningPath) => void;
+interface CourseCardProps {
+  path: Course;
+  onPress: (path: Course) => void;
+  onDelete?: (path: Course) => void;
+  onArchive?: (path: Course) => void;
+  onRestore?: (path: Course) => void;
   showStatusActions?: boolean;
   style?: ViewStyle;
 }
@@ -30,7 +30,7 @@ const getProgressColor = (progress: number, colors: ThemeColors): string => {
   return colors.gray400;
 };
 
-const getStatusBadge = (status: PathStatus | undefined): { label: string; color: string } | null => {
+const getStatusBadge = (status: CourseStatus | undefined): { label: string; color: string } | null => {
   switch (status) {
     case 'completed':
       return { label: 'Completed', color: '#10B981' };
@@ -47,7 +47,7 @@ const formatDate = (timestamp: number | undefined): string => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-export const LearningPathCard: React.FC<LearningPathCardProps> = ({
+export const CourseCard: React.FC<CourseCardProps> = ({
   path,
   onPress,
   onDelete,
@@ -313,4 +313,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LearningPathCard;
+export default CourseCard;

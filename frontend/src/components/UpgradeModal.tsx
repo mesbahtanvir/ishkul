@@ -60,7 +60,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ onDismiss, onUpgrade
       case 'path_limit':
         return {
           title: 'Track Limit Reached',
-          message: `You've reached the free limit of ${limits?.activePaths.limit || 2} active tracks. Upgrade to Pro for up to 5 active tracks.`,
+          message: `You've reached the free limit of ${limits?.activeCourses.limit || 2} active tracks. Upgrade to Pro for up to 5 active tracks.`,
           features: [
             '5 active tracks',
             '1,000 steps per day',

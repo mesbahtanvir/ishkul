@@ -45,11 +45,11 @@ const defaultStoreState = {
   paidUntil: null,
   limits: {
     dailySteps: { used: 25, limit: 100 },
-    activePaths: { used: 1, limit: 2 },
+    activeCourses: { used: 1, limit: 2 },
   },
   canUpgrade: true,
   canGenerateSteps: true,
-  canCreatePath: true,
+  canCreateCourse: true,
   dailyLimitResetAt: null,
   loading: false,
   error: null,
@@ -149,7 +149,7 @@ describe('SubscriptionScreen', () => {
         paidUntil: new Date('2025-12-31'),
         limits: {
           dailySteps: { used: 150, limit: 1000 },
-          activePaths: { used: 3, limit: 5 },
+          activeCourses: { used: 3, limit: 5 },
         },
         canUpgrade: false,
       });
@@ -276,7 +276,7 @@ describe('SubscriptionScreen', () => {
         ...defaultStoreState,
         limits: {
           dailySteps: { used: 95, limit: 100 },
-          activePaths: { used: 2, limit: 2 },
+          activeCourses: { used: 2, limit: 2 },
         },
       });
       const { getByText } = render(<SubscriptionScreen navigation={mockNavigation} />);

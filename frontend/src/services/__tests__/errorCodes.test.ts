@@ -56,34 +56,34 @@ describe('ErrorCodes', () => {
   });
 
   describe('Learning path error codes', () => {
-    it('should have PATH_COMPLETED code', () => {
-      expect(ErrorCodes.PATH_COMPLETED).toBe('PATH_COMPLETED');
+    it('should have COURSE_COMPLETED code', () => {
+      expect(ErrorCodes.COURSE_COMPLETED).toBe('COURSE_COMPLETED');
     });
 
-    it('should have PATH_ARCHIVED code', () => {
-      expect(ErrorCodes.PATH_ARCHIVED).toBe('PATH_ARCHIVED');
+    it('should have COURSE_ARCHIVED code', () => {
+      expect(ErrorCodes.COURSE_ARCHIVED).toBe('COURSE_ARCHIVED');
     });
 
-    it('should have PATH_DELETED code', () => {
-      expect(ErrorCodes.PATH_DELETED).toBe('PATH_DELETED');
+    it('should have COURSE_DELETED code', () => {
+      expect(ErrorCodes.COURSE_DELETED).toBe('COURSE_DELETED');
     });
 
     it('should be used for completed path errors', () => {
       // Verify the code matches the expected backend response
-      const completedError = new ApiError(ErrorCodes.PATH_COMPLETED, 'Path is completed', 400);
-      expect(completedError.code).toBe('PATH_COMPLETED');
+      const completedError = new ApiError(ErrorCodes.COURSE_COMPLETED, 'Path is completed', 400);
+      expect(completedError.code).toBe('COURSE_COMPLETED');
       expect(completedError.statusCode).toBe(400);
     });
 
     it('should be used for archived path errors', () => {
-      const archivedError = new ApiError(ErrorCodes.PATH_ARCHIVED, 'Path is archived', 400);
-      expect(archivedError.code).toBe('PATH_ARCHIVED');
+      const archivedError = new ApiError(ErrorCodes.COURSE_ARCHIVED, 'Path is archived', 400);
+      expect(archivedError.code).toBe('COURSE_ARCHIVED');
       expect(archivedError.statusCode).toBe(400);
     });
 
     it('should be used for deleted path errors', () => {
-      const deletedError = new ApiError(ErrorCodes.PATH_DELETED, 'Path is deleted', 404);
-      expect(deletedError.code).toBe('PATH_DELETED');
+      const deletedError = new ApiError(ErrorCodes.COURSE_DELETED, 'Path is deleted', 404);
+      expect(deletedError.code).toBe('COURSE_DELETED');
       expect(deletedError.statusCode).toBe(404);
     });
   });
@@ -104,9 +104,9 @@ describe('ErrorCodes', () => {
         'TOKEN_EXPIRED',
         'MISSING_CREDENTIALS',
         'NETWORK_ERROR',
-        'PATH_COMPLETED',
-        'PATH_ARCHIVED',
-        'PATH_DELETED',
+        'COURSE_COMPLETED',
+        'COURSE_ARCHIVED',
+        'COURSE_DELETED',
       ];
 
       const actualCodes = Object.values(ErrorCodes);
@@ -124,51 +124,51 @@ describe('ErrorCodes', () => {
 
 describe('ApiError', () => {
   it('should create error with code and message', () => {
-    const error = new ApiError(ErrorCodes.PATH_COMPLETED, 'Path is completed');
+    const error = new ApiError(ErrorCodes.COURSE_COMPLETED, 'Path is completed');
 
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('ApiError');
-    expect(error.code).toBe('PATH_COMPLETED');
+    expect(error.code).toBe('COURSE_COMPLETED');
     expect(error.message).toBe('Path is completed');
   });
 
   it('should create error with statusCode', () => {
-    const error = new ApiError(ErrorCodes.PATH_COMPLETED, 'Path is completed', 400);
+    const error = new ApiError(ErrorCodes.COURSE_COMPLETED, 'Path is completed', 400);
 
     expect(error.statusCode).toBe(400);
   });
 
   it('should allow type checking error code', () => {
-    const error = new ApiError(ErrorCodes.PATH_COMPLETED, 'Path is completed', 400);
+    const error = new ApiError(ErrorCodes.COURSE_COMPLETED, 'Path is completed', 400);
 
     // Type guard style check
-    const isPathCompletedError = error.code === ErrorCodes.PATH_COMPLETED;
+    const isPathCompletedError = error.code === ErrorCodes.COURSE_COMPLETED;
     expect(isPathCompletedError).toBe(true);
   });
 
   it('should work with different error codes', () => {
     const errors: ApiError[] = [
-      new ApiError(ErrorCodes.PATH_COMPLETED, 'Completed', 400),
-      new ApiError(ErrorCodes.PATH_ARCHIVED, 'Archived', 400),
-      new ApiError(ErrorCodes.PATH_DELETED, 'Deleted', 404),
+      new ApiError(ErrorCodes.COURSE_COMPLETED, 'Completed', 400),
+      new ApiError(ErrorCodes.COURSE_ARCHIVED, 'Archived', 400),
+      new ApiError(ErrorCodes.COURSE_DELETED, 'Deleted', 404),
       new ApiError(ErrorCodes.NETWORK_ERROR, 'Network error'),
     ];
 
-    expect(errors[0].code).toBe('PATH_COMPLETED');
-    expect(errors[1].code).toBe('PATH_ARCHIVED');
-    expect(errors[2].code).toBe('PATH_DELETED');
+    expect(errors[0].code).toBe('COURSE_COMPLETED');
+    expect(errors[1].code).toBe('COURSE_ARCHIVED');
+    expect(errors[2].code).toBe('COURSE_DELETED');
     expect(errors[3].code).toBe('NETWORK_ERROR');
   });
 });
 
 describe('ErrorCode type', () => {
   it('should accept valid error codes', () => {
-    const code1: ErrorCode = 'PATH_COMPLETED';
-    const code2: ErrorCode = 'PATH_ARCHIVED';
+    const code1: ErrorCode = 'COURSE_COMPLETED';
+    const code2: ErrorCode = 'COURSE_ARCHIVED';
     const code3: ErrorCode = 'NETWORK_ERROR';
 
-    expect(code1).toBe('PATH_COMPLETED');
-    expect(code2).toBe('PATH_ARCHIVED');
+    expect(code1).toBe('COURSE_COMPLETED');
+    expect(code2).toBe('COURSE_ARCHIVED');
     expect(code3).toBe('NETWORK_ERROR');
   });
 });
@@ -178,11 +178,11 @@ describe('Error handling patterns', () => {
     const handleError = (error: unknown): string => {
       if (error instanceof ApiError) {
         switch (error.code) {
-          case ErrorCodes.PATH_COMPLETED:
+          case ErrorCodes.COURSE_COMPLETED:
             return 'This path is already completed';
-          case ErrorCodes.PATH_ARCHIVED:
+          case ErrorCodes.COURSE_ARCHIVED:
             return 'This path is archived';
-          case ErrorCodes.PATH_DELETED:
+          case ErrorCodes.COURSE_DELETED:
             return 'This path was deleted';
           default:
             return 'An error occurred';
@@ -191,9 +191,9 @@ describe('Error handling patterns', () => {
       return 'Unknown error';
     };
 
-    const completedError = new ApiError(ErrorCodes.PATH_COMPLETED, 'Completed', 400);
-    const archivedError = new ApiError(ErrorCodes.PATH_ARCHIVED, 'Archived', 400);
-    const deletedError = new ApiError(ErrorCodes.PATH_DELETED, 'Deleted', 404);
+    const completedError = new ApiError(ErrorCodes.COURSE_COMPLETED, 'Completed', 400);
+    const archivedError = new ApiError(ErrorCodes.COURSE_ARCHIVED, 'Archived', 400);
+    const deletedError = new ApiError(ErrorCodes.COURSE_DELETED, 'Deleted', 404);
 
     expect(handleError(completedError)).toBe('This path is already completed');
     expect(handleError(archivedError)).toBe('This path is archived');
@@ -202,22 +202,22 @@ describe('Error handling patterns', () => {
 
   it('should support checking error codes for learning path status', () => {
     const pathStatusCodes: string[] = [
-      ErrorCodes.PATH_COMPLETED,
-      ErrorCodes.PATH_ARCHIVED,
-      ErrorCodes.PATH_DELETED,
+      ErrorCodes.COURSE_COMPLETED,
+      ErrorCodes.COURSE_ARCHIVED,
+      ErrorCodes.COURSE_DELETED,
     ];
 
-    const isPathStatusError = (error: unknown): boolean => {
+    const isCourseStatusError = (error: unknown): boolean => {
       if (error instanceof ApiError) {
         return pathStatusCodes.includes(error.code);
       }
       return false;
     };
 
-    expect(isPathStatusError(new ApiError(ErrorCodes.PATH_COMPLETED, 'msg', 400))).toBe(true);
-    expect(isPathStatusError(new ApiError(ErrorCodes.PATH_ARCHIVED, 'msg', 400))).toBe(true);
-    expect(isPathStatusError(new ApiError(ErrorCodes.PATH_DELETED, 'msg', 404))).toBe(true);
-    expect(isPathStatusError(new ApiError(ErrorCodes.NETWORK_ERROR, 'msg'))).toBe(false);
-    expect(isPathStatusError(new Error('regular error'))).toBe(false);
+    expect(isCourseStatusError(new ApiError(ErrorCodes.COURSE_COMPLETED, 'msg', 400))).toBe(true);
+    expect(isCourseStatusError(new ApiError(ErrorCodes.COURSE_ARCHIVED, 'msg', 400))).toBe(true);
+    expect(isCourseStatusError(new ApiError(ErrorCodes.COURSE_DELETED, 'msg', 404))).toBe(true);
+    expect(isCourseStatusError(new ApiError(ErrorCodes.NETWORK_ERROR, 'msg'))).toBe(false);
+    expect(isCourseStatusError(new Error('regular error'))).toBe(false);
   });
 });

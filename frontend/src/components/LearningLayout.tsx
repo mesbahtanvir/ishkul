@@ -3,7 +3,7 @@ import { View, StyleSheet, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Container } from './Container';
 import { CourseOutlineSidebar } from './CourseOutlineSidebar';
-import { useLearningPathsStore } from '../state/learningPathsStore';
+import { useCoursesStore } from '../state/coursesStore';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { Step, OutlineTopic } from '../types/app';
@@ -12,7 +12,7 @@ interface LearningLayoutProps {
   /** The current step being viewed */
   step: Step;
   /** The path ID */
-  pathId: string;
+  courseId: string;
   /** Whether the container should be scrollable */
   scrollable?: boolean;
   /** Children to render in the main content area */
@@ -38,23 +38,23 @@ function useSafeNavigation() {
  */
 export const LearningLayout: React.FC<LearningLayoutProps> = ({
   step,
-  pathId,
+  courseId,
   scrollable = true,
   children,
 }) => {
   const { isMobile } = useResponsive();
-  const { activePath } = useLearningPathsStore();
+  const { activeCourse } = useCoursesStore();
   const navigation = useSafeNavigation();
 
   // Only show sidebar on web/tablet with an outline and navigation available
-  const showSidebar = Platform.OS === 'web' && !isMobile && activePath?.outline && navigation;
+  const showSidebar = Platform.OS === 'web' && !isMobile && activeCourse?.outline && navigation;
 
   // Find current position in outline based on step
   const getCurrentPosition = () => {
-    if (!activePath?.outline || !step) return null;
+    if (!activeCourse?.outline || !step) return null;
 
-    for (let moduleIndex = 0; moduleIndex < activePath.outline.modules.length; moduleIndex++) {
-      const module = activePath.outline.modules[moduleIndex];
+    for (let moduleIndex = 0; moduleIndex < activeCourse.outline.modules.length; moduleIndex++) {
+      const module = activeCourse.outline.modules[moduleIndex];
       for (let topicIndex = 0; topicIndex < module.topics.length; topicIndex++) {
         const topic = module.topics[topicIndex];
         if (topic.stepId === step.id) {
@@ -68,7 +68,7 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
       }
     }
 
-    return activePath.outlinePosition || null;
+    return activeCourse.outlinePosition || null;
   };
 
   // Handle sidebar topic navigation
@@ -80,14 +80,14 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
     if (!navigation) return;
 
     if (topic.stepId && topic.stepId !== step.id) {
-      const targetStep = activePath?.steps.find((s) => s.id === topic.stepId);
+      const targetStep = activeCourse?.steps.find((s) => s.id === topic.stepId);
       if (targetStep) {
         // Type assertion needed for dynamic navigation
         const nav = navigation as { navigate: (screen: string, params: object) => void };
         if (targetStep.completed) {
-          nav.navigate('StepDetail', { step: targetStep, pathId });
+          nav.navigate('StepDetail', { step: targetStep, courseId });
         } else {
-          nav.navigate('Step', { step: targetStep, pathId });
+          nav.navigate('Step', { step: targetStep, courseId });
         }
       }
     }
@@ -96,12 +96,12 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
   const currentPosition = getCurrentPosition();
 
   // Web layout with sidebar
-  if (showSidebar && activePath?.outline) {
+  if (showSidebar && activeCourse?.outline) {
     return (
       <Container>
         <View style={styles.webLayout}>
           <CourseOutlineSidebar
-            outline={activePath.outline}
+            outline={activeCourse.outline}
             currentPosition={currentPosition}
             onTopicPress={handleOutlineTopicPress}
           />

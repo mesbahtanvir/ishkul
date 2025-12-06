@@ -9,9 +9,9 @@ import type {
   OnboardingStartParams,
   GoalSelectedParams,
   OnboardingCompleteParams,
-  LearningPathCreatedParams,
-  LearningPathOpenedParams,
-  LearningPathDeletedParams,
+  CourseCreatedParams,
+  CourseOpenedParams,
+  CourseDeletedParams,
   StepStartedParams,
   StepCompletedParams,
   LessonCompletedParams,
@@ -119,9 +119,9 @@ describe('Event Parameter Types', () => {
     });
   });
 
-  describe('LearningPathCreatedParams', () => {
+  describe('CourseCreatedParams', () => {
     it('should have correct structure', () => {
-      const params: LearningPathCreatedParams = {
+      const params: CourseCreatedParams = {
         path_id: 'path-123',
         goal: 'Learn React',
         is_first_path: false,
@@ -131,9 +131,9 @@ describe('Event Parameter Types', () => {
     });
   });
 
-  describe('LearningPathOpenedParams', () => {
+  describe('CourseOpenedParams', () => {
     it('should have correct structure', () => {
-      const params: LearningPathOpenedParams = {
+      const params: CourseOpenedParams = {
         path_id: 'path-456',
         goal: 'Learn TypeScript',
         progress: 75,
@@ -144,9 +144,9 @@ describe('Event Parameter Types', () => {
     });
   });
 
-  describe('LearningPathDeletedParams', () => {
+  describe('CourseDeletedParams', () => {
     it('should have correct structure', () => {
-      const params: LearningPathDeletedParams = {
+      const params: CourseDeletedParams = {
         path_id: 'path-789',
         progress_at_deletion: 45,
         steps_completed: 9,
@@ -244,7 +244,7 @@ describe('Event Parameter Types', () => {
       const props: UserProperties = {
         user_tier: 'premium',
         signup_method: 'google',
-        paths_created_count: 10,
+        courses_created_count: 10,
         total_steps_completed: 150,
         avg_quiz_score: 'high',
         days_since_signup: 90,
@@ -257,7 +257,7 @@ describe('Event Parameter Types', () => {
       const props: UserProperties = {
         user_tier: 'free',
       };
-      expect(props.paths_created_count).toBeUndefined();
+      expect(props.courses_created_count).toBeUndefined();
     });
   });
 });
@@ -271,9 +271,9 @@ describe('EventNames', () => {
       'ONBOARDING_START',
       'GOAL_SELECTED',
       'ONBOARDING_COMPLETE',
-      'LEARNING_PATH_CREATED',
-      'LEARNING_PATH_OPENED',
-      'LEARNING_PATH_DELETED',
+      'LEARNING_COURSE_CREATED',
+      'LEARNING_COURSE_OPENED',
+      'LEARNING_COURSE_DELETED',
       'STEP_STARTED',
       'STEP_COMPLETED',
       'LESSON_COMPLETED',
@@ -300,7 +300,7 @@ describe('EventNames', () => {
 
   it('should use snake_case for event values', () => {
     expect(EventNames.SIGN_UP).toBe('sign_up');
-    expect(EventNames.LEARNING_PATH_CREATED).toBe('learning_path_created');
+    expect(EventNames.LEARNING_COURSE_CREATED).toBe('learning_path_created');
     expect(EventNames.QUIZ_QUESTION_ANSWERED).toBe('quiz_question_answered');
   });
 });
@@ -330,7 +330,7 @@ describe('ScreenNames', () => {
   it('should use PascalCase for screen values', () => {
     expect(ScreenNames.LANDING).toBe('Landing');
     expect(ScreenNames.GOAL_SELECTION).toBe('GoalSelection');
-    expect(ScreenNames.LEARNING_PATH).toBe('LearningPath');
+    expect(ScreenNames.LEARNING_PATH).toBe('Course');
   });
 });
 
@@ -357,6 +357,6 @@ describe('AnalyticsEvent Union Type', () => {
 
     expect(signUpEvent.name).toBe('sign_up');
     expect(loginEvent.params.method).toBe('email');
-    expect((pathCreatedEvent.params as LearningPathCreatedParams).goal).toBe('Learn Go');
+    expect((pathCreatedEvent.params as CourseCreatedParams).goal).toBe('Learn Go');
   });
 });

@@ -17,7 +17,7 @@ import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
-import { learningPathsApi } from '../services/api';
+import { coursesApi } from '../services/api';
 import { useScreenTracking } from '../services/analytics';
 
 type LandingScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Landing'>;
@@ -109,11 +109,11 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ navigation }) => {
   const fetchStats = async () => {
     try {
       setStatsLoading(true);
-      const paths = await learningPathsApi.getPaths();
+      const courses = await coursesApi.getCourses();
 
       // Calculate stats from real data
       const uniqueTopics = new Set<string>();
-      paths.forEach(path => {
+      courses.forEach(path => {
         if (path.goal) uniqueTopics.add(path.goal);
       });
 

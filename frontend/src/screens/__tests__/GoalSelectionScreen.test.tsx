@@ -19,9 +19,9 @@ jest.mock('../../services/analytics/hooks', () => ({
     trackGoalSelected: jest.fn(),
     trackLevelSelected: jest.fn(),
     trackOnboardingComplete: jest.fn(),
-    trackLearningPathCreated: jest.fn(),
-    trackLearningPathOpened: jest.fn(),
-    trackLearningPathDeleted: jest.fn(),
+    trackCourseCreated: jest.fn(),
+    trackCourseOpened: jest.fn(),
+    trackCourseDeleted: jest.fn(),
     trackStepStarted: jest.fn(),
     trackStepCompleted: jest.fn(),
     trackLessonCompleted: jest.fn(),
@@ -72,11 +72,11 @@ jest.mock('../../state/userStore', () => ({
   }),
 }));
 
-// Mock learningPathsStore
+// Mock coursesStore
 const mockAddPath = jest.fn();
-jest.mock('../../state/learningPathsStore', () => ({
-  useLearningPathsStore: () => ({
-    addPath: mockAddPath,
+jest.mock('../../state/coursesStore', () => ({
+  useCoursesStore: () => ({
+    addCourse: mockAddPath,
   }),
   getEmojiForGoal: () => '🐍',
   generatePathId: () => 'test-path-id',
@@ -85,18 +85,18 @@ jest.mock('../../state/learningPathsStore', () => ({
 // Mock memory service
 const mockCreateUserDocument = jest.fn();
 const mockGetUserDocument = jest.fn();
-const mockAddLearningPath = jest.fn();
+const mockAddCourse = jest.fn();
 jest.mock('../../services/memory', () => ({
   createUserDocument: (...args: unknown[]) => mockCreateUserDocument(...args),
   getUserDocument: () => mockGetUserDocument(),
-  addLearningPath: (...args: unknown[]) => mockAddLearningPath(...args),
+  addCourse: (...args: unknown[]) => mockAddCourse(...args),
 }));
 
 // Mock api service
 const mockGetPaths = jest.fn();
 jest.mock('../../services/api', () => ({
-  learningPathsApi: {
-    getPaths: () => mockGetPaths(),
+  coursesApi: {
+    getCourses: () => mockGetPaths(),
   },
   ApiError: class ApiError extends Error {
     code: string;
@@ -107,7 +107,7 @@ jest.mock('../../services/api', () => ({
     }
   },
   ErrorCodes: {
-    PATH_LIMIT_REACHED: 'PATH_LIMIT_REACHED',
+    COURSE_LIMIT_REACHED: 'COURSE_LIMIT_REACHED',
     DAILY_STEP_LIMIT_REACHED: 'DAILY_STEP_LIMIT_REACHED',
   },
 }));
@@ -133,7 +133,7 @@ const mockNavigation: Partial<GoalSelectionScreenNavigationProp> = {
 const mockRoute: GoalSelectionScreenRouteProp = {
   key: 'GoalSelection',
   name: 'GoalSelection',
-  params: { isCreatingNewPath: false },
+  params: { isCreatingNewCourse: false },
 };
 
 describe('GoalSelectionScreen', () => {
@@ -144,7 +144,7 @@ describe('GoalSelectionScreen', () => {
       uid: 'test-user-123',
       goal: 'Learn Python',
       level: 'beginner',
-      learningPaths: [],
+      courses: [],
     });
     mockGetPaths.mockResolvedValue([
       {
@@ -343,7 +343,7 @@ describe('GoalSelectionScreen', () => {
     const existingUserRoute: GoalSelectionScreenRouteProp = {
       key: 'GoalSelection',
       name: 'GoalSelection',
-      params: { isCreatingNewPath: true },
+      params: { isCreatingNewCourse: true },
     };
 
     beforeEach(() => {

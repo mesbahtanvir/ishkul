@@ -63,7 +63,7 @@ function transformUserDocument(backend: BackendUserDocument): UserDocument {
       expectedAnswer: backend.nextStep.answer,
       task: backend.nextStep.task,
     } : undefined,
-    learningPaths: [], // Will be populated from backend when available
+    courses: [], // Will be populated from backend when available
     createdAt: new Date(backend.createdAt).getTime(),
     updatedAt: new Date(backend.updatedAt).getTime(),
   };

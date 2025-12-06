@@ -72,7 +72,7 @@ describe('userStore', () => {
         goal: 'Learn Python',
         memory: { topics: {} },
         history: [],
-        learningPaths: [],
+        courses: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -88,7 +88,7 @@ describe('userStore', () => {
         goal: 'Test',
         memory: { topics: {} },
         history: [],
-        learningPaths: [],
+        courses: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -144,7 +144,7 @@ describe('userStore', () => {
         goal: 'Test',
         memory: { topics: {} },
         history: [],
-        learningPaths: [],
+        courses: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };

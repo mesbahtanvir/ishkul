@@ -61,7 +61,7 @@ export const StepDetailScreen: React.FC<StepDetailScreenProps> = ({
   route,
 }) => {
   useScreenTracking('StepDetail', 'StepDetailScreen');
-  const { step, pathId } = route.params;
+  const { step, courseId } = route.params;
   const { responsive, isSmallPhone } = useResponsive();
   const { colors } = useTheme();
 
@@ -104,7 +104,7 @@ export const StepDetailScreen: React.FC<StepDetailScreenProps> = ({
   };
 
   return (
-    <LearningLayout step={step} pathId={pathId} scrollable={false}>
+    <LearningLayout step={step} courseId={courseId} scrollable={false}>
       <View style={styles.content}>
         {/* Top bar with back button (mobile only) and completed badge */}
         <View style={styles.topBar}>

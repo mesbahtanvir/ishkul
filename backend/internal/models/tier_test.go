@@ -50,12 +50,12 @@ func TestDailyStepLimitConstants(t *testing.T) {
 
 func TestActivePathsLimitConstants(t *testing.T) {
 	t.Run("path limits are correct", func(t *testing.T) {
-		assert.Equal(t, 2, FreeMaxActivePaths)
-		assert.Equal(t, 5, ProMaxActivePaths)
+		assert.Equal(t, 2, FreeMaxActiveCourses)
+		assert.Equal(t, 5, ProMaxActiveCourses)
 	})
 
 	t.Run("pro limit is higher than free", func(t *testing.T) {
-		assert.Greater(t, ProMaxActivePaths, FreeMaxActivePaths)
+		assert.Greater(t, ProMaxActiveCourses, FreeMaxActiveCourses)
 	})
 }
 
@@ -122,28 +122,28 @@ func TestGetDailyStepLimit(t *testing.T) {
 }
 
 // =============================================================================
-// GetMaxActivePaths Tests
+// GetMaxActiveCourses Tests
 // =============================================================================
 
-func TestGetMaxActivePaths(t *testing.T) {
+func TestGetMaxActiveCourses(t *testing.T) {
 	t.Run("returns pro max for pro tier", func(t *testing.T) {
-		max := GetMaxActivePaths(TierPro)
-		assert.Equal(t, ProMaxActivePaths, max)
+		max := GetMaxActiveCourses(TierPro)
+		assert.Equal(t, ProMaxActiveCourses, max)
 	})
 
 	t.Run("returns free max for free tier", func(t *testing.T) {
-		max := GetMaxActivePaths(TierFree)
-		assert.Equal(t, FreeMaxActivePaths, max)
+		max := GetMaxActiveCourses(TierFree)
+		assert.Equal(t, FreeMaxActiveCourses, max)
 	})
 
 	t.Run("returns free max for empty tier", func(t *testing.T) {
-		max := GetMaxActivePaths("")
-		assert.Equal(t, FreeMaxActivePaths, max)
+		max := GetMaxActiveCourses("")
+		assert.Equal(t, FreeMaxActiveCourses, max)
 	})
 
 	t.Run("returns free max for unknown tier", func(t *testing.T) {
-		max := GetMaxActivePaths("business")
-		assert.Equal(t, FreeMaxActivePaths, max)
+		max := GetMaxActiveCourses("business")
+		assert.Equal(t, FreeMaxActiveCourses, max)
 	})
 }
 
@@ -327,7 +327,7 @@ func TestTierScenarios(t *testing.T) {
 		assert.False(t, u.IsProUser())
 		assert.False(t, u.IsSubscriptionActive())
 		assert.Equal(t, FreeDailyStepLimit, GetDailyStepLimit(u.GetCurrentTier()))
-		assert.Equal(t, FreeMaxActivePaths, GetMaxActivePaths(u.GetCurrentTier()))
+		assert.Equal(t, FreeMaxActiveCourses, GetMaxActiveCourses(u.GetCurrentTier()))
 		assert.Equal(t, FreeModel, GetModelForTier(u.GetCurrentTier()))
 	})
 
@@ -343,7 +343,7 @@ func TestTierScenarios(t *testing.T) {
 		assert.True(t, u.IsProUser())
 		assert.True(t, u.IsSubscriptionActive())
 		assert.Equal(t, ProDailyStepLimit, GetDailyStepLimit(u.GetCurrentTier()))
-		assert.Equal(t, ProMaxActivePaths, GetMaxActivePaths(u.GetCurrentTier()))
+		assert.Equal(t, ProMaxActiveCourses, GetMaxActiveCourses(u.GetCurrentTier()))
 		assert.Equal(t, ProModel, GetModelForTier(u.GetCurrentTier()))
 	})
 

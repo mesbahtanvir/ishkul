@@ -24,43 +24,43 @@ jest.mock('../../hooks/useTheme', () => ({
 }));
 
 const mockStoreState = {
-  paths: [],
-  setPaths: jest.fn(),
-  setActivePath: jest.fn(),
-  deletePath: jest.fn(),
-  archivePath: jest.fn(),
-  restorePath: jest.fn(),
+  courses: [],
+  setCourses: jest.fn(),
+  setActiveCourse: jest.fn(),
+  deleteCourse: jest.fn(),
+  archiveCourse: jest.fn(),
+  restoreCourse: jest.fn(),
   loading: false,
   listCache: null,
   isCacheValid: jest.fn().mockReturnValue(false),
 };
 
-jest.mock('../../state/learningPathsStore', () => {
+jest.mock('../../state/coursesStore', () => {
   const fn = jest.fn(() => ({
-    paths: [],
-    setPaths: jest.fn(),
-    setActivePath: jest.fn(),
-    deletePath: jest.fn(),
-    archivePath: jest.fn(),
-    restorePath: jest.fn(),
+    courses: [],
+    setCourses: jest.fn(),
+    setActiveCourse: jest.fn(),
+    deleteCourse: jest.fn(),
+    archiveCourse: jest.fn(),
+    restoreCourse: jest.fn(),
     loading: false,
     listCache: null,
     isCacheValid: jest.fn().mockReturnValue(false),
   })) as jest.Mock & { getState: jest.Mock };
   fn.getState = jest.fn(() => ({
-    paths: [],
+    courses: [],
     listCache: null,
     isCacheValid: jest.fn().mockReturnValue(false),
   }));
-  return { useLearningPathsStore: fn };
+  return { useCoursesStore: fn };
 });
 
 jest.mock('../../services/api', () => ({
-  learningPathsApi: {
-    getPaths: jest.fn().mockResolvedValue([]),
-    deletePath: jest.fn().mockResolvedValue(undefined),
-    archivePath: jest.fn().mockResolvedValue(undefined),
-    restorePath: jest.fn().mockResolvedValue(undefined),
+  coursesApi: {
+    getCourses: jest.fn().mockResolvedValue([]),
+    deleteCourse: jest.fn().mockResolvedValue(undefined),
+    archiveCourse: jest.fn().mockResolvedValue(undefined),
+    restoreCourse: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -80,8 +80,8 @@ jest.mock('../../components/ConfirmDialog', () => ({
   ConfirmDialog: () => null,
 }));
 
-jest.mock('../../components/LearningPathCard', () => ({
-  LearningPathCard: () => null,
+jest.mock('../../components/CourseCard', () => ({
+  CourseCard: () => null,
 }));
 
 jest.mock('../../components/SegmentedControl', () => ({
@@ -111,13 +111,13 @@ describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset mock to default state (non-loading)
-    const { useLearningPathsStore } = require('../../state/learningPathsStore');
-    useLearningPathsStore.mockReturnValue({
+    const { useCoursesStore } = require('../../state/coursesStore');
+    useCoursesStore.mockReturnValue({
       ...mockStoreState,
       loading: false,
     });
-    useLearningPathsStore.getState.mockReturnValue({
-      paths: [],
+    useCoursesStore.getState.mockReturnValue({
+      courses: [],
       listCache: null,
       isCacheValid: jest.fn().mockReturnValue(false),
     });
@@ -140,13 +140,13 @@ describe('HomeScreen', () => {
   });
 
   it('should return LoadingScreen when loading', () => {
-    const { useLearningPathsStore } = require('../../state/learningPathsStore');
+    const { useCoursesStore } = require('../../state/coursesStore');
     const loadingState = {
       ...mockStoreState,
       loading: true,
     };
-    useLearningPathsStore.mockReturnValue(loadingState);
-    useLearningPathsStore.getState.mockReturnValue(loadingState);
+    useCoursesStore.mockReturnValue(loadingState);
+    useCoursesStore.getState.mockReturnValue(loadingState);
 
     // LoadingScreen is mocked to return null, so toJSON returns null
     const { toJSON } = render(<HomeScreen />);
@@ -169,14 +169,14 @@ describe('HomeScreen', () => {
   });
 });
 
-describe('HomeScreen with paths', () => {
+describe('HomeScreen with courses', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    const { useLearningPathsStore } = require('../../state/learningPathsStore');
+    const { useCoursesStore } = require('../../state/coursesStore');
     const stateWithPaths = {
       ...mockStoreState,
-      paths: [
+      courses: [
         {
           id: 'path-1',
           goal: 'Learn JavaScript',
@@ -195,11 +195,11 @@ describe('HomeScreen with paths', () => {
         },
       ],
     };
-    useLearningPathsStore.mockReturnValue(stateWithPaths);
-    useLearningPathsStore.getState.mockReturnValue(stateWithPaths);
+    useCoursesStore.mockReturnValue(stateWithPaths);
+    useCoursesStore.getState.mockReturnValue(stateWithPaths);
   });
 
-  it('should render with paths', () => {
+  it('should render with courses', () => {
     const { toJSON } = render(<HomeScreen />);
     expect(toJSON()).toBeTruthy();
   });

@@ -5,19 +5,19 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Container } from '../components/Container';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { LearningPathCard } from '../components/LearningPathCard';
+import { CourseCard } from '../components/CourseCard';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { SegmentedControl, SegmentOption } from '../components/SegmentedControl';
 
-import { useLearningPathsStore } from '../state/learningPathsStore';
-import { learningPathsApi } from '../services/api';
+import { useCoursesStore } from '../state/coursesStore';
+import { coursesApi } from '../services/api';
 
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 
 import { RootStackParamList } from '../types/navigation';
-import { LearningPath, PathStatus } from '../types/app';
+import { Course, CourseStatus } from '../types/app';
 import { useScreenTracking } from '../services/analytics';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -61,14 +61,14 @@ export const HomeScreen: React.FC = () => {
   useScreenTracking('Home', 'HomeScreen');
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const {
-    paths,
-    setPaths,
-    setActivePath,
-    deletePath,
-    archivePath,
-    restorePath,
+    courses,
+    setCourses,
+    setActiveCourse,
+    deleteCourse,
+    archiveCourse,
+    restoreCourse,
     loading,
-  } = useLearningPathsStore();
+  } = useCoursesStore();
   const { colors } = useTheme();
 
   // Tab state
@@ -76,33 +76,33 @@ export const HomeScreen: React.FC = () => {
 
   // Delete dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [pathToDelete, setPathToDelete] = useState<LearningPath | null>(null);
+  const [pathToDelete, setPathToDelete] = useState<Course | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Archive dialog state
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
-  const [pathToArchive, setPathToArchive] = useState<LearningPath | null>(null);
+  const [pathToArchive, setPathToArchive] = useState<Course | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
 
-  // Filter paths by status
+  // Filter courses by status
   const filteredPaths = useMemo(() => {
-    return paths.filter((path) => {
+    return courses.filter((path) => {
       const status = path.status || (path.progress >= 100 ? 'completed' : 'active');
       return status === selectedTab;
     });
-  }, [paths, selectedTab]);
+  }, [courses, selectedTab]);
 
-  // Count paths by status for tab badges
+  // Count courses by status for tab badges
   const pathCounts = useMemo(() => {
     const counts = { active: 0, completed: 0, archived: 0 };
-    paths.forEach((path) => {
+    courses.forEach((path) => {
       const status = path.status || (path.progress >= 100 ? 'completed' : 'active');
       if (status in counts) {
         counts[status as TabValue]++;
       }
     });
     return counts;
-  }, [paths]);
+  }, [courses]);
 
   // Tab options with counts
   const tabOptions: SegmentOption<TabValue>[] = [
@@ -111,24 +111,24 @@ export const HomeScreen: React.FC = () => {
     { value: 'archived', label: 'Archived', count: pathCounts.archived },
   ];
 
-  // Refresh learning paths when screen comes into focus
+  // Refresh learning courses when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       const refreshPaths = async () => {
         try {
           // Check if cache is still valid before fetching
-          const { listCache, isCacheValid } = useLearningPathsStore.getState();
+          const { listCache, isCacheValid } = useCoursesStore.getState();
           if (isCacheValid(listCache)) {
             // Cache is still valid, skip API call
             return;
           }
           // Cache expired or doesn't exist, fetch from API
-          const fetchedPaths = await learningPathsApi.getPaths();
-          setPaths(fetchedPaths);
+          const fetchedPaths = await coursesApi.getCourses();
+          setCourses(fetchedPaths);
         } catch (error) {
           // Log detailed error and notify user
           const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error('Error refreshing learning paths:', { message: errorMessage, error });
+          console.error('Error refreshing learning courses:', { message: errorMessage, error });
           // Show alert to user about sync failure
           if (Platform.OS === 'web') {
             window.alert('Failed to sync tracks. Please try again.');
@@ -138,19 +138,19 @@ export const HomeScreen: React.FC = () => {
         }
       };
       refreshPaths();
-    }, [setPaths])
+    }, [setCourses])
   );
 
   const handleCreatePath = () => {
-    navigation.navigate('GoalSelection', { isCreatingNewPath: true });
+    navigation.navigate('GoalSelection', { isCreatingNewCourse: true });
   };
 
-  const handlePathPress = (path: LearningPath) => {
-    setActivePath(path);
-    navigation.navigate('LearningPath', { pathId: path.id });
+  const handlePathPress = (path: Course) => {
+    setActiveCourse(path);
+    navigation.navigate('Course', { courseId: path.id });
   };
 
-  const handleDeletePath = (path: LearningPath) => {
+  const handleDeletePath = (path: Course) => {
     setPathToDelete(path);
     setShowDeleteDialog(true);
   };
@@ -160,8 +160,8 @@ export const HomeScreen: React.FC = () => {
 
     setDeleteLoading(true);
     try {
-      await learningPathsApi.deletePath(pathToDelete.id);
-      deletePath(pathToDelete.id);
+      await coursesApi.deleteCourse(pathToDelete.id);
+      deleteCourse(pathToDelete.id);
       setShowDeleteDialog(false);
       setPathToDelete(null);
     } catch (error) {
@@ -182,7 +182,7 @@ export const HomeScreen: React.FC = () => {
     setPathToDelete(null);
   };
 
-  const handleArchivePath = (path: LearningPath) => {
+  const handleArchivePath = (path: Course) => {
     setPathToArchive(path);
     setShowArchiveDialog(true);
   };
@@ -192,8 +192,8 @@ export const HomeScreen: React.FC = () => {
 
     setArchiveLoading(true);
     try {
-      await learningPathsApi.archivePath(pathToArchive.id);
-      archivePath(pathToArchive.id);
+      await coursesApi.archiveCourse(pathToArchive.id);
+      archiveCourse(pathToArchive.id);
       setShowArchiveDialog(false);
       setPathToArchive(null);
     } catch (error) {
@@ -213,10 +213,10 @@ export const HomeScreen: React.FC = () => {
     setPathToArchive(null);
   };
 
-  const handleRestorePath = async (path: LearningPath) => {
+  const handleRestorePath = async (path: Course) => {
     try {
-      await learningPathsApi.restorePath(path.id);
-      restorePath(path.id);
+      await coursesApi.restoreCourse(path.id);
+      restoreCourse(path.id);
     } catch (error) {
       console.error('Error restoring path:', error);
       if (Platform.OS === 'web') {
@@ -255,14 +255,14 @@ export const HomeScreen: React.FC = () => {
 
         {/* Learning Paths Section */}
         {filteredPaths.length > 0 ? (
-          <View style={styles.pathsSection}>
+          <View style={styles.coursesSection}>
             {selectedTab === 'archived' && (
               <Text style={[styles.archiveHint, { color: colors.text.secondary }]}>
-                Archived paths are hidden from your main view but can be restored anytime.
+                Archived courses are hidden from your main view but can be restored anytime.
               </Text>
             )}
             {filteredPaths.map((path) => (
-              <LearningPathCard
+              <CourseCard
                 key={path.id}
                 path={path}
                 onPress={handlePathPress}
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     marginBottom: Spacing.lg,
   },
-  pathsSection: {
+  coursesSection: {
     flex: 1,
   },
   archiveHint: {

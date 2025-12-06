@@ -92,7 +92,7 @@ describe('AnalyticsService', () => {
       analytics.setUserProperties({
         user_tier: 'free',
         signup_method: 'google',
-        paths_created_count: 5,
+        courses_created_count: 5,
       });
       // No error means success
     });
@@ -177,7 +177,7 @@ describe('AnalyticsService', () => {
 
   describe('learning path events', () => {
     it('should track learning path created', async () => {
-      await analytics.trackLearningPathCreated({
+      await analytics.trackCourseCreated({
         path_id: 'path-123',
         goal: 'Learn Python',
         is_first_path: true,
@@ -185,7 +185,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should track learning path opened', async () => {
-      await analytics.trackLearningPathOpened({
+      await analytics.trackCourseOpened({
         path_id: 'path-123',
         goal: 'Learn Python',
         progress: 50,
@@ -194,7 +194,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should track learning path deleted', async () => {
-      await analytics.trackLearningPathDeleted({
+      await analytics.trackCourseDeleted({
         path_id: 'path-123',
         progress_at_deletion: 30,
         steps_completed: 3,
@@ -363,9 +363,9 @@ describe('EventNames', () => {
   });
 
   it('should have all learning path event names', () => {
-    expect(EventNames.LEARNING_PATH_CREATED).toBe('learning_path_created');
-    expect(EventNames.LEARNING_PATH_OPENED).toBe('learning_path_opened');
-    expect(EventNames.LEARNING_PATH_DELETED).toBe('learning_path_deleted');
+    expect(EventNames.LEARNING_COURSE_CREATED).toBe('learning_path_created');
+    expect(EventNames.LEARNING_COURSE_OPENED).toBe('learning_path_opened');
+    expect(EventNames.LEARNING_COURSE_DELETED).toBe('learning_path_deleted');
   });
 
   it('should have all step event names', () => {

@@ -13,7 +13,7 @@ import (
 
 func TestContextHashFunction(t *testing.T) {
 	t.Run("returns consistent hash for same path", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID:       "path1",
 			Progress: 50,
 			Steps: []models.Step{
@@ -30,7 +30,7 @@ func TestContextHashFunction(t *testing.T) {
 	})
 
 	t.Run("returns different hash for different paths", func(t *testing.T) {
-		path1 := &models.LearningPath{
+		path1 := &models.Course{
 			ID:       "path1",
 			Progress: 50,
 			Steps: []models.Step{
@@ -38,7 +38,7 @@ func TestContextHashFunction(t *testing.T) {
 			},
 		}
 
-		path2 := &models.LearningPath{
+		path2 := &models.Course{
 			ID:       "path2",
 			Progress: 75,
 			Steps: []models.Step{
@@ -53,7 +53,7 @@ func TestContextHashFunction(t *testing.T) {
 	})
 
 	t.Run("hash changes when progress changes", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID:       "path1",
 			Progress: 50,
 		}
@@ -67,7 +67,7 @@ func TestContextHashFunction(t *testing.T) {
 	})
 
 	t.Run("hash changes when steps change", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID: "path1",
 			Steps: []models.Step{
 				{Type: "lesson", Topic: "intro"},
@@ -83,7 +83,7 @@ func TestContextHashFunction(t *testing.T) {
 	})
 
 	t.Run("includes memory in hash when present", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID:       "path1",
 			Progress: 50,
 		}
@@ -102,7 +102,7 @@ func TestContextHashFunction(t *testing.T) {
 	})
 
 	t.Run("handles empty path", func(t *testing.T) {
-		path := &models.LearningPath{}
+		path := &models.Course{}
 
 		hash := ContextHash(path)
 		assert.NotEmpty(t, hash)
@@ -110,7 +110,7 @@ func TestContextHashFunction(t *testing.T) {
 	})
 
 	t.Run("uses last 3 steps for pattern detection", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID: "path1",
 			Steps: []models.Step{
 				{Type: "lesson", Topic: "topic1"},
@@ -142,7 +142,7 @@ func TestContextHashFunction(t *testing.T) {
 
 func TestTopicHashFunction(t *testing.T) {
 	t.Run("returns consistent hash for same topic and path", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID: "path1",
 		}
 
@@ -154,7 +154,7 @@ func TestTopicHashFunction(t *testing.T) {
 	})
 
 	t.Run("returns different hash for different topics", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID: "path1",
 		}
 
@@ -164,8 +164,20 @@ func TestTopicHashFunction(t *testing.T) {
 		assert.NotEqual(t, hash1, hash2)
 	})
 
+	t.Run("includes level in hash", func(t *testing.T) {
+		path := &models.Course{
+			ID: "path1",
+		}
+
+		hash1 := TopicHash(path, "variables")
+
+		hash2 := TopicHash(path, "variables")
+
+		assert.NotEqual(t, hash1, hash2)
+	})
+
 	t.Run("includes topic confidence when available", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID: "path1",
 		}
 
@@ -184,7 +196,7 @@ func TestTopicHashFunction(t *testing.T) {
 	})
 
 	t.Run("handles missing topic memory", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID: "path1",
 			Memory: &models.Memory{
 				Topics: map[string]models.TopicMemory{

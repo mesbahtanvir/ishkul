@@ -13,7 +13,7 @@ import (
 
 func TestGetRecentSteps(t *testing.T) {
 	t.Run("returns all steps when no compaction", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Steps: []models.Step{
 				{ID: "step-1", Topic: "Basics"},
 				{ID: "step-2", Topic: "Functions"},
@@ -27,7 +27,7 @@ func TestGetRecentSteps(t *testing.T) {
 	})
 
 	t.Run("returns all steps when memory exists but no compaction", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Steps: []models.Step{
 				{ID: "step-1", Topic: "Basics"},
 				{ID: "step-2", Topic: "Functions"},
@@ -43,7 +43,7 @@ func TestGetRecentSteps(t *testing.T) {
 	})
 
 	t.Run("returns steps after compaction index", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Steps: []models.Step{
 				{ID: "step-1", Topic: "Basics", Index: 0},
 				{ID: "step-2", Topic: "Functions", Index: 1},
@@ -65,7 +65,7 @@ func TestGetRecentSteps(t *testing.T) {
 	})
 
 	t.Run("returns empty slice when all steps compacted", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Steps: []models.Step{
 				{ID: "step-1", Topic: "Basics", Index: 0},
 				{ID: "step-2", Topic: "Functions", Index: 1},
@@ -82,7 +82,7 @@ func TestGetRecentSteps(t *testing.T) {
 	})
 
 	t.Run("handles empty steps", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Steps:  []models.Step{},
 			Memory: nil,
 		}
@@ -94,7 +94,7 @@ func TestGetRecentSteps(t *testing.T) {
 
 func TestBuildMemoryContext(t *testing.T) {
 	t.Run("returns default message when no memory", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Memory: nil,
 		}
 
@@ -103,7 +103,7 @@ func TestBuildMemoryContext(t *testing.T) {
 	})
 
 	t.Run("returns default message for empty memory", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Memory: &models.Memory{
 				Topics: map[string]models.TopicMemory{},
 			},
@@ -114,7 +114,7 @@ func TestBuildMemoryContext(t *testing.T) {
 	})
 
 	t.Run("includes compaction summary", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Memory: &models.Memory{
 				Compaction: &models.Compaction{
 					Summary: "User has shown great progress in Go basics.",
@@ -128,7 +128,7 @@ func TestBuildMemoryContext(t *testing.T) {
 	})
 
 	t.Run("includes strengths and weaknesses", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Memory: &models.Memory{
 				Compaction: &models.Compaction{
 					Summary:    "Good progress",
@@ -148,7 +148,7 @@ func TestBuildMemoryContext(t *testing.T) {
 	})
 
 	t.Run("includes recommendations", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Memory: &models.Memory{
 				Compaction: &models.Compaction{
 					Summary:         "Making progress",
@@ -163,7 +163,7 @@ func TestBuildMemoryContext(t *testing.T) {
 	})
 
 	t.Run("includes topic confidence scores", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Memory: &models.Memory{
 				Topics: map[string]models.TopicMemory{
 					"Go Basics": {Confidence: 0.85},
@@ -179,7 +179,7 @@ func TestBuildMemoryContext(t *testing.T) {
 	})
 
 	t.Run("includes all memory components", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Memory: &models.Memory{
 				Topics: map[string]models.TopicMemory{
 					"Variables": {Confidence: 0.90},
@@ -248,7 +248,7 @@ func TestTriggerPregenerationEdgeCases(t *testing.T) {
 			loader:      nil,
 		}
 
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID:     "path-1",
 			UserID: "user-1",
 		}
@@ -267,7 +267,7 @@ func TestTriggerPregenerationEdgeCases(t *testing.T) {
 
 func TestPregenerateServiceScenarios(t *testing.T) {
 	t.Run("builds context for new learner", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID:     "path-new",
 			UserID: "user-new",
 			Goal:   "Learn Go Programming",
@@ -283,7 +283,7 @@ func TestPregenerateServiceScenarios(t *testing.T) {
 	})
 
 	t.Run("builds context for experienced learner", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID:     "path-experienced",
 			UserID: "user-exp",
 			Goal:   "Master Go",

@@ -179,7 +179,7 @@ func GetSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
 
 	// Build limits
 	dailyLimit := models.GetDailyStepLimit(tier)
-	pathLimit := models.GetMaxActivePaths(tier)
+	pathLimit := models.GetMaxActiveCourses(tier)
 
 	status := models.SubscriptionStatus{
 		Tier:   tier,
@@ -1378,7 +1378,7 @@ func GetUserTierAndLimits(ctx context.Context, userID string) (string, *models.U
 		},
 		ActivePaths: models.UsageLimit{
 			Used:  activeCount,
-			Limit: models.GetMaxActivePaths(tier),
+			Limit: models.GetMaxActiveCourses(tier),
 		},
 	}
 

@@ -198,7 +198,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
                 Active Paths
               </Text>
               <Text style={[styles.usageValue, { color: colors.text.primary }]}>
-                {limits.activePaths.used} / {limits.activePaths.limit}
+                {limits.activeCourses.used} / {limits.activeCourses.limit}
               </Text>
             </View>
 
@@ -208,7 +208,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
                   styles.progressFill,
                   {
                     backgroundColor: colors.primary,
-                    width: `${Math.min(100, (limits.activePaths.used / limits.activePaths.limit) * 100)}%`,
+                    width: `${Math.min(100, (limits.activeCourses.used / limits.activeCourses.limit) * 100)}%`,
                   },
                 ]}
               />

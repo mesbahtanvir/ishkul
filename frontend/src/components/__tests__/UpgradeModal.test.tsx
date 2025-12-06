@@ -33,11 +33,11 @@ const defaultStoreState = {
   paidUntil: null,
   limits: {
     dailySteps: { used: 100, limit: 100 },
-    activePaths: { used: 2, limit: 2 },
+    activeCourses: { used: 2, limit: 2 },
   },
   canUpgrade: true,
   canGenerateSteps: false,
-  canCreatePath: false,
+  canCreateCourse: false,
   dailyLimitResetAt: null,
   loading: false,
   error: null,

@@ -361,7 +361,7 @@ func TestSubscriptionScenarios(t *testing.T) {
 			Status: "", // Free users don't have subscription status
 			Limits: UsageLimits{
 				DailySteps:  UsageLimit{Used: 95, Limit: FreeDailyStepLimit},
-				ActivePaths: UsageLimit{Used: 1, Limit: FreeMaxActivePaths},
+				ActivePaths: UsageLimit{Used: 1, Limit: FreeMaxActiveCourses},
 			},
 			CanUpgrade:        true,
 			CanGenerateSteps:  true, // Still under limit
@@ -382,7 +382,7 @@ func TestSubscriptionScenarios(t *testing.T) {
 			PaidUntil: &paidUntil,
 			Limits: UsageLimits{
 				DailySteps:  UsageLimit{Used: 150, Limit: ProDailyStepLimit},
-				ActivePaths: UsageLimit{Used: 3, Limit: ProMaxActivePaths},
+				ActivePaths: UsageLimit{Used: 3, Limit: ProMaxActiveCourses},
 			},
 			CanUpgrade:       false, // Already pro
 			CanGenerateSteps: true,
@@ -402,7 +402,7 @@ func TestSubscriptionScenarios(t *testing.T) {
 			PaidUntil: &paidUntil,
 			Limits: UsageLimits{
 				DailySteps:  UsageLimit{Used: 0, Limit: ProDailyStepLimit},
-				ActivePaths: UsageLimit{Used: 4, Limit: ProMaxActivePaths},
+				ActivePaths: UsageLimit{Used: 4, Limit: ProMaxActiveCourses},
 			},
 			CanUpgrade:       true, // Can re-subscribe
 			CanGenerateSteps: true,

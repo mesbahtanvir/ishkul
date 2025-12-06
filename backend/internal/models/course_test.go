@@ -9,12 +9,12 @@ import (
 )
 
 // =============================================================================
-// LearningPath Tests
+// Course Tests
 // =============================================================================
 
-func TestLearningPathStruct(t *testing.T) {
-	t.Run("creates LearningPath with all fields", func(t *testing.T) {
-		path := LearningPath{
+func TestCourseStruct(t *testing.T) {
+	t.Run("creates Course with all fields", func(t *testing.T) {
+		path := Course{
 			ID:               "path-123",
 			UserID:           "user-456",
 			Goal:             "Learn Go",
@@ -39,7 +39,7 @@ func TestLearningPathStruct(t *testing.T) {
 	})
 
 	t.Run("JSON marshaling includes all fields", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:               "path-123",
 			UserID:           "user-456",
 			Goal:             "Learn Go",
@@ -88,7 +88,7 @@ func TestLearningPathStruct(t *testing.T) {
 			"lastAccessedAt": 1704067200000
 		}`
 
-		var path LearningPath
+		var path Course
 		err := json.Unmarshal([]byte(jsonStr), &path)
 		require.NoError(t, err)
 
@@ -221,12 +221,12 @@ func TestStepStruct(t *testing.T) {
 }
 
 // =============================================================================
-// LearningPathCreate Tests
+// CourseCreate Tests
 // =============================================================================
 
-func TestLearningPathCreateStruct(t *testing.T) {
+func TestCourseCreateStruct(t *testing.T) {
 	t.Run("creates request with all fields", func(t *testing.T) {
-		req := LearningPathCreate{
+		req := CourseCreate{
 			Goal:  "Learn Go",
 			Emoji: "🎯",
 		}
@@ -236,7 +236,7 @@ func TestLearningPathCreateStruct(t *testing.T) {
 	})
 
 	t.Run("JSON marshaling works correctly", func(t *testing.T) {
-		req := LearningPathCreate{
+		req := CourseCreate{
 			Goal:  "Learn Python",
 			Emoji: "🐍",
 		}
@@ -255,7 +255,7 @@ func TestLearningPathCreateStruct(t *testing.T) {
 	t.Run("JSON unmarshaling works correctly", func(t *testing.T) {
 		jsonStr := `{"goal": "Learn Rust", "emoji": "🦀"}`
 
-		var req LearningPathCreate
+		var req CourseCreate
 		err := json.Unmarshal([]byte(jsonStr), &req)
 		require.NoError(t, err)
 
@@ -265,10 +265,10 @@ func TestLearningPathCreateStruct(t *testing.T) {
 }
 
 // =============================================================================
-// LearningPathUpdate Tests
+// CourseUpdate Tests
 // =============================================================================
 
-func TestLearningPathUpdateStruct(t *testing.T) {
+func TestCourseUpdateStruct(t *testing.T) {
 	t.Run("creates update with all optional fields", func(t *testing.T) {
 		goal := "Updated Goal"
 		emoji := "🚀"
@@ -276,7 +276,7 @@ func TestLearningPathUpdateStruct(t *testing.T) {
 		lessonsCompleted := 5
 		totalLessons := 10
 
-		req := LearningPathUpdate{
+		req := CourseUpdate{
 			Goal:             &goal,
 			Emoji:            &emoji,
 			Progress:         &progress,
@@ -294,7 +294,7 @@ func TestLearningPathUpdateStruct(t *testing.T) {
 	t.Run("allows nil fields for partial updates", func(t *testing.T) {
 		goal := "Only Goal Update"
 
-		req := LearningPathUpdate{
+		req := CourseUpdate{
 			Goal: &goal,
 		}
 
@@ -307,7 +307,7 @@ func TestLearningPathUpdateStruct(t *testing.T) {
 
 	t.Run("JSON omits nil fields", func(t *testing.T) {
 		goal := "Only Goal"
-		req := LearningPathUpdate{
+		req := CourseUpdate{
 			Goal: &goal,
 		}
 
@@ -442,12 +442,12 @@ func TestCompactionIntervalConstant(t *testing.T) {
 }
 
 // =============================================================================
-// Integration Tests - Full LearningPath with Steps and Memory
+// Integration Tests - Full Course with Steps and Memory
 // =============================================================================
 
-func TestLearningPathWithStepsAndMemory(t *testing.T) {
+func TestCourseWithStepsAndMemory(t *testing.T) {
 	t.Run("creates complete learning path", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:               "path-full",
 			UserID:           "user-123",
 			Goal:             "Learn Go Programming",
@@ -547,7 +547,7 @@ func TestLearningPathWithStepsAndMemory(t *testing.T) {
 	})
 
 	t.Run("JSON round-trip preserves data", func(t *testing.T) {
-		original := LearningPath{
+		original := Course{
 			ID:               "path-roundtrip",
 			UserID:           "user-456",
 			Goal:             "Test Goal",
@@ -583,7 +583,7 @@ func TestLearningPathWithStepsAndMemory(t *testing.T) {
 		jsonBytes, err := json.Marshal(original)
 		require.NoError(t, err)
 
-		var restored LearningPath
+		var restored Course
 		err = json.Unmarshal(jsonBytes, &restored)
 		require.NoError(t, err)
 
@@ -604,16 +604,16 @@ func TestLearningPathWithStepsAndMemory(t *testing.T) {
 // Path Status Constants Tests
 // =============================================================================
 
-func TestPathStatusConstants(t *testing.T) {
+func TestCourseStatusConstants(t *testing.T) {
 	t.Run("status constants have correct values", func(t *testing.T) {
-		assert.Equal(t, "active", PathStatusActive)
-		assert.Equal(t, "completed", PathStatusCompleted)
-		assert.Equal(t, "archived", PathStatusArchived)
-		assert.Equal(t, "deleted", PathStatusDeleted)
+		assert.Equal(t, "active", CourseStatusActive)
+		assert.Equal(t, "completed", CourseStatusCompleted)
+		assert.Equal(t, "archived", CourseStatusArchived)
+		assert.Equal(t, "deleted", CourseStatusDeleted)
 	})
 
 	t.Run("status constants are unique", func(t *testing.T) {
-		statuses := []string{PathStatusActive, PathStatusCompleted, PathStatusArchived, PathStatusDeleted}
+		statuses := []string{CourseStatusActive, CourseStatusCompleted, CourseStatusArchived, CourseStatusDeleted}
 		unique := make(map[string]bool)
 
 		for _, status := range statuses {
@@ -626,67 +626,67 @@ func TestPathStatusConstants(t *testing.T) {
 }
 
 // =============================================================================
-// LearningPath Status Field Tests
+// Course Status Field Tests
 // =============================================================================
 
-func TestLearningPathStatusField(t *testing.T) {
+func TestCourseStatusField(t *testing.T) {
 	t.Run("creates path with active status", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:     "path-1",
 			UserID: "user-1",
 			Goal:   "Learn Go",
-			Status: PathStatusActive,
+			Status: CourseStatusActive,
 		}
 
-		assert.Equal(t, PathStatusActive, path.Status)
+		assert.Equal(t, CourseStatusActive, path.Status)
 	})
 
 	t.Run("creates path with completed status and timestamp", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:          "path-1",
 			UserID:      "user-1",
 			Goal:        "Learn Go",
-			Status:      PathStatusCompleted,
+			Status:      CourseStatusCompleted,
 			Progress:    100,
 			CompletedAt: 1704067200000,
 		}
 
-		assert.Equal(t, PathStatusCompleted, path.Status)
+		assert.Equal(t, CourseStatusCompleted, path.Status)
 		assert.Equal(t, int64(1704067200000), path.CompletedAt)
 	})
 
 	t.Run("creates path with archived status and timestamp", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:         "path-1",
 			UserID:     "user-1",
 			Goal:       "Learn Go",
-			Status:     PathStatusArchived,
+			Status:     CourseStatusArchived,
 			ArchivedAt: 1704067200000,
 		}
 
-		assert.Equal(t, PathStatusArchived, path.Status)
+		assert.Equal(t, CourseStatusArchived, path.Status)
 		assert.Equal(t, int64(1704067200000), path.ArchivedAt)
 	})
 
 	t.Run("creates path with deleted status and timestamp", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:        "path-1",
 			UserID:    "user-1",
 			Goal:      "Learn Go",
-			Status:    PathStatusDeleted,
+			Status:    CourseStatusDeleted,
 			DeletedAt: 1704067200000,
 		}
 
-		assert.Equal(t, PathStatusDeleted, path.Status)
+		assert.Equal(t, CourseStatusDeleted, path.Status)
 		assert.Equal(t, int64(1704067200000), path.DeletedAt)
 	})
 
 	t.Run("JSON includes status field", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:     "path-123",
 			UserID: "user-456",
 			Goal:   "Learn Go",
-			Status: PathStatusActive,
+			Status: CourseStatusActive,
 		}
 
 		jsonBytes, err := json.Marshal(path)
@@ -701,11 +701,11 @@ func TestLearningPathStatusField(t *testing.T) {
 	})
 
 	t.Run("JSON omits empty timestamps", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:     "path-123",
 			UserID: "user-456",
 			Goal:   "Learn Go",
-			Status: PathStatusActive,
+			Status: CourseStatusActive,
 		}
 
 		jsonBytes, err := json.Marshal(path)
@@ -722,11 +722,11 @@ func TestLearningPathStatusField(t *testing.T) {
 	})
 
 	t.Run("JSON includes non-zero timestamps", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:          "path-123",
 			UserID:      "user-456",
 			Goal:        "Learn Go",
-			Status:      PathStatusCompleted,
+			Status:      CourseStatusCompleted,
 			CompletedAt: 1704067200000,
 		}
 
@@ -749,97 +749,97 @@ func TestLearningPathStatusField(t *testing.T) {
 			"completedAt": 1704067200000
 		}`
 
-		var path LearningPath
+		var path Course
 		err := json.Unmarshal([]byte(jsonStr), &path)
 		require.NoError(t, err)
 
-		assert.Equal(t, PathStatusCompleted, path.Status)
+		assert.Equal(t, CourseStatusCompleted, path.Status)
 		assert.Equal(t, int64(1704067200000), path.CompletedAt)
 	})
 }
 
 // =============================================================================
-// LearningPath Lifecycle Tests
+// Course Lifecycle Tests
 // =============================================================================
 
-func TestLearningPathLifecycle(t *testing.T) {
+func TestCourseLifecycle(t *testing.T) {
 	t.Run("new path starts as active", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:               "path-new",
 			UserID:           "user-123",
 			Goal:             "Learn Go",
-			Status:           PathStatusActive,
+			Status:           CourseStatusActive,
 			Progress:         0,
 			LessonsCompleted: 0,
 			TotalLessons:     10,
 		}
 
-		assert.Equal(t, PathStatusActive, path.Status)
+		assert.Equal(t, CourseStatusActive, path.Status)
 		assert.Equal(t, int64(0), path.CompletedAt)
 		assert.Equal(t, int64(0), path.ArchivedAt)
 		assert.Equal(t, int64(0), path.DeletedAt)
 	})
 
 	t.Run("completed path has 100% progress", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:               "path-done",
 			UserID:           "user-123",
 			Goal:             "Learn Go",
-			Status:           PathStatusCompleted,
+			Status:           CourseStatusCompleted,
 			Progress:         100,
 			LessonsCompleted: 10,
 			TotalLessons:     10,
 			CompletedAt:      1704067200000,
 		}
 
-		assert.Equal(t, PathStatusCompleted, path.Status)
+		assert.Equal(t, CourseStatusCompleted, path.Status)
 		assert.Equal(t, 100, path.Progress)
 		assert.Equal(t, path.LessonsCompleted, path.TotalLessons)
 		assert.NotEqual(t, int64(0), path.CompletedAt)
 	})
 
 	t.Run("archived path preserves progress", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:               "path-archived",
 			UserID:           "user-123",
 			Goal:             "Learn Go",
-			Status:           PathStatusArchived,
+			Status:           CourseStatusArchived,
 			Progress:         50,
 			LessonsCompleted: 5,
 			TotalLessons:     10,
 			ArchivedAt:       1704067200000,
 		}
 
-		assert.Equal(t, PathStatusArchived, path.Status)
+		assert.Equal(t, CourseStatusArchived, path.Status)
 		assert.Equal(t, 50, path.Progress)
 		assert.NotEqual(t, int64(0), path.ArchivedAt)
 	})
 
 	t.Run("deleted path has deletedAt timestamp", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:        "path-deleted",
 			UserID:    "user-123",
 			Goal:      "Learn Go",
-			Status:    PathStatusDeleted,
+			Status:    CourseStatusDeleted,
 			DeletedAt: 1704067200000,
 		}
 
-		assert.Equal(t, PathStatusDeleted, path.Status)
+		assert.Equal(t, CourseStatusDeleted, path.Status)
 		assert.NotEqual(t, int64(0), path.DeletedAt)
 	})
 }
 
 // =============================================================================
-// LearningPath Status Validation Helpers
+// Course Status Validation Helpers
 // =============================================================================
 
 func TestStatusValidationHelpers(t *testing.T) {
 	t.Run("validates status is one of known values", func(t *testing.T) {
 		validStatuses := map[string]bool{
-			PathStatusActive:    true,
-			PathStatusCompleted: true,
-			PathStatusArchived:  true,
-			PathStatusDeleted:   true,
+			CourseStatusActive:    true,
+			CourseStatusCompleted: true,
+			CourseStatusArchived:  true,
+			CourseStatusDeleted:   true,
 		}
 
 		assert.True(t, validStatuses["active"])
@@ -852,16 +852,16 @@ func TestStatusValidationHelpers(t *testing.T) {
 }
 
 // =============================================================================
-// LearningPath with Steps - Completion Scenario Tests
+// Course with Steps - Completion Scenario Tests
 // =============================================================================
 
-func TestLearningPathCompletionScenarios(t *testing.T) {
+func TestCourseCompletionScenarios(t *testing.T) {
 	t.Run("path with all completed steps and passing quizzes", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:               "path-complete",
 			UserID:           "user-123",
 			Goal:             "Learn Go",
-			Status:           PathStatusCompleted,
+			Status:           CourseStatusCompleted,
 			Progress:         100,
 			LessonsCompleted: 3,
 			TotalLessons:     3,
@@ -895,11 +895,11 @@ func TestLearningPathCompletionScenarios(t *testing.T) {
 	})
 
 	t.Run("path with failed quiz should not be completed", func(t *testing.T) {
-		path := LearningPath{
+		path := Course{
 			ID:               "path-incomplete",
 			UserID:           "user-123",
 			Goal:             "Learn Go",
-			Status:           PathStatusActive, // Should remain active due to failed quiz
+			Status:           CourseStatusActive, // Should remain active due to failed quiz
 			Progress:         100,
 			LessonsCompleted: 3,
 			TotalLessons:     3,
@@ -919,6 +919,6 @@ func TestLearningPathCompletionScenarios(t *testing.T) {
 			}
 		}
 		assert.False(t, allQuizzesPassed)
-		assert.Equal(t, PathStatusActive, path.Status)
+		assert.Equal(t, CourseStatusActive, path.Status)
 	})
 }

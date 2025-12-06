@@ -332,7 +332,7 @@ func calculateDerivedContext(ctx context.Context, fs *firestore.Client, userID s
 			break
 		}
 
-		var path models.LearningPath
+		var path models.Course
 		if err := doc.DataTo(&path); err != nil {
 			continue
 		}

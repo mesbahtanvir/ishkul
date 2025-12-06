@@ -12,10 +12,10 @@ import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { useScreenTracking, useOnboardingTracking, useAnalytics } from '../services/analytics';
 import { useUserStore } from '../state/userStore';
-import { useLearningPathsStore, getEmojiForGoal } from '../state/learningPathsStore';
+import { useCoursesStore, getEmojiForGoal } from '../state/coursesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
-import { createUserDocument, getUserDocument, addLearningPath } from '../services/memory';
-import { learningPathsApi, ApiError, ErrorCodes } from '../services/api';
+import { createUserDocument, getUserDocument, addCourse as createCourseApi } from '../services/memory';
+import { coursesApi, ApiError, ErrorCodes } from '../services/api';
 
 type GoalSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoalSelection'>;
 type GoalSelectionScreenRouteProp = RouteProp<RootStackParamList, 'GoalSelection'>;
@@ -39,22 +39,22 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
 }) => {
   useScreenTracking('GoalSelection', 'GoalSelectionScreen');
   const { startOnboarding, selectGoal, completeOnboarding } = useOnboardingTracking();
-  const { trackLearningPathCreated } = useAnalytics();
+  const { trackCourseCreated } = useAnalytics();
   const { user, userDocument, setUserDocument } = useUserStore();
-  const { addPath } = useLearningPathsStore();
+  const { addCourse } = useCoursesStore();
   const { showUpgradePrompt } = useSubscriptionStore();
   const [goal, setGoal] = useState('');
   const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone, isTablet } = useResponsive();
   const { colors } = useTheme();
-  const isCreatingNewPath = route.params?.isCreatingNewPath ?? false;
+  const isCreatingNewCourse = route.params?.isCreatingNewCourse ?? false;
 
   // Track onboarding start when entering this screen (only for new users)
   React.useEffect(() => {
-    if (!isCreatingNewPath) {
+    if (!isCreatingNewCourse) {
       startOnboarding(true);
     }
-  }, [isCreatingNewPath, startOnboarding]);
+  }, [isCreatingNewCourse, startOnboarding]);
 
   const handleNext = async () => {
     if (!goal.trim() || !user) return;
@@ -67,25 +67,25 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
       // Track goal selection
       selectGoal(trimmedGoal);
 
-      if (isCreatingNewPath && userDocument) {
+      if (isCreatingNewCourse && userDocument) {
         // Creating a new learning path for existing user
         const newPathData = {
           goal: trimmedGoal,
           emoji: getEmojiForGoal(trimmedGoal),
         };
 
-        const createdPath = await addLearningPath(newPathData);
-        addPath(createdPath);
+        const createdPath = await createCourseApi(newPathData);
+        addCourse(createdPath);
 
         // Track learning path created
-        await trackLearningPathCreated({
+        await trackCourseCreated({
           path_id: createdPath.id,
           goal: trimmedGoal,
           is_first_path: false,
         });
 
         // Navigate to CourseGenerating to show outline generation progress
-        navigation.navigate('CourseGenerating', { pathId: createdPath.id });
+        navigation.navigate('CourseGenerating', { courseId: createdPath.id });
       } else {
         // First-time user - create user document with first learning path
         const firstPathData = {
@@ -102,13 +102,13 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
         await completeOnboarding(trimmedGoal);
 
         // Fetch the created path from the user document
-        const fetchedPaths = await learningPathsApi.getPaths();
+        const fetchedPaths = await coursesApi.getCourses();
         if (fetchedPaths.length > 0) {
           const createdPath = fetchedPaths[0];
-          addPath(createdPath);
+          addCourse(createdPath);
 
           // Track learning path created
-          await trackLearningPathCreated({
+          await trackCourseCreated({
             path_id: createdPath.id,
             goal: trimmedGoal,
             is_first_path: true,
@@ -118,7 +118,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
           navigation.replace('Main');
           // Use setTimeout to ensure Main is mounted before navigating to CourseGenerating
           setTimeout(() => {
-            navigation.navigate('CourseGenerating', { pathId: createdPath.id });
+            navigation.navigate('CourseGenerating', { courseId: createdPath.id });
           }, 100);
         } else {
           // Fallback: just navigate to Main
@@ -129,7 +129,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
       console.error('Error saving:', error);
 
       // Check if this is a path limit error
-      if (error instanceof ApiError && error.code === ErrorCodes.PATH_LIMIT_REACHED) {
+      if (error instanceof ApiError && error.code === ErrorCodes.COURSE_LIMIT_REACHED) {
         // Show upgrade modal instead of generic error
         showUpgradePrompt('path_limit');
       } else {
@@ -160,7 +160,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
   return (
     <Container scrollable>
       <View style={styles.content}>
-        {isCreatingNewPath && (
+        {isCreatingNewCourse && (
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
           </TouchableOpacity>

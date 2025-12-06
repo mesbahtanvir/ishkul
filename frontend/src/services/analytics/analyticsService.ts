@@ -22,9 +22,9 @@ import type {
   OnboardingStartParams,
   GoalSelectedParams,
   OnboardingCompleteParams,
-  LearningPathCreatedParams,
-  LearningPathOpenedParams,
-  LearningPathDeletedParams,
+  CourseCreatedParams,
+  CourseOpenedParams,
+  CourseDeletedParams,
   StepStartedParams,
   StepCompletedParams,
   LessonCompletedParams,
@@ -424,22 +424,22 @@ class AnalyticsService {
   }
 
   // Learning Path Events
-  async trackLearningPathCreated(
-    params: LearningPathCreatedParams
+  async trackCourseCreated(
+    params: CourseCreatedParams
   ): Promise<void> {
-    await this.logEvent(EventNames.LEARNING_PATH_CREATED, params);
+    await this.logEvent(EventNames.LEARNING_COURSE_CREATED, params);
   }
 
-  async trackLearningPathOpened(
-    params: LearningPathOpenedParams
+  async trackCourseOpened(
+    params: CourseOpenedParams
   ): Promise<void> {
-    await this.logEvent(EventNames.LEARNING_PATH_OPENED, params);
+    await this.logEvent(EventNames.LEARNING_COURSE_OPENED, params);
   }
 
-  async trackLearningPathDeleted(
-    params: LearningPathDeletedParams
+  async trackCourseDeleted(
+    params: CourseDeletedParams
   ): Promise<void> {
-    await this.logEvent(EventNames.LEARNING_PATH_DELETED, params);
+    await this.logEvent(EventNames.LEARNING_COURSE_DELETED, params);
   }
 
   // Step Events

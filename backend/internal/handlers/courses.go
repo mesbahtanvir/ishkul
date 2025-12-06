@@ -24,7 +24,7 @@ import (
 )
 
 // Deprecated: MaxCoursesPerUser is deprecated.
-// Use models.GetMaxActivePaths(tier) instead for tier-aware path limits.
+// Use models.GetMaxActiveCourses(tier) instead for tier-aware path limits.
 const MaxCoursesPerUser = 5
 
 // Global cache and pre-generation service
@@ -338,8 +338,8 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Goal == "" || req.Level == "" {
-		http.Error(w, "Goal and level are required", http.StatusBadRequest)
+	if req.Goal == "" {
+		http.Error(w, "Goal is required", http.StatusBadRequest)
 		return
 	}
 
@@ -363,7 +363,7 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	maxPaths := models.GetMaxActivePaths(userTier)
+	maxPaths := models.GetMaxActiveCourses(userTier)
 	if existingPaths >= maxPaths {
 		// Include upgrade hint for free users
 		upgradeHint := ""
@@ -389,7 +389,6 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 		ID:               courseID,
 		UserID:           userID,
 		Goal:             req.Goal,
-		Level:            req.Level,
 		Emoji:            req.Emoji,
 		Status:           models.CourseStatusActive,
 		OutlineStatus:    models.OutlineStatusGenerating, // Outline is being generated
@@ -412,7 +411,7 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 
 	// Generate course outline in the background
 	// NOTE: First step pregeneration happens AFTER outline is ready (inside this goroutine)
-	go func(courseID, goal, level, userID string) {
+	go func(courseID, goal, userID string) {
 		bgCtx := context.Background()
 		bgFs := firebase.GetFirestore()
 
@@ -423,7 +422,7 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 
-		outline, err := generateCourseOutline(goal, level)
+		outline, err := generateCourseOutline(goal)
 		if err != nil {
 			if appLogger != nil {
 				logger.Error(appLogger, bgCtx, "outline_generation_failed",
@@ -498,7 +497,6 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 					ID:              courseID,
 					UserID:          userID,
 					Goal:            goal,
-					Level:           level,
 					Steps:           []models.Step{},
 					Outline:         outline,
 					OutlinePosition: outlinePosition,
@@ -526,7 +524,7 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-	}(courseID, req.Goal, req.Level, userID)
+	}(courseID, req.Goal, userID)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -585,9 +583,6 @@ func updateCourse(w http.ResponseWriter, r *http.Request, courseID string) {
 
 	if req.Goal != nil {
 		updates = append(updates, firestore.Update{Path: "goal", Value: *req.Goal})
-	}
-	if req.Level != nil {
-		updates = append(updates, firestore.Update{Path: "level", Value: *req.Level})
 	}
 	if req.Emoji != nil {
 		updates = append(updates, firestore.Update{Path: "emoji", Value: *req.Emoji})
@@ -815,7 +810,7 @@ func unarchiveCourse(w http.ResponseWriter, r *http.Request, courseID string) {
 		return
 	}
 
-	maxPaths := models.GetMaxActivePaths(userTier)
+	maxPaths := models.GetMaxActiveCourses(userTier)
 	if activeCount >= maxPaths {
 		upgradeHint := ""
 		if userTier == models.TierFree {
@@ -1125,7 +1120,6 @@ func generateNextStepForPath(path *models.Course) (*models.Step, error) {
 	// Prepare variables for the prompt
 	vars := prompts.Variables{
 		"goal":          path.Goal,
-		"level":         path.Level,
 		"historyCount":  strconv.Itoa(len(path.Steps)),
 		"memory":        memorySummary,
 		"recentHistory": recentHistory,
@@ -1379,10 +1373,10 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, courseID strin
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(map[string]interface{}{
-			"course":           path,
-			"completedStep":  path.Steps[stepIndex],
-			"nextStepNeeded": nextStepNeeded,
-			"courseCompleted":  courseCompleted,
+			"course":          path,
+			"completedStep":   path.Steps[stepIndex],
+			"nextStepNeeded":  nextStepNeeded,
+			"courseCompleted": courseCompleted,
 		}); err != nil {
 			http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
 		}
@@ -1546,10 +1540,10 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, courseID strin
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"course":           path,
-		"completedStep":  path.Steps[stepIndex],
-		"nextStepNeeded": nextStepNeeded,
-		"courseCompleted":  courseCompleted,
+		"course":          path,
+		"completedStep":   path.Steps[stepIndex],
+		"nextStepNeeded":  nextStepNeeded,
+		"courseCompleted": courseCompleted,
 	}); err != nil {
 		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
 		return
@@ -1797,7 +1791,7 @@ func inferCategory(goal string) string {
 }
 
 // generateCourseOutline generates a course outline using the LLM
-func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
+func generateCourseOutline(goal string) (*models.CourseOutline, error) {
 	if openaiClient == nil || promptLoader == nil {
 		return nil, fmt.Errorf("LLM not initialized")
 	}
@@ -1810,7 +1804,6 @@ func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
 
 	vars := prompts.Variables{
 		"goal":             goal,
-		"level":            level,
 		"toolDescriptions": toolDescriptions,
 		"category":         category,
 	}
@@ -1956,7 +1949,6 @@ func compactMemory(path *models.Course, upToStepIndex int) error {
 
 	vars := prompts.Variables{
 		"goal":            path.Goal,
-		"level":           path.Level,
 		"previousSummary": previousSummary,
 		"steps":           strings.Join(stepSummaries, "\n"),
 		"stepCount":       strconv.Itoa(len(stepsToCompact)),
