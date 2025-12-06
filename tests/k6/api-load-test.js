@@ -1,6 +1,12 @@
 // k6 API Load Test
 // Tests API endpoints under realistic load conditions
 // Run: k6 run tests/k6/api-load-test.js --env USE_STAGING=true
+//
+// NOTE: This test intentionally EXCLUDES endpoints that trigger LLM/ChatGPT calls
+// to avoid incurring API costs during load testing. Only tests:
+// - /health (public)
+// - /api/me (authenticated, no LLM)
+// - /api/subscription/status (authenticated, no LLM)
 
 import http from 'k6/http';
 import { check, sleep, group } from 'k6';
@@ -11,7 +17,7 @@ import { getBaseUrl, defaultThresholds, scenarios } from './config.js';
 const errorRate = new Rate('errors');
 const apiCalls = new Counter('api_calls');
 const authDuration = new Trend('auth_duration');
-const learningPathDuration = new Trend('learning_path_duration');
+const subscriptionDuration = new Trend('subscription_duration');
 
 export const options = {
   scenarios: {
@@ -21,7 +27,7 @@ export const options = {
     ...defaultThresholds,
     errors: ['rate<0.05'],
     auth_duration: ['p(95)<300'],
-    learning_path_duration: ['p(95)<500'],
+    subscription_duration: ['p(95)<300'],
   },
 };
 
@@ -42,6 +48,7 @@ export function setup() {
     throw new Error(`API not reachable: ${healthRes.status}`);
   }
   console.log(`Starting load test against: ${BASE_URL}`);
+  console.log('NOTE: LLM endpoints excluded to avoid API costs');
   return { startTime: Date.now() };
 }
 
@@ -58,7 +65,7 @@ export default function (data) {
     sleep(0.5);
   });
 
-  // Group 2: Authentication flow (if token available)
+  // Group 2: Authenticated endpoints (NO LLM calls)
   if (TEST_TOKEN) {
     group('Authenticated Endpoints', function () {
       // Get user profile
@@ -76,30 +83,23 @@ export default function (data) {
       sleep(0.5);
 
       // Get subscription status
+      const subStart = Date.now();
       const subRes = http.get(`${BASE_URL}/api/subscription/status`, { headers });
+      subscriptionDuration.add(Date.now() - subStart);
       apiCalls.add(1);
-      check(subRes, {
+
+      const subCheck = check(subRes, {
         'subscription: status 200 or 401': (r) => r.status === 200 || r.status === 401,
+        'subscription: response time OK': (r) => r.timings.duration < 500,
       });
+      errorRate.add(!subCheck);
 
       sleep(0.5);
     });
 
-    // Group 3: Learning endpoints
-    group('Learning Endpoints', function () {
-      const start = Date.now();
-      const pathsRes = http.get(`${BASE_URL}/api/learning-paths`, { headers });
-      learningPathDuration.add(Date.now() - start);
-      apiCalls.add(1);
-
-      const pathCheck = check(pathsRes, {
-        'learning-paths: status 200 or 401': (r) => r.status === 200 || r.status === 401,
-        'learning-paths: response time OK': (r) => r.timings.duration < 1000,
-      });
-      errorRate.add(!pathCheck);
-
-      sleep(1);
-    });
+    // NOTE: Learning endpoints (/api/learning-paths, /api/me/next-step) are
+    // intentionally excluded because they trigger LLM/ChatGPT API calls.
+    // Testing them under load would incur significant costs.
   }
 
   // Random sleep between 1-3 seconds to simulate real user behavior
