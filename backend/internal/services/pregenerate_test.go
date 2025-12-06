@@ -242,10 +242,10 @@ func TestIsGenerating(t *testing.T) {
 // =============================================================================
 
 func TestTriggerPregenerationEdgeCases(t *testing.T) {
-	t.Run("does nothing when openai client is nil", func(t *testing.T) {
+	t.Run("does nothing when llmProvider is nil", func(t *testing.T) {
 		service := &PregenerateService{
-			openai: nil,
-			loader: nil,
+			llmProvider: nil,
+			loader:      nil,
 		}
 
 		path := &models.LearningPath{
