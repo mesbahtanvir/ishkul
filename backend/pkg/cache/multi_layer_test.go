@@ -35,7 +35,6 @@ func TestMultiLayerCacheSelection(t *testing.T) {
 			ID:       "path-1",
 			UserID:   "user-1",
 			Goal:     "Learn Go",
-			Level:    "beginner",
 			Progress: 10,
 			Steps:    []models.Step{},
 		}

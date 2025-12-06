@@ -271,7 +271,6 @@ func TestPregenerateServiceScenarios(t *testing.T) {
 			ID:     "path-new",
 			UserID: "user-new",
 			Goal:   "Learn Go Programming",
-			Level:  "beginner",
 			Steps:  []models.Step{},
 			Memory: nil,
 		}
