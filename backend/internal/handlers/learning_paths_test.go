@@ -48,7 +48,7 @@ func TestLearningPathsHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("root path POST routes to create", func(t *testing.T) {
-		body := `{"goal": "Learn Go", "level": "beginner"}`
+		body := `{"goal": "Learn Go"}`
 		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
@@ -346,7 +346,7 @@ func TestListLearningPaths(t *testing.T) {
 
 func TestCreateLearningPath(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		body := `{"goal": "Learn Go", "level": "beginner"}`
+		body := `{"goal": "Learn Go"}`
 		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString(body), "", "")
 		rr := httptest.NewRecorder()
 
