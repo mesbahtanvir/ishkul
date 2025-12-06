@@ -19,15 +19,12 @@ on:
           - stress
           - e2e
 
-env:
-  STAGING_API_URL: https://ishkul-backend-staging-1086267507068.northamerica-northeast1.run.app
-  STAGING_WEB_URL: https://ishkul-staging.vercel.app
-
 jobs:
   # Full API Load Test
   api-load-test:
     name: API Load Test
     runs-on: ubuntu-latest
+    environment: staging
     if: >
       github.event_name == 'schedule' ||
       github.event.inputs.test_type == 'all' ||
@@ -50,7 +47,9 @@ jobs:
           mkdir -p tests/k6/results
           k6 run tests/k6/api-load-test.js \
             --env USE_STAGING=true \
-            --env TEST_TOKEN=${{ secrets.TEST_AUTH_TOKEN }}
+            --env PUBLIC_API_URL=${{ secrets.PUBLIC_API_URL }} \
+            --env TEST_USER_EMAIL=${{ secrets.TEST_USER_EMAIL }} \
+            --env TEST_USER_PASSWORD=${{ secrets.TEST_USER_PASSWORD }}
         timeout-minutes: 30
         continue-on-error: true
 
@@ -66,6 +65,7 @@ jobs:
   api-stress-test:
     name: API Stress Test
     runs-on: ubuntu-latest
+    environment: staging
     if: >
       (github.event_name == 'schedule' && github.event.schedule == '0 2 * * 0') ||
       github.event.inputs.test_type == 'stress'
@@ -85,7 +85,9 @@ jobs:
       - name: Run k6 Stress Test
         run: |
           mkdir -p tests/k6/results
-          k6 run tests/k6/stress-test.js --env USE_STAGING=true
+          k6 run tests/k6/stress-test.js \
+            --env USE_STAGING=true \
+            --env PUBLIC_API_URL=${{ secrets.PUBLIC_API_URL }}
         timeout-minutes: 45
         continue-on-error: true
 
@@ -101,6 +103,7 @@ jobs:
   full-e2e-suite:
     name: Full E2E Test Suite
     runs-on: ubuntu-latest
+    environment: staging
     if: >
       github.event_name == 'schedule' ||
       github.event.inputs.test_type == 'all' ||
@@ -131,8 +134,9 @@ jobs:
           cd e2e
           npx playwright test --project=${{ matrix.browser }}
         env:
-          STAGING_URL: ${{ env.STAGING_WEB_URL }}
-          TEST_AUTH_TOKEN: ${{ secrets.TEST_AUTH_TOKEN }}
+          STAGING_URL: ${{ secrets.APP_URL }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           CI: true
         continue-on-error: true
 
@@ -148,6 +152,7 @@ jobs:
   full-api-suite:
     name: Full API Test Suite
     runs-on: ubuntu-latest
+    environment: staging
     if: >
       github.event_name == 'schedule' ||
       github.event.inputs.test_type == 'all'
@@ -168,7 +173,9 @@ jobs:
         run: |
           newman run tests/postman/ishkul-api.collection.json \
             -e tests/postman/staging.environment.json \
-            --env-var "authToken=${{ secrets.TEST_AUTH_TOKEN }}" \
+            --env-var "baseUrl=${{ secrets.PUBLIC_API_URL }}" \
+            --env-var "testEmail=${{ secrets.TEST_USER_EMAIL }}" \
+            --env-var "testPassword=${{ secrets.TEST_USER_PASSWORD }}" \
             --iteration-count 3 \
             --reporters cli,junit,htmlextra \
             --reporter-junit-export tests/postman/results/junit.xml \

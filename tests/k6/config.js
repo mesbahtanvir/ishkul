@@ -1,8 +1,14 @@
 // k6 Configuration
 // Shared configuration for all k6 tests
 
+import http from 'k6/http';
+
 export const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-export const STAGING_URL = __ENV.STAGING_URL || 'https://ishkul-backend-staging-1086267507068.northamerica-northeast1.run.app';
+export const STAGING_URL = __ENV.STAGING_URL || __ENV.PUBLIC_API_URL || 'https://ishkul-backend-staging-930454644160.northamerica-northeast2.run.app';
+
+// Test credentials (passed via environment variables)
+export const TEST_EMAIL = __ENV.TEST_USER_EMAIL || '';
+export const TEST_PASSWORD = __ENV.TEST_USER_PASSWORD || '';
 
 // Common thresholds for all tests
 export const defaultThresholds = {
@@ -70,4 +76,34 @@ export const scenarios = {
 // Helper function to get the appropriate URL
 export function getBaseUrl() {
   return __ENV.USE_STAGING === 'true' ? STAGING_URL : BASE_URL;
+}
+
+// Helper function to login and get auth token
+export function loginAndGetToken(baseUrl) {
+  // If token is provided directly, use it
+  if (__ENV.TEST_TOKEN) {
+    return __ENV.TEST_TOKEN;
+  }
+
+  // Otherwise, login with email/password
+  if (!TEST_EMAIL || !TEST_PASSWORD) {
+    console.log('No credentials provided, skipping authenticated tests');
+    return null;
+  }
+
+  const loginRes = http.post(`${baseUrl}/api/auth/login`, JSON.stringify({
+    email: TEST_EMAIL,
+    password: TEST_PASSWORD,
+  }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (loginRes.status === 200) {
+    const body = JSON.parse(loginRes.body);
+    console.log('Login successful');
+    return body.token || body.accessToken || body.access_token;
+  } else {
+    console.log(`Login failed with status ${loginRes.status}: ${loginRes.body}`);
+    return null;
+  }
 }

@@ -5,7 +5,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
-import { getBaseUrl, defaultThresholds, scenarios } from './config.js';
+import { getBaseUrl, scenarios } from './config.js';
 
 // Custom metrics
 const errorRate = new Rate('errors');
@@ -16,9 +16,11 @@ export const options = {
     smoke: scenarios.smoke,
   },
   thresholds: {
-    ...defaultThresholds,
     errors: ['rate<0.1'],
+    http_req_duration: ['p(95)<500'],
   },
+  // Rate limiting: max 1 request per second to respect API limits
+  rps: 1,
 };
 
 const BASE_URL = getBaseUrl();
@@ -43,15 +45,8 @@ export default function () {
 
   errorRate.add(!healthCheck);
 
-  sleep(1);
-
-  // Ready check endpoint (if exists)
-  const readyRes = http.get(`${BASE_URL}/ready`);
-  check(readyRes, {
-    'ready status is 200 or 404': (r) => r.status === 200 || r.status === 404,
-  });
-
-  sleep(1);
+  // Sleep to respect rate limits
+  sleep(2);
 }
 
 export function handleSummary(data) {
