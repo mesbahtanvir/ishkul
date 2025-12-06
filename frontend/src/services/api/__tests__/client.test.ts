@@ -14,7 +14,7 @@ jest.mock('../tokenStorage', () => ({
   },
 }));
 
-jest.mock('../../config/firebase.config', () => ({
+jest.mock('../../../config/firebase.config', () => ({
   apiConfig: {
     baseURL: 'https://api.test.com',
   },
