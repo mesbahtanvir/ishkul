@@ -16,6 +16,8 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { ProgressBar } from '../components/ProgressBar';
 import { StepCard } from '../components/StepCard';
 import { CourseOutlineDrawer } from '../components/CourseOutlineDrawer';
+import { CourseOutlineSidebar } from '../components/CourseOutlineSidebar';
+import { CourseProgressBar } from '../components/CourseProgressBar';
 import { useLearningPathsStore, getCurrentStep } from '../state/learningPathsStore';
 import { getLearningPath, viewStep, archiveLearningPath, deleteLearningPath, restoreLearningPath } from '../services/memory';
 import { useTheme } from '../hooks/useTheme';
@@ -47,8 +49,9 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [outlineDrawerVisible, setOutlineDrawerVisible] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const { responsive } = useResponsive();
+  const { responsive, isMobile } = useResponsive();
   const { colors } = useTheme();
 
   useEffect(() => {
@@ -241,215 +244,258 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   const isPathArchived = activePath.status === PathStatuses.ARCHIVED;
   const isPathActive = !activePath.status || activePath.status === PathStatuses.ACTIVE;
 
-  return (
-    <Container>
-      <View style={styles.content}>
-        {/* Top bar with back button and action buttons */}
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Text style={[styles.backButtonText, { color: colors.primary }]}>
-              ← Back
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.topBarActions}>
-            {activePath.outline && (
-              <TouchableOpacity
-                onPress={() => setOutlineDrawerVisible(true)}
-                style={[styles.outlineButton, { backgroundColor: colors.background.secondary }]}
-              >
-                <Text style={styles.outlineButtonIcon}>📋</Text>
-                <Text style={[styles.outlineButtonText, { color: colors.text.primary }]}>
-                  Outline
-                </Text>
-              </TouchableOpacity>
-            )}
-            {isPathArchived ? (
-              <TouchableOpacity
-                onPress={handleRestore}
-                style={[styles.actionButton, { backgroundColor: colors.primaryLight }]}
-              >
-                <Text style={[styles.actionButtonText, { color: colors.primary }]}>
-                  Restore
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={handleArchive}
-                style={[styles.actionButton, { backgroundColor: colors.background.secondary }]}
-              >
-                <Text style={[styles.actionButtonText, { color: colors.text.secondary }]}>
-                  Archive
-                </Text>
-              </TouchableOpacity>
-            )}
+  // Handler for outline topic navigation (shared between sidebar and drawer)
+  const handleOutlineTopicPress = (moduleIndex: number, topicIndex: number, topic: { stepId?: string }) => {
+    // Close drawer if open (mobile)
+    setOutlineDrawerVisible(false);
+    // If topic has a stepId, find and navigate to that step
+    if (topic.stepId) {
+      const step = activePath.steps.find((s) => s.id === topic.stepId);
+      if (step) {
+        if (step.completed) {
+          navigation.navigate('StepDetail', { step, pathId });
+        } else {
+          navigation.navigate('Step', { step, pathId });
+        }
+      }
+    }
+  };
+
+  // Main content component (shared between mobile and web layouts)
+  const MainContent = (
+    <View style={styles.mainContent}>
+      {/* Top bar with back button and action buttons */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>
+            ← Back
+          </Text>
+        </TouchableOpacity>
+        <View style={styles.topBarActions}>
+          {/* Only show outline button on mobile */}
+          {isMobile && activePath.outline && (
             <TouchableOpacity
-              onPress={handleDelete}
-              style={[styles.actionButton, { backgroundColor: colors.background.secondary }]}
+              onPress={() => setOutlineDrawerVisible(true)}
+              style={[styles.outlineButton, { backgroundColor: colors.background.secondary }]}
             >
-              <Text style={[styles.actionButtonText, { color: colors.danger }]}>
-                Delete
+              <Text style={styles.outlineButtonIcon}>📋</Text>
+              <Text style={[styles.outlineButtonText, { color: colors.text.primary }]}>
+                Outline
               </Text>
             </TouchableOpacity>
+          )}
+          {isPathArchived ? (
+            <TouchableOpacity
+              onPress={handleRestore}
+              style={[styles.actionButton, { backgroundColor: colors.primaryLight }]}
+            >
+              <Text style={[styles.actionButtonText, { color: colors.primary }]}>
+                Restore
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={handleArchive}
+              style={[styles.actionButton, { backgroundColor: colors.background.secondary }]}
+            >
+              <Text style={[styles.actionButtonText, { color: colors.text.secondary }]}>
+                Archive
+              </Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            onPress={handleDelete}
+            style={[styles.actionButton, { backgroundColor: colors.background.secondary }]}
+          >
+            <Text style={[styles.actionButtonText, { color: colors.danger }]}>
+              Delete
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Mobile: Course progress bar (tappable) */}
+      {isMobile && activePath.outline && (
+        <CourseProgressBar
+          outline={activePath.outline}
+          currentPosition={activePath.outlinePosition}
+          onPress={() => setOutlineDrawerVisible(true)}
+        />
+      )}
+
+      {/* Path header */}
+      <View
+        style={[
+          styles.pathHeader,
+          { backgroundColor: colors.background.secondary, padding: headerPadding },
+        ]}
+      >
+        <View style={styles.pathHeaderTop}>
+          <Text style={styles.pathEmoji}>{activePath.emoji}</Text>
+          <View style={styles.pathInfo}>
+            <Text
+              style={[styles.pathGoal, { color: colors.text.primary }]}
+              numberOfLines={2}
+            >
+              {activePath.goal}
+            </Text>
+            <Text style={[styles.pathLevel, { color: colors.text.secondary }]}>
+              {activePath.level.charAt(0).toUpperCase() + activePath.level.slice(1)} •{' '}
+              {completedSteps.length} steps completed
+            </Text>
           </View>
         </View>
+        <View style={styles.progressRow}>
+          <ProgressBar
+            progress={activePath.progress}
+            height={8}
+            style={styles.progressBar}
+          />
+          <Text style={[styles.progressText, { color: colors.text.secondary }]}>
+            {Math.round(activePath.progress)}%
+          </Text>
+        </View>
+      </View>
 
-        {/* Path header */}
-        <View
-          style={[
-            styles.pathHeader,
-            { backgroundColor: colors.background.secondary, padding: headerPadding },
-          ]}
-        >
-          <View style={styles.pathHeaderTop}>
-            <Text style={styles.pathEmoji}>{activePath.emoji}</Text>
-            <View style={styles.pathInfo}>
-              <Text
-                style={[styles.pathGoal, { color: colors.text.primary }]}
-                numberOfLines={2}
-              >
-                {activePath.goal}
-              </Text>
-              <Text style={[styles.pathLevel, { color: colors.text.secondary }]}>
-                {activePath.level.charAt(0).toUpperCase() + activePath.level.slice(1)} •{' '}
+      {/* Steps timeline with button at bottom */}
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.stepsContainer}
+        contentContainerStyle={styles.stepsContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Path completed celebration */}
+        {isPathCompleted && (
+          <View style={styles.completedState}>
+            <Text style={styles.completedEmoji}>🎉</Text>
+            <Text style={[styles.completedTitle, { color: colors.text.primary }]}>
+              Congratulations!
+            </Text>
+            <Text style={[styles.completedText, { color: colors.text.secondary }]}>
+              You&apos;ve completed this track!
+            </Text>
+            <View style={[styles.completedBadge, { backgroundColor: colors.success + '20' }]}>
+              <Text style={[styles.completedBadgeText, { color: colors.success }]}>
                 {completedSteps.length} steps completed
               </Text>
             </View>
           </View>
-          <View style={styles.progressRow}>
-            <ProgressBar
-              progress={activePath.progress}
-              height={8}
-              style={styles.progressBar}
-            />
-            <Text style={[styles.progressText, { color: colors.text.secondary }]}>
-              {Math.round(activePath.progress)}%
+        )}
+
+        {/* Path archived notice */}
+        {isPathArchived && (
+          <View style={styles.archivedState}>
+            <Text style={styles.archivedEmoji}>📦</Text>
+            <Text style={[styles.archivedTitle, { color: colors.text.primary }]}>
+              Path Archived
+            </Text>
+            <Text style={[styles.archivedText, { color: colors.text.secondary }]}>
+              This path is archived. You can review your progress below.
             </Text>
           </View>
-        </View>
+        )}
 
-        {/* Steps timeline with button at bottom */}
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.stepsContainer}
-          contentContainerStyle={styles.stepsContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          {/* Path completed celebration */}
-          {isPathCompleted && (
-            <View style={styles.completedState}>
-              <Text style={styles.completedEmoji}>🎉</Text>
-              <Text style={[styles.completedTitle, { color: colors.text.primary }]}>
-                Congratulations!
-              </Text>
-              <Text style={[styles.completedText, { color: colors.text.secondary }]}>
-                You&apos;ve completed this track!
-              </Text>
-              <View style={[styles.completedBadge, { backgroundColor: colors.success + '20' }]}>
-                <Text style={[styles.completedBadgeText, { color: colors.success }]}>
-                  {completedSteps.length} steps completed
-                </Text>
-              </View>
-            </View>
-          )}
+        {/* Empty state for new paths */}
+        {!hasSteps && isPathActive && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>🚀</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
+              Ready to start?
+            </Text>
+            <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+              Tap continue to begin your learning journey!
+            </Text>
+          </View>
+        )}
 
-          {/* Path archived notice */}
-          {isPathArchived && (
-            <View style={styles.archivedState}>
-              <Text style={styles.archivedEmoji}>📦</Text>
-              <Text style={[styles.archivedTitle, { color: colors.text.primary }]}>
-                Path Archived
-              </Text>
-              <Text style={[styles.archivedText, { color: colors.text.secondary }]}>
-                This path is archived. You can review your progress below.
-              </Text>
-            </View>
-          )}
+        {/* Timeline connector */}
+        {hasSteps && (
+          <View style={[styles.timeline, { backgroundColor: colors.border }]} />
+        )}
 
-          {/* Empty state for new paths */}
-          {!hasSteps && isPathActive && (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>🚀</Text>
-              <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
-                Ready to start?
-              </Text>
-              <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-                Tap continue to begin your learning journey!
-              </Text>
-            </View>
-          )}
+        {/* Render all steps */}
+        {activePath.steps.map((step, index) => (
+          <StepCard
+            key={step.id}
+            step={step}
+            isCurrentStep={!step.completed && index === activePath.steps.length - 1}
+            onPress={() => handleStepPress(step)}
+          />
+        ))}
 
-          {/* Timeline connector */}
-          {hasSteps && (
-            <View style={[styles.timeline, { backgroundColor: colors.border }]} />
-          )}
+        {/* Spacer at bottom to allow content to scroll above button */}
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
 
-          {/* Render all steps */}
-          {activePath.steps.map((step, index) => (
-            <StepCard
-              key={step.id}
-              step={step}
-              isCurrentStep={!step.completed && index === activePath.steps.length - 1}
-              onPress={() => handleStepPress(step)}
-            />
-          ))}
-
-          {/* Spacer at bottom to allow content to scroll above button */}
-          <View style={styles.bottomSpacer} />
-        </ScrollView>
-
-        {/* Sticky button at bottom - changes based on path status */}
-        <View style={[styles.buttonContainer, { backgroundColor: colors.background.primary }]}>
-          {isPathCompleted ? (
-            <Button
-              title="Start New Track"
-              onPress={handleStartNewPath}
-            />
-          ) : isPathArchived ? (
-            <Button
-              title="Back to Home"
-              onPress={handleBack}
-              variant="secondary"
-            />
-          ) : (
-            <Button
-              title={currentStep ? 'Continue →' : 'Get Next Step'}
-              onPress={handleContinue}
-            />
-          )}
-        </View>
+      {/* Sticky button at bottom - changes based on path status */}
+      <View style={[styles.buttonContainer, { backgroundColor: colors.background.primary }]}>
+        {isPathCompleted ? (
+          <Button
+            title="Start New Track"
+            onPress={handleStartNewPath}
+          />
+        ) : isPathArchived ? (
+          <Button
+            title="Back to Home"
+            onPress={handleBack}
+            variant="secondary"
+          />
+        ) : (
+          <Button
+            title={currentStep ? 'Continue →' : 'Get Next Step'}
+            onPress={handleContinue}
+          />
+        )}
       </View>
+    </View>
+  );
 
-      {/* Course Outline Drawer */}
-      <CourseOutlineDrawer
-        visible={outlineDrawerVisible}
-        onClose={() => setOutlineDrawerVisible(false)}
-        outline={activePath.outline || null}
-        currentPosition={activePath.outlinePosition}
-        onTopicPress={(moduleIndex, topicIndex, topic) => {
-          // Close drawer and optionally navigate to topic
-          setOutlineDrawerVisible(false);
-          // If topic has a stepId, find and navigate to that step
-          if (topic.stepId) {
-            const step = activePath.steps.find((s) => s.id === topic.stepId);
-            if (step) {
-              if (step.completed) {
-                navigation.navigate('StepDetail', { step, pathId });
-              } else {
-                navigation.navigate('Step', { step, pathId });
-              }
-            }
-          }
-        }}
-      />
+  return (
+    <Container>
+      {/* Web/Tablet: Side-by-side layout with sidebar */}
+      {!isMobile && activePath.outline ? (
+        <View style={styles.webLayout}>
+          <CourseOutlineSidebar
+            outline={activePath.outline}
+            currentPosition={activePath.outlinePosition}
+            onTopicPress={handleOutlineTopicPress}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+          {MainContent}
+        </View>
+      ) : (
+        <View style={styles.content}>
+          {MainContent}
+        </View>
+      )}
+
+      {/* Course Outline Drawer (mobile only) */}
+      {isMobile && (
+        <CourseOutlineDrawer
+          visible={outlineDrawerVisible}
+          onClose={() => setOutlineDrawerVisible(false)}
+          outline={activePath.outline || null}
+          currentPosition={activePath.outlinePosition}
+          onTopicPress={handleOutlineTopicPress}
+        />
+      )}
     </Container>
   );
 };
 
 const styles = StyleSheet.create({
   content: {
+    flex: 1,
+  },
+  webLayout: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  mainContent: {
     flex: 1,
   },
   topBar: {
