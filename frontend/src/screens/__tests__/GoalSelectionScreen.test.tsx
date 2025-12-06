@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { GoalSelectionScreen } from '../GoalSelectionScreen';
@@ -51,11 +52,80 @@ jest.mock('../../services/analytics/hooks', () => ({
 type GoalSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoalSelection'>;
 type GoalSelectionScreenRouteProp = RouteProp<RootStackParamList, 'GoalSelection'>;
 
+// Spy on console.error to suppress expected error logs during tests
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+afterAll(() => {
+  consoleErrorSpy.mockRestore();
+});
+
+// Mock Alert
+jest.spyOn(Alert, 'alert');
+
+// Mock userStore
+const mockSetUserDocument = jest.fn();
+jest.mock('../../state/userStore', () => ({
+  useUserStore: () => ({
+    user: { uid: 'test-user-123', email: 'test@example.com' },
+    userDocument: null,
+    setUserDocument: mockSetUserDocument,
+  }),
+}));
+
+// Mock learningPathsStore
+const mockAddPath = jest.fn();
+jest.mock('../../state/learningPathsStore', () => ({
+  useLearningPathsStore: () => ({
+    addPath: mockAddPath,
+  }),
+  getEmojiForGoal: () => '🐍',
+  generatePathId: () => 'test-path-id',
+}));
+
+// Mock memory service
+const mockCreateUserDocument = jest.fn();
+const mockGetUserDocument = jest.fn();
+const mockAddLearningPath = jest.fn();
+jest.mock('../../services/memory', () => ({
+  createUserDocument: (...args: unknown[]) => mockCreateUserDocument(...args),
+  getUserDocument: () => mockGetUserDocument(),
+  addLearningPath: (...args: unknown[]) => mockAddLearningPath(...args),
+}));
+
+// Mock api service
+const mockGetPaths = jest.fn();
+jest.mock('../../services/api', () => ({
+  learningPathsApi: {
+    getPaths: () => mockGetPaths(),
+  },
+  ApiError: class ApiError extends Error {
+    code: string;
+    constructor(code: string, message: string) {
+      super(message);
+      this.name = 'ApiError';
+      this.code = code;
+    }
+  },
+  ErrorCodes: {
+    PATH_LIMIT_REACHED: 'PATH_LIMIT_REACHED',
+    DAILY_STEP_LIMIT_REACHED: 'DAILY_STEP_LIMIT_REACHED',
+  },
+}));
+
+// Mock subscription store
+const mockShowUpgradePrompt = jest.fn();
+jest.mock('../../state/subscriptionStore', () => ({
+  useSubscriptionStore: () => ({
+    showUpgradePrompt: mockShowUpgradePrompt,
+  }),
+}));
+
 // Mock navigation
 const mockNavigate = jest.fn();
+const mockReplace = jest.fn();
 const mockNavigation: Partial<GoalSelectionScreenNavigationProp> = {
   navigate: mockNavigate,
-  replace: jest.fn(),
+  replace: mockReplace,
   goBack: jest.fn(),
 };
 
@@ -69,6 +139,25 @@ const mockRoute: GoalSelectionScreenRouteProp = {
 describe('GoalSelectionScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCreateUserDocument.mockResolvedValue(undefined);
+    mockGetUserDocument.mockResolvedValue({
+      uid: 'test-user-123',
+      goal: 'Learn Python',
+      level: 'beginner',
+      learningPaths: [],
+    });
+    mockGetPaths.mockResolvedValue([
+      {
+        id: 'created-path-123',
+        goal: 'Learn Python',
+        level: 'beginner',
+        emoji: '🐍',
+        progress: 0,
+        lessonsCompleted: 0,
+        totalLessons: 10,
+        steps: [],
+      },
+    ]);
   });
 
   describe('rendering', () => {
@@ -110,12 +199,12 @@ describe('GoalSelectionScreen', () => {
       expect(getByText('Get Fit')).toBeTruthy();
     });
 
-    it('should render the Next button', () => {
+    it('should render the Start Learning button', () => {
       const { getByText } = render(
         <GoalSelectionScreen navigation={mockNavigation as GoalSelectionScreenNavigationProp} route={mockRoute} />
       );
 
-      expect(getByText('Next →')).toBeTruthy();
+      expect(getByText('Start Learning →')).toBeTruthy();
     });
   });
 
@@ -154,51 +243,137 @@ describe('GoalSelectionScreen', () => {
     });
   });
 
-  describe('navigation', () => {
-    it('should navigate to LevelSelection with goal when Next is pressed', () => {
+  describe('course creation flow', () => {
+    it('should call createUserDocument and navigate to Main for first-time users', async () => {
       const { getByPlaceholderText, getByText } = render(
         <GoalSelectionScreen navigation={mockNavigation as GoalSelectionScreenNavigationProp} route={mockRoute} />
       );
 
       const input = getByPlaceholderText(/Learn Spanish/);
       fireEvent.changeText(input, 'Learn TypeScript');
-      fireEvent.press(getByText('Next →'));
+      fireEvent.press(getByText('Start Learning →'));
 
-      expect(mockNavigate).toHaveBeenCalledWith('LevelSelection', { goal: 'Learn TypeScript', isCreatingNewPath: false });
+      await waitFor(() => {
+        expect(mockCreateUserDocument).toHaveBeenCalledWith(
+          'Learn TypeScript',
+          'beginner',
+          expect.objectContaining({
+            goal: 'Learn TypeScript',
+            level: 'beginner',
+            emoji: '🐍',
+          })
+        );
+      });
+
+      await waitFor(() => {
+        expect(mockGetUserDocument).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(mockSetUserDocument).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith('Main');
+      });
     });
 
-    it('should trim whitespace from goal before navigating', () => {
+    it('should trim whitespace from goal before creating course', async () => {
       const { getByPlaceholderText, getByText } = render(
         <GoalSelectionScreen navigation={mockNavigation as GoalSelectionScreenNavigationProp} route={mockRoute} />
       );
 
       const input = getByPlaceholderText(/Learn Spanish/);
       fireEvent.changeText(input, '  Learn React  ');
-      fireEvent.press(getByText('Next →'));
+      fireEvent.press(getByText('Start Learning →'));
 
-      expect(mockNavigate).toHaveBeenCalledWith('LevelSelection', { goal: 'Learn React', isCreatingNewPath: false });
+      await waitFor(() => {
+        expect(mockCreateUserDocument).toHaveBeenCalledWith(
+          'Learn React',
+          'beginner',
+          expect.objectContaining({
+            goal: 'Learn React',
+            level: 'beginner',
+          })
+        );
+      });
     });
 
-    it('should not navigate if goal is empty', () => {
+    it('should not create course if goal is empty', () => {
       const { getByText } = render(
         <GoalSelectionScreen navigation={mockNavigation as GoalSelectionScreenNavigationProp} route={mockRoute} />
       );
 
-      fireEvent.press(getByText('Next →'));
+      fireEvent.press(getByText('Start Learning →'));
 
+      expect(mockCreateUserDocument).not.toHaveBeenCalled();
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
-    it('should not navigate if goal is only whitespace', () => {
+    it('should not create course if goal is only whitespace', () => {
       const { getByPlaceholderText, getByText } = render(
         <GoalSelectionScreen navigation={mockNavigation as GoalSelectionScreenNavigationProp} route={mockRoute} />
       );
 
       const input = getByPlaceholderText(/Learn Spanish/);
       fireEvent.changeText(input, '   ');
-      fireEvent.press(getByText('Next →'));
+      fireEvent.press(getByText('Start Learning →'));
 
+      expect(mockCreateUserDocument).not.toHaveBeenCalled();
       expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('should show error alert on failure', async () => {
+      mockCreateUserDocument.mockRejectedValueOnce(new Error('Network error'));
+
+      const { getByPlaceholderText, getByText } = render(
+        <GoalSelectionScreen navigation={mockNavigation as GoalSelectionScreenNavigationProp} route={mockRoute} />
+      );
+
+      const input = getByPlaceholderText(/Learn Spanish/);
+      fireEvent.changeText(input, 'Learn Python');
+      fireEvent.press(getByText('Start Learning →'));
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Error',
+          'Failed to save. Please try again.'
+        );
+      });
+    });
+  });
+
+  describe('existing user creating new path', () => {
+    const existingUserRoute: GoalSelectionScreenRouteProp = {
+      key: 'GoalSelection',
+      name: 'GoalSelection',
+      params: { isCreatingNewPath: true },
+    };
+
+    beforeEach(() => {
+      // Override mock for existing user with userDocument
+      jest.mock('../../state/userStore', () => ({
+        useUserStore: () => ({
+          user: { uid: 'test-user-123', email: 'test@example.com' },
+          userDocument: {
+            uid: 'test-user-123',
+            goal: 'Previous Goal',
+            level: 'intermediate',
+          },
+          setUserDocument: mockSetUserDocument,
+        }),
+      }));
+    });
+
+    it('should show back button when creating new path', () => {
+      const { getByText } = render(
+        <GoalSelectionScreen
+          navigation={mockNavigation as GoalSelectionScreenNavigationProp}
+          route={existingUserRoute}
+        />
+      );
+
+      expect(getByText('← Back')).toBeTruthy();
     });
   });
 
@@ -209,7 +384,7 @@ describe('GoalSelectionScreen', () => {
       );
 
       // Button should be rendered but disabled state is handled by the Button component
-      expect(getByText('Next →')).toBeTruthy();
+      expect(getByText('Start Learning →')).toBeTruthy();
     });
   });
 });
