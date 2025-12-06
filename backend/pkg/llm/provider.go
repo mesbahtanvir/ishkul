@@ -3,6 +3,7 @@ package llm
 import (
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 
 	"github.com/mesbahtanvir/ishkul/backend/pkg/openai"
@@ -199,13 +200,28 @@ var DefaultModelMappings = map[string]ModelMapping{
 }
 
 // GetModelForProvider returns the appropriate model name for a provider and tier
+// For pro tier, only mini models get upgraded; non-mini models stay unchanged
 func GetModelForProvider(provider ProviderType, tier string, templateModel string) string {
-	// If template specifies a provider-specific model, respect it
-	// Otherwise, map based on tier
-
-	// For pro tier, upgrade from default model
+	// For pro tier, only upgrade mini models to pro models
 	if tier == "pro" {
-		if mapping, ok := DefaultModelMappings["pro"]; ok {
+		// Check if it's a mini model that should be upgraded
+		if strings.Contains(templateModel, "mini") || templateModel == "deepseek-chat" {
+			if mapping, ok := DefaultModelMappings["pro"]; ok {
+				switch provider {
+				case ProviderDeepSeek:
+					return mapping.DeepSeek
+				default:
+					return mapping.OpenAI
+				}
+			}
+		}
+		// Non-mini models stay unchanged for pro tier
+		return templateModel
+	}
+
+	// For free tier, use the default model mapping
+	if tier == "free" {
+		if mapping, ok := DefaultModelMappings["default"]; ok {
 			switch provider {
 			case ProviderDeepSeek:
 				return mapping.DeepSeek
@@ -215,16 +231,6 @@ func GetModelForProvider(provider ProviderType, tier string, templateModel strin
 		}
 	}
 
-	// For default/free tier
-	if mapping, ok := DefaultModelMappings["default"]; ok {
-		switch provider {
-		case ProviderDeepSeek:
-			return mapping.DeepSeek
-		default:
-			return mapping.OpenAI
-		}
-	}
-
-	// Fallback to template model
+	// For unknown tiers, use the original template model
 	return templateModel
 }
