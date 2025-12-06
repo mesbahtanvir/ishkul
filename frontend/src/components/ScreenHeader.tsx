@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -17,9 +17,12 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 }) => {
   const { colors } = useTheme();
 
+  // Hide back button on web - navigation is handled via sidebar
+  const showBackButton = onBack && Platform.OS !== 'web';
+
   return (
     <View style={[styles.header, { backgroundColor: colors.background.primary }]}>
-      {onBack ? (
+      {showBackButton ? (
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
         </TouchableOpacity>

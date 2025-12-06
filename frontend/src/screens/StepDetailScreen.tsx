@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { Container } from '../components/Container';
+import { LearningLayout } from '../components/LearningLayout';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
@@ -61,9 +61,12 @@ export const StepDetailScreen: React.FC<StepDetailScreenProps> = ({
   route,
 }) => {
   useScreenTracking('StepDetail', 'StepDetailScreen');
-  const { step } = route.params;
+  const { step, pathId } = route.params;
   const { responsive, isSmallPhone } = useResponsive();
   const { colors } = useTheme();
+
+  // Hide back button on web - navigation is via sidebar
+  const showBackButton = Platform.OS !== 'web';
 
   const handleBack = () => {
     navigation.goBack();
@@ -101,15 +104,19 @@ export const StepDetailScreen: React.FC<StepDetailScreenProps> = ({
   };
 
   return (
-    <Container>
+    <LearningLayout step={step} pathId={pathId} scrollable={false}>
       <View style={styles.content}>
-        {/* Top bar with back button */}
+        {/* Top bar with back button (mobile only) and completed badge */}
         <View style={styles.topBar}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Text style={[styles.backButtonText, { color: colors.primary }]}>
-              ← Back
-            </Text>
-          </TouchableOpacity>
+          {showBackButton ? (
+            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+              <Text style={[styles.backButtonText, { color: colors.primary }]}>
+                ← Back
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.backButtonPlaceholder} />
+          )}
           {step.completed && (
             <View style={[styles.completedBadge, { backgroundColor: colors.success }]}>
               <Text style={[styles.completedBadgeText, { color: colors.white }]}>
@@ -296,7 +303,7 @@ export const StepDetailScreen: React.FC<StepDetailScreenProps> = ({
           <View style={styles.bottomSpacer} />
         </ScrollView>
       </View>
-    </Container>
+    </LearningLayout>
   );
 };
 
@@ -316,6 +323,9 @@ const styles = StyleSheet.create({
   backButtonText: {
     ...Typography.body.medium,
     fontWeight: '600',
+  },
+  backButtonPlaceholder: {
+    width: 48,
   },
   completedBadge: {
     paddingHorizontal: Spacing.sm,

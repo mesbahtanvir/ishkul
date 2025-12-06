@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { LearningLayout } from '../components/LearningLayout';
 import { useUserStore } from '../state/userStore';
 import { useLearningPathsStore } from '../state/learningPathsStore';
 import { completeStep, getUserDocument } from '../services/memory';
@@ -98,7 +98,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
   return (
     <View style={styles.container}>
       <ScreenHeader title={step.title || step.topic} onBack={() => navigation.goBack()} />
-      <Container scrollable>
+      <LearningLayout step={step} pathId={pathId} scrollable>
         <View style={styles.content}>
           <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
           <Text style={[styles.emoji, { fontSize: emojiSize }]}>💪</Text>
@@ -146,7 +146,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
             loading={loading}
           />
         </View>
-      </Container>
+      </LearningLayout>
     </View>
   );
 };
