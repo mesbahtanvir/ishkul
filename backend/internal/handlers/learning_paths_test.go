@@ -366,47 +366,25 @@ func TestCreateLearningPath(t *testing.T) {
 	})
 
 	t.Run("rejects missing goal", func(t *testing.T) {
-		body := `{"level": "beginner"}`
+		body := `{}`
 		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
 		LearningPathsHandler(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Goal and level are required")
-	})
-
-	t.Run("rejects missing level", func(t *testing.T) {
-		body := `{"goal": "Learn Go"}`
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString(body), "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		LearningPathsHandler(rr, req)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Goal and level are required")
+		assert.Contains(t, rr.Body.String(), "Goal is required")
 	})
 
 	t.Run("rejects empty goal", func(t *testing.T) {
-		body := `{"goal": "", "level": "beginner"}`
+		body := `{"goal": ""}`
 		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
 		LearningPathsHandler(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Goal and level are required")
-	})
-
-	t.Run("rejects empty level", func(t *testing.T) {
-		body := `{"goal": "Learn Go", "level": ""}`
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString(body), "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		LearningPathsHandler(rr, req)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Goal and level are required")
+		assert.Contains(t, rr.Body.String(), "Goal is required")
 	})
 }
 
