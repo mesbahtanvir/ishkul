@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -248,8 +249,8 @@ func parseContextWithLLM(ctx context.Context, previousContext models.ParsedConte
 		return nil, err
 	}
 
-	// Render the prompt with variables
-	messages, err := promptRenderer.Render(prompt, map[string]interface{}{
+	// Render the prompt to a full request using prompts.Variables (map[string]string)
+	req, err := promptRenderer.RenderToRequest(prompt, map[string]string{
 		"previousContext": string(previousContextJSON),
 		"newInput":        newInput,
 	})
@@ -258,13 +259,13 @@ func parseContextWithLLM(ctx context.Context, previousContext models.ParsedConte
 	}
 
 	// Call OpenAI
-	response, err := openaiClient.ChatCompletion(ctx, prompt.Model, messages, &prompt.ModelParameters)
+	response, err := openaiClient.CreateChatCompletion(*req)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(response.Choices) == 0 {
-		return nil, err
+		return nil, fmt.Errorf("no completion choices returned from LLM")
 	}
 
 	// Parse the LLM response
