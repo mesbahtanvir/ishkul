@@ -496,7 +496,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
           />
         ) : (
           <Button
-            title={currentStep ? 'Continue →' : 'Get Next Step'}
+            title={currentStep ? 'Continue →' : 'Continue'}
             onPress={handleContinue}
           />
         )}

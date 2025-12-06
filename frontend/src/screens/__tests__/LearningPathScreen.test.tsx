@@ -255,7 +255,7 @@ describe('LearningPathScreen', () => {
         });
       });
 
-      it('should show Get Next Step when no current step', async () => {
+      it('should show Continue when no current step', async () => {
         const pathWithAllCompleted = createMockPath({
           status: 'active',
           steps: [createMockStep({ completed: true })],
@@ -269,7 +269,7 @@ describe('LearningPathScreen', () => {
         );
 
         await waitFor(() => {
-          expect(getByText('Get Next Step')).toBeTruthy();
+          expect(getByText('Continue')).toBeTruthy();
         });
       });
 
@@ -545,8 +545,8 @@ describe('LearningPathScreen', () => {
       });
     });
 
-    it('should navigate to GeneratingStep when Get Next Step is pressed', async () => {
-      // Path with all steps completed - should show "Get Next Step" button
+    it('should navigate to GeneratingStep when Continue is pressed', async () => {
+      // Path with all steps completed - should show "Continue" button
       const pathWithAllCompleted = createMockPath({
         status: 'active',
         steps: [createMockStep({ completed: true })],
@@ -561,10 +561,10 @@ describe('LearningPathScreen', () => {
       );
 
       await waitFor(() => {
-        expect(getByText('Get Next Step')).toBeTruthy();
+        expect(getByText('Continue')).toBeTruthy();
       });
 
-      fireEvent.press(getByText('Get Next Step'));
+      fireEvent.press(getByText('Continue'));
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('GeneratingStep', {
