@@ -122,7 +122,7 @@ export const SubscriptionSuccessScreen: React.FC<SubscriptionSuccessScreenProps>
 
           {/* Benefits List */}
           <View style={[styles.benefitsCard, { backgroundColor: colors.card.default }]}>
-            <BenefitItem text="5 active tracks" colors={colors} />
+            <BenefitItem text="5 active courses" colors={colors} />
             <BenefitItem text="1,000 steps per day" colors={colors} />
             <BenefitItem text="GPT-5 Pro AI model" colors={colors} />
             <BenefitItem text="Priority generation" colors={colors} />

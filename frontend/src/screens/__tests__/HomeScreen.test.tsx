@@ -155,7 +155,7 @@ describe('HomeScreen', () => {
 
   it('should display FAB on active tab', () => {
     const { getByLabelText } = render(<HomeScreen />);
-    expect(getByLabelText('Create new track')).toBeTruthy();
+    expect(getByLabelText('Create new course')).toBeTruthy();
   });
 
   it('should switch tabs when tab is pressed', () => {
@@ -165,7 +165,7 @@ describe('HomeScreen', () => {
     fireEvent.press(getByTestId('tab-completed'));
 
     // Should show completed tab empty state
-    expect(queryByText('No Completed Tracks Yet')).toBeTruthy();
+    expect(queryByText('No Completed Courses Yet')).toBeTruthy();
   });
 });
 

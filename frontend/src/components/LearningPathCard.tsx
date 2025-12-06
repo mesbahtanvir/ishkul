@@ -151,7 +151,7 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
                   onRestore(path);
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityLabel="Restore track"
+                accessibilityLabel="Restore course"
                 accessibilityRole="button"
               >
                 <Text style={[styles.iconButtonText, { color: colors.primary }]}>↩</Text>
@@ -164,7 +164,7 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
                   onArchive(path);
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityLabel="Archive track"
+                accessibilityLabel="Archive course"
                 accessibilityRole="button"
               >
                 <Text style={[styles.iconButtonText, { color: colors.text.secondary }]}>📁</Text>
@@ -178,7 +178,7 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
                   onDelete(path);
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityLabel="Delete track"
+                accessibilityLabel="Delete course"
                 accessibilityRole="button"
               >
                 <Text style={[styles.iconButtonText, { color: colors.danger }]}>🗑️</Text>
