@@ -115,8 +115,8 @@ export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
       {!isFlipped && data.hint && (
         <View style={styles.hintContainer}>
           {showHint ? (
-            <Card elevation="sm" padding="md" style={styles.hintCard}>
-              <Text style={[styles.hintText, { color: colors.text.secondary }]}>
+            <Card elevation="sm" padding="md" style={{ backgroundColor: colors.warning + '20' }}>
+              <Text style={[styles.hintText, { color: colors.text.primary }]}>
                 💡 {data.hint}
               </Text>
             </Card>
@@ -138,39 +138,39 @@ export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
           </Text>
           <View style={styles.confidenceButtons}>
             <TouchableOpacity
-              style={[styles.confidenceButton, styles.againButton]}
+              style={[styles.confidenceButton, { backgroundColor: colors.danger + '20' }]}
               onPress={() => handleConfidence('again')}
               disabled={context.isCompleting}
             >
               <Text style={styles.confidenceEmoji}>😕</Text>
-              <Text style={styles.confidenceText}>Again</Text>
+              <Text style={[styles.confidenceText, { color: colors.text.primary }]}>Again</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.confidenceButton, styles.hardButton]}
+              style={[styles.confidenceButton, { backgroundColor: colors.warning + '20' }]}
               onPress={() => handleConfidence('hard')}
               disabled={context.isCompleting}
             >
               <Text style={styles.confidenceEmoji}>🤔</Text>
-              <Text style={styles.confidenceText}>Hard</Text>
+              <Text style={[styles.confidenceText, { color: colors.text.primary }]}>Hard</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.confidenceButton, styles.goodButton]}
+              style={[styles.confidenceButton, { backgroundColor: colors.primary + '20' }]}
               onPress={() => handleConfidence('good')}
               disabled={context.isCompleting}
             >
               <Text style={styles.confidenceEmoji}>🙂</Text>
-              <Text style={styles.confidenceText}>Good</Text>
+              <Text style={[styles.confidenceText, { color: colors.text.primary }]}>Good</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.confidenceButton, styles.easyButton]}
+              style={[styles.confidenceButton, { backgroundColor: colors.success + '20' }]}
               onPress={() => handleConfidence('easy')}
               disabled={context.isCompleting}
             >
               <Text style={styles.confidenceEmoji}>😊</Text>
-              <Text style={styles.confidenceText}>Easy</Text>
+              <Text style={[styles.confidenceText, { color: colors.text.primary }]}>Easy</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -225,9 +225,6 @@ const styles = StyleSheet.create({
   hintContainer: {
     marginTop: Spacing.sm,
   },
-  hintCard: {
-    backgroundColor: '#FEF3C7',
-  },
   hintText: {
     ...Typography.body.small,
     textAlign: 'center',
@@ -250,18 +247,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Spacing.borderRadius.md,
     alignItems: 'center',
-  },
-  againButton: {
-    backgroundColor: '#FEE2E2',
-  },
-  hardButton: {
-    backgroundColor: '#FEF3C7',
-  },
-  goodButton: {
-    backgroundColor: '#DBEAFE',
-  },
-  easyButton: {
-    backgroundColor: '#D1FAE5',
   },
   confidenceEmoji: {
     fontSize: 24,
