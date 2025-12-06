@@ -422,7 +422,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       {showSidebar ? (
         <View style={styles.webLayout}>
           <CourseOutlineSidebar
-            outline={activePath.outline}
+            outline={activePath.outline!}
             currentPosition={activePath.outlinePosition}
             onTopicPress={handleOutlineTopicPress}
             collapsed={sidebarCollapsed}
