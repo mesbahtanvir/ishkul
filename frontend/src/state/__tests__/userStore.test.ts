@@ -70,7 +70,6 @@ describe('userStore', () => {
         email: 'test@example.com',
         displayName: 'Test User',
         goal: 'Learn Python',
-        level: 'beginner',
         memory: { topics: {} },
         history: [],
         learningPaths: [],
@@ -87,7 +86,6 @@ describe('userStore', () => {
       const mockDocument: UserDocument = {
         uid: 'user123',
         goal: 'Test',
-        level: 'beginner',
         memory: { topics: {} },
         history: [],
         learningPaths: [],
@@ -144,7 +142,6 @@ describe('userStore', () => {
       const mockDocument: UserDocument = {
         uid: 'user123',
         goal: 'Test',
-        level: 'beginner',
         memory: { topics: {} },
         history: [],
         learningPaths: [],

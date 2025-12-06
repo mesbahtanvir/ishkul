@@ -48,7 +48,6 @@ const createMockPathResponse = (
   path: {
     id: 'test-path-id',
     goal: 'Learn TypeScript',
-    level: 'beginner',
     emoji: '💙',
     status: 'active',
     progress: 0,

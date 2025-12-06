@@ -83,9 +83,6 @@ export const ProgressScreen: React.FC = () => {
         <View style={[styles.goalCard, { padding: cardPadding, backgroundColor: colors.card.default }]}>
           <Text style={[styles.goalLabel, { color: colors.ios.gray }]}>Learning Goal</Text>
           <Text style={[styles.goalText, { color: colors.text.primary }]}>{userDocument.goal}</Text>
-          <View style={[styles.levelBadge, { backgroundColor: colors.badge.primary }]}>
-            <Text style={[styles.levelText, { color: colors.white }]}>{userDocument.level}</Text>
-          </View>
         </View>
 
         <View style={[styles.statsGrid, isTablet && styles.statsGridTablet]}>

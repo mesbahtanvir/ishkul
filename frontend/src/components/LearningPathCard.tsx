@@ -23,19 +23,6 @@ interface LearningPathCardProps {
   style?: ViewStyle;
 }
 
-const getLevelLabel = (level: string): string => {
-  switch (level) {
-    case 'beginner':
-      return 'Beginner';
-    case 'intermediate':
-      return 'Intermediate';
-    case 'advanced':
-      return 'Advanced';
-    default:
-      return level;
-  }
-};
-
 const getProgressColor = (progress: number, colors: ThemeColors): string => {
   if (progress >= 75) return colors.success;
   if (progress >= 50) return colors.ios.blue;
@@ -132,10 +119,6 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
             )}
           </View>
           <View style={styles.metaRow}>
-            <Text style={[styles.level, { color: colors.text.secondary }]}>
-              {getLevelLabel(path.level)}
-            </Text>
-            <Text style={[styles.separator, { color: colors.text.tertiary }]}>•</Text>
             <Text style={[styles.stats, { color: colors.text.secondary }]}>{statsText}</Text>
           </View>
         </View>

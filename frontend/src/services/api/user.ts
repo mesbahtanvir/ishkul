@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { UserDocument, HistoryEntry, NextStep, LevelType } from '../../types/app';
+import { UserDocument, HistoryEntry, NextStep } from '../../types/app';
 
 // Backend response types
 interface BackendUser {
@@ -8,7 +8,6 @@ interface BackendUser {
   displayName: string;
   photoUrl?: string;
   goal?: string;
-  level?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +47,6 @@ function transformUserDocument(backend: BackendUserDocument): UserDocument {
     email: backend.email,
     displayName: backend.displayName,
     goal: backend.goal || '',
-    level: (backend.level as LevelType) || 'beginner',
     memory: backend.memory || { topics: {} },
     history: (backend.history || []).map(h => ({
       type: h.type as 'lesson' | 'quiz' | 'practice',
@@ -106,27 +104,24 @@ export const userApi = {
   },
 
   /**
-   * Create/initialize user document with goal and level
+   * Create/initialize user document with goal
    */
   async createUserDocument(
-    goal: string,
-    level: LevelType
+    goal: string
   ): Promise<UserDocument> {
     const response = await apiClient.post<BackendUserDocument>('/me/document', {
       goal,
-      level,
     });
     return transformUserDocument(response);
   },
 
   /**
-   * Update user's goal and level
+   * Update user's goal
    */
-  async updateGoalAndLevel(
-    goal: string,
-    level: LevelType
+  async updateGoal(
+    goal: string
   ): Promise<BackendUser> {
-    return apiClient.put<BackendUser>('/me', { goal, level });
+    return apiClient.put<BackendUser>('/me', { goal });
   },
 
   /**

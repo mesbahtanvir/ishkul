@@ -34,7 +34,6 @@ export type {
   UserProperties,
   StepType,
   AuthMethod,
-  Level,
   ThemeMode,
   // Event params
   SignUpParams,
@@ -42,7 +41,6 @@ export type {
   LogoutParams,
   OnboardingStartParams,
   GoalSelectedParams,
-  LevelSelectedParams,
   OnboardingCompleteParams,
   LearningPathCreatedParams,
   LearningPathOpenedParams,
