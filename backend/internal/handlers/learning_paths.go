@@ -1161,14 +1161,14 @@ func generateNextStepForPath(path *models.LearningPath) (*models.Step, error) {
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	// Call LLM provider
-	completion, err := llmProvider.CreateChatCompletion(*openaiReq)
+	// Call LLM provider with fallback support
+	completion, err := providerRegistry.CreateChatCompletionWithFallback(*openaiReq)
 	if err != nil {
-		return nil, fmt.Errorf("%s API error: %w", llmProvider.Name(), err)
+		return nil, fmt.Errorf("LLM API error: %w", err)
 	}
 
 	if len(completion.Choices) == 0 {
-		return nil, fmt.Errorf("no completion returned from %s", llmProvider.Name())
+		return nil, fmt.Errorf("no completion returned from LLM")
 	}
 
 	content := completion.Choices[0].Message.Content
@@ -1826,13 +1826,14 @@ func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	completion, err := llmProvider.CreateChatCompletion(*openaiReq)
+	// Call LLM with fallback support
+	completion, err := providerRegistry.CreateChatCompletionWithFallback(*openaiReq)
 	if err != nil {
-		return nil, fmt.Errorf("%s API error: %w", llmProvider.Name(), err)
+		return nil, fmt.Errorf("LLM API error: %w", err)
 	}
 
 	if len(completion.Choices) == 0 {
-		return nil, fmt.Errorf("no completion returned from %s", llmProvider.Name())
+		return nil, fmt.Errorf("no completion returned from LLM")
 	}
 
 	content := completion.Choices[0].Message.Content
@@ -1973,13 +1974,14 @@ func compactMemory(path *models.LearningPath, upToStepIndex int) error {
 		return fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	completion, err := llmProvider.CreateChatCompletion(*openaiReq)
+	// Call LLM with fallback support
+	completion, err := providerRegistry.CreateChatCompletionWithFallback(*openaiReq)
 	if err != nil {
-		return fmt.Errorf("%s API error: %w", llmProvider.Name(), err)
+		return fmt.Errorf("LLM API error: %w", err)
 	}
 
 	if len(completion.Choices) == 0 {
-		return fmt.Errorf("no completion returned from %s", llmProvider.Name())
+		return fmt.Errorf("no completion returned from LLM")
 	}
 
 	content := completion.Choices[0].Message.Content
