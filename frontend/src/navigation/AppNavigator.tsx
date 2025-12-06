@@ -33,6 +33,7 @@ import { StepScreen } from '../screens/StepScreen';
 import { GeneratingStepScreen } from '../screens/GeneratingStepScreen';
 import { CourseGeneratingScreen } from '../screens/CourseGeneratingScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
+import { ContextScreen } from '../screens/ContextScreen';
 
 // Initialize tool registry
 import '../tools';
@@ -171,6 +172,15 @@ const MainTabs = () => {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Context"
+        component={ContextScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="clipboard-outline" size={size} color={color} />
           ),
         }}
       />

@@ -647,4 +647,73 @@ export const learningPathsApi = {
   },
 };
 
+/**
+ * Context API types
+ */
+import {
+  UserContext,
+  ParsedContext,
+  ContextUpdateResponse,
+  DerivedContext,
+} from '../types/app';
+
+/**
+ * Context API methods for user profile context
+ */
+export const contextApi = {
+  /**
+   * Get user's full context
+   */
+  async getContext(): Promise<UserContext | null> {
+    try {
+      const response = await api.get<{ context: UserContext }>('/context');
+      return response.context;
+    } catch (error) {
+      // Return null if context doesn't exist yet
+      if (error instanceof ApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Update context with new user input
+   * Sends both previous context and new input for AI to merge
+   */
+  async updateContext(
+    previousContext: ParsedContext,
+    newInput: string
+  ): Promise<ContextUpdateResponse> {
+    const response = await api.put<ContextUpdateResponse>('/context/update', {
+      previousContext,
+      newInput,
+    });
+    return response;
+  },
+
+  /**
+   * Apply confirmed context update
+   */
+  async applyContext(context: UserContext): Promise<void> {
+    await api.put('/context', { context });
+  },
+
+  /**
+   * Get derived context (auto-calculated from usage)
+   */
+  async getDerivedContext(): Promise<DerivedContext> {
+    const response = await api.get<{ derived: DerivedContext }>('/context/derived');
+    return response.derived;
+  },
+
+  /**
+   * Get AI-ready context summary
+   */
+  async getContextSummary(): Promise<string> {
+    const response = await api.get<{ summary: string }>('/context/summary');
+    return response.summary;
+  },
+};
+
 export default api;

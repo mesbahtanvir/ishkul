@@ -261,3 +261,87 @@ export interface LimitErrorResponse {
   dailyLimitResetAt?: string;
   existingSteps?: Step[];
 }
+
+// ============================================
+// User Context Types (for personalized learning)
+// ============================================
+
+export type SkillLevel = 'beginner' | 'intermediate' | 'proficient' | 'expert';
+export type SkillIntent = 'know' | 'improving' | 'want_to_learn';
+
+export interface UserSkill {
+  name: string;
+  level: SkillLevel;
+  intent: SkillIntent;
+  targetLevel?: SkillLevel;
+  context?: string; // e.g., "Used at work for 5 years"
+}
+
+export interface ParsedContext {
+  professional: {
+    role?: string;
+    company?: string;
+    yearsExperience?: number;
+    industry?: string;
+  };
+  location: {
+    current?: string;
+    journey?: string[]; // ["Bangladesh", "Singapore", "Canada"]
+  };
+  personality?: string; // "INFP", "INTJ", etc.
+  skills: UserSkill[];
+  interests: string[];
+  goals: string[];
+  preferences: {
+    learningStyle?: 'visual' | 'reading' | 'hands-on' | 'mixed';
+    studyTime?: string; // "evenings", "mornings"
+    sessionLength?: string; // "15 minutes", "30 minutes"
+  };
+}
+
+export interface ContextInputHistory {
+  text: string;
+  timestamp: number;
+  changesApplied: string[];
+}
+
+export interface DerivedContext {
+  avgQuizScore: number;
+  completedCourses: number;
+  currentStreak: number;
+  mostActiveHours: number[];
+  topicsStudied: string[];
+  totalLearningTime: number; // minutes
+  lastUpdated: number;
+}
+
+export interface ContextChange {
+  type: 'added' | 'updated' | 'removed';
+  field: string;
+  oldValue?: unknown;
+  newValue?: unknown;
+  description: string;
+}
+
+export interface UserContext {
+  // All raw inputs (append-only log)
+  inputHistory: ContextInputHistory[];
+  // Current merged context
+  parsed: ParsedContext;
+  // Auto-derived from usage
+  derived: DerivedContext;
+  // Generated summary for AI prompts
+  summary: string;
+  // Metadata
+  version: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ContextUpdateResponse {
+  previousContext: ParsedContext;
+  updatedContext: ParsedContext;
+  changes: ContextChange[];
+  confidence: number;
+  summary: string;
+}
