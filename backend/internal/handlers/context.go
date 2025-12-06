@@ -272,8 +272,8 @@ func parseContextWithLLM(ctx context.Context, previousContext models.ParsedConte
 		return nil, err
 	}
 
-	// Call LLM provider with fallback support
-	response, err := providerRegistry.CreateChatCompletionWithFallback(*req)
+	// Call LLM using ChatCompletionManager - handles provider selection automatically
+	response, err := chatManager.Complete(*req)
 	if err != nil {
 		return nil, err
 	}

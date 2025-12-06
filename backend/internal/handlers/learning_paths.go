@@ -1161,8 +1161,8 @@ func generateNextStepForPath(path *models.LearningPath) (*models.Step, error) {
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	// Call LLM provider with fallback support
-	completion, err := providerRegistry.CreateChatCompletionWithFallback(*openaiReq)
+	// Call LLM using ChatCompletionManager
+	completion, err := chatManager.Complete(*openaiReq)
 	if err != nil {
 		return nil, fmt.Errorf("LLM API error: %w", err)
 	}
@@ -1826,8 +1826,8 @@ func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	// Call LLM with fallback support
-	completion, err := providerRegistry.CreateChatCompletionWithFallback(*openaiReq)
+	// Call LLM using ChatCompletionManager
+	completion, err := chatManager.Complete(*openaiReq)
 	if err != nil {
 		return nil, fmt.Errorf("LLM API error: %w", err)
 	}
@@ -1974,8 +1974,8 @@ func compactMemory(path *models.LearningPath, upToStepIndex int) error {
 		return fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	// Call LLM with fallback support
-	completion, err := providerRegistry.CreateChatCompletionWithFallback(*openaiReq)
+	// Call LLM using ChatCompletionManager
+	completion, err := chatManager.Complete(*openaiReq)
 	if err != nil {
 		return fmt.Errorf("LLM API error: %w", err)
 	}
