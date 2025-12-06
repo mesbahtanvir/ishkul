@@ -560,7 +560,7 @@ export const learningPathsApi = {
    * Archive a learning path
    */
   async archivePath(pathId: string): Promise<LearningPath> {
-    const response = await api.patch<{ path: LearningPath }>(
+    const response = await api.post<{ path: LearningPath }>(
       `/learning-paths/${pathId}/archive`
     );
     return normalizeLearningPath(response.path)!;
@@ -570,8 +570,8 @@ export const learningPathsApi = {
    * Restore an archived learning path
    */
   async restorePath(pathId: string): Promise<LearningPath> {
-    const response = await api.patch<{ path: LearningPath }>(
-      `/learning-paths/${pathId}/restore`
+    const response = await api.post<{ path: LearningPath }>(
+      `/learning-paths/${pathId}/unarchive`
     );
     return normalizeLearningPath(response.path)!;
   },
