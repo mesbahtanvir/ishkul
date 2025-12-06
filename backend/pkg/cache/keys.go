@@ -45,7 +45,6 @@ func TopicHash(path *models.LearningPath, topic string) string {
 	var sb strings.Builder
 
 	sb.WriteString(topic)
-	sb.WriteString(path.Level)
 
 	// Include topic confidence if available
 	if path.Memory != nil && path.Memory.Topics != nil {

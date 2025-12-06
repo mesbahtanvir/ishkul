@@ -454,10 +454,10 @@ export const userApi = {
   },
 
   /**
-   * Update user's goal and level
+   * Update user's goal
    */
-  async updateGoalAndLevel(goal: string, level: string): Promise<void> {
-    await api.patch('/me', { goal, level });
+  async updateGoal(goal: string): Promise<void> {
+    await api.patch('/me', { goal });
   },
 
   /**

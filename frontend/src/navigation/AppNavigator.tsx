@@ -21,7 +21,6 @@ import { RootStackParamList } from '../types/navigation';
 import { LandingScreen } from '../screens/LandingScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { GoalSelectionScreen } from '../screens/GoalSelectionScreen';
-import { LevelSelectionScreen } from '../screens/LevelSelectionScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LearningPathScreen } from '../screens/LearningPathScreen';
 import { LearningSessionScreen } from '../screens/LearningSessionScreen';
@@ -98,7 +97,6 @@ const LearnStack = () => {
     >
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
-      <Stack.Screen name="LevelSelection" component={LevelSelectionScreen} />
       {/* Course generation screen - shows progress while outline is being generated */}
       <Stack.Screen name="CourseGenerating" component={CourseGeneratingScreen} />
       {/* New: Main timeline view for learning path */}
@@ -227,8 +225,7 @@ const RootNavigator = ({ tokensInitialized }: { tokensInitialized: boolean }) =>
           <Stack.Screen name="Landing" component={LandingScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
-          <Stack.Screen name="LevelSelection" component={LevelSelectionScreen} />
-        </>
+            </>
       ) : (
         <Stack.Screen name="Main" component={MainTabs} />
       )}

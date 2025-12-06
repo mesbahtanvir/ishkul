@@ -75,9 +75,6 @@ jest.mock('../../screens/LoginScreen', () => ({
 jest.mock('../../screens/GoalSelectionScreen', () => ({
   GoalSelectionScreen: () => null,
 }));
-jest.mock('../../screens/LevelSelectionScreen', () => ({
-  LevelSelectionScreen: () => null,
-}));
 jest.mock('../../screens/HomeScreen', () => ({
   HomeScreen: () => null,
 }));

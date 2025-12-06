@@ -18,7 +18,6 @@ func TestLearningPathStruct(t *testing.T) {
 			ID:               "path-123",
 			UserID:           "user-456",
 			Goal:             "Learn Go",
-			Level:            "beginner",
 			Emoji:            "🎯",
 			Progress:         50,
 			LessonsCompleted: 5,
@@ -33,7 +32,6 @@ func TestLearningPathStruct(t *testing.T) {
 		assert.Equal(t, "path-123", path.ID)
 		assert.Equal(t, "user-456", path.UserID)
 		assert.Equal(t, "Learn Go", path.Goal)
-		assert.Equal(t, "beginner", path.Level)
 		assert.Equal(t, "🎯", path.Emoji)
 		assert.Equal(t, 50, path.Progress)
 		assert.Equal(t, 5, path.LessonsCompleted)
@@ -45,7 +43,6 @@ func TestLearningPathStruct(t *testing.T) {
 			ID:               "path-123",
 			UserID:           "user-456",
 			Goal:             "Learn Go",
-			Level:            "beginner",
 			Emoji:            "🎯",
 			Progress:         50,
 			LessonsCompleted: 5,
@@ -66,7 +63,6 @@ func TestLearningPathStruct(t *testing.T) {
 		assert.Equal(t, "path-123", parsed["id"])
 		assert.Equal(t, "user-456", parsed["userId"])
 		assert.Equal(t, "Learn Go", parsed["goal"])
-		assert.Equal(t, "beginner", parsed["level"])
 		assert.Equal(t, "🎯", parsed["emoji"])
 		assert.Contains(t, parsed, "progress")
 		assert.Contains(t, parsed, "lessonsCompleted")
@@ -82,7 +78,6 @@ func TestLearningPathStruct(t *testing.T) {
 			"id": "path-789",
 			"userId": "user-123",
 			"goal": "Master Python",
-			"level": "intermediate",
 			"emoji": "🐍",
 			"progress": 75,
 			"lessonsCompleted": 15,
@@ -100,7 +95,6 @@ func TestLearningPathStruct(t *testing.T) {
 		assert.Equal(t, "path-789", path.ID)
 		assert.Equal(t, "user-123", path.UserID)
 		assert.Equal(t, "Master Python", path.Goal)
-		assert.Equal(t, "intermediate", path.Level)
 		assert.Equal(t, "🐍", path.Emoji)
 		assert.Equal(t, 75, path.Progress)
 		assert.Equal(t, 15, path.LessonsCompleted)
@@ -234,19 +228,16 @@ func TestLearningPathCreateStruct(t *testing.T) {
 	t.Run("creates request with all fields", func(t *testing.T) {
 		req := LearningPathCreate{
 			Goal:  "Learn Go",
-			Level: "beginner",
 			Emoji: "🎯",
 		}
 
 		assert.Equal(t, "Learn Go", req.Goal)
-		assert.Equal(t, "beginner", req.Level)
 		assert.Equal(t, "🎯", req.Emoji)
 	})
 
 	t.Run("JSON marshaling works correctly", func(t *testing.T) {
 		req := LearningPathCreate{
 			Goal:  "Learn Python",
-			Level: "intermediate",
 			Emoji: "🐍",
 		}
 
@@ -258,19 +249,17 @@ func TestLearningPathCreateStruct(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "Learn Python", parsed["goal"])
-		assert.Equal(t, "intermediate", parsed["level"])
 		assert.Equal(t, "🐍", parsed["emoji"])
 	})
 
 	t.Run("JSON unmarshaling works correctly", func(t *testing.T) {
-		jsonStr := `{"goal": "Learn Rust", "level": "advanced", "emoji": "🦀"}`
+		jsonStr := `{"goal": "Learn Rust", "emoji": "🦀"}`
 
 		var req LearningPathCreate
 		err := json.Unmarshal([]byte(jsonStr), &req)
 		require.NoError(t, err)
 
 		assert.Equal(t, "Learn Rust", req.Goal)
-		assert.Equal(t, "advanced", req.Level)
 		assert.Equal(t, "🦀", req.Emoji)
 	})
 }
@@ -282,7 +271,6 @@ func TestLearningPathCreateStruct(t *testing.T) {
 func TestLearningPathUpdateStruct(t *testing.T) {
 	t.Run("creates update with all optional fields", func(t *testing.T) {
 		goal := "Updated Goal"
-		level := "intermediate"
 		emoji := "🚀"
 		progress := 50
 		lessonsCompleted := 5
@@ -290,7 +278,6 @@ func TestLearningPathUpdateStruct(t *testing.T) {
 
 		req := LearningPathUpdate{
 			Goal:             &goal,
-			Level:            &level,
 			Emoji:            &emoji,
 			Progress:         &progress,
 			LessonsCompleted: &lessonsCompleted,
@@ -298,7 +285,6 @@ func TestLearningPathUpdateStruct(t *testing.T) {
 		}
 
 		assert.Equal(t, "Updated Goal", *req.Goal)
-		assert.Equal(t, "intermediate", *req.Level)
 		assert.Equal(t, "🚀", *req.Emoji)
 		assert.Equal(t, 50, *req.Progress)
 		assert.Equal(t, 5, *req.LessonsCompleted)
@@ -313,7 +299,6 @@ func TestLearningPathUpdateStruct(t *testing.T) {
 		}
 
 		assert.NotNil(t, req.Goal)
-		assert.Nil(t, req.Level)
 		assert.Nil(t, req.Emoji)
 		assert.Nil(t, req.Progress)
 		assert.Nil(t, req.LessonsCompleted)
@@ -334,7 +319,6 @@ func TestLearningPathUpdateStruct(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, parsed, "goal")
-		assert.NotContains(t, parsed, "level")
 		assert.NotContains(t, parsed, "emoji")
 		assert.NotContains(t, parsed, "progress")
 		assert.NotContains(t, parsed, "lessonsCompleted")
@@ -467,7 +451,6 @@ func TestLearningPathWithStepsAndMemory(t *testing.T) {
 			ID:               "path-full",
 			UserID:           "user-123",
 			Goal:             "Learn Go Programming",
-			Level:            "beginner",
 			Emoji:            "🎯",
 			Progress:         30,
 			LessonsCompleted: 3,
@@ -568,7 +551,6 @@ func TestLearningPathWithStepsAndMemory(t *testing.T) {
 			ID:               "path-roundtrip",
 			UserID:           "user-456",
 			Goal:             "Test Goal",
-			Level:            "intermediate",
 			Emoji:            "🚀",
 			Progress:         50,
 			LessonsCompleted: 5,
@@ -608,7 +590,6 @@ func TestLearningPathWithStepsAndMemory(t *testing.T) {
 		assert.Equal(t, original.ID, restored.ID)
 		assert.Equal(t, original.UserID, restored.UserID)
 		assert.Equal(t, original.Goal, restored.Goal)
-		assert.Equal(t, original.Level, restored.Level)
 		assert.Equal(t, original.Emoji, restored.Emoji)
 		assert.Equal(t, original.Progress, restored.Progress)
 		assert.Equal(t, original.LessonsCompleted, restored.LessonsCompleted)
@@ -654,7 +635,6 @@ func TestLearningPathStatusField(t *testing.T) {
 			ID:     "path-1",
 			UserID: "user-1",
 			Goal:   "Learn Go",
-			Level:  "beginner",
 			Status: PathStatusActive,
 		}
 
@@ -666,7 +646,6 @@ func TestLearningPathStatusField(t *testing.T) {
 			ID:          "path-1",
 			UserID:      "user-1",
 			Goal:        "Learn Go",
-			Level:       "beginner",
 			Status:      PathStatusCompleted,
 			Progress:    100,
 			CompletedAt: 1704067200000,
@@ -681,7 +660,6 @@ func TestLearningPathStatusField(t *testing.T) {
 			ID:         "path-1",
 			UserID:     "user-1",
 			Goal:       "Learn Go",
-			Level:      "beginner",
 			Status:     PathStatusArchived,
 			ArchivedAt: 1704067200000,
 		}
@@ -695,7 +673,6 @@ func TestLearningPathStatusField(t *testing.T) {
 			ID:        "path-1",
 			UserID:    "user-1",
 			Goal:      "Learn Go",
-			Level:     "beginner",
 			Status:    PathStatusDeleted,
 			DeletedAt: 1704067200000,
 		}
@@ -709,7 +686,6 @@ func TestLearningPathStatusField(t *testing.T) {
 			ID:     "path-123",
 			UserID: "user-456",
 			Goal:   "Learn Go",
-			Level:  "beginner",
 			Status: PathStatusActive,
 		}
 
@@ -729,7 +705,6 @@ func TestLearningPathStatusField(t *testing.T) {
 			ID:     "path-123",
 			UserID: "user-456",
 			Goal:   "Learn Go",
-			Level:  "beginner",
 			Status: PathStatusActive,
 		}
 
@@ -751,7 +726,6 @@ func TestLearningPathStatusField(t *testing.T) {
 			ID:          "path-123",
 			UserID:      "user-456",
 			Goal:        "Learn Go",
-			Level:       "beginner",
 			Status:      PathStatusCompleted,
 			CompletedAt: 1704067200000,
 		}
@@ -771,7 +745,6 @@ func TestLearningPathStatusField(t *testing.T) {
 			"id": "path-789",
 			"userId": "user-123",
 			"goal": "Master Python",
-			"level": "intermediate",
 			"status": "completed",
 			"completedAt": 1704067200000
 		}`
@@ -795,7 +768,6 @@ func TestLearningPathLifecycle(t *testing.T) {
 			ID:               "path-new",
 			UserID:           "user-123",
 			Goal:             "Learn Go",
-			Level:            "beginner",
 			Status:           PathStatusActive,
 			Progress:         0,
 			LessonsCompleted: 0,
@@ -813,7 +785,6 @@ func TestLearningPathLifecycle(t *testing.T) {
 			ID:               "path-done",
 			UserID:           "user-123",
 			Goal:             "Learn Go",
-			Level:            "beginner",
 			Status:           PathStatusCompleted,
 			Progress:         100,
 			LessonsCompleted: 10,
@@ -832,7 +803,6 @@ func TestLearningPathLifecycle(t *testing.T) {
 			ID:               "path-archived",
 			UserID:           "user-123",
 			Goal:             "Learn Go",
-			Level:            "beginner",
 			Status:           PathStatusArchived,
 			Progress:         50,
 			LessonsCompleted: 5,
@@ -850,7 +820,6 @@ func TestLearningPathLifecycle(t *testing.T) {
 			ID:        "path-deleted",
 			UserID:    "user-123",
 			Goal:      "Learn Go",
-			Level:     "beginner",
 			Status:    PathStatusDeleted,
 			DeletedAt: 1704067200000,
 		}
@@ -892,7 +861,6 @@ func TestLearningPathCompletionScenarios(t *testing.T) {
 			ID:               "path-complete",
 			UserID:           "user-123",
 			Goal:             "Learn Go",
-			Level:            "beginner",
 			Status:           PathStatusCompleted,
 			Progress:         100,
 			LessonsCompleted: 3,
@@ -931,7 +899,6 @@ func TestLearningPathCompletionScenarios(t *testing.T) {
 			ID:               "path-incomplete",
 			UserID:           "user-123",
 			Goal:             "Learn Go",
-			Level:            "beginner",
 			Status:           PathStatusActive, // Should remain active due to failed quiz
 			Progress:         100,
 			LessonsCompleted: 3,

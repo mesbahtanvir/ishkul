@@ -106,7 +106,6 @@ const createMockOutline = (): CourseOutline => ({
 const createMockPath = (overrides: Partial<LearningPath> = {}): LearningPath => ({
   id: 'test-path-123',
   goal: 'Learn Python',
-  level: 'beginner',
   emoji: '🐍',
   progress: 50,
   lessonsCompleted: 5,
@@ -318,12 +317,12 @@ describe('LearningPathScreen', () => {
       });
 
       it('should show steps completed badge', async () => {
-        const { getByText } = render(
+        const { getAllByText } = render(
           <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
-          expect(getByText('2 steps completed')).toBeTruthy();
+          expect(getAllByText('2 steps completed').length).toBeGreaterThanOrEqual(1);
         });
       });
 

@@ -11,7 +11,6 @@
 
 export type StepType = 'lesson' | 'quiz' | 'practice' | 'review' | 'summary';
 export type AuthMethod = 'google' | 'email';
-export type Level = 'beginner' | 'intermediate' | 'advanced';
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 // =============================================================================
@@ -40,13 +39,8 @@ export interface GoalSelectedParams {
   goal: string;
 }
 
-export interface LevelSelectedParams {
-  level: Level;
-}
-
 export interface OnboardingCompleteParams {
   goal: string;
-  level?: Level; // Optional - AI adapts based on user context
   duration_sec: number;
 }
 
@@ -54,7 +48,6 @@ export interface OnboardingCompleteParams {
 export interface LearningPathCreatedParams {
   path_id: string;
   goal: string;
-  level?: Level; // Optional - AI adapts based on user context
   is_first_path: boolean;
 }
 
@@ -204,7 +197,6 @@ export type AnalyticsEvent =
   // Onboarding
   | { name: 'onboarding_start'; params: OnboardingStartParams }
   | { name: 'goal_selected'; params: GoalSelectedParams }
-  | { name: 'level_selected'; params: LevelSelectedParams }
   | { name: 'onboarding_complete'; params: OnboardingCompleteParams }
 
   // Learning Path
@@ -251,7 +243,6 @@ export interface UserProperties {
   paths_created_count?: number;
   total_steps_completed?: number;
   avg_quiz_score?: 'low' | 'medium' | 'high';
-  preferred_level?: Level;
   days_since_signup?: number;
   last_active_date?: string;
 }
@@ -269,7 +260,6 @@ export const EventNames = {
   // Onboarding
   ONBOARDING_START: 'onboarding_start',
   GOAL_SELECTED: 'goal_selected',
-  LEVEL_SELECTED: 'level_selected',
   ONBOARDING_COMPLETE: 'onboarding_complete',
 
   // Learning Path

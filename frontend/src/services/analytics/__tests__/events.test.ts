@@ -2,14 +2,12 @@ import { EventNames, ScreenNames } from '../events';
 import type {
   StepType,
   AuthMethod,
-  Level,
   ThemeMode,
   SignUpParams,
   LoginParams,
   LogoutParams,
   OnboardingStartParams,
   GoalSelectedParams,
-  LevelSelectedParams,
   OnboardingCompleteParams,
   LearningPathCreatedParams,
   LearningPathOpenedParams,
@@ -53,13 +51,6 @@ describe('Event Types', () => {
     it('should accept valid auth methods', () => {
       const validMethods: AuthMethod[] = ['google', 'email'];
       expect(validMethods).toHaveLength(2);
-    });
-  });
-
-  describe('Level', () => {
-    it('should accept valid levels', () => {
-      const validLevels: Level[] = ['beginner', 'intermediate', 'advanced'];
-      expect(validLevels).toHaveLength(3);
     });
   });
 
@@ -117,24 +108,13 @@ describe('Event Parameter Types', () => {
     });
   });
 
-  describe('LevelSelectedParams', () => {
-    it('should have correct structure', () => {
-      const params: LevelSelectedParams = {
-        level: 'intermediate',
-      };
-      expect(params.level).toBe('intermediate');
-    });
-  });
-
   describe('OnboardingCompleteParams', () => {
     it('should have correct structure', () => {
       const params: OnboardingCompleteParams = {
         goal: 'Learn JavaScript',
-        level: 'beginner',
         duration_sec: 120,
       };
       expect(params.goal).toBe('Learn JavaScript');
-      expect(params.level).toBe('beginner');
       expect(params.duration_sec).toBe(120);
     });
   });
@@ -144,7 +124,6 @@ describe('Event Parameter Types', () => {
       const params: LearningPathCreatedParams = {
         path_id: 'path-123',
         goal: 'Learn React',
-        level: 'advanced',
         is_first_path: false,
       };
       expect(params.path_id).toBe('path-123');
@@ -268,7 +247,6 @@ describe('Event Parameter Types', () => {
         paths_created_count: 10,
         total_steps_completed: 150,
         avg_quiz_score: 'high',
-        preferred_level: 'advanced',
         days_since_signup: 90,
         last_active_date: '2024-01-15',
       };
@@ -292,7 +270,6 @@ describe('EventNames', () => {
       'LOGOUT',
       'ONBOARDING_START',
       'GOAL_SELECTED',
-      'LEVEL_SELECTED',
       'ONBOARDING_COMPLETE',
       'LEARNING_PATH_CREATED',
       'LEARNING_PATH_OPENED',
@@ -374,13 +351,12 @@ describe('AnalyticsEvent Union Type', () => {
       params: {
         path_id: 'p1',
         goal: 'Learn Go',
-        level: 'beginner',
         is_first_path: true,
       },
     };
 
     expect(signUpEvent.name).toBe('sign_up');
     expect(loginEvent.params.method).toBe('email');
-    expect(pathCreatedEvent.params.goal).toBe('Learn Go');
+    expect((pathCreatedEvent.params as LearningPathCreatedParams).goal).toBe('Learn Go');
   });
 });
