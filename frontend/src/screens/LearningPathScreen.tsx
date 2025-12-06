@@ -252,6 +252,8 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
 
   // Hide back button on web - navigation is via sidebar
   const showBackButton = Platform.OS !== 'web';
+  // Hide header on web/tablet when sidebar is visible (sidebar already shows this info)
+  const showSidebar = !isMobile && activePath.outline && Platform.OS === 'web';
 
   // Main content component (shared between mobile and web layouts)
   const MainContent = (
@@ -267,7 +269,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
         </View>
       )}
 
-      {/* Mobile: Course progress bar (tappable) */}
+      {/* Mobile: Course progress bar (tappable to open outline drawer) */}
       {isMobile && activePath.outline && (
         <CourseProgressBar
           outline={activePath.outline}
@@ -276,36 +278,41 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
         />
       )}
 
-      {/* Path header */}
-      <View
-        style={[
-          styles.pathHeader,
-          { backgroundColor: colors.background.secondary, padding: headerPadding },
-        ]}
-      >
-        <View style={styles.pathHeaderTop}>
-          <Text style={styles.pathEmoji}>{activePath.emoji}</Text>
-          <View style={styles.pathInfo}>
-            <Text
-              style={[styles.pathGoal, { color: colors.text.primary }]}
-              numberOfLines={2}
-            >
-              {activePath.goal}
-            </Text>
-            <Text style={[styles.pathLevel, { color: colors.text.secondary }]}>
-              {activePath.level.charAt(0).toUpperCase() + activePath.level.slice(1)} •{' '}
-              {completedSteps.length} steps completed
-            </Text>
+      {/* Path header - only show on mobile (sidebar has this info on web) */}
+      {!showSidebar && (
+        <View
+          style={[
+            styles.pathHeader,
+            { backgroundColor: colors.background.secondary, padding: headerPadding },
+          ]}
+        >
+          <View style={styles.pathHeaderTop}>
+            <Text style={styles.pathEmoji}>{activePath.emoji}</Text>
+            <View style={styles.pathInfo}>
+              <Text
+                style={[styles.pathGoal, { color: colors.text.primary }]}
+                numberOfLines={2}
+              >
+                {activePath.goal}
+              </Text>
+              <Text style={[styles.pathLevel, { color: colors.text.secondary }]}>
+                {activePath.level.charAt(0).toUpperCase() + activePath.level.slice(1)} •{' '}
+                {completedSteps.length} steps completed
+              </Text>
+            </View>
           </View>
+          {/* Only show progress bar if CourseProgressBar is not visible */}
+          {!(isMobile && activePath.outline) && (
+            <View style={styles.progressRow}>
+              <ProgressBar
+                progress={activePath.progress}
+                height={8}
+                style={styles.progressBar}
+              />
+            </View>
+          )}
         </View>
-        <View style={styles.progressRow}>
-          <ProgressBar
-            progress={activePath.progress}
-            height={8}
-            style={styles.progressBar}
-          />
-        </View>
-      </View>
+      )}
 
       {/* Steps timeline with button at bottom */}
       <ScrollView
@@ -412,7 +419,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   return (
     <Container>
       {/* Web/Tablet: Side-by-side layout with sidebar */}
-      {!isMobile && activePath.outline ? (
+      {showSidebar ? (
         <View style={styles.webLayout}>
           <CourseOutlineSidebar
             outline={activePath.outline}
