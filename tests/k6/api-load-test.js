@@ -11,7 +11,7 @@
 import http from 'k6/http';
 import { check, sleep, group } from 'k6';
 import { Rate, Trend, Counter } from 'k6/metrics';
-import { getBaseUrl, defaultThresholds, scenarios } from './config.js';
+import { getBaseUrl, defaultThresholds, scenarios, loginAndGetToken } from './config.js';
 
 // Custom metrics
 const errorRate = new Rate('errors');
@@ -33,14 +33,6 @@ export const options = {
 
 const BASE_URL = getBaseUrl();
 
-// Simulated test user token (for authenticated endpoints)
-const TEST_TOKEN = __ENV.TEST_TOKEN || '';
-
-const headers = {
-  'Content-Type': 'application/json',
-  ...(TEST_TOKEN && { 'Authorization': `Bearer ${TEST_TOKEN}` }),
-};
-
 export function setup() {
   // Verify the API is reachable before starting load test
   const healthRes = http.get(`${BASE_URL}/health`);
@@ -49,10 +41,19 @@ export function setup() {
   }
   console.log(`Starting load test against: ${BASE_URL}`);
   console.log('NOTE: LLM endpoints excluded to avoid API costs');
-  return { startTime: Date.now() };
+
+  // Login to get auth token
+  const token = loginAndGetToken(BASE_URL);
+
+  return { startTime: Date.now(), token };
 }
 
 export default function (data) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(data.token && { 'Authorization': `Bearer ${data.token}` }),
+  };
+
   // Group 1: Public endpoints
   group('Public Endpoints', function () {
     // Health check
@@ -66,7 +67,7 @@ export default function (data) {
   });
 
   // Group 2: Authenticated endpoints (NO LLM calls)
-  if (TEST_TOKEN) {
+  if (data.token) {
     group('Authenticated Endpoints', function () {
       // Get user profile
       const start = Date.now();
