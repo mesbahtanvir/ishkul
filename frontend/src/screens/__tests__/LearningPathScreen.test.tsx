@@ -251,7 +251,8 @@ describe('LearningPathScreen', () => {
 
         await waitFor(() => {
           expect(getByText('Learn Python')).toBeTruthy();
-          expect(getByText('50%')).toBeTruthy();
+          // Progress is shown via progress bar, not percentage text
+          expect(getByText(/steps completed/)).toBeTruthy();
         });
       });
 
