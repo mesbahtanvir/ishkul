@@ -450,8 +450,11 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 			TopicIndex:  0,
 		}
 		if len(outline.Modules) > 0 {
+			// Mark first module and topic as in_progress
+			outline.Modules[0].Status = "in_progress"
 			outlinePosition.ModuleID = outline.Modules[0].ID
 			if len(outline.Modules[0].Topics) > 0 {
+				outline.Modules[0].Topics[0].Status = "in_progress"
 				outlinePosition.TopicID = outline.Modules[0].Topics[0].ID
 			}
 		}
@@ -1446,6 +1449,9 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 		}
 	}
 
+	// Advance outline position and link step to topic
+	outlineModified := advanceOutlinePosition(path, &path.Steps[stepIndex], req.Score)
+
 	// Check if path should be auto-completed
 	// Path is completed when progress reaches 100% and all quiz/test steps are passed
 	pathCompleted := false
@@ -1461,6 +1467,14 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, pathID string,
 		{Path: "memory", Value: path.Memory},
 		{Path: "updatedAt", Value: now},
 		{Path: "lastAccessedAt", Value: now},
+	}
+
+	// Include outline updates if modified
+	if outlineModified {
+		updates = append(updates,
+			firestore.Update{Path: "outline", Value: path.Outline},
+			firestore.Update{Path: "outlinePosition", Value: path.OutlinePosition},
+		)
 	}
 
 	// If path is completed, update status
@@ -1556,6 +1570,78 @@ func isPathReadyForCompletion(path *models.LearningPath) bool {
 		if step.Type == "quiz" && step.Score < 70 {
 			return false
 		}
+	}
+
+	return true
+}
+
+// advanceOutlinePosition links the completed step to the current outline topic,
+// marks the topic as completed, and advances the position to the next topic.
+// Returns true if the outline was modified and needs to be saved.
+func advanceOutlinePosition(path *models.LearningPath, step *models.Step, score float64) bool {
+	if path.Outline == nil || path.OutlinePosition == nil {
+		return false
+	}
+
+	moduleIdx := path.OutlinePosition.ModuleIndex
+	topicIdx := path.OutlinePosition.TopicIndex
+
+	// Validate bounds
+	if moduleIdx >= len(path.Outline.Modules) {
+		return false
+	}
+	module := &path.Outline.Modules[moduleIdx]
+	if topicIdx >= len(module.Topics) {
+		return false
+	}
+
+	// Link the step to the current topic
+	topic := &module.Topics[topicIdx]
+	topic.StepID = step.ID
+	topic.Status = "completed"
+	topic.Performance = &models.TopicPerformance{
+		Score:       score,
+		CompletedAt: time.Now().UnixMilli(),
+	}
+
+	// Mark module as in_progress if not already
+	if module.Status == "" || module.Status == "pending" {
+		module.Status = "in_progress"
+	}
+
+	// Check if all topics in this module are completed
+	allTopicsCompleted := true
+	for _, t := range module.Topics {
+		if t.Status != "completed" && t.Status != "skipped" {
+			allTopicsCompleted = false
+			break
+		}
+	}
+	if allTopicsCompleted {
+		module.Status = "completed"
+	}
+
+	// Advance to the next topic
+	if topicIdx+1 < len(module.Topics) {
+		// Move to next topic in same module
+		path.OutlinePosition.TopicIndex = topicIdx + 1
+		path.OutlinePosition.TopicID = module.Topics[topicIdx+1].ID
+		// Mark next topic as in_progress
+		module.Topics[topicIdx+1].Status = "in_progress"
+	} else {
+		// Move to next module
+		if moduleIdx+1 < len(path.Outline.Modules) {
+			nextModule := &path.Outline.Modules[moduleIdx+1]
+			path.OutlinePosition.ModuleIndex = moduleIdx + 1
+			path.OutlinePosition.ModuleID = nextModule.ID
+			path.OutlinePosition.TopicIndex = 0
+			if len(nextModule.Topics) > 0 {
+				path.OutlinePosition.TopicID = nextModule.Topics[0].ID
+				nextModule.Topics[0].Status = "in_progress"
+			}
+			nextModule.Status = "in_progress"
+		}
+		// If no more modules, position stays at end (course complete)
 	}
 
 	return true

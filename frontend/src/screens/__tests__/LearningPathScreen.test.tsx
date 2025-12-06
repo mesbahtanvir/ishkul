@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { LearningPathScreen } from '../LearningPathScreen';
@@ -631,13 +631,22 @@ describe('LearningPathScreen', () => {
     });
 
     describe('web/tablet view', () => {
+      const originalPlatformOS = Platform.OS;
+
       beforeEach(() => {
         mockIsMobile = false;
+        // Mock Platform.OS as 'web' for sidebar tests
+        Object.defineProperty(Platform, 'OS', { value: 'web', writable: true });
         const pathWithOutline = createPathWithOutline();
         mockActivePath = pathWithOutline;
         mockGetLearningPath.mockResolvedValue(pathWithOutline);
         mockGetCachedPath.mockReturnValue(pathWithOutline);
         mockIsCacheValid.mockReturnValue(true);
+      });
+
+      afterEach(() => {
+        // Restore original Platform.OS
+        Object.defineProperty(Platform, 'OS', { value: originalPlatformOS, writable: true });
       });
 
       it('should show sidebar on web when outline exists', async () => {
@@ -699,6 +708,10 @@ describe('LearningPathScreen', () => {
 
       it('should NOT show sidebar when path has no outline (web)', async () => {
         mockIsMobile = false;
+        // Mock Platform.OS as 'web' for this test
+        const originalPlatformOS = Platform.OS;
+        Object.defineProperty(Platform, 'OS', { value: 'web', writable: true });
+
         const { queryByText, getByText } = render(
           <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
         );
@@ -709,6 +722,9 @@ describe('LearningPathScreen', () => {
 
         // Course Outline header should not be visible without outline
         expect(queryByText('Course Outline')).toBeNull();
+
+        // Restore original Platform.OS
+        Object.defineProperty(Platform, 'OS', { value: originalPlatformOS, writable: true });
       });
     });
 
