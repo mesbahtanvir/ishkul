@@ -174,7 +174,6 @@ describe('AnalyticsService', () => {
     it('should track onboarding complete', async () => {
       await analytics.trackOnboardingComplete({
         goal: 'Learn Python',
-        level: 'beginner',
         duration_sec: 120,
       });
     });
@@ -185,7 +184,6 @@ describe('AnalyticsService', () => {
       await analytics.trackLearningPathCreated({
         path_id: 'path-123',
         goal: 'Learn Python',
-        level: 'beginner',
         is_first_path: true,
       });
     });

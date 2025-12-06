@@ -103,13 +103,13 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({
           emoji: getEmojiForGoal(goal),
         };
 
-        await createUserDocument(goal, selectedLevel, firstPathData);
+        await createUserDocument(goal, firstPathData);
 
         const userDoc = await getUserDocument();
         setUserDocument(userDoc);
 
         // Track onboarding complete for first-time users
-        await completeOnboarding(goal, selectedLevel);
+        await completeOnboarding(goal);
 
         // Fetch the created path from the user document
         const fetchedPaths = await learningPathsApi.getPaths();

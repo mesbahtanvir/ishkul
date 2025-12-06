@@ -446,10 +446,11 @@ export const userApi = {
   },
 
   /**
-   * Create or initialize user document with goal and level
+   * Create or initialize user document with goal
+   * Level is no longer required - AI adapts based on user context
    */
-  async createUserDocument(goal: string, level: string): Promise<void> {
-    await api.post('/me/document', { goal, level });
+  async createUserDocument(goal: string): Promise<void> {
+    await api.post('/me/document', { goal });
   },
 
   /**
