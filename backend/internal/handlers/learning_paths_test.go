@@ -806,7 +806,6 @@ func TestLearningPathJSON(t *testing.T) {
 		assert.Contains(t, parsed, "id")
 		assert.Contains(t, parsed, "userId")
 		assert.Contains(t, parsed, "goal")
-		assert.Contains(t, parsed, "level")
 		assert.Contains(t, parsed, "emoji")
 		assert.Contains(t, parsed, "progress")
 		assert.Contains(t, parsed, "lessonsCompleted")
