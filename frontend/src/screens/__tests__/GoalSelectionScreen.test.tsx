@@ -256,10 +256,8 @@ describe('GoalSelectionScreen', () => {
       await waitFor(() => {
         expect(mockCreateUserDocument).toHaveBeenCalledWith(
           'Learn TypeScript',
-          'beginner',
           expect.objectContaining({
             goal: 'Learn TypeScript',
-            level: 'beginner',
             emoji: '🐍',
           })
         );
@@ -290,10 +288,8 @@ describe('GoalSelectionScreen', () => {
       await waitFor(() => {
         expect(mockCreateUserDocument).toHaveBeenCalledWith(
           'Learn React',
-          'beginner',
           expect.objectContaining({
             goal: 'Learn React',
-            level: 'beginner',
           })
         );
       });

@@ -64,9 +64,10 @@ type Step struct {
 }
 
 // LearningPathCreate represents the request to create a new learning path
+// Level is optional and defaults to "beginner" if not provided
 type LearningPathCreate struct {
 	Goal  string `json:"goal"`
-	Level string `json:"level"`
+	Level string `json:"level,omitempty"`
 	Emoji string `json:"emoji"`
 }
 
