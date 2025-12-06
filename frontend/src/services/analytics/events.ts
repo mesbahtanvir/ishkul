@@ -46,7 +46,7 @@ export interface LevelSelectedParams {
 
 export interface OnboardingCompleteParams {
   goal: string;
-  level: Level;
+  level?: Level; // Optional - AI adapts based on user context
   duration_sec: number;
 }
 
@@ -54,7 +54,7 @@ export interface OnboardingCompleteParams {
 export interface LearningPathCreatedParams {
   path_id: string;
   goal: string;
-  level: Level;
+  level?: Level; // Optional - AI adapts based on user context
   is_first_path: boolean;
 }
 

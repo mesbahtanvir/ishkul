@@ -166,9 +166,10 @@ func GetMeDocument(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateUserDocumentRequest represents the request to create/initialize a user document
+// Level is optional and defaults to "beginner" if not provided
 type CreateUserDocumentRequest struct {
 	Goal  string `json:"goal"`
-	Level string `json:"level"`
+	Level string `json:"level,omitempty"`
 }
 
 // CreateMeDocument creates or initializes a user document with learning data
@@ -189,6 +190,11 @@ func CreateMeDocument(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
+	}
+
+	// Default level to "beginner" if not provided - AI adapts based on user context
+	if req.Level == "" {
+		req.Level = "beginner"
 	}
 
 	fs := firebase.GetFirestore()

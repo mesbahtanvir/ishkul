@@ -16,7 +16,6 @@ import { useLearningPathsStore, getEmojiForGoal } from '../state/learningPathsSt
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { createUserDocument, getUserDocument, addLearningPath } from '../services/memory';
 import { learningPathsApi, ApiError, ErrorCodes } from '../services/api';
-import { LevelType } from '../types/app';
 
 type GoalSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoalSelection'>;
 type GoalSelectionScreenRouteProp = RouteProp<RootStackParamList, 'GoalSelection'>;
@@ -33,9 +32,6 @@ const EXAMPLE_GOALS = [
   { emoji: '🎨', title: 'Learn to Draw' },
   { emoji: '💪', title: 'Get Fit' },
 ];
-
-// Default level for all new courses - level selection has been removed from the flow
-const DEFAULT_LEVEL: LevelType = 'beginner';
 
 export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
   navigation,
@@ -75,7 +71,6 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
         // Creating a new learning path for existing user
         const newPathData = {
           goal: trimmedGoal,
-          level: DEFAULT_LEVEL,
           emoji: getEmojiForGoal(trimmedGoal),
         };
 
@@ -86,7 +81,6 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
         await trackLearningPathCreated({
           path_id: createdPath.id,
           goal: trimmedGoal,
-          level: DEFAULT_LEVEL,
           is_first_path: false,
         });
 
@@ -96,17 +90,16 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
         // First-time user - create user document with first learning path
         const firstPathData = {
           goal: trimmedGoal,
-          level: DEFAULT_LEVEL,
           emoji: getEmojiForGoal(trimmedGoal),
         };
 
-        await createUserDocument(trimmedGoal, DEFAULT_LEVEL, firstPathData);
+        await createUserDocument(trimmedGoal, firstPathData);
 
         const userDoc = await getUserDocument();
         setUserDocument(userDoc);
 
         // Track onboarding complete for first-time users
-        await completeOnboarding(trimmedGoal, DEFAULT_LEVEL);
+        await completeOnboarding(trimmedGoal);
 
         // Fetch the created path from the user document
         const fetchedPaths = await learningPathsApi.getPaths();
@@ -118,7 +111,6 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
           await trackLearningPathCreated({
             path_id: createdPath.id,
             goal: trimmedGoal,
-            level: DEFAULT_LEVEL,
             is_first_path: true,
           });
 

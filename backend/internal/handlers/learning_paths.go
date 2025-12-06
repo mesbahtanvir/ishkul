@@ -338,9 +338,14 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Goal == "" || req.Level == "" {
-		http.Error(w, "Goal and level are required", http.StatusBadRequest)
+	if req.Goal == "" {
+		http.Error(w, "Goal is required", http.StatusBadRequest)
 		return
+	}
+
+	// Default level to "beginner" if not provided - AI adapts based on user context
+	if req.Level == "" {
+		req.Level = "beginner"
 	}
 
 	fs := firebase.GetFirestore()

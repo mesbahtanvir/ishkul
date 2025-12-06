@@ -25,15 +25,15 @@ export const getUserDocument = async (): Promise<UserDocument | null> => {
 };
 
 /**
- * Create or initialize user document with goal and level
+ * Create or initialize user document with goal
  * Optionally includes the first learning path
+ * Level is no longer required - AI adapts based on user context
  */
 export const createUserDocument = async (
   goal: string,
-  level: LevelType,
   firstPath?: Partial<LearningPath>
 ): Promise<void> => {
-  await userApi.createUserDocument(goal, level);
+  await userApi.createUserDocument(goal);
 
   // If a first path is provided, create it
   if (firstPath) {

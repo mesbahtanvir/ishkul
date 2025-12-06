@@ -323,7 +323,7 @@ interface OnboardingTrackingResult {
   startOnboarding: (isNewUser: boolean) => void;
   selectGoal: (goal: string) => void;
   selectLevel: (level: Level) => void;
-  completeOnboarding: (goal: string, level: Level) => Promise<void>;
+  completeOnboarding: (goal: string) => Promise<void>;
 }
 
 /**
@@ -346,13 +346,12 @@ export function useOnboardingTracking(): OnboardingTrackingResult {
   }, []);
 
   const completeOnboarding = useCallback(
-    async (goal: string, level: Level) => {
+    async (goal: string) => {
       const durationSec = Math.floor(
         (Date.now() - startTimeRef.current) / 1000
       );
       await analytics.trackOnboardingComplete({
         goal,
-        level,
         duration_sec: durationSec,
       });
     },

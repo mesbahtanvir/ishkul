@@ -58,12 +58,12 @@ describe('Memory Service', () => {
   });
 
   describe('createUserDocument', () => {
-    it('should call userApi.createUserDocument with goal and level', async () => {
+    it('should call userApi.createUserDocument with goal', async () => {
       (userApi.createUserDocument as jest.Mock).mockResolvedValue(undefined);
 
-      await createUserDocument('Learn Python', 'beginner');
+      await createUserDocument('Learn Python');
 
-      expect(userApi.createUserDocument).toHaveBeenCalledWith('Learn Python', 'beginner');
+      expect(userApi.createUserDocument).toHaveBeenCalledWith('Learn Python');
     });
   });
 
