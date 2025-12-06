@@ -20,7 +20,6 @@ func TestUserStruct(t *testing.T) {
 			CreatedAt:   now,
 			UpdatedAt:   now,
 			Goal:        "Learn Python",
-			Level:       "beginner",
 		}
 
 		assert.Equal(t, "user123", user.ID)
@@ -28,7 +27,6 @@ func TestUserStruct(t *testing.T) {
 		assert.Equal(t, "Test User", user.DisplayName)
 		assert.Equal(t, "https://example.com/photo.jpg", user.PhotoURL)
 		assert.Equal(t, "Learn Python", user.Goal)
-		assert.Equal(t, "beginner", user.Level)
 	})
 
 	t.Run("JSON marshaling includes all fields", func(t *testing.T) {
@@ -38,7 +36,6 @@ func TestUserStruct(t *testing.T) {
 			DisplayName: "Test User",
 			PhotoURL:    "https://example.com/photo.jpg",
 			Goal:        "Learn Python",
-			Level:       "beginner",
 		}
 
 		jsonBytes, err := json.Marshal(user)
@@ -79,8 +76,7 @@ func TestUserStruct(t *testing.T) {
 			"id": "user456",
 			"email": "another@test.com",
 			"displayName": "Another User",
-			"goal": "Learn Go",
-			"level": "intermediate"
+			"goal": "Learn Go"
 		}`
 
 		var user User
@@ -91,7 +87,6 @@ func TestUserStruct(t *testing.T) {
 		assert.Equal(t, "another@test.com", user.Email)
 		assert.Equal(t, "Another User", user.DisplayName)
 		assert.Equal(t, "Learn Go", user.Goal)
-		assert.Equal(t, "intermediate", user.Level)
 	})
 }
 

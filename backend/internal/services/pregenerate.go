@@ -133,7 +133,6 @@ func (s *PregenerateService) generateStep(ctx context.Context, path *models.Lear
 	// Prepare variables for the prompt
 	vars := prompts.Variables{
 		"goal":          path.Goal,
-		"level":         path.Level,
 		"historyCount":  strconv.Itoa(len(path.Steps)),
 		"memory":        memorySummary,
 		"recentHistory": recentHistory,
