@@ -143,24 +143,3 @@ type OutlinePosition struct {
 	ModuleID    string `json:"moduleId" firestore:"moduleId"`
 	TopicID     string `json:"topicId" firestore:"topicId"`
 }
-
-// ============================================
-// Legacy type aliases for backward compatibility
-// ============================================
-
-// LearningPath is an alias for Course (deprecated)
-type LearningPath = Course
-
-// LearningPathCreate is an alias for CourseCreate (deprecated)
-type LearningPathCreate = CourseCreate
-
-// LearningPathUpdate is an alias for CourseUpdate (deprecated)
-type LearningPathUpdate = CourseUpdate
-
-// Legacy path status constants (deprecated, use CourseStatus* instead)
-const (
-	PathStatusActive    = CourseStatusActive
-	PathStatusCompleted = CourseStatusCompleted
-	PathStatusArchived  = CourseStatusArchived
-	PathStatusDeleted   = CourseStatusDeleted
-)

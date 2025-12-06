@@ -211,12 +211,9 @@ func main() {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
-	// New courses routes (primary)
+	// Courses routes
 	expensiveAPI.HandleFunc("/api/courses", handlers.CoursesHandler)
 	expensiveAPI.HandleFunc("/api/courses/", handlers.CoursesHandler)
-	// Legacy learning-paths routes (redirects to courses)
-	expensiveAPI.HandleFunc("/api/learning-paths", handlers.LearningPathsHandler)
-	expensiveAPI.HandleFunc("/api/learning-paths/", handlers.LearningPathsHandler)
 
 	// Apply DDoS protection with appropriate tiers
 	standardProtected := ddosProtection.ProtectStandard(middleware.CORS(middleware.Auth(standardAPI)))
@@ -235,8 +232,6 @@ func main() {
 	mux.Handle("/api/me/next-step", expensiveProtected)
 	mux.Handle("/api/courses", expensiveProtected)
 	mux.Handle("/api/courses/", expensiveProtected)
-	mux.Handle("/api/learning-paths", expensiveProtected)
-	mux.Handle("/api/learning-paths/", expensiveProtected)
 
 	// Stripe webhook (no auth - uses signature verification)
 	// DDoS protection with webhook tier (higher limits for third-party services)

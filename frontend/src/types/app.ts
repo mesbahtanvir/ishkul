@@ -84,10 +84,6 @@ export const CourseStatuses = {
   DELETED: 'deleted' as CourseStatus,
 } as const;
 
-// Legacy aliases for backward compatibility
-export type PathStatus = CourseStatus;
-export const PathStatuses = CourseStatuses;
-
 // Outline status constants (must match backend)
 export type OutlineStatus = 'generating' | 'ready' | 'failed';
 
@@ -172,16 +168,11 @@ export interface Course {
   archivedAt?: number; // Timestamp when course was archived
 }
 
-// Legacy alias for backward compatibility
-export type LearningPath = Course;
-
 export interface UserDocument {
   uid: string;
   email?: string;
   displayName?: string;
   courses: Course[];
-  // Legacy fields for backward compatibility (will be migrated)
-  learningPaths?: Course[]; // Legacy alias
   goal?: string;
   memory?: Memory;
   history?: HistoryEntry[];
@@ -219,7 +210,6 @@ export interface UsageLimit {
 export interface UsageLimits {
   dailySteps: UsageLimit;
   activeCourses: UsageLimit;
-  activePaths?: UsageLimit; // Legacy alias
 }
 
 export interface SubscriptionStatus {
@@ -230,7 +220,6 @@ export interface SubscriptionStatus {
   canUpgrade: boolean;
   canGenerateSteps: boolean;
   canCreateCourse: boolean;
-  canCreatePath?: boolean; // Legacy alias
   dailyLimitResetAt: string | null;
 }
 
@@ -260,7 +249,7 @@ export interface PaymentSheetParams {
 // Limit error response from API
 export interface LimitErrorResponse {
   error: string;
-  code: 'COURSE_LIMIT_REACHED' | 'PATH_LIMIT_REACHED' | 'DAILY_STEP_LIMIT_REACHED';
+  code: 'COURSE_LIMIT_REACHED' | 'DAILY_STEP_LIMIT_REACHED';
   canUpgrade: boolean;
   currentTier: TierType;
   limits: UsageLimits;

@@ -26,12 +26,6 @@ const (
 	ProMaxActiveCourses  = 5
 )
 
-// Legacy aliases
-const (
-	FreeMaxActivePaths = FreeMaxActiveCourses
-	ProMaxActivePaths  = ProMaxActiveCourses
-)
-
 // Stripe pricing (in cents)
 const (
 	ProPriceMonthly = 200 // $2.00
@@ -59,11 +53,6 @@ func GetMaxActiveCourses(tier string) int {
 		return ProMaxActiveCourses
 	}
 	return FreeMaxActiveCourses
-}
-
-// GetMaxActivePaths is an alias for GetMaxActiveCourses (deprecated)
-func GetMaxActivePaths(tier string) int {
-	return GetMaxActiveCourses(tier)
 }
 
 // GetCurrentTier returns the user's current tier based on subscription status
