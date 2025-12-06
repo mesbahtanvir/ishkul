@@ -117,7 +117,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
           'Could not record your step view. Your progress may not be fully synchronized.'
         );
       }
-      navigation.navigate('StepDetail', { step, pathId });
+      navigation.navigate('StepDetail', { stepId: step.id, pathId });
     } else {
       // Start the active step
       handleStartStep(step);
@@ -126,7 +126,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
 
   const handleStartStep = (step: Step) => {
     // Use generic StepScreen which uses tool registry for dynamic rendering
-    navigation.navigate('Step', { step, pathId });
+    navigation.navigate('Step', { stepId: step.id, pathId });
   };
 
   const handleBack = () => {
@@ -253,9 +253,9 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       const step = activePath.steps.find((s) => s.id === topic.stepId);
       if (step) {
         if (step.completed) {
-          navigation.navigate('StepDetail', { step, pathId });
+          navigation.navigate('StepDetail', { stepId: step.id, pathId });
         } else {
-          navigation.navigate('Step', { step, pathId });
+          navigation.navigate('Step', { stepId: step.id, pathId });
         }
       }
     }

@@ -47,12 +47,28 @@ function getBadgeColorFromTheme(
 }
 
 export const StepScreen: React.FC<StepScreenProps> = ({ navigation, route }) => {
-  const { step, pathId } = route.params;
+  const { stepId, pathId } = route.params;
   const { setUserDocument } = useUserStore();
-  const { updatePath, setActivePath } = useLearningPathsStore();
+  const { activePath, updatePath, setActivePath } = useLearningPathsStore();
   const [isCompleting, setIsCompleting] = useState(false);
   const { responsive } = useResponsive();
   const { colors } = useTheme();
+
+  // Look up the step from the active path
+  const step = activePath?.steps.find((s) => s.id === stepId);
+
+  // Handle case where step is not found
+  if (!step) {
+    return (
+      <Container scrollable>
+        <Card elevation="md" padding="lg">
+          <Text style={[styles.errorText, { color: colors.text.primary }]}>
+            Step not found. Please go back and try again.
+          </Text>
+        </Card>
+      </Container>
+    );
+  }
 
   // Get the tool for this step type
   const tool = getTool(step.type);

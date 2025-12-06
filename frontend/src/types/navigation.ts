@@ -18,13 +18,13 @@ export type RootStackParamList = {
   // Generating step screen - engaging loader while AI generates content
   GeneratingStep: { pathId: string; topic?: string };
   // Generic step screen - uses tool registry to render any step type
-  Step: { step: Step; pathId: string };
+  Step: { stepId: string; pathId: string };
   // Legacy step screens - kept for backward compatibility
   Lesson: { step: Step; pathId: string };
   Quiz: { step: Step; pathId: string };
   Practice: { step: Step; pathId: string };
   // New: Read-only step detail view for reviewing past steps
-  StepDetail: { step: Step; pathId: string };
+  StepDetail: { stepId: string; pathId: string };
   Progress: undefined;
   Settings: undefined;
   SettingsTab: undefined;

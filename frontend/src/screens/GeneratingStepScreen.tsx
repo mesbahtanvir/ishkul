@@ -147,8 +147,8 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
       }).start(() => {
         // Short delay to show skeleton, then navigate
         setTimeout(() => {
-          // Navigate to actual step screen with the step data
-          navigation.replace('Step', { step: newStep, pathId });
+          // Navigate to actual step screen with the step ID
+          navigation.replace('Step', { stepId: newStep.id, pathId });
         }, 300);
       });
     });

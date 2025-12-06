@@ -10,6 +10,7 @@ import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
 import { StepType } from '../types/app';
 import { useScreenTracking } from '../services/analytics';
+import { useLearningPathsStore } from '../state/learningPathsStore';
 
 type StepDetailScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -61,9 +62,35 @@ export const StepDetailScreen: React.FC<StepDetailScreenProps> = ({
   route,
 }) => {
   useScreenTracking('StepDetail', 'StepDetailScreen');
-  const { step } = route.params;
+  const { stepId } = route.params;
+  const { activePath } = useLearningPathsStore();
   const { responsive, isSmallPhone } = useResponsive();
   const { colors } = useTheme();
+
+  // Look up the step from the active path
+  const step = activePath?.steps.find((s) => s.id === stepId);
+
+  // Handle case where step is not found
+  if (!step) {
+    return (
+      <Container>
+        <View style={styles.content}>
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Text style={[styles.backButtonText, { color: colors.primary }]}>
+                ← Back
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, { color: colors.text.primary }]}>
+              Step not found. Please go back and try again.
+            </Text>
+          </View>
+        </View>
+      </Container>
+    );
+  }
 
   const handleBack = () => {
     navigation.goBack();
@@ -409,6 +436,16 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: Spacing.xxl,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  errorText: {
+    ...Typography.body.medium,
+    textAlign: 'center',
   },
 });
 
