@@ -34,6 +34,8 @@ const createMockOutline = (overrides: Partial<CourseOutline> = {}): CourseOutlin
   title: 'Learn Python Basics',
   description: 'A comprehensive course on Python',
   estimatedMinutes: 120,
+  prerequisites: [],
+  learningOutcomes: ['Understand Python basics', 'Write simple programs'],
   modules: [
     {
       id: 'module-1',
@@ -96,7 +98,7 @@ const createMockOutline = (overrides: Partial<CourseOutline> = {}): CourseOutlin
           description: 'Explore data types',
           estimatedMinutes: 15,
           toolId: 'lesson',
-          status: 'in_progress',
+          status: 'pending',
           stepId: 'step-2',
           prerequisites: [],
         },
@@ -150,8 +152,9 @@ const createMockOutline = (overrides: Partial<CourseOutline> = {}): CourseOutlin
     },
   ],
   metadata: {
-    version: '1.0',
-    generatedBy: 'test',
+    difficulty: 'beginner',
+    category: 'programming',
+    tags: ['python', 'basics'],
   },
   generatedAt: Date.now(),
   ...overrides,
@@ -341,7 +344,7 @@ describe('CourseOutlineSidebar', () => {
           id: 'topic-2-2',
           title: 'Data Types',
           toolId: 'lesson',
-          status: 'in_progress',
+          status: 'pending',
         })
       );
     });
