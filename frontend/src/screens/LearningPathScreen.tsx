@@ -20,7 +20,7 @@ import { CourseOutlineSidebar } from '../components/CourseOutlineSidebar';
 import { CourseProgressBar } from '../components/CourseProgressBar';
 import { OutlineLoadingOverlay } from '../components/OutlineLoadingOverlay';
 import { useLearningPathsStore, getCurrentStep } from '../state/learningPathsStore';
-import { getLearningPath, viewStep, archiveLearningPath, deleteLearningPath, restoreLearningPath } from '../services/memory';
+import { getLearningPath, viewStep } from '../services/memory';
 import { learningPathsApi } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
@@ -47,7 +47,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
 }) => {
   useScreenTracking('LearningPath', 'LearningPathScreen');
   const { pathId } = route.params;
-  const { activePath, setActivePath, archivePath, deletePath, restorePath } = useLearningPathsStore();
+  const { activePath, setActivePath } = useLearningPathsStore();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [outlineDrawerVisible, setOutlineDrawerVisible] = useState(false);
@@ -180,66 +180,6 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
     navigation.goBack();
   };
 
-  const handleArchive = () => {
-    Alert.alert(
-      'Archive Path',
-      'Are you sure you want to archive this learning path? You can restore it later.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Archive',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await archiveLearningPath(pathId);
-              archivePath(pathId);
-              navigation.goBack();
-            } catch (error) {
-              console.error('Error archiving path:', error);
-              Alert.alert('Error', 'Failed to archive learning path. Please try again.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleRestore = async () => {
-    try {
-      await restoreLearningPath(pathId);
-      restorePath(pathId);
-      // Reload the path to get updated status
-      await loadPath();
-    } catch (error) {
-      console.error('Error restoring path:', error);
-      Alert.alert('Error', 'Failed to restore learning path. Please try again.');
-    }
-  };
-
-  const handleDelete = () => {
-    Alert.alert(
-      'Delete Path',
-      'Are you sure you want to delete this learning path? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteLearningPath(pathId);
-              deletePath(pathId);
-              navigation.goBack();
-            } catch (error) {
-              console.error('Error deleting path:', error);
-              Alert.alert('Error', 'Failed to delete learning path. Please try again.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleContinue = () => {
     if (!activePath) return;
 
@@ -319,47 +259,6 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
             ← Back
           </Text>
         </TouchableOpacity>
-        <View style={styles.topBarActions}>
-          {/* Only show outline button on mobile */}
-          {isMobile && activePath.outline && (
-            <TouchableOpacity
-              onPress={() => setOutlineDrawerVisible(true)}
-              style={[styles.outlineButton, { backgroundColor: colors.background.secondary }]}
-            >
-              <Text style={styles.outlineButtonIcon}>📋</Text>
-              <Text style={[styles.outlineButtonText, { color: colors.text.primary }]}>
-                Outline
-              </Text>
-            </TouchableOpacity>
-          )}
-          {isPathArchived ? (
-            <TouchableOpacity
-              onPress={handleRestore}
-              style={[styles.actionButton, { backgroundColor: colors.primaryLight }]}
-            >
-              <Text style={[styles.actionButtonText, { color: colors.primary }]}>
-                Restore
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={handleArchive}
-              style={[styles.actionButton, { backgroundColor: colors.background.secondary }]}
-            >
-              <Text style={[styles.actionButtonText, { color: colors.text.secondary }]}>
-                Archive
-              </Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={handleDelete}
-            style={[styles.actionButton, { backgroundColor: colors.background.secondary }]}
-          >
-            <Text style={[styles.actionButtonText, { color: colors.danger }]}>
-              Delete
-            </Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Mobile: Course progress bar (tappable) */}
@@ -399,9 +298,6 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
             height={8}
             style={styles.progressBar}
           />
-          <Text style={[styles.progressText, { color: colors.text.secondary }]}>
-            {Math.round(activePath.progress)}%
-          </Text>
         </View>
       </View>
 
@@ -499,7 +395,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
           />
         ) : (
           <Button
-            title={currentStep ? 'Continue →' : 'Get Next Step'}
+            title={currentStep ? 'Continue →' : 'Continue'}
             onPress={handleContinue}
           />
         )}
@@ -573,35 +469,6 @@ const styles = StyleSheet.create({
     ...Typography.body.medium,
     fontWeight: '600',
   },
-  outlineButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Spacing.borderRadius.md,
-  },
-  outlineButtonIcon: {
-    fontSize: 16,
-    marginRight: 4,
-  },
-  outlineButtonText: {
-    ...Typography.body.small,
-    fontWeight: '500',
-  },
-  topBarActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  actionButton: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Spacing.borderRadius.md,
-  },
-  actionButtonText: {
-    ...Typography.body.small,
-    fontWeight: '500',
-  },
   pathHeader: {
     borderRadius: Spacing.borderRadius.lg,
     marginBottom: Spacing.md,
@@ -631,14 +498,6 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-  },
-  progressText: {
-    ...Typography.label.medium,
-    marginLeft: Spacing.sm,
-    minWidth: 35,
-    maxWidth: 50,
-    flexShrink: 1,
-    textAlign: 'right',
   },
   stepsContainer: {
     flex: 1,

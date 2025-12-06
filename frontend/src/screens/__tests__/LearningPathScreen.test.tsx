@@ -251,11 +251,12 @@ describe('LearningPathScreen', () => {
 
         await waitFor(() => {
           expect(getByText('Learn Python')).toBeTruthy();
-          expect(getByText('50%')).toBeTruthy();
+          // Progress is shown via progress bar, not percentage text
+          expect(getByText(/steps completed/)).toBeTruthy();
         });
       });
 
-      it('should show Get Next Step when no current step', async () => {
+      it('should show Continue when no current step', async () => {
         const pathWithAllCompleted = createMockPath({
           status: 'active',
           steps: [createMockStep({ completed: true })],
@@ -269,7 +270,7 @@ describe('LearningPathScreen', () => {
         );
 
         await waitFor(() => {
-          expect(getByText('Get Next Step')).toBeTruthy();
+          expect(getByText('Continue')).toBeTruthy();
         });
       });
 
@@ -545,8 +546,8 @@ describe('LearningPathScreen', () => {
       });
     });
 
-    it('should navigate to GeneratingStep when Get Next Step is pressed', async () => {
-      // Path with all steps completed - should show "Get Next Step" button
+    it('should navigate to GeneratingStep when Continue is pressed', async () => {
+      // Path with all steps completed - should show "Continue" button
       const pathWithAllCompleted = createMockPath({
         status: 'active',
         steps: [createMockStep({ completed: true })],
@@ -561,10 +562,10 @@ describe('LearningPathScreen', () => {
       );
 
       await waitFor(() => {
-        expect(getByText('Get Next Step')).toBeTruthy();
+        expect(getByText('Continue')).toBeTruthy();
       });
 
-      fireEvent.press(getByText('Get Next Step'));
+      fireEvent.press(getByText('Continue'));
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('GeneratingStep', {
@@ -598,16 +599,6 @@ describe('LearningPathScreen', () => {
         mockIsCacheValid.mockReturnValue(true);
       });
 
-      it('should show Outline button on mobile when outline exists', async () => {
-        const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
-        );
-
-        await waitFor(() => {
-          expect(getByText('Outline')).toBeTruthy();
-        });
-      });
-
       it('should show CourseProgressBar on mobile when outline exists', async () => {
         const { getByText } = render(
           <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
@@ -616,23 +607,6 @@ describe('LearningPathScreen', () => {
         await waitFor(() => {
           // Progress bar shows current topic or topic count
           expect(getByText('Now:')).toBeTruthy();
-        });
-      });
-
-      it('should open drawer when Outline button is pressed on mobile', async () => {
-        const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
-        );
-
-        await waitFor(() => {
-          expect(getByText('Outline')).toBeTruthy();
-        });
-
-        fireEvent.press(getByText('Outline'));
-
-        // The drawer should open and show Course Outline header
-        await waitFor(() => {
-          expect(getByText('Course Outline')).toBeTruthy();
         });
       });
 
@@ -675,20 +649,6 @@ describe('LearningPathScreen', () => {
           // Sidebar shows Course Outline header directly (not in drawer)
           expect(getByText('Course Outline')).toBeTruthy();
         });
-      });
-
-      it('should NOT show Outline button on web (sidebar is always visible)', async () => {
-        const { queryByText, getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
-        );
-
-        await waitFor(() => {
-          expect(getByText('Course Outline')).toBeTruthy();
-        });
-
-        // On web, the Outline button should not be shown
-        // (The sidebar is always visible, so the button is redundant)
-        expect(queryByText('Outline')).toBeNull();
       });
 
       it('should show module titles in sidebar on web', async () => {
@@ -768,11 +728,12 @@ describe('LearningPathScreen', () => {
         );
 
         await waitFor(() => {
-          expect(getByText('Outline')).toBeTruthy();
+          expect(getByText('Now:')).toBeTruthy();
         });
 
-        // Open the drawer
-        fireEvent.press(getByText('Outline'));
+        // Open the drawer via CourseProgressBar
+        const outlineIcons = getAllByText('📋');
+        fireEvent.press(outlineIcons[0]);
 
         await waitFor(() => {
           expect(getByText('Course Outline')).toBeTruthy();
