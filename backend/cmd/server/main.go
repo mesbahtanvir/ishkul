@@ -182,8 +182,23 @@ func main() {
 	standardAPI.HandleFunc("/api/subscription/cancel", handlers.CancelSubscription)
 	standardAPI.HandleFunc("/api/subscription/payment-sheet", handlers.GetPaymentSheetParams)
 
+	// Context routes (user profile context for personalized learning)
+	standardAPI.HandleFunc("/api/context", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetContext(w, r)
+		case http.MethodPut:
+			handlers.ApplyContext(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	standardAPI.HandleFunc("/api/context/derived", handlers.GetDerivedContext)
+	standardAPI.HandleFunc("/api/context/summary", handlers.GetContextSummary)
+
 	// Expensive operations (LLM calls) - stricter rate limits
 	expensiveAPI := http.NewServeMux()
+	expensiveAPI.HandleFunc("/api/context/update", handlers.UpdateContext)
 	expensiveAPI.HandleFunc("/api/me/next-step", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -209,6 +224,10 @@ func main() {
 	mux.Handle("/api/me/memory", standardProtected)
 	mux.Handle("/api/me/delete", standardProtected)
 	mux.Handle("/api/subscription/", standardProtected)
+	mux.Handle("/api/context", standardProtected)
+	mux.Handle("/api/context/derived", standardProtected)
+	mux.Handle("/api/context/summary", standardProtected)
+	mux.Handle("/api/context/update", expensiveProtected)
 	mux.Handle("/api/me/next-step", expensiveProtected)
 	mux.Handle("/api/learning-paths", expensiveProtected)
 	mux.Handle("/api/learning-paths/", expensiveProtected)
