@@ -94,7 +94,7 @@ func UpdateContext(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if LLM is available
-	if openaiClient == nil || promptLoader == nil {
+	if llmProvider == nil || promptLoader == nil {
 		http.Error(w, "LLM service not available", http.StatusServiceUnavailable)
 		return
 	}
@@ -272,14 +272,14 @@ func parseContextWithLLM(ctx context.Context, previousContext models.ParsedConte
 		return nil, err
 	}
 
-	// Call OpenAI
-	response, err := openaiClient.CreateChatCompletion(*req)
+	// Call LLM provider
+	response, err := llmProvider.CreateChatCompletion(*req)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(response.Choices) == 0 {
-		return nil, fmt.Errorf("no completion choices returned from LLM")
+		return nil, fmt.Errorf("no completion choices returned from %s", llmProvider.Name())
 	}
 
 	// Parse the LLM response

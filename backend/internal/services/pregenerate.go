@@ -13,41 +13,44 @@ import (
 	"github.com/google/uuid"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/cache"
-	"github.com/mesbahtanvir/ishkul/backend/pkg/openai"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 )
 
 // PregenerateService handles background pre-generation of learning steps
 type PregenerateService struct {
-	cache      *cache.StepCache
-	openai     *openai.Client
-	loader     *prompts.Loader
-	renderer   *prompts.Renderer
-	inProgress sync.Map // Tracks ongoing generation to prevent duplicates
-	logger     *slog.Logger
+	cache        *cache.StepCache
+	llmProvider  llm.Provider
+	providerType llm.ProviderType
+	loader       *prompts.Loader
+	renderer     *prompts.Renderer
+	inProgress   sync.Map // Tracks ongoing generation to prevent duplicates
+	logger       *slog.Logger
 }
 
 // NewPregenerateService creates a new pre-generation service
 func NewPregenerateService(
 	stepCache *cache.StepCache,
-	openaiClient *openai.Client,
+	provider llm.Provider,
+	providerType llm.ProviderType,
 	promptLoader *prompts.Loader,
 	promptRenderer *prompts.Renderer,
 	logger *slog.Logger,
 ) *PregenerateService {
 	return &PregenerateService{
-		cache:    stepCache,
-		openai:   openaiClient,
-		loader:   promptLoader,
-		renderer: promptRenderer,
-		logger:   logger,
+		cache:        stepCache,
+		llmProvider:  provider,
+		providerType: providerType,
+		loader:       promptLoader,
+		renderer:     promptRenderer,
+		logger:       logger,
 	}
 }
 
 // TriggerPregeneration starts background generation for a learning path
 // It's safe to call multiple times - duplicate calls will be ignored
 func (s *PregenerateService) TriggerPregeneration(path *models.LearningPath, userTier string) {
-	if s.openai == nil || s.loader == nil {
+	if s.llmProvider == nil || s.loader == nil {
 		return // LLM not initialized
 	}
 
@@ -160,20 +163,20 @@ func (s *PregenerateService) generateStep(ctx context.Context, path *models.Lear
 		return nil, fmt.Errorf("failed to load prompt template: %w", err)
 	}
 
-	// Render prompt with tier-aware model selection
-	openaiReq, err := s.renderer.RenderToRequestWithTier(template, vars, userTier)
+	// Render prompt with tier and provider-aware model selection
+	openaiReq, err := s.renderer.RenderToRequestWithTierAndProvider(template, vars, userTier, s.providerType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	// Call OpenAI
-	completion, err := s.openai.CreateChatCompletion(*openaiReq)
+	// Call LLM provider
+	completion, err := s.llmProvider.CreateChatCompletion(*openaiReq)
 	if err != nil {
-		return nil, fmt.Errorf("OpenAI API error: %w", err)
+		return nil, fmt.Errorf("%s API error: %w", s.llmProvider.Name(), err)
 	}
 
 	if len(completion.Choices) == 0 {
-		return nil, fmt.Errorf("no completion returned from OpenAI")
+		return nil, fmt.Errorf("no completion returned from %s", s.llmProvider.Name())
 	}
 
 	content := completion.Choices[0].Message.Content

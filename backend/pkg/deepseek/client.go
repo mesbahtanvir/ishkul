@@ -1,4 +1,4 @@
-package openai
+package deepseek
 
 import (
 	"bytes"
@@ -8,46 +8,57 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/mesbahtanvir/ishkul/backend/pkg/openai"
 )
 
-// Client represents an OpenAI API client
+const (
+	// DefaultBaseURL is the default DeepSeek API endpoint
+	DefaultBaseURL = "https://api.deepseek.com"
+	// DefaultModel is the default model to use
+	DefaultModel = "deepseek-chat"
+)
+
+// Client represents a DeepSeek API client
+// DeepSeek uses an OpenAI-compatible API format
 type Client struct {
 	apiKey     string
 	baseURL    string
 	httpClient *http.Client
 }
 
-// Name returns the provider name
-func (c *Client) Name() string {
-	return "openai"
-}
-
-// NewClient creates a new OpenAI client
+// NewClient creates a new DeepSeek client
 func NewClient() (*Client, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
+	apiKey := os.Getenv("DEEPSEEK_API_KEY")
 	if apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY environment variable not set")
+		return nil, fmt.Errorf("DEEPSEEK_API_KEY environment variable not set")
 	}
 
-	baseURL := os.Getenv("OPENAI_BASE_URL")
+	baseURL := os.Getenv("DEEPSEEK_BASE_URL")
 	if baseURL == "" {
-		baseURL = "https://api.openai.com/v1"
+		baseURL = DefaultBaseURL
 	}
 
 	return &Client{
 		apiKey:  apiKey,
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: 120 * time.Second, // DeepSeek reasoning models can take longer
 		},
 	}, nil
 }
 
-// CreateChatCompletion sends a chat completion request to OpenAI
-func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (*ChatCompletionResponse, error) {
+// Name returns the provider name
+func (c *Client) Name() string {
+	return "deepseek"
+}
+
+// CreateChatCompletion sends a chat completion request to DeepSeek
+// Uses OpenAI-compatible request/response format
+func (c *Client) CreateChatCompletion(req openai.ChatCompletionRequest) (*openai.ChatCompletionResponse, error) {
 	// Set default model if not provided
 	if req.Model == "" {
-		req.Model = "gpt-4o-mini"
+		req.Model = DefaultModel
 	}
 
 	// Marshal request to JSON
@@ -85,15 +96,15 @@ func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (*ChatCompletio
 
 	// Check for errors
 	if resp.StatusCode != http.StatusOK {
-		var errResp ErrorResponse
+		var errResp openai.ErrorResponse
 		if err := json.Unmarshal(body, &errResp); err != nil {
-			return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
+			return nil, fmt.Errorf("DeepSeek API error (status %d): %s", resp.StatusCode, string(body))
 		}
-		return nil, fmt.Errorf("OpenAI API error: %s", errResp.Error.Message)
+		return nil, fmt.Errorf("DeepSeek API error: %s", errResp.Error.Message)
 	}
 
 	// Parse successful response
-	var completion ChatCompletionResponse
+	var completion openai.ChatCompletionResponse
 	if err := json.Unmarshal(body, &completion); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
@@ -103,12 +114,12 @@ func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (*ChatCompletio
 
 // CreateSimpleCompletion is a helper for simple single-message requests
 func (c *Client) CreateSimpleCompletion(systemPrompt, userMessage string, temperature float64, maxTokens int) (string, error) {
-	messages := []Message{
+	messages := []openai.Message{
 		{Role: "system", Content: systemPrompt},
 		{Role: "user", Content: userMessage},
 	}
 
-	req := ChatCompletionRequest{
+	req := openai.ChatCompletionRequest{
 		Messages:    messages,
 		Temperature: temperature,
 		MaxTokens:   maxTokens,
