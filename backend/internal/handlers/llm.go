@@ -114,17 +114,18 @@ func InitializeLLM(promptsDir string) error {
 	}
 
 	// Set primary and fallback in legacy registry based on LLM_PROVIDER env
+	// Note: SetPrimary/SetFallback errors are ignored because providers are already registered above
 	switch providerEnv {
 	case "deepseek":
 		if dsErr == nil {
-			providerRegistry.SetPrimary(llm.ProviderDeepSeek)
+			_ = providerRegistry.SetPrimary(llm.ProviderDeepSeek)
 			llmProvider = deepseekClient
 			activeProviderType = llm.ProviderDeepSeek
 			if err == nil {
-				providerRegistry.SetFallback(llm.ProviderOpenAI)
+				_ = providerRegistry.SetFallback(llm.ProviderOpenAI)
 			}
 		} else if err == nil {
-			providerRegistry.SetPrimary(llm.ProviderOpenAI)
+			_ = providerRegistry.SetPrimary(llm.ProviderOpenAI)
 			llmProvider = openaiClient
 			activeProviderType = llm.ProviderOpenAI
 			if appLogger != nil {
@@ -133,14 +134,14 @@ func InitializeLLM(promptsDir string) error {
 		}
 	default:
 		if err == nil {
-			providerRegistry.SetPrimary(llm.ProviderOpenAI)
+			_ = providerRegistry.SetPrimary(llm.ProviderOpenAI)
 			llmProvider = openaiClient
 			activeProviderType = llm.ProviderOpenAI
 			if dsErr == nil {
-				providerRegistry.SetFallback(llm.ProviderDeepSeek)
+				_ = providerRegistry.SetFallback(llm.ProviderDeepSeek)
 			}
 		} else if dsErr == nil {
-			providerRegistry.SetPrimary(llm.ProviderDeepSeek)
+			_ = providerRegistry.SetPrimary(llm.ProviderDeepSeek)
 			llmProvider = deepseekClient
 			activeProviderType = llm.ProviderDeepSeek
 			if appLogger != nil {
