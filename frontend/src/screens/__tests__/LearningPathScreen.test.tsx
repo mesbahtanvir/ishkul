@@ -727,11 +727,12 @@ describe('LearningPathScreen', () => {
         );
 
         await waitFor(() => {
-          expect(getByText('Outline')).toBeTruthy();
+          expect(getByText('Now:')).toBeTruthy();
         });
 
-        // Open the drawer
-        fireEvent.press(getByText('Outline'));
+        // Open the drawer via CourseProgressBar
+        const outlineIcons = getAllByText('📋');
+        fireEvent.press(outlineIcons[0]);
 
         await waitFor(() => {
           expect(getByText('Course Outline')).toBeTruthy();
