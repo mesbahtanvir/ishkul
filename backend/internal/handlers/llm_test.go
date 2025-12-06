@@ -53,24 +53,39 @@ func TestInitializeLLM(t *testing.T) {
 		// In a real test environment, we'd mock the OpenAI client
 
 		// Save original values
+		originalChatManager := chatManager
+		originalProviderRegistry := providerRegistry
+		originalLLMProvider := llmProvider
+		originalActiveProviderType := activeProviderType
 		originalClient := openaiClient
 		originalLoader := promptLoader
 		originalRenderer := promptRenderer
 		originalCache := stepCache
+		originalPregenerateService := pregenerateService
 
 		// Reset after test
 		defer func() {
+			chatManager = originalChatManager
+			providerRegistry = originalProviderRegistry
+			llmProvider = originalLLMProvider
+			activeProviderType = originalActiveProviderType
 			openaiClient = originalClient
 			promptLoader = originalLoader
 			promptRenderer = originalRenderer
 			stepCache = originalCache
+			pregenerateService = originalPregenerateService
 		}()
 
 		// Reset globals
+		chatManager = nil
+		providerRegistry = nil
+		llmProvider = nil
+		activeProviderType = ""
 		openaiClient = nil
 		promptLoader = nil
 		promptRenderer = nil
 		stepCache = nil
+		pregenerateService = nil
 
 		// InitializeLLM should fail without OPENAI_API_KEY
 		err := InitializeLLM("nonexistent-prompts-dir")
