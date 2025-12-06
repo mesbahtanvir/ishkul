@@ -269,7 +269,7 @@ export const HomeScreen: React.FC = () => {
                 onDelete={handleDeletePath}
                 onArchive={selectedTab !== 'archived' ? handleArchivePath : undefined}
                 onRestore={selectedTab === 'archived' ? handleRestorePath : undefined}
-                showStatusActions={selectedTab === 'archived' || selectedTab === 'completed'}
+                showStatusActions
               />
             ))}
           </View>
