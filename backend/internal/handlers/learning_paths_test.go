@@ -685,7 +685,6 @@ func TestLearningPathCreateJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
 		req := models.LearningPathCreate{
 			Goal:  "Learn Go",
-			Level: "beginner",
 			Emoji: "🎯",
 		}
 
@@ -697,7 +696,6 @@ func TestLearningPathCreateJSON(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, parsed, "goal")
-		assert.Contains(t, parsed, "level")
 		assert.Contains(t, parsed, "emoji")
 	})
 }
@@ -705,7 +703,6 @@ func TestLearningPathCreateJSON(t *testing.T) {
 func TestLearningPathUpdateJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
 		goal := "Updated Goal"
-		level := "intermediate"
 		emoji := "🚀"
 		progress := 50
 		lessonsCompleted := 5
@@ -713,7 +710,6 @@ func TestLearningPathUpdateJSON(t *testing.T) {
 
 		req := models.LearningPathUpdate{
 			Goal:             &goal,
-			Level:            &level,
 			Emoji:            &emoji,
 			Progress:         &progress,
 			LessonsCompleted: &lessonsCompleted,
@@ -728,7 +724,6 @@ func TestLearningPathUpdateJSON(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, parsed, "goal")
-		assert.Contains(t, parsed, "level")
 		assert.Contains(t, parsed, "emoji")
 		assert.Contains(t, parsed, "progress")
 		assert.Contains(t, parsed, "lessonsCompleted")
