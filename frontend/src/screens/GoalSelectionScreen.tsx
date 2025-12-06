@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Container } from '../components/Container';
@@ -10,7 +10,13 @@ import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
-import { useScreenTracking, useOnboardingTracking } from '../services/analytics';
+import { useScreenTracking, useOnboardingTracking, useAnalytics } from '../services/analytics';
+import { useUserStore } from '../state/userStore';
+import { useLearningPathsStore, getEmojiForGoal } from '../state/learningPathsStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
+import { createUserDocument, getUserDocument, addLearningPath } from '../services/memory';
+import { learningPathsApi, ApiError, ErrorCodes } from '../services/api';
+import { LevelType } from '../types/app';
 
 type GoalSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoalSelection'>;
 type GoalSelectionScreenRouteProp = RouteProp<RootStackParamList, 'GoalSelection'>;
@@ -28,13 +34,21 @@ const EXAMPLE_GOALS = [
   { emoji: '💪', title: 'Get Fit' },
 ];
 
+// Default level for all new courses - level selection has been removed from the flow
+const DEFAULT_LEVEL: LevelType = 'beginner';
+
 export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
   navigation,
   route,
 }) => {
   useScreenTracking('GoalSelection', 'GoalSelectionScreen');
-  const { startOnboarding, selectGoal } = useOnboardingTracking();
+  const { startOnboarding, selectGoal, completeOnboarding } = useOnboardingTracking();
+  const { trackLearningPathCreated } = useAnalytics();
+  const { user, userDocument, setUserDocument } = useUserStore();
+  const { addPath } = useLearningPathsStore();
+  const { showUpgradePrompt } = useSubscriptionStore();
   const [goal, setGoal] = useState('');
+  const [loading, setLoading] = useState(false);
   const { responsive, isSmallPhone, isTablet } = useResponsive();
   const { colors } = useTheme();
   const isCreatingNewPath = route.params?.isCreatingNewPath ?? false;
@@ -46,15 +60,91 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
     }
   }, [isCreatingNewPath, startOnboarding]);
 
-  const handleNext = () => {
-    if (goal.trim()) {
-      // Track goal selection
-      selectGoal(goal.trim());
+  const handleNext = async () => {
+    if (!goal.trim() || !user) return;
 
-      navigation.navigate('LevelSelection', {
-        goal: goal.trim(),
-        isCreatingNewPath,
-      });
+    const trimmedGoal = goal.trim();
+
+    try {
+      setLoading(true);
+
+      // Track goal selection
+      selectGoal(trimmedGoal);
+
+      if (isCreatingNewPath && userDocument) {
+        // Creating a new learning path for existing user
+        const newPathData = {
+          goal: trimmedGoal,
+          level: DEFAULT_LEVEL,
+          emoji: getEmojiForGoal(trimmedGoal),
+        };
+
+        const createdPath = await addLearningPath(newPathData);
+        addPath(createdPath);
+
+        // Track learning path created
+        await trackLearningPathCreated({
+          path_id: createdPath.id,
+          goal: trimmedGoal,
+          level: DEFAULT_LEVEL,
+          is_first_path: false,
+        });
+
+        // Navigate to CourseGenerating to show outline generation progress
+        navigation.navigate('CourseGenerating', { pathId: createdPath.id });
+      } else {
+        // First-time user - create user document with first learning path
+        const firstPathData = {
+          goal: trimmedGoal,
+          level: DEFAULT_LEVEL,
+          emoji: getEmojiForGoal(trimmedGoal),
+        };
+
+        await createUserDocument(trimmedGoal, DEFAULT_LEVEL, firstPathData);
+
+        const userDoc = await getUserDocument();
+        setUserDocument(userDoc);
+
+        // Track onboarding complete for first-time users
+        await completeOnboarding(trimmedGoal, DEFAULT_LEVEL);
+
+        // Fetch the created path from the user document
+        const fetchedPaths = await learningPathsApi.getPaths();
+        if (fetchedPaths.length > 0) {
+          const createdPath = fetchedPaths[0];
+          addPath(createdPath);
+
+          // Track learning path created
+          await trackLearningPathCreated({
+            path_id: createdPath.id,
+            goal: trimmedGoal,
+            level: DEFAULT_LEVEL,
+            is_first_path: true,
+          });
+
+          // Navigate to Main first, then to CourseGenerating
+          navigation.replace('Main');
+          // Use setTimeout to ensure Main is mounted before navigating to CourseGenerating
+          setTimeout(() => {
+            navigation.navigate('CourseGenerating', { pathId: createdPath.id });
+          }, 100);
+        } else {
+          // Fallback: just navigate to Main
+          navigation.replace('Main');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving:', error);
+
+      // Check if this is a path limit error
+      if (error instanceof ApiError && error.code === ErrorCodes.PATH_LIMIT_REACHED) {
+        // Show upgrade modal instead of generic error
+        showUpgradePrompt('path_limit');
+      } else {
+        Alert.alert('Error', 'Failed to save. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -123,9 +213,10 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
         </View>
 
         <Button
-          title="Next →"
+          title="Start Learning →"
           onPress={handleNext}
           disabled={!goal.trim()}
+          loading={loading}
         />
       </View>
     </Container>
