@@ -20,10 +20,10 @@ const (
 
 // LearningPath represents a user's learning journey for a specific goal
 type LearningPath struct {
-	ID    string `json:"id" firestore:"id"`
-	UserID string `json:"userId" firestore:"userId"`
-	Goal   string `json:"goal" firestore:"goal"`
-	Emoji  string `json:"emoji" firestore:"emoji"`
+	ID               string  `json:"id" firestore:"id"`
+	UserID           string  `json:"userId" firestore:"userId"`
+	Goal             string  `json:"goal" firestore:"goal"`
+	Emoji            string  `json:"emoji" firestore:"emoji"`
 	Status           string  `json:"status" firestore:"status"`                     // active, completed, archived, deleted
 	OutlineStatus    string  `json:"outlineStatus" firestore:"outlineStatus"`       // generating, ready, failed
 	Progress         int     `json:"progress" firestore:"progress"`                 // 0-100

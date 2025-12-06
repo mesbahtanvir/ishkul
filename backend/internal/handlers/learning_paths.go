@@ -386,10 +386,10 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 	pathID := uuid.New().String()
 
 	path := models.LearningPath{
-		ID:     pathID,
-		UserID: userID,
-		Goal:   req.Goal,
-		Emoji:  req.Emoji,
+		ID:               pathID,
+		UserID:           userID,
+		Goal:             req.Goal,
+		Emoji:            req.Emoji,
 		Status:           models.PathStatusActive,
 		OutlineStatus:    models.OutlineStatusGenerating, // Outline is being generated
 		Progress:         0,
