@@ -1,7 +1,7 @@
 import {
   getUserDocument,
   createUserDocument,
-  updateUserGoalAndLevel,
+  updateUserGoal,
   updateUserHistory,
   updateNextStep,
   clearNextStep,
@@ -13,7 +13,7 @@ jest.mock('../api', () => ({
   userApi: {
     getUserDocument: jest.fn(),
     createUserDocument: jest.fn(),
-    updateGoalAndLevel: jest.fn(),
+    updateGoal: jest.fn(),
     addHistory: jest.fn(),
     setNextStep: jest.fn(),
     clearNextStep: jest.fn(),
@@ -33,7 +33,6 @@ describe('Memory Service', () => {
       const mockDocument = {
         uid: 'user123',
         goal: 'Learn Python',
-        level: 'beginner',
         memory: { topics: {} },
         history: [],
         createdAt: Date.now(),
@@ -58,25 +57,22 @@ describe('Memory Service', () => {
   });
 
   describe('createUserDocument', () => {
-    it('should call userApi.createUserDocument with goal and level', async () => {
+    it('should call userApi.createUserDocument with goal', async () => {
       (userApi.createUserDocument as jest.Mock).mockResolvedValue(undefined);
 
-      await createUserDocument('Learn Python', 'beginner');
+      await createUserDocument('Learn Python');
 
-      expect(userApi.createUserDocument).toHaveBeenCalledWith('Learn Python', 'beginner');
+      expect(userApi.createUserDocument).toHaveBeenCalledWith('Learn Python');
     });
   });
 
-  describe('updateUserGoalAndLevel', () => {
-    it('should call userApi.updateGoalAndLevel', async () => {
-      (userApi.updateGoalAndLevel as jest.Mock).mockResolvedValue(undefined);
+  describe('updateUserGoal', () => {
+    it('should call userApi.updateGoal', async () => {
+      (userApi.updateGoal as jest.Mock).mockResolvedValue(undefined);
 
-      await updateUserGoalAndLevel('Learn JavaScript', 'intermediate');
+      await updateUserGoal('Learn JavaScript');
 
-      expect(userApi.updateGoalAndLevel).toHaveBeenCalledWith(
-        'Learn JavaScript',
-        'intermediate'
-      );
+      expect(userApi.updateGoal).toHaveBeenCalledWith('Learn JavaScript');
     });
   });
 

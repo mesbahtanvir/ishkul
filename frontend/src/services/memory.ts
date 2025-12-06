@@ -11,7 +11,6 @@ import {
   UserDocument,
   HistoryEntry,
   NextStep,
-  LevelType,
   LearningPath,
   Step,
   StepCompleteRequest,
@@ -25,15 +24,15 @@ export const getUserDocument = async (): Promise<UserDocument | null> => {
 };
 
 /**
- * Create or initialize user document with goal and level
+ * Create or initialize user document with goal
  * Optionally includes the first learning path
+ * Level is no longer required - AI adapts based on user context
  */
 export const createUserDocument = async (
   goal: string,
-  level: LevelType,
   firstPath?: Partial<LearningPath>
 ): Promise<void> => {
-  await userApi.createUserDocument(goal, level);
+  await userApi.createUserDocument(goal);
 
   // If a first path is provided, create it
   if (firstPath) {
@@ -155,13 +154,12 @@ export const completePathStep = async (
 };
 
 /**
- * Update user's goal and level
+ * Update user's goal
  */
-export const updateUserGoalAndLevel = async (
-  goal: string,
-  level: LevelType
+export const updateUserGoal = async (
+  goal: string
 ): Promise<void> => {
-  await userApi.updateGoalAndLevel(goal, level);
+  await userApi.updateGoal(goal);
 };
 
 /**

@@ -338,8 +338,8 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Goal == "" || req.Level == "" {
-		http.Error(w, "Goal and level are required", http.StatusBadRequest)
+	if req.Goal == "" {
+		http.Error(w, "Goal is required", http.StatusBadRequest)
 		return
 	}
 
@@ -386,11 +386,10 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 	pathID := uuid.New().String()
 
 	path := models.LearningPath{
-		ID:               pathID,
-		UserID:           userID,
-		Goal:             req.Goal,
-		Level:            req.Level,
-		Emoji:            req.Emoji,
+		ID:     pathID,
+		UserID: userID,
+		Goal:   req.Goal,
+		Emoji:  req.Emoji,
 		Status:           models.PathStatusActive,
 		OutlineStatus:    models.OutlineStatusGenerating, // Outline is being generated
 		Progress:         0,
@@ -412,7 +411,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 
 	// Generate course outline in the background
 	// NOTE: First step pregeneration happens AFTER outline is ready (inside this goroutine)
-	go func(pathID, goal, level, userID string) {
+	go func(pathID, goal, userID string) {
 		bgCtx := context.Background()
 		bgFs := firebase.GetFirestore()
 
@@ -423,7 +422,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 
-		outline, err := generateCourseOutline(goal, level)
+		outline, err := generateCourseOutline(goal)
 		if err != nil {
 			if appLogger != nil {
 				logger.Error(appLogger, bgCtx, "outline_generation_failed",
@@ -498,7 +497,6 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 					ID:              pathID,
 					UserID:          userID,
 					Goal:            goal,
-					Level:           level,
 					Steps:           []models.Step{},
 					Outline:         outline,
 					OutlinePosition: outlinePosition,
@@ -526,7 +524,7 @@ func createLearningPath(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-	}(pathID, req.Goal, req.Level, userID)
+	}(pathID, req.Goal, userID)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -585,9 +583,6 @@ func updateLearningPath(w http.ResponseWriter, r *http.Request, pathID string) {
 
 	if req.Goal != nil {
 		updates = append(updates, firestore.Update{Path: "goal", Value: *req.Goal})
-	}
-	if req.Level != nil {
-		updates = append(updates, firestore.Update{Path: "level", Value: *req.Level})
 	}
 	if req.Emoji != nil {
 		updates = append(updates, firestore.Update{Path: "emoji", Value: *req.Emoji})
@@ -1125,7 +1120,6 @@ func generateNextStepForPath(path *models.LearningPath) (*models.Step, error) {
 	// Prepare variables for the prompt
 	vars := prompts.Variables{
 		"goal":          path.Goal,
-		"level":         path.Level,
 		"historyCount":  strconv.Itoa(len(path.Steps)),
 		"memory":        memorySummary,
 		"recentHistory": recentHistory,
@@ -1797,7 +1791,7 @@ func inferCategory(goal string) string {
 }
 
 // generateCourseOutline generates a course outline using the LLM
-func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
+func generateCourseOutline(goal string) (*models.CourseOutline, error) {
 	if openaiClient == nil || promptLoader == nil {
 		return nil, fmt.Errorf("LLM not initialized")
 	}
@@ -1810,7 +1804,6 @@ func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
 
 	vars := prompts.Variables{
 		"goal":             goal,
-		"level":            level,
 		"toolDescriptions": toolDescriptions,
 		"category":         category,
 	}
@@ -1956,7 +1949,6 @@ func compactMemory(path *models.LearningPath, upToStepIndex int) error {
 
 	vars := prompts.Variables{
 		"goal":            path.Goal,
-		"level":           path.Level,
 		"previousSummary": previousSummary,
 		"steps":           strings.Join(stepSummaries, "\n"),
 		"stepCount":       strconv.Itoa(len(stepsToCompact)),

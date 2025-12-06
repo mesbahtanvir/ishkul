@@ -96,7 +96,6 @@ describe('ProgressScreen', () => {
       mockUserDocument = {
         uid: 'test-user-123',
         goal: 'Learn Python',
-        level: 'beginner',
         learningPaths: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -127,12 +126,6 @@ describe('ProgressScreen', () => {
 
       expect(getByText('Learning Goal')).toBeTruthy();
       expect(getByText('Learn Python')).toBeTruthy();
-    });
-
-    it('should display the level badge', () => {
-      const { getByText } = render(<ProgressScreen />);
-
-      expect(getByText('beginner')).toBeTruthy();
     });
 
     it('should display lessons completed stat', () => {
@@ -194,7 +187,6 @@ describe('ProgressScreen', () => {
       mockUserDocument = {
         uid: 'test-user-123',
         goal: 'Learn React',
-        level: 'intermediate',
         learningPaths: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -224,7 +216,6 @@ describe('ProgressScreen', () => {
       mockUserDocument = {
         uid: 'test-user-123',
         goal: 'Learn React',
-        level: 'intermediate',
         learningPaths: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -249,7 +240,6 @@ describe('ProgressScreen', () => {
       mockUserDocument = {
         uid: 'test-user-123',
         goal: 'Learn Go',
-        level: 'advanced',
         learningPaths: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -280,7 +270,6 @@ describe('ProgressScreen', () => {
       mockUserDocument = {
         uid: 'test-user-123',
         goal: 'Test',
-        level: 'beginner',
         learningPaths: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),

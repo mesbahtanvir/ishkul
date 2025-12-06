@@ -7,7 +7,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { analytics } from './analyticsService';
-import type { StepType, Level, ThemeMode } from './events';
+import type { StepType, ThemeMode } from './events';
 import { ScreenNames } from './events';
 
 // =============================================================================
@@ -32,7 +32,6 @@ export function useAnalytics() {
     // Onboarding
     trackOnboardingStart: analytics.trackOnboardingStart.bind(analytics),
     trackGoalSelected: analytics.trackGoalSelected.bind(analytics),
-    trackLevelSelected: analytics.trackLevelSelected.bind(analytics),
     trackOnboardingComplete: analytics.trackOnboardingComplete.bind(analytics),
 
     // Learning Path
@@ -322,8 +321,7 @@ export function useQuizTracking(params: QuizTrackingParams): QuizTrackingResult 
 interface OnboardingTrackingResult {
   startOnboarding: (isNewUser: boolean) => void;
   selectGoal: (goal: string) => void;
-  selectLevel: (level: Level) => void;
-  completeOnboarding: (goal: string, level: Level) => Promise<void>;
+  completeOnboarding: (goal: string) => Promise<void>;
 }
 
 /**
@@ -341,25 +339,20 @@ export function useOnboardingTracking(): OnboardingTrackingResult {
     analytics.trackGoalSelected({ goal });
   }, []);
 
-  const selectLevel = useCallback((level: Level) => {
-    analytics.trackLevelSelected({ level });
-  }, []);
-
   const completeOnboarding = useCallback(
-    async (goal: string, level: Level) => {
+    async (goal: string) => {
       const durationSec = Math.floor(
         (Date.now() - startTimeRef.current) / 1000
       );
       await analytics.trackOnboardingComplete({
         goal,
-        level,
         duration_sec: durationSec,
       });
     },
     []
   );
 
-  return { startOnboarding, selectGoal, selectLevel, completeOnboarding };
+  return { startOnboarding, selectGoal, completeOnboarding };
 }
 
 // =============================================================================

@@ -46,7 +46,6 @@ describe('PathStatus', () => {
     const createValidPath = (overrides: Partial<LearningPath> = {}): LearningPath => ({
       id: 'test-id',
       goal: 'Learn Python',
-      level: 'beginner',
       emoji: '🐍',
       progress: 50,
       lessonsCompleted: 5,
