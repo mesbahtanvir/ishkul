@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/openai"
 )
 
@@ -121,17 +122,21 @@ func (r *Renderer) RenderToRequest(template *PromptTemplate, vars Variables) (*o
 
 // RenderToRequestWithTier creates a complete OpenAI request from a template with tier-aware model selection
 // Pro users get upgraded to gpt-5-pro for premium experience; free users use gpt-4o-mini
+// Uses OpenAI as the default provider for backwards compatibility
 func (r *Renderer) RenderToRequestWithTier(template *PromptTemplate, vars Variables, tier string) (*openai.ChatCompletionRequest, error) {
+	return r.RenderToRequestWithTierAndProvider(template, vars, tier, llm.ProviderOpenAI)
+}
+
+// RenderToRequestWithTierAndProvider creates a complete chat completion request with tier and provider-aware model selection
+// Pro users get upgraded to better models; the specific model depends on the provider
+func (r *Renderer) RenderToRequestWithTierAndProvider(template *PromptTemplate, vars Variables, tier string, provider llm.ProviderType) (*openai.ChatCompletionRequest, error) {
 	messages, err := r.Render(template, vars)
 	if err != nil {
 		return nil, err
 	}
 
-	model := template.Model
-	// Pro users get upgraded to gpt-5-pro for learning steps if template is using mini
-	if tier == "pro" && template.Model == "gpt-4o-mini" {
-		model = "gpt-5-pro-2025-10-06"
-	}
+	// Get the appropriate model for the provider and tier
+	model := llm.GetModelForProvider(provider, tier, template.Model)
 
 	req := &openai.ChatCompletionRequest{
 		Model:       model,

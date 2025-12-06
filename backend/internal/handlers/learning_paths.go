@@ -1015,7 +1015,7 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 				logger.Error(appLogger, ctx, "failed_to_generate_next_step",
 					slog.String("path_id", pathID),
 					slog.String("error", genErr.Error()),
-					slog.String("openai_client_nil", fmt.Sprintf("%v", openaiClient == nil)),
+					slog.String("llm_provider_nil", fmt.Sprintf("%v", llmProvider == nil)),
 					slog.String("prompt_loader_nil", fmt.Sprintf("%v", promptLoader == nil)),
 				)
 			}
@@ -1090,11 +1090,11 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, pathID string) {
 // generateNextStepForPath generates the next learning step using the LLM
 func generateNextStepForPath(path *models.LearningPath) (*models.Step, error) {
 	// Check if LLM is initialized
-	if openaiClient == nil || promptLoader == nil {
+	if llmProvider == nil || promptLoader == nil {
 		if appLogger != nil {
 			logger.Error(appLogger, context.Background(), "llm_not_initialized",
 				slog.String("path_id", path.ID),
-				slog.String("openai_client_nil", fmt.Sprintf("%v", openaiClient == nil)),
+				slog.String("llm_provider_nil", fmt.Sprintf("%v", llmProvider == nil)),
 				slog.String("prompt_loader_nil", fmt.Sprintf("%v", promptLoader == nil)),
 			)
 		}
@@ -1161,14 +1161,14 @@ func generateNextStepForPath(path *models.LearningPath) (*models.Step, error) {
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	// Call OpenAI
-	completion, err := openaiClient.CreateChatCompletion(*openaiReq)
+	// Call LLM provider
+	completion, err := llmProvider.CreateChatCompletion(*openaiReq)
 	if err != nil {
-		return nil, fmt.Errorf("OpenAI API error: %w", err)
+		return nil, fmt.Errorf("%s API error: %w", llmProvider.Name(), err)
 	}
 
 	if len(completion.Choices) == 0 {
-		return nil, fmt.Errorf("no completion returned from OpenAI")
+		return nil, fmt.Errorf("no completion returned from %s", llmProvider.Name())
 	}
 
 	content := completion.Choices[0].Message.Content
@@ -1798,7 +1798,7 @@ func inferCategory(goal string) string {
 
 // generateCourseOutline generates a course outline using the LLM
 func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
-	if openaiClient == nil || promptLoader == nil {
+	if llmProvider == nil || promptLoader == nil {
 		return nil, fmt.Errorf("LLM not initialized")
 	}
 
@@ -1826,13 +1826,13 @@ func generateCourseOutline(goal, level string) (*models.CourseOutline, error) {
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	completion, err := openaiClient.CreateChatCompletion(*openaiReq)
+	completion, err := llmProvider.CreateChatCompletion(*openaiReq)
 	if err != nil {
-		return nil, fmt.Errorf("OpenAI API error: %w", err)
+		return nil, fmt.Errorf("%s API error: %w", llmProvider.Name(), err)
 	}
 
 	if len(completion.Choices) == 0 {
-		return nil, fmt.Errorf("no completion returned from OpenAI")
+		return nil, fmt.Errorf("no completion returned from %s", llmProvider.Name())
 	}
 
 	content := completion.Choices[0].Message.Content
@@ -1931,7 +1931,7 @@ func countOutlineTopics(outline *models.CourseOutline) int {
 
 // compactMemory uses LLM to summarize learning progress
 func compactMemory(path *models.LearningPath, upToStepIndex int) error {
-	if openaiClient == nil || promptLoader == nil {
+	if llmProvider == nil || promptLoader == nil {
 		return fmt.Errorf("LLM not initialized")
 	}
 
@@ -1973,13 +1973,13 @@ func compactMemory(path *models.LearningPath, upToStepIndex int) error {
 		return fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	completion, err := openaiClient.CreateChatCompletion(*openaiReq)
+	completion, err := llmProvider.CreateChatCompletion(*openaiReq)
 	if err != nil {
-		return fmt.Errorf("OpenAI API error: %w", err)
+		return fmt.Errorf("%s API error: %w", llmProvider.Name(), err)
 	}
 
 	if len(completion.Choices) == 0 {
-		return fmt.Errorf("no completion returned from OpenAI")
+		return fmt.Errorf("no completion returned from %s", llmProvider.Name())
 	}
 
 	content := completion.Choices[0].Message.Content
