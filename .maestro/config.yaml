@@ -1,0 +1,31 @@
+# Maestro Configuration
+# https://maestro.mobile.dev/
+
+# App configuration
+appId: com.ishkul.app
+
+# Default settings
+flows:
+  - flows/**/*.yaml
+
+# Environment variables (can be overridden in CI)
+env:
+  # Staging environment
+  STAGING_URL: "https://ishkul-backend-staging-1086267507068.northamerica-northeast1.run.app"
+
+  # Test user credentials (set in CI secrets)
+  # TEST_EMAIL: ""
+  # TEST_PASSWORD: ""
+
+# Tags for filtering tests
+tags:
+  smoke:
+    - flows/smoke-test.yaml
+  auth:
+    - flows/auth/*.yaml
+  learning:
+    - flows/learning/*.yaml
+  critical:
+    - flows/smoke-test.yaml
+    - flows/auth/login.yaml
+    - flows/learning/start-lesson.yaml

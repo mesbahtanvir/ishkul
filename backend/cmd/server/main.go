@@ -140,6 +140,7 @@ func main() {
 	authMux.HandleFunc("/api/auth/register", handlers.Register)
 	authMux.HandleFunc("/api/auth/refresh", handlers.Refresh)
 	authMux.HandleFunc("/api/auth/logout", handlers.Logout)
+
 	mux.Handle("/api/auth/", ddosProtection.ProtectAuth(middleware.CORS(authMux)))
 
 	// Standard protected routes - standard rate limits

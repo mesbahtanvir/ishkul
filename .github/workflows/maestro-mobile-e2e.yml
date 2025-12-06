@@ -1,0 +1,177 @@
+name: Mobile E2E Tests (Maestro)
+
+on:
+  # Manual trigger only - mobile tests require special setup
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to test'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+      flows:
+        description: 'Test flows to run (comma-separated or "all")'
+        required: true
+        default: 'smoke'
+        type: string
+
+env:
+  MAESTRO_VERSION: '1.36.0'
+
+jobs:
+  # Android E2E Tests
+  android-e2e:
+    name: Android E2E Tests
+    runs-on: ubuntu-latest
+    if: github.event.inputs.platform == 'android'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build Expo Android
+        run: |
+          cd frontend
+          npx expo prebuild --platform android
+          cd android && ./gradlew assembleDebug
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-29-default
+
+      - name: Create AVD and run tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          profile: Nexus 6
+          script: |
+            adb install frontend/android/app/build/outputs/apk/debug/app-debug.apk
+            if [ "${{ github.event.inputs.flows }}" == "all" ]; then
+              maestro test .maestro/
+            elif [ "${{ github.event.inputs.flows }}" == "smoke" ]; then
+              maestro test .maestro/flows/smoke-test.yaml
+            else
+              for flow in $(echo "${{ github.event.inputs.flows }}" | tr ',' ' '); do
+                maestro test .maestro/flows/$flow.yaml
+              done
+            fi
+
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro-android-screenshots
+          path: ~/.maestro/tests/
+          retention-days: 14
+
+  # iOS E2E Tests (macOS runner required)
+  ios-e2e:
+    name: iOS E2E Tests
+    runs-on: macos-latest
+    if: github.event.inputs.platform == 'ios'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build Expo iOS
+        run: |
+          cd frontend
+          npx expo prebuild --platform ios
+          cd ios && xcodebuild -workspace ishkul.xcworkspace -scheme ishkul -configuration Debug -sdk iphonesimulator -derivedDataPath build
+
+      - name: Boot Simulator
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 14" | head -1 | grep -o '[0-9A-F-]\{36\}')
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl install "$DEVICE_ID" frontend/ios/build/Build/Products/Debug-iphonesimulator/ishkul.app
+
+      - name: Run Maestro Tests
+        run: |
+          if [ "${{ github.event.inputs.flows }}" == "all" ]; then
+            maestro test .maestro/
+          elif [ "${{ github.event.inputs.flows }}" == "smoke" ]; then
+            maestro test .maestro/flows/smoke-test.yaml
+          else
+            for flow in $(echo "${{ github.event.inputs.flows }}" | tr ',' ' '); do
+              maestro test .maestro/flows/$flow.yaml
+            done
+          fi
+        continue-on-error: true
+
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro-ios-screenshots
+          path: ~/.maestro/tests/
+          retention-days: 14
+
+  # Maestro Cloud (Alternative - no emulator needed)
+  maestro-cloud:
+    name: Maestro Cloud Tests
+    runs-on: ubuntu-latest
+    if: false  # Enable when Maestro Cloud is configured
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run on Maestro Cloud
+        uses: mobile-dev-inc/action-maestro-cloud@v1
+        with:
+          api-key: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
+          project-id: ${{ secrets.MAESTRO_PROJECT_ID }}
+          app-file: path/to/app.apk
+          include-tags: ${{ github.event.inputs.flows == 'all' && '' || github.event.inputs.flows }}

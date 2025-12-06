@@ -1,0 +1,57 @@
+# Maestro Learning Path Flow
+# Tests viewing and navigating learning paths
+# Run: maestro test .maestro/flows/learning/view-learning-path.yaml
+
+appId: com.ishkul.app
+tags:
+  - learning
+  - critical
+---
+
+# Launch app (assumes logged in state)
+- launchApp
+
+# Wait for main screen to load
+- extendedWaitUntil:
+    visible: "Learning|Path|Home|Dashboard"
+    regex: true
+    timeout: 15000
+
+- takeScreenshot: learning-home
+
+# Navigate to learning paths if not already there
+- tapOn:
+    text: "Learning|Paths|Learn|Home"
+    regex: true
+    optional: true
+
+# Wait for learning paths to load
+- extendedWaitUntil:
+    visible: "Path|Lesson|Course|Module|Topic"
+    regex: true
+    timeout: 10000
+
+- takeScreenshot: learning-paths-list
+
+# Verify learning path content is visible
+- assertVisible:
+    text: "Lesson|Quiz|Exercise|Module|Start|Continue"
+    regex: true
+
+# Tap on first available learning path or lesson
+- tapOn:
+    text: "Start|Continue|Begin|View|Lesson"
+    regex: true
+    index: 0
+
+# Wait for lesson/path details to load
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 10000
+
+- takeScreenshot: learning-path-detail
+
+# Verify we can see lesson content
+- assertVisible:
+    text: "Lesson|Content|Start|Next|Back|Quiz"
+    regex: true

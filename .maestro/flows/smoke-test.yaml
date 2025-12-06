@@ -1,0 +1,39 @@
+# Maestro Smoke Test
+# Quick sanity check that the app launches and basic UI works
+# Run: maestro test .maestro/flows/smoke-test.yaml
+
+appId: com.ishkul.app
+tags:
+  - smoke
+  - critical
+---
+
+# Launch the app
+- launchApp:
+    clearState: true
+
+# Wait for app to load
+- extendedWaitUntil:
+    visible: ".*"  # Any content visible
+    timeout: 10000
+
+# Verify splash/welcome screen appears
+- assertVisible:
+    text: "ishkul|Ishkul|Welcome|Sign|Learn"
+    regex: true
+
+# Take screenshot for visual verification
+- takeScreenshot: smoke-test-launch
+
+# If we see a sign-in button, the app loaded correctly
+- assertVisible:
+    text: "Sign|Google|Continue|Get Started"
+    regex: true
+
+# Verify no crash dialogs
+- assertNotVisible:
+    text: "crashed|error|stopped|Unfortunately"
+    regex: true
+
+# Take final screenshot
+- takeScreenshot: smoke-test-complete

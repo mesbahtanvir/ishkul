@@ -19,6 +19,11 @@ ishkul/
 │   └── pkg/firebase/      # Firebase Admin SDK
 ├── firebase/              # Firestore rules & config
 ├── prompts/               # LLM prompts (.prompt.yml) - works with GitHub Models & backend
+├── tests/                 # E2E & Performance tests
+│   ├── k6/               # Load/stress testing (k6)
+│   └── postman/          # API functional tests (Newman)
+├── e2e/                   # Web E2E tests (Playwright)
+├── .maestro/              # Mobile E2E tests (Maestro)
 ├── .github/
 │   ├── workflows/         # GitHub Actions CI/CD
 │   └── copilot-instructions.md  # Repository-wide Copilot instructions
@@ -43,6 +48,21 @@ go test ./...               # Run tests
 gcloud run deploy ishkul-backend --source .  # Deploy to Cloud Run
 ```
 
+### E2E & Performance Testing
+```bash
+# API functional tests (Newman)
+newman run tests/postman/ishkul-api.collection.json -e tests/postman/staging.environment.json
+
+# Load testing (k6)
+k6 run tests/k6/smoke-test.js --env USE_STAGING=true
+
+# Web E2E (Playwright)
+cd e2e && npm test
+
+# Mobile E2E (Maestro)
+maestro test .maestro/flows/smoke-test.yaml
+```
+
 ## 🎯 Feature Implementation Checklist
 
 When implementing a new feature, consider ALL of the following:
@@ -51,6 +71,7 @@ When implementing a new feature, consider ALL of the following:
 - [ ] **Backend changes** - API endpoints, handlers, business logic
 - [ ] **Unit tests** - Test individual functions and components
 - [ ] **Integration tests** - Test interactions between components/services
+- [ ] **E2E tests** - Add Playwright/Maestro tests for critical user flows
 - [ ] **Infrastructure changes** - Firebase rules, Cloud Run config, environment variables
 
 ## 📋 After Making Code Changes - CHECKLIST
@@ -180,6 +201,7 @@ For detailed information, see:
 - **[docs/PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Detailed architecture
 - **[docs/ENV_SYNC_GUIDE.md](docs/ENV_SYNC_GUIDE.md)** - Dynamic environment variable syncing
 - **[docs/ANALYTICS.md](docs/ANALYTICS.md)** - Analytics strategy, events, funnels (WIP)
+- **[docs/TESTING.md](docs/TESTING.md)** - E2E testing guide (k6, Playwright, Maestro, Newman)
 - **[frontend/DESIGN_SYSTEM.md](frontend/DESIGN_SYSTEM.md)** - UI/UX design tokens
 
 ## 🚀 Quick Deploy
@@ -256,5 +278,5 @@ For more, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
-**Last Updated**: 2025-12-05 | **Version**: 2.3.0 | **Status**: Production Ready ✅
-*Updated: Simplified workflows (9→6), unified env sync script, preview→staging isolation*
+**Last Updated**: 2025-12-06 | **Version**: 2.4.0 | **Status**: Production Ready ✅
+*Updated: Added E2E testing infrastructure (k6, Playwright, Maestro, Newman)*
