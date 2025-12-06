@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -249,17 +250,22 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
     }
   };
 
+  // Hide back button on web - navigation is via sidebar
+  const showBackButton = Platform.OS !== 'web';
+
   // Main content component (shared between mobile and web layouts)
   const MainContent = (
     <View style={styles.mainContent}>
-      {/* Top bar with back button and action buttons */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>
-            ← Back
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* Top bar with back button (mobile only) */}
+      {showBackButton && (
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>
+              ← Back
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Mobile: Course progress bar (tappable) */}
       {isMobile && activePath.outline && (
