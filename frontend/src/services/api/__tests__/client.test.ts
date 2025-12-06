@@ -1,186 +1,213 @@
-import { ApiError, apiClient } from '../client';
+import { apiClient, ApiError } from '../client';
+import { tokenStorage } from '../tokenStorage';
 
-// Mock tokenStorage
+// Mock dependencies
 jest.mock('../tokenStorage', () => ({
   tokenStorage: {
     initialize: jest.fn().mockResolvedValue(undefined),
-    getAccessToken: jest.fn(),
-    getRefreshToken: jest.fn(),
-    hasTokens: jest.fn(),
-    isAccessTokenExpired: jest.fn(),
-    saveTokens: jest.fn(),
-    clearTokens: jest.fn(),
+    hasTokens: jest.fn().mockReturnValue(true),
+    getAccessToken: jest.fn().mockReturnValue('mock-access-token'),
+    getRefreshToken: jest.fn().mockReturnValue('mock-refresh-token'),
+    isAccessTokenExpired: jest.fn().mockReturnValue(false),
+    saveTokens: jest.fn().mockResolvedValue(undefined),
+    clearTokens: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
-// Mock firebase.config
-jest.mock('../../../config/firebase.config', () => ({
+jest.mock('../../config/firebase.config', () => ({
   apiConfig: {
-    baseURL: 'http://localhost:8080/api',
+    baseURL: 'https://api.test.com',
   },
 }));
 
-import { tokenStorage } from '../tokenStorage';
-
-describe('ApiError', () => {
-  it('should create error with message and status', () => {
-    const error = new ApiError('Not Found', 404);
-
-    expect(error.message).toBe('Not Found');
-    expect(error.status).toBe(404);
-    expect(error.name).toBe('ApiError');
-  });
-
-  it('should be instance of Error', () => {
-    const error = new ApiError('Error', 500);
-    expect(error).toBeInstanceOf(Error);
-  });
-});
+// Mock global fetch
+global.fetch = jest.fn();
+const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
 
 describe('ApiClient', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockClear();
+    mockFetch.mockReset();
+  });
+
+  describe('ApiError', () => {
+    it('should create error with message and status', () => {
+      const error = new ApiError('Not found', 404);
+
+      expect(error.message).toBe('Not found');
+      expect(error.status).toBe(404);
+      expect(error.name).toBe('ApiError');
+    });
+
+    it('should be an instance of Error', () => {
+      const error = new ApiError('Test error', 500);
+
+      expect(error).toBeInstanceOf(Error);
+    });
   });
 
   describe('request', () => {
-    it('should make GET request without auth for skipAuth', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+    it('should make request with correct URL', async () => {
+      mockFetch.mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve(JSON.stringify({ data: 'test' })),
-        status: 200,
-      });
+        text: () => Promise.resolve('{"data": "test"}'),
+      } as Response);
 
-      const result = await apiClient.get('/test', { skipAuth: true });
+      await apiClient.get('/test-endpoint');
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/test',
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.test.com/test-endpoint',
+        expect.any(Object)
+      );
+    });
+
+    it('should include Content-Type header', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve('{}'),
+      } as Response);
+
+      await apiClient.get('/test');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
         expect.objectContaining({
-          method: 'GET',
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
           }),
         })
       );
-      expect(result).toEqual({ data: 'test' });
     });
 
-    it('should add Authorization header when token available', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(true);
-      (tokenStorage.isAccessTokenExpired as jest.Mock).mockReturnValue(false);
-      (tokenStorage.getAccessToken as jest.Mock).mockReturnValue('valid-token');
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+    it('should include Authorization header when token exists', async () => {
+      mockFetch.mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve(JSON.stringify({ data: 'test' })),
-        status: 200,
-      });
+        text: () => Promise.resolve('{}'),
+      } as Response);
 
-      await apiClient.get('/protected');
+      await apiClient.get('/test');
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/protected',
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
-            Authorization: 'Bearer valid-token',
+            Authorization: 'Bearer mock-access-token',
           }),
         })
       );
     });
 
-    it('should throw ApiError on non-ok response', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(false);
+    it('should skip auth when skipAuth is true', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve('{}'),
+      } as Response);
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        text: () => Promise.resolve('Not Found'),
-        status: 404,
-      });
+      await apiClient.get('/test', { skipAuth: true });
 
-      await expect(apiClient.get('/notfound', { skipAuth: true })).rejects.toThrow(
-        ApiError
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.not.objectContaining({
+            Authorization: expect.any(String),
+          }),
+        })
       );
+    });
+
+    it('should parse JSON response', async () => {
+      const responseData = { id: 1, name: 'Test' };
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(responseData)),
+      } as Response);
+
+      const result = await apiClient.get<typeof responseData>('/test');
+
+      expect(result).toEqual(responseData);
     });
 
     it('should handle empty response', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(false);
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(''),
-        status: 200,
-      });
+      } as Response);
 
-      const result = await apiClient.get('/empty', { skipAuth: true });
+      const result = await apiClient.get('/test');
+
       expect(result).toEqual({});
     });
 
-    it('should throw ApiError on network error', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(false);
+    it('should throw ApiError for non-ok response', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        text: () => Promise.resolve('Not found'),
+      } as Response);
 
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+      await expect(apiClient.get('/test')).rejects.toThrow(ApiError);
+      await expect(apiClient.get('/test')).rejects.toMatchObject({
+        status: 404,
+      });
+    });
 
-      await expect(apiClient.get('/test', { skipAuth: true })).rejects.toThrow(
-        ApiError
-      );
+    it('should throw ApiError for network errors', async () => {
+      mockFetch.mockRejectedValue(new Error('Network error'));
+
+      await expect(apiClient.get('/test')).rejects.toThrow(ApiError);
+      await expect(apiClient.get('/test')).rejects.toMatchObject({
+        status: 0,
+      });
     });
   });
 
   describe('get', () => {
     it('should make GET request', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(false);
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve(JSON.stringify({ id: 1 })),
-        status: 200,
-      });
+        text: () => Promise.resolve('{}'),
+      } as Response);
 
-      const result = await apiClient.get('/users/1', { skipAuth: true });
+      await apiClient.get('/test');
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/users/1',
-        expect.objectContaining({ method: 'GET' })
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          method: 'GET',
+        })
       );
-      expect(result).toEqual({ id: 1 });
     });
   });
 
   describe('post', () => {
     it('should make POST request with body', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(false);
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve(JSON.stringify({ created: true })),
-        status: 201,
-      });
+        text: () => Promise.resolve('{}'),
+      } as Response);
 
-      const result = await apiClient.post('/users', { name: 'Test' }, { skipAuth: true });
+      const data = { name: 'Test' };
+      await apiClient.post('/test', data);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/users',
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ name: 'Test' }),
+          body: JSON.stringify(data),
         })
       );
-      expect(result).toEqual({ created: true });
     });
 
-    it('should make POST request without body', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(false);
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+    it('should handle POST without body', async () => {
+      mockFetch.mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve(JSON.stringify({ success: true })),
-        status: 200,
-      });
+        text: () => Promise.resolve('{}'),
+      } as Response);
 
-      await apiClient.post('/action', undefined, { skipAuth: true });
+      await apiClient.post('/test');
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/action',
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
         expect.objectContaining({
           method: 'POST',
           body: undefined,
@@ -191,21 +218,19 @@ describe('ApiClient', () => {
 
   describe('put', () => {
     it('should make PUT request with body', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(false);
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve(JSON.stringify({ updated: true })),
-        status: 200,
-      });
+        text: () => Promise.resolve('{}'),
+      } as Response);
 
-      await apiClient.put('/users/1', { name: 'Updated' }, { skipAuth: true });
+      const data = { id: 1, name: 'Updated' };
+      await apiClient.put('/test/1', data);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/users/1',
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
         expect.objectContaining({
           method: 'PUT',
-          body: JSON.stringify({ name: 'Updated' }),
+          body: JSON.stringify(data),
         })
       );
     });
@@ -213,21 +238,19 @@ describe('ApiClient', () => {
 
   describe('patch', () => {
     it('should make PATCH request with body', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(false);
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve(JSON.stringify({ patched: true })),
-        status: 200,
-      });
+        text: () => Promise.resolve('{}'),
+      } as Response);
 
-      await apiClient.patch('/users/1', { name: 'Patched' }, { skipAuth: true });
+      const data = { name: 'Patched' };
+      await apiClient.patch('/test/1', data);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/users/1',
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
         expect.objectContaining({
           method: 'PATCH',
-          body: JSON.stringify({ name: 'Patched' }),
+          body: JSON.stringify(data),
         })
       );
     });
@@ -235,90 +258,91 @@ describe('ApiClient', () => {
 
   describe('delete', () => {
     it('should make DELETE request', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(false);
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve(JSON.stringify({ deleted: true })),
-        status: 200,
-      });
+        text: () => Promise.resolve('{}'),
+      } as Response);
 
-      await apiClient.delete('/users/1', { skipAuth: true });
+      await apiClient.delete('/test/1');
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/users/1',
-        expect.objectContaining({ method: 'DELETE' })
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          method: 'DELETE',
+        })
       );
     });
   });
 
   describe('token refresh', () => {
-    it('should refresh tokens when access token is expired', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(true);
-      (tokenStorage.isAccessTokenExpired as jest.Mock).mockReturnValue(true);
-      (tokenStorage.getRefreshToken as jest.Mock).mockReturnValue('refresh-token');
-      (tokenStorage.getAccessToken as jest.Mock).mockReturnValue('new-access-token');
-      (tokenStorage.saveTokens as jest.Mock).mockResolvedValue(undefined);
+    it('should refresh token when expired', async () => {
+      (tokenStorage.isAccessTokenExpired as jest.Mock).mockReturnValueOnce(
+        true
+      );
 
-      // First call for refresh
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              accessToken: 'new-access-token',
-              refreshToken: 'new-refresh-token',
-              expiresIn: 900,
-            }),
-          status: 200,
-        })
-        // Second call for actual request
-        .mockResolvedValueOnce({
-          ok: true,
-          text: () => Promise.resolve(JSON.stringify({ data: 'test' })),
-          status: 200,
-        });
-
-      await apiClient.get('/protected');
-
-      expect(tokenStorage.saveTokens).toHaveBeenCalled();
-    });
-
-    it('should handle 401 response by attempting refresh', async () => {
-      (tokenStorage.hasTokens as jest.Mock).mockReturnValue(true);
-      (tokenStorage.isAccessTokenExpired as jest.Mock).mockReturnValue(false);
-      (tokenStorage.getAccessToken as jest.Mock).mockReturnValue('old-token');
-      (tokenStorage.getRefreshToken as jest.Mock).mockReturnValue('refresh-token');
-
-      // First call returns 401
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce({
-          ok: false,
-          text: () => Promise.resolve('Unauthorized'),
-          status: 401,
-        })
-        // Refresh call
+      mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: () =>
             Promise.resolve({
               accessToken: 'new-token',
               refreshToken: 'new-refresh',
-              expiresIn: 900,
+              expiresIn: 3600,
             }),
-          status: 200,
-        })
-        // Retry call
+        } as Response)
         .mockResolvedValueOnce({
           ok: true,
+          text: () => Promise.resolve('{}'),
+        } as Response);
+
+      await apiClient.get('/test');
+
+      expect(tokenStorage.saveTokens).toHaveBeenCalled();
+    });
+
+    it('should retry request after 401', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          text: () => Promise.resolve('Unauthorized'),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              accessToken: 'new-token',
+              refreshToken: 'new-refresh',
+              expiresIn: 3600,
+            }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve('{"success": true}'),
           json: () => Promise.resolve({ success: true }),
-          status: 200,
-        });
+        } as Response);
 
-      (tokenStorage.getAccessToken as jest.Mock).mockReturnValue('new-token');
+      const result = await apiClient.get<{ success: boolean }>('/test');
 
-      const result = await apiClient.get('/protected');
+      expect(mockFetch).toHaveBeenCalledTimes(3);
       expect(result).toEqual({ success: true });
+    });
+
+    it('should throw 401 when refresh fails', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          text: () => Promise.resolve('Unauthorized'),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+        } as Response);
+
+      await expect(apiClient.get('/test')).rejects.toMatchObject({
+        status: 401,
+      });
     });
   });
 });
