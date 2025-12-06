@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,14 +18,16 @@ import { StepCard } from '../components/StepCard';
 import { CourseOutlineDrawer } from '../components/CourseOutlineDrawer';
 import { CourseOutlineSidebar } from '../components/CourseOutlineSidebar';
 import { CourseProgressBar } from '../components/CourseProgressBar';
+import { OutlineLoadingOverlay } from '../components/OutlineLoadingOverlay';
 import { useLearningPathsStore, getCurrentStep } from '../state/learningPathsStore';
 import { getLearningPath, viewStep, archiveLearningPath, deleteLearningPath, restoreLearningPath } from '../services/memory';
+import { learningPathsApi } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
-import { Step, PathStatuses } from '../types/app';
+import { Step, PathStatuses, OutlineStatuses } from '../types/app';
 import { useScreenTracking } from '../services/analytics';
 
 type LearningPathScreenNavigationProp = NativeStackNavigationProp<
@@ -94,6 +96,51 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       topic: activePath?.goal,
     });
   };
+
+  // Poll for outline status when generating
+  const pollOutlineStatus = useCallback(async () => {
+    try {
+      const fetchedPath = await learningPathsApi.getPath(pathId);
+      if (fetchedPath) {
+        setActivePath(fetchedPath);
+        // Return true if outline is ready or failed (stop polling)
+        return fetchedPath.outlineStatus === OutlineStatuses.READY ||
+               fetchedPath.outlineStatus === OutlineStatuses.FAILED;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error polling outline status:', error);
+      return false;
+    }
+  }, [pathId, setActivePath]);
+
+  useEffect(() => {
+    // Only poll if outline is generating
+    if (!activePath?.outlineStatus || activePath.outlineStatus !== OutlineStatuses.GENERATING) {
+      return;
+    }
+
+    let intervalId: ReturnType<typeof setInterval>;
+    let mounted = true;
+
+    const startPolling = async () => {
+      // Poll every 2 seconds
+      intervalId = setInterval(async () => {
+        if (!mounted) return;
+        const shouldStop = await pollOutlineStatus();
+        if (shouldStop) {
+          clearInterval(intervalId);
+        }
+      }, 2000);
+    };
+
+    startPolling();
+
+    return () => {
+      mounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [activePath?.outlineStatus, pollOutlineStatus]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -243,6 +290,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   const isPathCompleted = activePath.status === PathStatuses.COMPLETED;
   const isPathArchived = activePath.status === PathStatuses.ARCHIVED;
   const isPathActive = !activePath.status || activePath.status === PathStatuses.ACTIVE;
+  const isOutlineGenerating = activePath.outlineStatus === OutlineStatuses.GENERATING;
 
   // Handler for outline topic navigation (shared between sidebar and drawer)
   const handleOutlineTopicPress = (moduleIndex: number, topicIndex: number, topic: { stepId?: string }) => {
@@ -443,6 +491,12 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
             onPress={handleBack}
             variant="secondary"
           />
+        ) : isOutlineGenerating ? (
+          <Button
+            title="Preparing Course..."
+            onPress={() => {}}
+            disabled
+          />
         ) : (
           <Button
             title={currentStep ? 'Continue →' : 'Get Next Step'}
@@ -481,6 +535,14 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
           outline={activePath.outline || null}
           currentPosition={activePath.outlinePosition}
           onTopicPress={handleOutlineTopicPress}
+        />
+      )}
+
+      {/* Outline Loading Overlay - shows when outline is generating */}
+      {isOutlineGenerating && (
+        <OutlineLoadingOverlay
+          emoji={activePath.emoji}
+          goal={activePath.goal}
         />
       )}
     </Container>
