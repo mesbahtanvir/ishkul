@@ -25,14 +25,14 @@ const (
 
 // ProviderHealth tracks the health status of a provider
 type ProviderHealth struct {
-	Available     bool          `json:"available"`
-	SuccessCount  int64         `json:"successCount"`
-	FailureCount  int64         `json:"failureCount"`
-	LastError     string        `json:"lastError,omitempty"`
-	LastErrorTime time.Time     `json:"lastErrorTime,omitempty"`
-	LastSuccess   time.Time     `json:"lastSuccess,omitempty"`
-	AvgLatencyMs  int64         `json:"avgLatencyMs"`
-	totalLatency  int64         // internal: total latency in ms for averaging
+	Available     bool      `json:"available"`
+	SuccessCount  int64     `json:"successCount"`
+	FailureCount  int64     `json:"failureCount"`
+	LastError     string    `json:"lastError,omitempty"`
+	LastErrorTime time.Time `json:"lastErrorTime,omitempty"`
+	LastSuccess   time.Time `json:"lastSuccess,omitempty"`
+	AvgLatencyMs  int64     `json:"avgLatencyMs"`
+	totalLatency  int64     // internal: total latency in ms for averaging
 }
 
 // SuccessRate returns the success rate as a percentage (0-100)
