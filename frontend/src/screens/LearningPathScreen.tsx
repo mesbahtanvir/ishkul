@@ -399,9 +399,6 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
             height={8}
             style={styles.progressBar}
           />
-          <Text style={[styles.progressText, { color: colors.text.secondary }]}>
-            {Math.round(activePath.progress)}%
-          </Text>
         </View>
       </View>
 
@@ -631,14 +628,6 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-  },
-  progressText: {
-    ...Typography.label.medium,
-    marginLeft: Spacing.sm,
-    minWidth: 35,
-    maxWidth: 50,
-    flexShrink: 1,
-    textAlign: 'right',
   },
   stepsContainer: {
     flex: 1,
