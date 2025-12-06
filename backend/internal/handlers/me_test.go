@@ -124,11 +124,9 @@ func TestUpdateMe(t *testing.T) {
 func TestUpdateMeRequest(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
 		goal := "Learn Python"
-		level := "beginner"
 		name := "Test User"
 		req := UpdateMeRequest{
 			Goal:        &goal,
-			Level:       &level,
 			DisplayName: &name,
 		}
 
@@ -140,7 +138,6 @@ func TestUpdateMeRequest(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, parsed, "goal")
-		assert.Contains(t, parsed, "level")
 		assert.Contains(t, parsed, "displayName")
 	})
 
@@ -224,8 +221,7 @@ func TestCreateMeDocument(t *testing.T) {
 func TestCreateUserDocumentRequest(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
 		req := CreateUserDocumentRequest{
-			Goal:  "Learn Python",
-			Level: "beginner",
+			Goal: "Learn Python",
 		}
 
 		jsonBytes, err := json.Marshal(req)
@@ -236,7 +232,6 @@ func TestCreateUserDocumentRequest(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, parsed, "goal")
-		assert.Contains(t, parsed, "level")
 	})
 }
 

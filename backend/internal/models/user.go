@@ -97,7 +97,6 @@ type Lesson struct {
 	ID          string   `json:"id" firestore:"id"`
 	Title       string   `json:"title" firestore:"title"`
 	Description string   `json:"description" firestore:"description"`
-	Level       string   `json:"level" firestore:"level"`
 	Category    string   `json:"category" firestore:"category"`
 	Content     string   `json:"content" firestore:"content"`
 	Order       int      `json:"order" firestore:"order"`

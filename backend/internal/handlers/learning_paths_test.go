@@ -786,7 +786,6 @@ func TestLearningPathJSON(t *testing.T) {
 			ID:               "path-123",
 			UserID:           "user-456",
 			Goal:             "Learn Go",
-			Level:            "beginner",
 			Emoji:            "🎯",
 			Progress:         50,
 			LessonsCompleted: 5,
