@@ -26,7 +26,9 @@ const (
 )
 
 var (
-	// providerRegistry manages all LLM providers with fallback support
+	// chatManager is the main interface for LLM calls - abstracts away providers
+	chatManager *llm.ChatCompletionManager
+	// providerRegistry manages all LLM providers with fallback support (legacy)
 	providerRegistry *llm.ProviderRegistry
 	// llmProvider is the primary LLM provider (for backwards compatibility)
 	llmProvider llm.Provider
@@ -47,18 +49,39 @@ var (
 func InitializeLLM(promptsDir string) error {
 	var err error
 
-	// Create provider registry with fallback support
+	// Create ChatCompletionManager - the main interface for LLM calls
+	chatManager = llm.NewChatCompletionManager(appLogger)
+
+	// Create provider registry for legacy support
 	providerRegistry = llm.NewProviderRegistry(appLogger)
 
-	// Determine primary provider from environment
+	// Determine primary provider and strategy from environment
 	providerEnv := os.Getenv("LLM_PROVIDER")
+	strategyEnv := os.Getenv("LLM_STRATEGY")
 
-	// Try to initialize OpenAI
+	// Set selection strategy
+	switch strategyEnv {
+	case "round_robin":
+		chatManager.SetStrategy(llm.StrategyRoundRobin)
+	case "random":
+		chatManager.SetStrategy(llm.StrategyRandom)
+	default:
+		chatManager.SetStrategy(llm.StrategyPriority)
+	}
+
+	// Try to initialize OpenAI (priority 1 if primary, 2 if fallback)
 	openaiClient, err = openai.NewClient()
 	if err == nil {
+		openaiPriority := 2
+		if providerEnv != "deepseek" {
+			openaiPriority = 1
+		}
+		chatManager.RegisterProvider(llm.ProviderOpenAI, openaiClient, openaiPriority)
 		providerRegistry.Register(llm.ProviderOpenAI, openaiClient)
 		if appLogger != nil {
-			logger.Info(appLogger, context.Background(), "openai_client_registered")
+			logger.Info(appLogger, context.Background(), "openai_client_registered",
+				slog.Int("priority", openaiPriority),
+			)
 		}
 	} else {
 		if appLogger != nil {
@@ -68,12 +91,19 @@ func InitializeLLM(promptsDir string) error {
 		}
 	}
 
-	// Try to initialize DeepSeek
+	// Try to initialize DeepSeek (priority 1 if primary, 2 if fallback)
 	deepseekClient, dsErr := deepseek.NewClient()
 	if dsErr == nil {
+		deepseekPriority := 2
+		if providerEnv == "deepseek" {
+			deepseekPriority = 1
+		}
+		chatManager.RegisterProvider(llm.ProviderDeepSeek, deepseekClient, deepseekPriority)
 		providerRegistry.Register(llm.ProviderDeepSeek, deepseekClient)
 		if appLogger != nil {
-			logger.Info(appLogger, context.Background(), "deepseek_client_registered")
+			logger.Info(appLogger, context.Background(), "deepseek_client_registered",
+				slog.Int("priority", deepseekPriority),
+			)
 		}
 	} else {
 		if appLogger != nil {
@@ -83,19 +113,17 @@ func InitializeLLM(promptsDir string) error {
 		}
 	}
 
-	// Set primary and fallback based on LLM_PROVIDER env
+	// Set primary and fallback in legacy registry based on LLM_PROVIDER env
 	switch providerEnv {
 	case "deepseek":
 		if dsErr == nil {
 			providerRegistry.SetPrimary(llm.ProviderDeepSeek)
 			llmProvider = deepseekClient
 			activeProviderType = llm.ProviderDeepSeek
-			// Set OpenAI as fallback if available
 			if err == nil {
 				providerRegistry.SetFallback(llm.ProviderOpenAI)
 			}
 		} else if err == nil {
-			// DeepSeek requested but failed, use OpenAI
 			providerRegistry.SetPrimary(llm.ProviderOpenAI)
 			llmProvider = openaiClient
 			activeProviderType = llm.ProviderOpenAI
@@ -103,17 +131,15 @@ func InitializeLLM(promptsDir string) error {
 				logger.Warn(appLogger, context.Background(), "deepseek_unavailable_using_openai")
 			}
 		}
-	default: // "openai" or empty
+	default:
 		if err == nil {
 			providerRegistry.SetPrimary(llm.ProviderOpenAI)
 			llmProvider = openaiClient
 			activeProviderType = llm.ProviderOpenAI
-			// Set DeepSeek as fallback if available
 			if dsErr == nil {
 				providerRegistry.SetFallback(llm.ProviderDeepSeek)
 			}
 		} else if dsErr == nil {
-			// OpenAI failed, use DeepSeek
 			providerRegistry.SetPrimary(llm.ProviderDeepSeek)
 			llmProvider = deepseekClient
 			activeProviderType = llm.ProviderDeepSeek
@@ -124,7 +150,7 @@ func InitializeLLM(promptsDir string) error {
 	}
 
 	// Ensure at least one provider is available
-	if llmProvider == nil {
+	if chatManager.GetProviderCount() == 0 {
 		return fmt.Errorf("no LLM provider available: OpenAI error: %v, DeepSeek error: %v", err, dsErr)
 	}
 
@@ -165,21 +191,25 @@ func InitializeLLM(promptsDir string) error {
 	}
 
 	// Log initialization summary
-	fallbackInfo := "none"
-	if providerRegistry.HasFallback() {
-		fallbackInfo = providerRegistry.GetFallback().Name()
-	}
-	log.Printf("LLM initialized: primary=%s, fallback=%s, providers=%v",
-		llmProvider.Name(), fallbackInfo, providerRegistry.GetProviderNames())
+	log.Printf("LLM initialized: strategy=%s, providers=%d healthy, total=%d",
+		chatManager.GetStrategy(),
+		chatManager.GetHealthyProviderCount(),
+		chatManager.GetProviderCount())
 	return nil
 }
 
-// GetLLMProvider returns the primary LLM provider
+// GetChatManager returns the ChatCompletionManager for making LLM calls
+// This is the preferred way to make LLM calls - it handles provider selection automatically
+func GetChatManager() *llm.ChatCompletionManager {
+	return chatManager
+}
+
+// GetLLMProvider returns the primary LLM provider (legacy - prefer GetChatManager)
 func GetLLMProvider() llm.Provider {
 	return llmProvider
 }
 
-// GetProviderRegistry returns the provider registry for fallback-aware calls
+// GetProviderRegistry returns the provider registry (legacy - prefer GetChatManager)
 func GetProviderRegistry() *llm.ProviderRegistry {
 	return providerRegistry
 }
@@ -187,6 +217,14 @@ func GetProviderRegistry() *llm.ProviderRegistry {
 // GetActiveProviderType returns the type of the active provider
 func GetActiveProviderType() llm.ProviderType {
 	return activeProviderType
+}
+
+// GetLLMHealth returns health status of all LLM providers
+func GetLLMHealth() map[llm.ProviderType]llm.ProviderHealth {
+	if chatManager == nil {
+		return nil
+	}
+	return chatManager.GetHealth()
 }
 
 // GetStepCacheStats returns current cache statistics for monitoring
