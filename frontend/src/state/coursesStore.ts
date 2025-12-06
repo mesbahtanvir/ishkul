@@ -311,7 +311,3 @@ export const getEmojiForGoal = (goal: string): string => {
 export const generateCourseId = (): string => {
   return `course_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
-
-// Legacy aliases for backward compatibility
-export const useLearningPathsStore = useCoursesStore;
-export const generatePathId = generateCourseId;

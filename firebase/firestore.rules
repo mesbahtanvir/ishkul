@@ -91,13 +91,6 @@ service cloud.firestore {
       allow write: if false; // All writes must go through backend Admin SDK
     }
 
-    // Learning paths collection - legacy, kept for backward compatibility
-    match /learning_paths/{pathId} {
-      allow read: if request.auth != null &&
-                     request.auth.uid == resource.data.userId;
-      allow write: if false; // All writes must go through backend Admin SDK
-    }
-
     // Token blacklist - server-side only (Admin SDK bypasses rules)
     // No client access allowed
     match /token_blacklist/{tokenId} {

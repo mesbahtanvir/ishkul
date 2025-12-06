@@ -47,13 +47,8 @@ export const ErrorCodes = {
   COURSE_COMPLETED: 'COURSE_COMPLETED',
   COURSE_ARCHIVED: 'COURSE_ARCHIVED',
   COURSE_DELETED: 'COURSE_DELETED',
-  // Legacy aliases
-  PATH_COMPLETED: 'COURSE_COMPLETED',
-  PATH_ARCHIVED: 'COURSE_ARCHIVED',
-  PATH_DELETED: 'COURSE_DELETED',
   // Subscription limit error codes
   COURSE_LIMIT_REACHED: 'COURSE_LIMIT_REACHED',
-  PATH_LIMIT_REACHED: 'COURSE_LIMIT_REACHED',
   DAILY_STEP_LIMIT_REACHED: 'DAILY_STEP_LIMIT_REACHED',
 } as const;
 
@@ -651,28 +646,6 @@ export const coursesApi = {
   ): Promise<void> {
     await api.post(`/courses/${courseId}/memory`, memory);
   },
-};
-
-// Legacy alias for backward compatibility
-export const learningPathsApi = {
-  getPaths: coursesApi.getCourses,
-  getPath: coursesApi.getCourse,
-  createPath: coursesApi.createCourse,
-  updatePath: coursesApi.updateCourse,
-  deletePath: coursesApi.deleteCourse,
-  archivePath: coursesApi.archiveCourse,
-  restorePath: coursesApi.restoreCourse,
-  getNextStep: coursesApi.getNextStep,
-  completeCurrentStep: async (pathId: string, data?: StepCompleteRequest) => {
-    const result = await coursesApi.completeCurrentStep(pathId, data);
-    return { path: result.course, completedStep: result.completedStep, nextStepNeeded: result.nextStepNeeded };
-  },
-  completeStep: async (pathId: string, stepId: string, data?: StepCompleteRequest) => {
-    const result = await coursesApi.completeStep(pathId, stepId, data);
-    return { path: result.course, completedStep: result.completedStep, nextStepNeeded: result.nextStepNeeded };
-  },
-  viewStep: coursesApi.viewStep,
-  updatePathMemory: coursesApi.updateCourseMemory,
 };
 
 /**

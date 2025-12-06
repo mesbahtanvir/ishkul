@@ -124,11 +124,9 @@ func defaultEndpointTiers() map[string]EndpointTier {
 		"/api/auth/logout":   TierAuth,
 
 		// Expensive operations - very strict limits
-		"/api/me/next-step":    TierExpensive, // LLM operations
-		"/api/courses":         TierExpensive, // May involve LLM
-		"/api/courses/":        TierExpensive,
-		"/api/learning-paths":  TierExpensive, // Legacy route (redirects to courses)
-		"/api/learning-paths/": TierExpensive,
+		"/api/me/next-step": TierExpensive, // LLM operations
+		"/api/courses":      TierExpensive, // May involve LLM
+		"/api/courses/":     TierExpensive,
 
 		// Webhooks - higher limits for third-party services
 		"/api/webhooks/":       TierWebhook,
