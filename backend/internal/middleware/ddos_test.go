@@ -336,7 +336,7 @@ func TestDDoSProtection_Integration(t *testing.T) {
 		handler := ddos.Protect(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestCount++
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("OK"))
+			_, _ = w.Write([]byte("OK"))
 		}))
 
 		// Make several requests

@@ -206,7 +206,7 @@ func TestBodyLimit_Integration(t *testing.T) {
 			assert.Contains(t, string(body), "name")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"status": "ok"}`))
+			_, _ = w.Write([]byte(`{"status": "ok"}`))
 		}))
 
 		jsonBody := `{"name": "test", "value": 123}`
