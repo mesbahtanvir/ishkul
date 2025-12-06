@@ -50,7 +50,6 @@ func TestUserStruct(t *testing.T) {
 		assert.Equal(t, "Test User", parsed["displayName"])
 		assert.Equal(t, "https://example.com/photo.jpg", parsed["photoUrl"])
 		assert.Equal(t, "Learn Python", parsed["goal"])
-		assert.Equal(t, "beginner", parsed["level"])
 	})
 
 	t.Run("JSON omits empty optional fields", func(t *testing.T) {
@@ -68,7 +67,6 @@ func TestUserStruct(t *testing.T) {
 
 		assert.NotContains(t, parsed, "photoUrl")
 		assert.NotContains(t, parsed, "goal")
-		assert.NotContains(t, parsed, "level")
 	})
 
 	t.Run("JSON unmarshaling works correctly", func(t *testing.T) {
@@ -394,7 +392,6 @@ func TestLessonStruct(t *testing.T) {
 
 		assert.Contains(t, parsed, "id")
 		assert.Contains(t, parsed, "title")
-		assert.Contains(t, parsed, "level")
 		assert.Contains(t, parsed, "category")
 		assert.Contains(t, parsed, "order")
 		assert.Contains(t, parsed, "duration")
