@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 
 	"cloud.google.com/go/firestore"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
@@ -11,7 +12,11 @@ import (
 
 // Collection returns a Firestore collection reference with any configured prefix applied.
 // This should be used for all collection access to support preview environment isolation.
+// Returns nil if the Firestore client is nil.
 func Collection(fs *firestore.Client, name string) *firestore.CollectionRef {
+	if fs == nil {
+		return nil
+	}
 	prefix := firebase.GetCollectionPrefix()
 	return fs.Collection(prefix + name)
 }
@@ -19,7 +24,12 @@ func Collection(fs *firestore.Client, name string) *firestore.CollectionRef {
 // CountUserActivePaths counts only active paths (not completed, archived, or deleted)
 // This is a shared function used by both learning_paths and subscription handlers
 func CountUserActivePaths(ctx context.Context, fs *firestore.Client, userID string) (int, error) {
-	iter := Collection(fs, "learning_paths").
+	col := Collection(fs, "learning_paths")
+	if col == nil {
+		return 0, fmt.Errorf("firestore client is nil")
+	}
+
+	iter := col.
 		Where("userId", "==", userID).
 		Where("status", "==", models.PathStatusActive).
 		Documents(ctx)
