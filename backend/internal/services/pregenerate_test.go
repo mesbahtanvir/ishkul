@@ -287,7 +287,6 @@ func TestPregenerateServiceScenarios(t *testing.T) {
 			ID:     "path-experienced",
 			UserID: "user-exp",
 			Goal:   "Master Go",
-			Level:  "intermediate",
 			Steps: []models.Step{
 				{ID: "1", Topic: "Variables", Completed: true},
 				{ID: "2", Topic: "Functions", Completed: true},

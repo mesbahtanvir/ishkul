@@ -361,7 +361,6 @@ func TestLessonStruct(t *testing.T) {
 			ID:          "lesson-123",
 			Title:       "Python Basics",
 			Description: "Learn the fundamentals of Python",
-			Level:       "beginner",
 			Category:    "programming",
 			Content:     "Python is a high-level programming language...",
 			Order:       1,
@@ -371,7 +370,7 @@ func TestLessonStruct(t *testing.T) {
 
 		assert.Equal(t, "lesson-123", lesson.ID)
 		assert.Equal(t, "Python Basics", lesson.Title)
-		assert.Equal(t, "beginner", lesson.Level)
+		assert.Equal(t, "programming", lesson.Category)
 		assert.Equal(t, 1, lesson.Order)
 		assert.Equal(t, 30, lesson.Duration)
 		assert.Len(t, lesson.Tags, 3)
@@ -381,7 +380,6 @@ func TestLessonStruct(t *testing.T) {
 		lesson := Lesson{
 			ID:       "lesson-123",
 			Title:    "Test",
-			Level:    "beginner",
 			Category: "test",
 			Order:    1,
 			Duration: 10,
