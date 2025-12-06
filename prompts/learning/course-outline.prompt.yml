@@ -13,6 +13,18 @@ messages:
     content: |
       You are an expert curriculum designer. Generate a complete, structured learning outline.
 
+      ## IMPORTANT: Rewrite User Input
+      The user may enter informal, incomplete, or unclear learning goals. Your FIRST task is to:
+      1. Interpret what the user actually wants to learn
+      2. Create a professional, clear course title (e.g., "Learn Python" → "Python Programming Fundamentals")
+      3. Write a polished course description that explains what the learner will achieve
+
+      The title and description should be professional and educational, regardless of how the user phrased their goal.
+      Examples:
+      - "python" → Title: "Python Programming Fundamentals", Description: "Master the fundamentals of Python programming..."
+      - "cook stuff" → Title: "Culinary Essentials", Description: "Learn essential cooking techniques..."
+      - "asdfgh" → Interpret as unclear, default to a general intro course or ask for clarification in description
+
       ## Available Learning Tools
       Use ONLY these tools when creating topics. Each tool has specific use cases:
 

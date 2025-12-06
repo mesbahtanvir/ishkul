@@ -39,21 +39,21 @@ const EMPTY_STATES: Record<TabValue, EmptyStateConfig> = {
   active: {
     emoji: '📚',
     title: 'Start Your Learning Journey',
-    subtitle: 'Create your first track and begin mastering new skills!',
-    actionLabel: 'Create Track',
+    subtitle: 'Create your first course and begin mastering new skills!',
+    actionLabel: 'Create Course',
     actionTarget: 'create',
   },
   completed: {
     emoji: '🎓',
-    title: 'No Completed Tracks Yet',
-    subtitle: 'Complete your first track to see it here. Keep learning!',
+    title: 'No Completed Courses Yet',
+    subtitle: 'Complete your first course to see it here. Keep learning!',
     actionLabel: 'Continue Learning',
     actionTarget: 'active',
   },
   archived: {
     emoji: '🗃️',
-    title: 'No Archived Tracks',
-    subtitle: 'Archived tracks will appear here. Archive tracks you want to revisit later.',
+    title: 'No Archived Courses',
+    subtitle: 'Archived courses will appear here. Archive courses you want to revisit later.',
   },
 };
 
@@ -302,7 +302,7 @@ export const HomeScreen: React.FC = () => {
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={handleCreatePath}
           activeOpacity={0.8}
-          accessibilityLabel="Create new track"
+          accessibilityLabel="Create new course"
           accessibilityRole="button"
         >
           <Text style={[styles.fabIcon, { color: colors.white }]}>+</Text>
@@ -312,7 +312,7 @@ export const HomeScreen: React.FC = () => {
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         visible={showDeleteDialog}
-        title="Delete Track"
+        title="Delete Course"
         message={pathToDelete ? `Are you sure you want to delete "${pathToDelete.goal}"? This action cannot be undone.` : ''}
         confirmText="Delete"
         cancelText="Cancel"
@@ -325,7 +325,7 @@ export const HomeScreen: React.FC = () => {
       {/* Archive Confirmation Dialog */}
       <ConfirmDialog
         visible={showArchiveDialog}
-        title="Archive Track"
+        title="Archive Course"
         message={pathToArchive ? `Archive "${pathToArchive.goal}"? You can restore it anytime from the Archived tab.` : ''}
         confirmText="Archive"
         cancelText="Cancel"
