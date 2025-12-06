@@ -40,9 +40,11 @@ func GetContext(w http.ResponseWriter, r *http.Request) {
 		// Return empty context if not found
 		newContext := models.NewUserContext(userID)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"context": newContext,
-		})
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -53,9 +55,11 @@ func GetContext(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"context": userContext,
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
 }
 
 // UpdateContextRequest represents the request to update context with new input
@@ -106,7 +110,9 @@ func UpdateContext(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
 }
 
 // ApplyContextRequest represents the request to save confirmed context
@@ -154,10 +160,12 @@ func ApplyContext(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"context": req.Context,
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
 }
 
 // GetDerivedContext returns the auto-calculated context from user activity
@@ -188,9 +196,11 @@ func GetDerivedContext(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"derived": derived,
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
 }
 
 // GetContextSummary returns the AI-ready context summary
@@ -217,9 +227,11 @@ func GetContextSummary(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Return empty summary if context not found
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"summary": "",
-		})
+		}); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -230,9 +242,11 @@ func GetContextSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"summary": userContext.Summary,
-	})
+	}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
 }
 
 // parseContextWithLLM calls the LLM to parse and merge context
