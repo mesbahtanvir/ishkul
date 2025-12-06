@@ -272,14 +272,14 @@ func parseContextWithLLM(ctx context.Context, previousContext models.ParsedConte
 		return nil, err
 	}
 
-	// Call LLM provider
-	response, err := llmProvider.CreateChatCompletion(*req)
+	// Call LLM provider with fallback support
+	response, err := providerRegistry.CreateChatCompletionWithFallback(*req)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(response.Choices) == 0 {
-		return nil, fmt.Errorf("no completion choices returned from %s", llmProvider.Name())
+		return nil, fmt.Errorf("no completion choices returned")
 	}
 
 	// Parse the LLM response
