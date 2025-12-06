@@ -139,6 +139,53 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
             <Text style={[styles.stats, { color: colors.text.secondary }]}>{statsText}</Text>
           </View>
         </View>
+
+        {/* Action icons in header */}
+        {showStatusActions && (
+          <View style={styles.headerActions}>
+            {isArchived && onRestore ? (
+              <TouchableOpacity
+                style={[styles.iconButton, { backgroundColor: colors.primaryLight }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onRestore(path);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Restore track"
+                accessibilityRole="button"
+              >
+                <Text style={[styles.iconButtonText, { color: colors.primary }]}>↩</Text>
+              </TouchableOpacity>
+            ) : onArchive ? (
+              <TouchableOpacity
+                style={[styles.iconButton, { backgroundColor: colors.background.tertiary }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onArchive(path);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Archive track"
+                accessibilityRole="button"
+              >
+                <Text style={[styles.iconButtonText, { color: colors.text.secondary }]}>📁</Text>
+              </TouchableOpacity>
+            ) : null}
+            {onDelete && (
+              <TouchableOpacity
+                style={[styles.iconButton, { backgroundColor: colors.background.tertiary }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onDelete(path);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Delete track"
+                accessibilityRole="button"
+              >
+                <Text style={[styles.iconButtonText, { color: colors.danger }]}>🗑️</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
 
       <View style={styles.progressContainer}>
@@ -155,50 +202,6 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
       </View>
 
       <View style={styles.footer}>
-        {/* Action buttons based on status */}
-        {showStatusActions && (
-          <View style={styles.actionButtons}>
-            {isArchived && onRestore && (
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.primaryLight }]}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onRestore(path);
-                }}
-              >
-                <Text style={[styles.actionButtonText, { color: colors.primary }]}>
-                  Restore
-                </Text>
-              </TouchableOpacity>
-            )}
-            {!isArchived && onArchive && (
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.background.tertiary }]}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onArchive(path);
-                }}
-              >
-                <Text style={[styles.actionButtonText, { color: colors.text.secondary }]}>
-                  Archive
-                </Text>
-              </TouchableOpacity>
-            )}
-            {onDelete && (
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.background.tertiary }]}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onDelete(path);
-                }}
-              >
-                <Text style={[styles.actionButtonText, { color: colors.danger }]}>
-                  Delete
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
         <View style={{ flex: 1 }} />
         <View style={[styles.startButton, { backgroundColor: colors.primaryLight }]}>
           <Text style={[styles.startButtonText, { color: colors.primary }]}>
@@ -221,6 +224,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: Spacing.md,
+    position: 'relative',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    marginLeft: Spacing.sm,
+  },
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: Spacing.borderRadius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconButtonText: {
+    fontSize: 14,
   },
   emojiContainer: {
     position: 'relative',
@@ -301,19 +320,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  actionButton: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Spacing.borderRadius.sm,
-  },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
   startButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -321,17 +327,6 @@ const styles = StyleSheet.create({
   },
   startButtonText: {
     ...Typography.button.small,
-  },
-  deleteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: Spacing.sm,
-  },
-  deleteIcon: {
-    fontSize: 16,
   },
 });
 
