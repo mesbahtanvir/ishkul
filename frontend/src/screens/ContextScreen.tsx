@@ -5,13 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Container } from '../components/Container';
+import { Button } from '../components/Button';
 import { useContextStore } from '../state/contextStore';
 import { contextApi } from '../services/api';
 import { Typography } from '../theme/typography';
@@ -51,7 +48,6 @@ export const ContextScreen: React.FC = () => {
     setError,
     applyPendingUpdate,
     addInputToHistory,
-    setContext,
   } = useContextStore();
 
   const [inputText, setInputText] = useState('');
@@ -139,7 +135,7 @@ export const ContextScreen: React.FC = () => {
               styles.dot,
               {
                 backgroundColor:
-                  i <= dots ? colors.ios.blue : colors.ios.lightGray,
+                  i <= dots ? colors.primary : colors.gray300,
               },
             ]}
           />
@@ -164,22 +160,22 @@ export const ContextScreen: React.FC = () => {
       </View>
       <View style={styles.skillLevel}>
         {renderSkillDots(skill.level)}
-        <Text style={[styles.skillLevelText, { color: colors.ios.gray }]}>
+        <Text style={[styles.skillLevelText, { color: colors.text.secondary }]}>
           {skillLevelDisplay[skill.level]?.label || skill.level}
         </Text>
       </View>
       {skill.intent !== 'know' && skill.targetLevel && (
         <View style={styles.targetLevel}>
-          <Text style={[styles.targetLabel, { color: colors.ios.gray }]}>
+          <Text style={[styles.targetLabel, { color: colors.text.secondary }]}>
             Goal:{' '}
           </Text>
-          <Text style={[styles.targetValue, { color: colors.ios.blue }]}>
+          <Text style={[styles.targetValue, { color: colors.primary }]}>
             {skillLevelDisplay[skill.targetLevel]?.label || skill.targetLevel}
           </Text>
         </View>
       )}
       {skill.context && (
-        <Text style={[styles.skillContext, { color: colors.ios.gray }]}>
+        <Text style={[styles.skillContext, { color: colors.text.secondary }]}>
           {skill.context}
         </Text>
       )}
@@ -190,7 +186,7 @@ export const ContextScreen: React.FC = () => {
   const renderChange = (change: ContextChange, index: number) => {
     const iconMap = {
       added: { icon: 'add-circle', color: colors.success },
-      updated: { icon: 'create', color: colors.ios.blue },
+      updated: { icon: 'create', color: colors.primary },
       removed: { icon: 'remove-circle', color: colors.danger },
     };
     const { icon, color } = iconMap[change.type];
@@ -198,7 +194,7 @@ export const ContextScreen: React.FC = () => {
     return (
       <View
         key={`change-${index}`}
-        style={[styles.changeItem, { backgroundColor: colors.card.default }]}
+        style={[styles.changeItem, { backgroundColor: colors.background.tertiary }]}
       >
         <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={color} />
         <View style={styles.changeContent}>
@@ -213,44 +209,41 @@ export const ContextScreen: React.FC = () => {
     );
   };
 
-  // Render changes modal/section
+  // Render changes section
   const renderChangesSection = () => {
     if (!showChanges || !pendingUpdate) return null;
 
     return (
-      <View style={[styles.changesSection, { backgroundColor: colors.background.secondary }]}>
+      <View style={[styles.changesSection, { backgroundColor: colors.card.default }]}>
         <Text style={[styles.changesTitle, { color: colors.text.primary }]}>
           Changes Detected
         </Text>
-        <ScrollView style={styles.changesList}>
+        <View style={styles.changesList}>
           {pendingUpdate.changes.length > 0 ? (
             pendingUpdate.changes.map(renderChange)
           ) : (
-            <Text style={[styles.noChanges, { color: colors.ios.gray }]}>
+            <Text style={[styles.noChanges, { color: colors.text.secondary }]}>
               No changes detected from your input.
             </Text>
           )}
-        </ScrollView>
+        </View>
         <View style={styles.changesActions}>
-          <TouchableOpacity
-            style={[styles.cancelButton, { borderColor: colors.ios.gray }]}
-            onPress={handleCancelChanges}
-          >
-            <Text style={[styles.cancelButtonText, { color: colors.ios.gray }]}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.applyButton,
-              { backgroundColor: colors.ios.blue },
-              pendingUpdate.changes.length === 0 && styles.disabledButton,
-            ]}
-            onPress={handleApplyChanges}
-            disabled={pendingUpdate.changes.length === 0}
-          >
-            <Text style={styles.applyButtonText}>Apply Changes</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButton}>
+            <Button
+              title="Cancel"
+              onPress={handleCancelChanges}
+              variant="outline"
+              size="medium"
+            />
+          </View>
+          <View style={styles.actionButton}>
+            <Button
+              title="Apply Changes"
+              onPress={handleApplyChanges}
+              disabled={pendingUpdate.changes.length === 0}
+              size="medium"
+            />
+          </View>
         </View>
       </View>
     );
@@ -272,48 +265,37 @@ export const ContextScreen: React.FC = () => {
             <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
               Tell us about yourself
             </Text>
-            <Text style={[styles.emptySubtitle, { color: colors.ios.gray }]}>
+            <Text style={[styles.emptySubtitle, { color: colors.text.secondary }]}>
               Write anything - your job, skills, goals, background.{'\n'}
               AI will understand and use it to personalize your courses.
             </Text>
           </View>
 
-          <View style={[styles.inputSection, { padding: cardPadding }]}>
+          <View style={[styles.inputSection, { backgroundColor: colors.card.default }]}>
             <TextInput
               style={[
                 styles.textInput,
                 {
-                  backgroundColor: colors.card.default,
+                  backgroundColor: colors.background.tertiary,
                   color: colors.text.primary,
-                  borderColor: colors.ios.lightGray,
+                  borderColor: colors.border,
                 },
               ]}
               placeholder="Start typing..."
-              placeholderTextColor={colors.ios.gray}
+              placeholderTextColor={colors.text.tertiary}
               multiline
               value={inputText}
               onChangeText={setInputText}
               textAlignVertical="top"
             />
 
-            <TouchableOpacity
-              style={[
-                styles.updateButton,
-                { backgroundColor: colors.ios.blue },
-                updating && styles.disabledButton,
-              ]}
+            <Button
+              title="Update Context"
               onPress={handleUpdate}
-              disabled={updating}
-            >
-              {updating ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                  <Text style={styles.updateButtonText}>Update</Text>
-                </>
-              )}
-            </TouchableOpacity>
+              loading={updating}
+              disabled={updating || !inputText.trim()}
+              size="medium"
+            />
 
             {error && (
               <Text style={[styles.errorText, { color: colors.danger }]}>
@@ -323,19 +305,19 @@ export const ContextScreen: React.FC = () => {
           </View>
 
           <View style={styles.examples}>
-            <Text style={[styles.examplesTitle, { color: colors.ios.gray }]}>
+            <Text style={[styles.examplesTitle, { color: colors.text.secondary }]}>
               Examples:
             </Text>
-            <Text style={[styles.exampleText, { color: colors.ios.gray }]}>
+            <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
               • "Software engineer, 5 years experience"
             </Text>
-            <Text style={[styles.exampleText, { color: colors.ios.gray }]}>
+            <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
               • "Know Java well, want to learn Python"
             </Text>
-            <Text style={[styles.exampleText, { color: colors.ios.gray }]}>
+            <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
               • "Career goal: become a tech lead"
             </Text>
-            <Text style={[styles.exampleText, { color: colors.ios.gray }]}>
+            <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
               • "INFP, prefer hands-on learning"
             </Text>
           </View>
@@ -358,43 +340,34 @@ export const ContextScreen: React.FC = () => {
 
         {/* Input Section */}
         <View style={[styles.inputCard, { backgroundColor: colors.card.default, padding: cardPadding }]}>
-          <Text style={[styles.inputLabel, { color: colors.ios.gray }]}>
+          <Text style={[styles.inputLabel, { color: colors.text.secondary }]}>
             Tell me about yourself
           </Text>
           <TextInput
             style={[
               styles.textInputSmall,
               {
-                backgroundColor: colors.background.secondary,
+                backgroundColor: colors.background.tertiary,
                 color: colors.text.primary,
-                borderColor: colors.ios.lightGray,
+                borderColor: colors.border,
               },
             ]}
             placeholder="Add more context..."
-            placeholderTextColor={colors.ios.gray}
+            placeholderTextColor={colors.text.tertiary}
             multiline
             value={inputText}
             onChangeText={setInputText}
             textAlignVertical="top"
           />
-          <TouchableOpacity
-            style={[
-              styles.updateButtonSmall,
-              { backgroundColor: colors.ios.blue },
-              (updating || !inputText.trim()) && styles.disabledButton,
-            ]}
-            onPress={handleUpdate}
-            disabled={updating || !inputText.trim()}
-          >
-            {updating ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <>
-                <Ionicons name="refresh" size={18} color="#FFFFFF" />
-                <Text style={styles.updateButtonTextSmall}>Update</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <View style={styles.updateButtonContainer}>
+            <Button
+              title="Update"
+              onPress={handleUpdate}
+              loading={updating}
+              disabled={updating || !inputText.trim()}
+              size="small"
+            />
+          </View>
           {error && (
             <Text style={[styles.errorText, { color: colors.danger }]}>
               {error}
@@ -499,9 +472,9 @@ export const ContextScreen: React.FC = () => {
                 {context.parsed.goals.map((goal, index) => (
                   <View
                     key={`goal-${index}`}
-                    style={[styles.tag, { backgroundColor: colors.ios.green + '20' }]}
+                    style={[styles.tag, { backgroundColor: colors.success + '20' }]}
                   >
-                    <Text style={[styles.tagText, { color: colors.ios.green }]}>
+                    <Text style={[styles.tagText, { color: colors.success }]}>
                       🎯 {goal}
                     </Text>
                   </View>
@@ -584,7 +557,7 @@ export const ContextScreen: React.FC = () => {
 
         {/* Last updated */}
         {context.updatedAt > 0 && (
-          <Text style={[styles.lastUpdated, { color: colors.ios.gray }]}>
+          <Text style={[styles.lastUpdated, { color: colors.text.secondary }]}>
             Last updated: {new Date(context.updatedAt).toLocaleDateString()}
           </Text>
         )}
@@ -604,7 +577,6 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.display.medium,
-    fontWeight: '700',
   },
   // Empty state
   emptyState: {
@@ -627,6 +599,8 @@ const styles = StyleSheet.create({
   },
   // Input section
   inputSection: {
+    borderRadius: Spacing.borderRadius.lg,
+    padding: Spacing.lg,
     marginBottom: Spacing.lg,
   },
   inputCard: {
@@ -654,37 +628,8 @@ const styles = StyleSheet.create({
     ...Typography.body.medium,
     marginBottom: Spacing.md,
   },
-  updateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Spacing.borderRadius.md,
-    gap: Spacing.sm,
-  },
-  updateButtonSmall: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Spacing.borderRadius.md,
-    gap: Spacing.xs,
+  updateButtonContainer: {
     alignSelf: 'flex-end',
-  },
-  updateButtonText: {
-    color: '#FFFFFF',
-    ...Typography.body.medium,
-    fontWeight: '600',
-  },
-  updateButtonTextSmall: {
-    color: '#FFFFFF',
-    ...Typography.body.small,
-    fontWeight: '600',
-  },
-  disabledButton: {
-    opacity: 0.6,
   },
   errorText: {
     ...Typography.body.small,
@@ -819,28 +764,10 @@ const styles = StyleSheet.create({
   },
   // Changes section
   changesSection: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: Spacing.borderRadius.lg,
-    borderTopRightRadius: Spacing.borderRadius.lg,
+    borderRadius: Spacing.borderRadius.lg,
     padding: Spacing.lg,
-    maxHeight: '60%',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-      web: {
-        boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.1)',
-      },
-    }),
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
   changesTitle: {
     ...Typography.heading.h3,
@@ -848,7 +775,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   changesList: {
-    maxHeight: 200,
     marginBottom: Spacing.md,
   },
   changeItem: {
@@ -879,27 +805,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.md,
   },
-  cancelButton: {
+  actionButton: {
     flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Spacing.borderRadius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    ...Typography.body.medium,
-    fontWeight: '600',
-  },
-  applyButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Spacing.borderRadius.md,
-    alignItems: 'center',
-  },
-  applyButtonText: {
-    color: '#FFFFFF',
-    ...Typography.body.medium,
-    fontWeight: '600',
   },
   lastUpdated: {
     ...Typography.body.small,
