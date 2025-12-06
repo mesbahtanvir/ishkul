@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { LearningPathScreen } from '../LearningPathScreen';
 import type { RootStackParamList } from '../../types/navigation';
-import type { LearningPath, Step } from '../../types/app';
+import type { LearningPath, Step, CourseOutline } from '../../types/app';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'LearningPath'>;
 type ScreenRouteProp = RouteProp<RootStackParamList, 'LearningPath'>;
@@ -25,6 +25,78 @@ const createMockStep = (overrides: Partial<Step> = {}): Step => ({
   completedAt: 0,
   createdAt: Date.now(),
   ...overrides,
+});
+
+// Create mock outline
+const createMockOutline = (): CourseOutline => ({
+  title: 'Learn Python Basics',
+  description: 'A comprehensive course on Python',
+  estimatedMinutes: 120,
+  modules: [
+    {
+      id: 'module-1',
+      title: 'Introduction to Python',
+      description: 'Get started with Python',
+      estimatedMinutes: 30,
+      learningOutcomes: ['Understand Python basics'],
+      status: 'completed',
+      topics: [
+        {
+          id: 'topic-1-1',
+          title: 'What is Python?',
+          description: 'Introduction',
+          estimatedMinutes: 10,
+          toolId: 'lesson',
+          status: 'completed',
+          prerequisites: [],
+        },
+        {
+          id: 'topic-1-2',
+          title: 'Installing Python',
+          description: 'Setup',
+          estimatedMinutes: 10,
+          toolId: 'lesson',
+          status: 'completed',
+          prerequisites: [],
+        },
+      ],
+    },
+    {
+      id: 'module-2',
+      title: 'Variables and Data Types',
+      description: 'Learn about variables',
+      estimatedMinutes: 45,
+      learningOutcomes: ['Work with variables'],
+      status: 'in_progress',
+      topics: [
+        {
+          id: 'topic-2-1',
+          title: 'Variables',
+          description: 'Learn about variables',
+          estimatedMinutes: 15,
+          toolId: 'lesson',
+          status: 'completed',
+          stepId: 'step-1',
+          prerequisites: [],
+        },
+        {
+          id: 'topic-2-2',
+          title: 'Data Types',
+          description: 'Explore data types',
+          estimatedMinutes: 15,
+          toolId: 'lesson',
+          status: 'in_progress',
+          stepId: 'step-2',
+          prerequisites: [],
+        },
+      ],
+    },
+  ],
+  metadata: {
+    version: '1.0',
+    generatedBy: 'test',
+  },
+  generatedAt: Date.now(),
 });
 
 // Create mock path
@@ -106,6 +178,23 @@ jest.mock('../../services/analytics', () => ({
   }),
 }));
 
+// Mock useResponsive hook - default to mobile
+let mockIsMobile = true;
+jest.mock('../../hooks/useResponsive', () => ({
+  useResponsive: () => ({
+    isMobile: mockIsMobile,
+    isTablet: !mockIsMobile,
+    width: mockIsMobile ? 390 : 1024,
+    height: 844,
+    responsive: <T,>(small: T, standard: T, large?: T, tablet?: T) => {
+      if (!mockIsMobile && tablet !== undefined) return tablet;
+      return standard;
+    },
+    fontScale: 1,
+    spacingScale: 1,
+  }),
+}));
+
 // Mock navigation
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
@@ -129,6 +218,7 @@ describe('LearningPathScreen', () => {
     mockGetCachedPath.mockReturnValue(null);
     mockIsCacheValid.mockReturnValue(false);
     mockViewStep.mockResolvedValue({ success: true, step: createMockStep() });
+    mockIsMobile = true; // Reset to mobile by default
   });
 
   describe('path status states', () => {
@@ -477,6 +567,222 @@ describe('LearningPathScreen', () => {
         expect(mockNavigate).toHaveBeenCalledWith('GeneratingStep', {
           pathId: 'test-path-123',
           topic: pathWithAllCompleted.goal,
+        });
+      });
+    });
+  });
+
+  describe('responsive outline behavior', () => {
+    const createPathWithOutline = () =>
+      createMockPath({
+        status: 'active',
+        outline: createMockOutline(),
+        outlinePosition: {
+          moduleIndex: 1,
+          topicIndex: 1,
+          moduleId: 'module-2',
+          topicId: 'topic-2-2',
+        },
+      });
+
+    describe('mobile view', () => {
+      beforeEach(() => {
+        mockIsMobile = true;
+        const pathWithOutline = createPathWithOutline();
+        mockActivePath = pathWithOutline;
+        mockGetLearningPath.mockResolvedValue(pathWithOutline);
+        mockGetCachedPath.mockReturnValue(pathWithOutline);
+        mockIsCacheValid.mockReturnValue(true);
+      });
+
+      it('should show Outline button on mobile when outline exists', async () => {
+        const { getByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          expect(getByText('Outline')).toBeTruthy();
+        });
+      });
+
+      it('should show CourseProgressBar on mobile when outline exists', async () => {
+        const { getByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          // Progress bar shows current topic or topic count
+          expect(getByText('Now:')).toBeTruthy();
+        });
+      });
+
+      it('should open drawer when Outline button is pressed on mobile', async () => {
+        const { getByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          expect(getByText('Outline')).toBeTruthy();
+        });
+
+        fireEvent.press(getByText('Outline'));
+
+        // The drawer should open and show Course Outline header
+        await waitFor(() => {
+          expect(getByText('Course Outline')).toBeTruthy();
+        });
+      });
+
+      it('should open drawer when CourseProgressBar is pressed on mobile', async () => {
+        const { getByText, getAllByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          expect(getByText('Now:')).toBeTruthy();
+        });
+
+        // Press the progress bar (via the outline icon) - may be multiple
+        const outlineIcons = getAllByText('📋');
+        fireEvent.press(outlineIcons[0]);
+
+        // The drawer should open
+        await waitFor(() => {
+          expect(getByText('Course Outline')).toBeTruthy();
+        });
+      });
+    });
+
+    describe('web/tablet view', () => {
+      beforeEach(() => {
+        mockIsMobile = false;
+        const pathWithOutline = createPathWithOutline();
+        mockActivePath = pathWithOutline;
+        mockGetLearningPath.mockResolvedValue(pathWithOutline);
+        mockGetCachedPath.mockReturnValue(pathWithOutline);
+        mockIsCacheValid.mockReturnValue(true);
+      });
+
+      it('should show sidebar on web when outline exists', async () => {
+        const { getByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          // Sidebar shows Course Outline header directly (not in drawer)
+          expect(getByText('Course Outline')).toBeTruthy();
+        });
+      });
+
+      it('should NOT show Outline button on web (sidebar is always visible)', async () => {
+        const { queryByText, getByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          expect(getByText('Course Outline')).toBeTruthy();
+        });
+
+        // On web, the Outline button should not be shown
+        // (The sidebar is always visible, so the button is redundant)
+        expect(queryByText('Outline')).toBeNull();
+      });
+
+      it('should show module titles in sidebar on web', async () => {
+        const { getByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          expect(getByText('Introduction to Python')).toBeTruthy();
+          expect(getByText('Variables and Data Types')).toBeTruthy();
+        });
+      });
+
+      it('should show progress stats in sidebar on web', async () => {
+        const { getByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          // Sidebar shows modules and topics counts
+          expect(getByText('Modules')).toBeTruthy();
+          expect(getByText('Topics')).toBeTruthy();
+        });
+      });
+    });
+
+    describe('path without outline', () => {
+      beforeEach(() => {
+        const pathWithoutOutline = createMockPath({ status: 'active' });
+        mockActivePath = pathWithoutOutline;
+        mockGetLearningPath.mockResolvedValue(pathWithoutOutline);
+        mockGetCachedPath.mockReturnValue(pathWithoutOutline);
+        mockIsCacheValid.mockReturnValue(true);
+      });
+
+      it('should NOT show Outline button when path has no outline (mobile)', async () => {
+        mockIsMobile = true;
+        const { queryByText, getByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          expect(getByText('Continue →')).toBeTruthy();
+        });
+
+        expect(queryByText('Outline')).toBeNull();
+      });
+
+      it('should NOT show sidebar when path has no outline (web)', async () => {
+        mockIsMobile = false;
+        const { queryByText, getByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          expect(getByText('Continue →')).toBeTruthy();
+        });
+
+        // Course Outline header should not be visible without outline
+        expect(queryByText('Course Outline')).toBeNull();
+      });
+    });
+
+    describe('outline topic navigation', () => {
+      beforeEach(() => {
+        mockIsMobile = true;
+        const pathWithOutline = createPathWithOutline();
+        mockActivePath = pathWithOutline;
+        mockGetLearningPath.mockResolvedValue(pathWithOutline);
+        mockGetCachedPath.mockReturnValue(pathWithOutline);
+        mockIsCacheValid.mockReturnValue(true);
+      });
+
+      it('should navigate to step when topic with stepId is pressed', async () => {
+        const { getByText, getAllByText } = render(
+          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        );
+
+        await waitFor(() => {
+          expect(getByText('Outline')).toBeTruthy();
+        });
+
+        // Open the drawer
+        fireEvent.press(getByText('Outline'));
+
+        await waitFor(() => {
+          expect(getByText('Course Outline')).toBeTruthy();
+        });
+
+        // The current module should be expanded showing its topics
+        // Press a topic that has a stepId - "Variables" may appear in multiple places
+        const variablesElements = getAllByText('Variables');
+        fireEvent.press(variablesElements[0]);
+
+        // Should navigate to the step
+        await waitFor(() => {
+          expect(mockNavigate).toHaveBeenCalled();
         });
       });
     });
