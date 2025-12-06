@@ -14,9 +14,9 @@ import { GeneratingContent } from '../components/GeneratingContent';
 import { LessonSkeleton } from '../components/skeletons/LessonSkeleton';
 import { QuizSkeleton } from '../components/skeletons/QuizSkeleton';
 import { PracticeSkeleton } from '../components/skeletons/PracticeSkeleton';
-import { useLearningPathsStore } from '../state/learningPathsStore';
+import { useCoursesStore } from '../state/coursesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
-import { getPathNextStep, getLearningPath } from '../services/memory';
+import { getCourseNextStep, getCourse } from '../services/memory';
 import { ApiError, ErrorCodes } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
@@ -36,8 +36,8 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
   route,
 }) => {
   useScreenTracking('GeneratingStep', 'GeneratingStepScreen');
-  const { pathId, topic } = route.params;
-  const { activePath, setActivePath, addStep } = useLearningPathsStore();
+  const { courseId, topic } = route.params;
+  const { activeCourse, setActiveCourse, addStep } = useCoursesStore();
   const { showUpgradePrompt } = useSubscriptionStore();
   const { colors } = useTheme();
 
@@ -55,24 +55,24 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
 
   useEffect(() => {
     fetchNextStep();
-  }, [pathId]);
+  }, [courseId]);
 
   const fetchNextStep = async () => {
-    const currentProgress = activePath?.progress || 0;
+    const currentProgress = activeCourse?.progress || 0;
 
     try {
       // Track AI request start
-      const requestId = startRequest(pathId, currentProgress);
+      const requestId = startRequest(courseId, currentProgress);
 
       // Fetch the next step
-      const { step: newStep } = await getPathNextStep(pathId);
+      const { step: newStep } = await getCourseNextStep(courseId);
 
       // Track successful AI response (only for analytics-supported step types)
       const analyticsStepType = newStep.type as AnalyticsStepType;
       if (['lesson', 'quiz', 'practice', 'review', 'summary'].includes(newStep.type)) {
         await completeRequest(
           requestId,
-          pathId,
+          courseId,
           analyticsStepType,
           newStep.topic,
           'gemini-2.0-flash'
@@ -80,12 +80,12 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
       }
 
       // Add step to local state
-      addStep(pathId, newStep);
+      addStep(courseId, newStep);
 
       // Refresh the path
-      const updatedPath = await getLearningPath(pathId);
+      const updatedPath = await getCourse(courseId);
       if (updatedPath) {
-        setActivePath(updatedPath);
+        setActiveCourse(updatedPath);
       }
 
       setStep(newStep);
@@ -95,7 +95,7 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
     } catch (err) {
       // Track error
       await trackError(
-        pathId,
+        courseId,
         err instanceof Error ? err.message : 'Unknown error',
         0
       );
@@ -148,7 +148,7 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
         // Short delay to show skeleton, then navigate
         setTimeout(() => {
           // Navigate to actual step screen with the step data
-          navigation.replace('Step', { step: newStep, pathId });
+          navigation.replace('Step', { step: newStep, courseId });
         }, 300);
       });
     });
@@ -183,7 +183,7 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
           <ScreenHeader title="" onBack={handleBack} />
           <GeneratingContent
             contentType="step"
-            topic={topic || activePath?.goal}
+            topic={topic || activeCourse?.goal}
           />
         </Animated.View>
       )}

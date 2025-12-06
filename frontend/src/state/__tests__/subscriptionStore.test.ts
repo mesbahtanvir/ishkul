@@ -40,11 +40,11 @@ describe('subscriptionStore', () => {
       paidUntil: null,
       limits: {
         dailySteps: { used: 0, limit: 100 },
-        activePaths: { used: 0, limit: 2 },
+        activeCourses: { used: 0, limit: 2 },
       },
       canUpgrade: true,
       canGenerateSteps: true,
-      canCreatePath: true,
+      canCreateCourse: true,
       dailyLimitResetAt: null,
       loading: false,
       error: null,
@@ -62,7 +62,7 @@ describe('subscriptionStore', () => {
       expect(state.status).toBeNull();
       expect(state.paidUntil).toBeNull();
       expect(state.limits?.dailySteps.limit).toBe(100);
-      expect(state.limits?.activePaths.limit).toBe(2);
+      expect(state.limits?.activeCourses.limit).toBe(2);
       expect(state.canUpgrade).toBe(true);
       expect(state.loading).toBe(false);
       expect(state.error).toBeNull();
@@ -79,11 +79,11 @@ describe('subscriptionStore', () => {
         paidUntil: '2025-12-31T00:00:00Z',
         limits: {
           dailySteps: { used: 50, limit: 1000 },
-          activePaths: { used: 3, limit: 5 },
+          activeCourses: { used: 3, limit: 5 },
         },
         canUpgrade: false,
         canGenerateSteps: true,
-        canCreatePath: true,
+        canCreateCourse: true,
         dailyLimitResetAt: '2025-12-03T00:00:00Z',
       };
 
@@ -295,11 +295,11 @@ describe('subscriptionStore', () => {
         paidUntil: '2025-12-31T00:00:00Z',
         limits: {
           dailySteps: { used: 50, limit: 1000 },
-          activePaths: { used: 3, limit: 5 },
+          activeCourses: { used: 3, limit: 5 },
         },
         canUpgrade: false,
         canGenerateSteps: true,
-        canCreatePath: true,
+        canCreateCourse: true,
         dailyLimitResetAt: '2025-12-03T00:00:00Z',
       };
 
@@ -339,7 +339,7 @@ describe('useUsagePercentage hook', () => {
     useSubscriptionStore.setState({
       limits: {
         dailySteps: { used: 50, limit: 100 },
-        activePaths: { used: 1, limit: 2 },
+        activeCourses: { used: 1, limit: 2 },
       },
     });
   });
@@ -349,8 +349,8 @@ describe('useUsagePercentage hook', () => {
     expect(result.current).toBe(50);
   });
 
-  it('should calculate active paths percentage correctly', () => {
-    const { result } = renderHook(() => useUsagePercentage('activePaths'));
+  it('should calculate active courses percentage correctly', () => {
+    const { result } = renderHook(() => useUsagePercentage('activeCourses'));
     expect(result.current).toBe(50);
   });
 
@@ -358,12 +358,12 @@ describe('useUsagePercentage hook', () => {
     useSubscriptionStore.setState({
       limits: {
         dailySteps: { used: 150, limit: 100 },
-        activePaths: { used: 3, limit: 2 },
+        activeCourses: { used: 3, limit: 2 },
       },
     });
 
     const { result: dailyResult } = renderHook(() => useUsagePercentage('dailySteps'));
-    const { result: pathsResult } = renderHook(() => useUsagePercentage('activePaths'));
+    const { result: pathsResult } = renderHook(() => useUsagePercentage('activeCourses'));
 
     expect(dailyResult.current).toBe(100);
     expect(pathsResult.current).toBe(100);

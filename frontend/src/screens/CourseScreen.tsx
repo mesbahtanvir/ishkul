@@ -20,35 +20,35 @@ import { CourseOutlineDrawer } from '../components/CourseOutlineDrawer';
 import { CourseOutlineSidebar } from '../components/CourseOutlineSidebar';
 import { CourseProgressBar } from '../components/CourseProgressBar';
 import { OutlineLoadingOverlay } from '../components/OutlineLoadingOverlay';
-import { useLearningPathsStore, getCurrentStep } from '../state/learningPathsStore';
-import { getLearningPath, viewStep } from '../services/memory';
-import { learningPathsApi } from '../services/api';
+import { useCoursesStore, getCurrentStep } from '../state/coursesStore';
+import { getCourse, viewStep } from '../services/memory';
+import { coursesApi } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
-import { Step, PathStatuses, OutlineStatuses } from '../types/app';
+import { Step, CourseStatuses, OutlineStatuses } from '../types/app';
 import { useScreenTracking } from '../services/analytics';
 
-type LearningPathScreenNavigationProp = NativeStackNavigationProp<
+type CourseScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  'LearningPath'
+  'Course'
 >;
-type LearningPathScreenRouteProp = RouteProp<RootStackParamList, 'LearningPath'>;
+type CourseScreenRouteProp = RouteProp<RootStackParamList, 'Course'>;
 
-interface LearningPathScreenProps {
-  navigation: LearningPathScreenNavigationProp;
-  route: LearningPathScreenRouteProp;
+interface CourseScreenProps {
+  navigation: CourseScreenNavigationProp;
+  route: CourseScreenRouteProp;
 }
 
-export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
+export const CourseScreen: React.FC<CourseScreenProps> = ({
   navigation,
   route,
 }) => {
-  useScreenTracking('LearningPath', 'LearningPathScreen');
-  const { pathId } = route.params;
-  const { activePath, setActivePath } = useLearningPathsStore();
+  useScreenTracking('Course', 'CourseScreen');
+  const { courseId } = route.params;
+  const { activeCourse, setActiveCourse } = useCoursesStore();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [outlineDrawerVisible, setOutlineDrawerVisible] = useState(false);
@@ -59,27 +59,27 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
 
   useEffect(() => {
     loadPath();
-  }, [pathId]);
+  }, [courseId]);
 
   const loadPath = async () => {
     try {
       setIsLoading(true);
 
       // Check if we have a valid cache for this path
-      const store = useLearningPathsStore.getState();
-      const cached = store.getCachedPath(pathId);
-      const pathCache = store.pathsCache.get(pathId) || null;
+      const store = useCoursesStore.getState();
+      const cached = store.getCachedCourse(courseId);
+      const pathCache = store.coursesCache.get(courseId) || null;
 
       let path = cached;
       if (!store.isCacheValid(pathCache)) {
         // Cache expired or doesn't exist, fetch from API
-        path = await getLearningPath(pathId);
+        path = await getCourse(courseId);
       }
 
       if (path) {
-        setActivePath(path);
+        setActiveCourse(path);
       } else {
-        Alert.alert('Error', 'Learning path not found');
+        Alert.alert('Error', 'Course not found');
         navigation.goBack();
       }
     } catch (error) {
@@ -93,17 +93,17 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   // Navigate to GeneratingStepScreen for smooth loading experience
   const navigateToGenerateStep = () => {
     navigation.navigate('GeneratingStep', {
-      pathId,
-      topic: activePath?.goal,
+      courseId,
+      topic: activeCourse?.goal,
     });
   };
 
   // Poll for outline status when generating
   const pollOutlineStatus = useCallback(async () => {
     try {
-      const fetchedPath = await learningPathsApi.getPath(pathId);
+      const fetchedPath = await coursesApi.getCourse(courseId);
       if (fetchedPath) {
-        setActivePath(fetchedPath);
+        setActiveCourse(fetchedPath);
         // Return true if outline is ready or failed (stop polling)
         return fetchedPath.outlineStatus === OutlineStatuses.READY ||
                fetchedPath.outlineStatus === OutlineStatuses.FAILED;
@@ -113,11 +113,11 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       console.error('Error polling outline status:', error);
       return false;
     }
-  }, [pathId, setActivePath]);
+  }, [courseId, setActiveCourse]);
 
   useEffect(() => {
     // Only poll if outline is generating
-    if (!activePath?.outlineStatus || activePath.outlineStatus !== OutlineStatuses.GENERATING) {
+    if (!activeCourse?.outlineStatus || activeCourse.outlineStatus !== OutlineStatuses.GENERATING) {
       return;
     }
 
@@ -141,7 +141,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       mounted = false;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [activePath?.outlineStatus, pollOutlineStatus]);
+  }, [activeCourse?.outlineStatus, pollOutlineStatus]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -154,7 +154,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       // View completed step (read-only)
       try {
         // Record the view to update lastReviewed
-        await viewStep(pathId, step.id);
+        await viewStep(courseId, step.id);
       } catch (error) {
         // Log detailed error information
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -165,7 +165,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
           'Could not record your step view. Your progress may not be fully synchronized.'
         );
       }
-      navigation.navigate('StepDetail', { step, pathId });
+      navigation.navigate('StepDetail', { step, courseId });
     } else {
       // Start the active step
       handleStartStep(step);
@@ -174,7 +174,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
 
   const handleStartStep = (step: Step) => {
     // Use generic StepScreen which uses tool registry for dynamic rendering
-    navigation.navigate('Step', { step, pathId });
+    navigation.navigate('Step', { step, courseId });
   };
 
   const handleBack = () => {
@@ -182,12 +182,12 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   };
 
   const handleContinue = () => {
-    if (!activePath) return;
+    if (!activeCourse) return;
 
     // Don't allow generating new steps for completed/archived paths
-    const isPathActive = !activePath.status || activePath.status === PathStatuses.ACTIVE;
+    const isPathActive = !activeCourse.status || activeCourse.status === CourseStatuses.ACTIVE;
 
-    const currentStep = getCurrentStep(activePath.steps);
+    const currentStep = getCurrentStep(activeCourse.steps);
     if (currentStep) {
       handleStartStep(currentStep);
     } else if (isPathActive) {
@@ -198,7 +198,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   };
 
   const handleStartNewPath = () => {
-    navigation.navigate('GoalSelection', { isCreatingNewPath: true });
+    navigation.navigate('GoalSelection', { isCreatingNewCourse: true });
   };
 
   // Responsive values
@@ -208,13 +208,13 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
     return <LoadingScreen />;
   }
 
-  if (!activePath) {
+  if (!activeCourse) {
     return (
       <Container>
         <View style={styles.errorContainer}>
           <Text style={[styles.errorEmoji, { fontSize: 56 }]}>⚠️</Text>
           <Text style={[styles.errorTitle, { color: colors.text.primary }]}>
-            Path Not Found
+            Course Not Found
           </Text>
           <Text style={[styles.errorText, { color: colors.ios.gray }]}>
             Unable to load this track.
@@ -225,13 +225,13 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
     );
   }
 
-  const currentStep = getCurrentStep(activePath.steps);
-  const completedSteps = activePath.steps.filter((s) => s.completed);
-  const hasSteps = activePath.steps.length > 0;
-  const isPathCompleted = activePath.status === PathStatuses.COMPLETED;
-  const isPathArchived = activePath.status === PathStatuses.ARCHIVED;
-  const isPathActive = !activePath.status || activePath.status === PathStatuses.ACTIVE;
-  const isOutlineGenerating = activePath.outlineStatus === OutlineStatuses.GENERATING;
+  const currentStep = getCurrentStep(activeCourse.steps);
+  const completedSteps = activeCourse.steps.filter((s) => s.completed);
+  const hasSteps = activeCourse.steps.length > 0;
+  const isPathCompleted = activeCourse.status === CourseStatuses.COMPLETED;
+  const isPathArchived = activeCourse.status === CourseStatuses.ARCHIVED;
+  const isPathActive = !activeCourse.status || activeCourse.status === CourseStatuses.ACTIVE;
+  const isOutlineGenerating = activeCourse.outlineStatus === OutlineStatuses.GENERATING;
 
   // Handler for outline topic navigation (shared between sidebar and drawer)
   const handleOutlineTopicPress = (moduleIndex: number, topicIndex: number, topic: { stepId?: string }) => {
@@ -239,12 +239,12 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
     setOutlineDrawerVisible(false);
     // If topic has a stepId, find and navigate to that step
     if (topic.stepId) {
-      const step = activePath.steps.find((s) => s.id === topic.stepId);
+      const step = activeCourse.steps.find((s) => s.id === topic.stepId);
       if (step) {
         if (step.completed) {
-          navigation.navigate('StepDetail', { step, pathId });
+          navigation.navigate('StepDetail', { step, courseId });
         } else {
-          navigation.navigate('Step', { step, pathId });
+          navigation.navigate('Step', { step, courseId });
         }
       }
     }
@@ -253,7 +253,7 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
   // Hide back button on web - navigation is via sidebar
   const showBackButton = Platform.OS !== 'web';
   // Hide header on web/tablet when sidebar is visible (sidebar already shows this info)
-  const showSidebar = !isMobile && activePath.outline && Platform.OS === 'web';
+  const showSidebar = !isMobile && activeCourse.outline && Platform.OS === 'web';
 
   // Main content component (shared between mobile and web layouts)
   const MainContent = (
@@ -270,10 +270,10 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       )}
 
       {/* Mobile: Course progress bar (tappable to open outline drawer) */}
-      {isMobile && activePath.outline && (
+      {isMobile && activeCourse.outline && (
         <CourseProgressBar
-          outline={activePath.outline}
-          currentPosition={activePath.outlinePosition}
+          outline={activeCourse.outline}
+          currentPosition={activeCourse.outlinePosition}
           onPress={() => setOutlineDrawerVisible(true)}
         />
       )}
@@ -287,13 +287,13 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
           ]}
         >
           <View style={styles.pathHeaderTop}>
-            <Text style={styles.pathEmoji}>{activePath.emoji}</Text>
+            <Text style={styles.pathEmoji}>{activeCourse.emoji}</Text>
             <View style={styles.pathInfo}>
               <Text
                 style={[styles.pathGoal, { color: colors.text.primary }]}
                 numberOfLines={2}
               >
-                {activePath.goal}
+                {activeCourse.goal}
               </Text>
               <Text style={[styles.pathLevel, { color: colors.text.secondary }]}>
                 {completedSteps.length} steps completed
@@ -301,10 +301,10 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
             </View>
           </View>
           {/* Only show progress bar if CourseProgressBar is not visible */}
-          {!(isMobile && activePath.outline) && (
+          {!(isMobile && activeCourse.outline) && (
             <View style={styles.progressRow}>
               <ProgressBar
-                progress={activePath.progress}
+                progress={activeCourse.progress}
                 height={8}
                 style={styles.progressBar}
               />
@@ -373,11 +373,11 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
         )}
 
         {/* Render all steps */}
-        {activePath.steps.map((step, index) => (
+        {activeCourse.steps.map((step, index) => (
           <StepCard
             key={step.id}
             step={step}
-            isCurrentStep={!step.completed && index === activePath.steps.length - 1}
+            isCurrentStep={!step.completed && index === activeCourse.steps.length - 1}
             onPress={() => handleStepPress(step)}
           />
         ))}
@@ -421,8 +421,8 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       {showSidebar ? (
         <View style={styles.webLayout}>
           <CourseOutlineSidebar
-            outline={activePath.outline!}
-            currentPosition={activePath.outlinePosition}
+            outline={activeCourse.outline!}
+            currentPosition={activeCourse.outlinePosition}
             onTopicPress={handleOutlineTopicPress}
             collapsed={sidebarCollapsed}
             onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -440,8 +440,8 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
         <CourseOutlineDrawer
           visible={outlineDrawerVisible}
           onClose={() => setOutlineDrawerVisible(false)}
-          outline={activePath.outline || null}
-          currentPosition={activePath.outlinePosition}
+          outline={activeCourse.outline || null}
+          currentPosition={activeCourse.outlinePosition}
           onTopicPress={handleOutlineTopicPress}
         />
       )}
@@ -449,8 +449,8 @@ export const LearningPathScreen: React.FC<LearningPathScreenProps> = ({
       {/* Outline Loading Overlay - shows when outline is generating */}
       {isOutlineGenerating && (
         <OutlineLoadingOverlay
-          emoji={activePath.emoji}
-          goal={activePath.goal}
+          emoji={activeCourse.emoji}
+          goal={activeCourse.goal}
         />
       )}
     </Container>
@@ -620,4 +620,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LearningPathScreen;
+export default CourseScreen;

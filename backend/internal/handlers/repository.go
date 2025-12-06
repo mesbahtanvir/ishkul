@@ -31,7 +31,7 @@ func CountUserActivePaths(ctx context.Context, fs *firestore.Client, userID stri
 
 	iter := col.
 		Where("userId", "==", userID).
-		Where("status", "==", models.PathStatusActive).
+		Where("status", "==", models.CourseStatusActive).
 		Documents(ctx)
 	defer iter.Stop()
 

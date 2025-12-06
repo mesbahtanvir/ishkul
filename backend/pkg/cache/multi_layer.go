@@ -64,9 +64,9 @@ func (m *MultiLayerCache) StartCleanup(interval time.Duration) {
 // --- Layer 1: Selection Cache ---
 
 // GetSelection retrieves a cached tool selection.
-func (m *MultiLayerCache) GetSelection(pathID string, path *models.LearningPath) (*ToolSelection, bool) {
-	contextHash := ContextHash(path)
-	key := SelectionKey(pathID, contextHash)
+func (m *MultiLayerCache) GetSelection(courseID string, course *models.Course) (*ToolSelection, bool) {
+	contextHash := ContextHash(course)
+	key := SelectionKey(courseID, contextHash)
 
 	value, ok := m.selectionCache.Get(key)
 	if ok {
@@ -81,23 +81,23 @@ func (m *MultiLayerCache) GetSelection(pathID string, path *models.LearningPath)
 }
 
 // SetSelection stores a tool selection result.
-func (m *MultiLayerCache) SetSelection(pathID string, path *models.LearningPath, selection *ToolSelection) {
-	contextHash := ContextHash(path)
-	key := SelectionKey(pathID, contextHash)
+func (m *MultiLayerCache) SetSelection(courseID string, course *models.Course, selection *ToolSelection) {
+	contextHash := ContextHash(course)
+	key := SelectionKey(courseID, contextHash)
 	m.selectionCache.Set(key, selection)
 }
 
-// InvalidateSelection removes selection cache for a path.
-func (m *MultiLayerCache) InvalidateSelection(pathID string) {
-	m.selectionCache.DeleteByPrefix("select:" + pathID)
+// InvalidateSelection removes selection cache for a course.
+func (m *MultiLayerCache) InvalidateSelection(courseID string) {
+	m.selectionCache.DeleteByPrefix("select:" + courseID)
 }
 
 // --- Layer 2: Content Cache ---
 
 // GetContent retrieves cached tool content.
-func (m *MultiLayerCache) GetContent(pathID, toolType string, path *models.LearningPath, topic string) (interface{}, bool) {
-	topicHash := TopicHash(path, topic)
-	key := ContentKey(pathID, toolType, topicHash)
+func (m *MultiLayerCache) GetContent(courseID, toolType string, course *models.Course, topic string) (interface{}, bool) {
+	topicHash := TopicHash(course, topic)
+	key := ContentKey(courseID, toolType, topicHash)
 
 	value, ok := m.contentCache.Get(key)
 	if ok {
@@ -111,27 +111,27 @@ func (m *MultiLayerCache) GetContent(pathID, toolType string, path *models.Learn
 }
 
 // SetContent stores tool-specific content.
-func (m *MultiLayerCache) SetContent(pathID, toolType string, path *models.LearningPath, topic string, content interface{}) {
-	topicHash := TopicHash(path, topic)
-	key := ContentKey(pathID, toolType, topicHash)
+func (m *MultiLayerCache) SetContent(courseID, toolType string, course *models.Course, topic string, content interface{}) {
+	topicHash := TopicHash(course, topic)
+	key := ContentKey(courseID, toolType, topicHash)
 	m.contentCache.Set(key, content)
 }
 
-// InvalidateContent removes content cache for a path/tool combination.
-func (m *MultiLayerCache) InvalidateContent(pathID, toolType string) {
-	m.contentCache.DeleteByPrefix("content:" + pathID + ":" + toolType)
+// InvalidateContent removes content cache for a course/tool combination.
+func (m *MultiLayerCache) InvalidateContent(courseID, toolType string) {
+	m.contentCache.DeleteByPrefix("content:" + courseID + ":" + toolType)
 }
 
-// InvalidateAllContent removes all content cache for a path.
-func (m *MultiLayerCache) InvalidateAllContent(pathID string) {
-	m.contentCache.DeleteByPrefix("content:" + pathID)
+// InvalidateAllContent removes all content cache for a course.
+func (m *MultiLayerCache) InvalidateAllContent(courseID string) {
+	m.contentCache.DeleteByPrefix("content:" + courseID)
 }
 
 // --- Layer 3: Step Cache ---
 
 // GetStep retrieves a cached complete step.
-func (m *MultiLayerCache) GetStep(pathID, userID string) *models.Step {
-	step := m.stepCache.Get(pathID, userID)
+func (m *MultiLayerCache) GetStep(courseID, userID string) *models.Step {
+	step := m.stepCache.Get(courseID, userID)
 	if step != nil {
 		atomic.AddInt64(&m.metrics.StepHits, 1)
 	} else {
@@ -141,18 +141,18 @@ func (m *MultiLayerCache) GetStep(pathID, userID string) *models.Step {
 }
 
 // SetStep stores a complete step.
-func (m *MultiLayerCache) SetStep(pathID, userID string, step *models.Step) {
-	m.stepCache.Set(pathID, userID, step)
+func (m *MultiLayerCache) SetStep(courseID, userID string, step *models.Step) {
+	m.stepCache.Set(courseID, userID, step)
 }
 
 // InvalidateStep removes a cached step.
-func (m *MultiLayerCache) InvalidateStep(pathID, userID string) {
-	m.stepCache.Delete(pathID, userID)
+func (m *MultiLayerCache) InvalidateStep(courseID, userID string) {
+	m.stepCache.Delete(courseID, userID)
 }
 
 // HasStep checks if a step is cached.
-func (m *MultiLayerCache) HasStep(pathID, userID string) bool {
-	return m.stepCache.Has(pathID, userID)
+func (m *MultiLayerCache) HasStep(courseID, userID string) bool {
+	return m.stepCache.Has(courseID, userID)
 }
 
 // --- Metrics ---
@@ -205,19 +205,19 @@ func (m *MultiLayerCache) StepHitRate() float64 {
 
 // --- Invalidation Helpers ---
 
-// InvalidateForPath invalidates all caches related to a path.
+// InvalidateForCourse invalidates all caches related to a course.
 // Call this when a step is completed.
-func (m *MultiLayerCache) InvalidateForPath(pathID, userID string) {
-	m.InvalidateSelection(pathID)
-	m.InvalidateStep(pathID, userID)
+func (m *MultiLayerCache) InvalidateForCourse(courseID, userID string) {
+	m.InvalidateSelection(courseID)
+	m.InvalidateStep(courseID, userID)
 	// Content cache is not invalidated as it may still be valid for same topic
 }
 
-// InvalidateAll clears all caches for a path.
-func (m *MultiLayerCache) InvalidateAll(pathID, userID string) {
-	m.InvalidateSelection(pathID)
-	m.InvalidateAllContent(pathID)
-	m.InvalidateStep(pathID, userID)
+// InvalidateAll clears all caches for a course.
+func (m *MultiLayerCache) InvalidateAll(courseID, userID string) {
+	m.InvalidateSelection(courseID)
+	m.InvalidateAllContent(courseID)
+	m.InvalidateStep(courseID, userID)
 }
 
 // Clear removes all items from all cache layers.

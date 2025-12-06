@@ -31,7 +31,7 @@ func TestNewMultiLayerCache(t *testing.T) {
 func TestMultiLayerCacheSelection(t *testing.T) {
 	t.Run("stores and retrieves selection", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID:       "path-1",
 			UserID:   "user-1",
 			Goal:     "Learn Go",
@@ -55,7 +55,7 @@ func TestMultiLayerCacheSelection(t *testing.T) {
 
 	t.Run("returns false for non-existent selection", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
+		path := &models.Course{ID: "path-1"}
 
 		_, ok := cache.GetSelection("non-existent", path)
 		assert.False(t, ok)
@@ -63,7 +63,7 @@ func TestMultiLayerCacheSelection(t *testing.T) {
 
 	t.Run("invalidates selection by path", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1", Goal: "Test"}
+		path := &models.Course{ID: "path-1", Goal: "Test"}
 		selection := &ToolSelection{Tool: "quiz"}
 
 		cache.SetSelection("path-1", path, selection)
@@ -75,7 +75,7 @@ func TestMultiLayerCacheSelection(t *testing.T) {
 
 	t.Run("tracks selection hits", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
+		path := &models.Course{ID: "path-1"}
 		selection := &ToolSelection{Tool: "lesson"}
 
 		cache.SetSelection("path-1", path, selection)
@@ -88,7 +88,7 @@ func TestMultiLayerCacheSelection(t *testing.T) {
 
 	t.Run("tracks selection misses", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
+		path := &models.Course{ID: "path-1"}
 
 		cache.GetSelection("non-existent", path) // miss
 		cache.GetSelection("also-missing", path) // miss
@@ -105,7 +105,7 @@ func TestMultiLayerCacheSelection(t *testing.T) {
 func TestMultiLayerCacheContent(t *testing.T) {
 	t.Run("stores and retrieves content", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID: "path-1",
 		}
 		content := map[string]string{
@@ -125,7 +125,7 @@ func TestMultiLayerCacheContent(t *testing.T) {
 
 	t.Run("returns false for non-existent content", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
+		path := &models.Course{ID: "path-1"}
 
 		_, ok := cache.GetContent("path-1", "lesson", path, "NonExistent")
 		assert.False(t, ok)
@@ -133,7 +133,7 @@ func TestMultiLayerCacheContent(t *testing.T) {
 
 	t.Run("invalidates content by path and tool", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
+		path := &models.Course{ID: "path-1"}
 
 		cache.SetContent("path-1", "lesson", path, "Topic1", "content1")
 		cache.SetContent("path-1", "quiz", path, "Topic1", "content2")
@@ -149,7 +149,7 @@ func TestMultiLayerCacheContent(t *testing.T) {
 
 	t.Run("invalidates all content for path", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
+		path := &models.Course{ID: "path-1"}
 
 		cache.SetContent("path-1", "lesson", path, "Topic1", "content1")
 		cache.SetContent("path-1", "quiz", path, "Topic1", "content2")
@@ -165,7 +165,7 @@ func TestMultiLayerCacheContent(t *testing.T) {
 
 	t.Run("tracks content hits and speculative hits", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
+		path := &models.Course{ID: "path-1"}
 
 		cache.SetContent("path-1", "lesson", path, "Topic", "content")
 		cache.GetContent("path-1", "lesson", path, "Topic")
@@ -245,7 +245,6 @@ func TestMultiLayerCacheStep(t *testing.T) {
 func TestMultiLayerCacheInvalidation(t *testing.T) {
 	t.Run("invalidates all caches for path", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
 		selection := &ToolSelection{Tool: "lesson"}
 		step := &models.Step{ID: "step-1"}
 
@@ -266,7 +265,6 @@ func TestMultiLayerCacheInvalidation(t *testing.T) {
 
 	t.Run("invalidates for path preserves content", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
 		selection := &ToolSelection{Tool: "lesson"}
 		step := &models.Step{ID: "step-1"}
 
@@ -274,7 +272,7 @@ func TestMultiLayerCacheInvalidation(t *testing.T) {
 		cache.SetContent("path-1", "lesson", path, "Topic", "content")
 		cache.SetStep("path-1", "user-1", step)
 
-		cache.InvalidateForPath("path-1", "user-1")
+		cache.InvalidateForCourse("path-1", "user-1")
 
 		_, selOk := cache.GetSelection("path-1", path)
 		_, contentOk := cache.GetContent("path-1", "lesson", path, "Topic")
@@ -287,7 +285,6 @@ func TestMultiLayerCacheInvalidation(t *testing.T) {
 
 	t.Run("clears all caches", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
 
 		cache.SetSelection("path-1", path, &ToolSelection{Tool: "lesson"})
 		cache.SetContent("path-1", "lesson", path, "Topic", "content")
@@ -312,7 +309,7 @@ func TestMultiLayerCacheInvalidation(t *testing.T) {
 func TestMultiLayerCacheHitRates(t *testing.T) {
 	t.Run("selection hit rate", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
+		path := &models.Course{ID: "path-1"}
 		selection := &ToolSelection{Tool: "lesson"}
 
 		cache.SetSelection("path-1", path, selection)
@@ -330,7 +327,6 @@ func TestMultiLayerCacheHitRates(t *testing.T) {
 
 	t.Run("content hit rate", func(t *testing.T) {
 		cache := NewMultiLayerCache()
-		path := &models.LearningPath{ID: "path-1"}
 
 		cache.SetContent("path-1", "lesson", path, "Topic", "content")
 
@@ -423,7 +419,7 @@ func TestCacheKeys(t *testing.T) {
 
 func TestContextHash(t *testing.T) {
 	t.Run("generates consistent hash for same path", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID:       "path-1",
 			Goal:     "Learn Go",
 			Progress: 50,
@@ -437,11 +433,11 @@ func TestContextHash(t *testing.T) {
 	})
 
 	t.Run("generates different hash for different paths", func(t *testing.T) {
-		path1 := &models.LearningPath{
+		path1 := &models.Course{
 			ID:       "path-1",
 			Progress: 50,
 		}
-		path2 := &models.LearningPath{
+		path2 := &models.Course{
 			ID:       "path-2",
 			Progress: 75,
 		}
@@ -453,7 +449,7 @@ func TestContextHash(t *testing.T) {
 	})
 
 	t.Run("hash changes when progress changes", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID:       "path-1",
 			Progress: 50,
 		}
@@ -467,7 +463,7 @@ func TestContextHash(t *testing.T) {
 	})
 
 	t.Run("hash includes memory compaction", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID:     "path-1",
 			Memory: nil,
 		}
@@ -491,7 +487,7 @@ func TestContextHash(t *testing.T) {
 
 func TestTopicHash(t *testing.T) {
 	t.Run("generates consistent hash for same topic", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID: "path-1",
 		}
 
@@ -502,7 +498,7 @@ func TestTopicHash(t *testing.T) {
 	})
 
 	t.Run("generates different hash for different topics", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID: "path-1",
 		}
 
@@ -513,7 +509,7 @@ func TestTopicHash(t *testing.T) {
 	})
 
 	t.Run("hash includes topic confidence", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			ID: "path-1",
 			Memory: &models.Memory{
 				Topics: map[string]models.TopicMemory{

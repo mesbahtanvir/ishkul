@@ -47,17 +47,17 @@ func NewPregenerateService(
 	}
 }
 
-// TriggerPregeneration starts background generation for a learning path
+// TriggerPregeneration starts background generation for a course
 // It's safe to call multiple times - duplicate calls will be ignored
-func (s *PregenerateService) TriggerPregeneration(path *models.LearningPath, userTier string) {
+func (s *PregenerateService) TriggerPregeneration(course *models.Course, userTier string) {
 	if s.llmProvider == nil || s.loader == nil {
 		return // LLM not initialized
 	}
 
-	key := path.ID + ":" + path.UserID
+	key := course.ID + ":" + course.UserID
 
 	// Skip if already cached
-	if s.cache.Has(path.ID, path.UserID) {
+	if s.cache.Has(course.ID, course.UserID) {
 		return
 	}
 
@@ -73,12 +73,12 @@ func (s *PregenerateService) TriggerPregeneration(path *models.LearningPath, use
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
-		step, err := s.generateStep(ctx, path, userTier)
+		step, err := s.generateStep(ctx, course, userTier)
 		if err != nil {
 			if s.logger != nil {
 				s.logger.Error("pregeneration_failed",
-					slog.String("path_id", path.ID),
-					slog.String("user_id", path.UserID),
+					slog.String("course_id", course.ID),
+					slog.String("user_id", course.UserID),
 					slog.String("user_tier", userTier),
 					slog.String("error", err.Error()),
 				)
@@ -87,11 +87,11 @@ func (s *PregenerateService) TriggerPregeneration(path *models.LearningPath, use
 		}
 
 		// Store in cache
-		s.cache.Set(path.ID, path.UserID, step)
+		s.cache.Set(course.ID, course.UserID, step)
 
 		if s.logger != nil {
 			s.logger.Info("pregeneration_complete",
-				slog.String("path_id", path.ID),
+				slog.String("course_id", course.ID),
 				slog.String("user_tier", userTier),
 				slog.String("step_type", step.Type),
 				slog.String("step_topic", step.Topic),
@@ -100,15 +100,15 @@ func (s *PregenerateService) TriggerPregeneration(path *models.LearningPath, use
 	}()
 }
 
-// IsGenerating checks if a path is currently being pre-generated
-func (s *PregenerateService) IsGenerating(pathID, userID string) bool {
-	key := pathID + ":" + userID
+// IsGenerating checks if a course is currently being pre-generated
+func (s *PregenerateService) IsGenerating(courseID, userID string) bool {
+	key := courseID + ":" + userID
 	_, exists := s.inProgress.Load(key)
 	return exists
 }
 
 // generateStep creates a new step using the LLM with tier-aware model selection
-func (s *PregenerateService) generateStep(ctx context.Context, path *models.LearningPath, userTier string) (*models.Step, error) {
+func (s *PregenerateService) generateStep(ctx context.Context, path *models.Course, userTier string) (*models.Step, error) {
 	// Get recent steps since last compaction
 	recentSteps := getRecentSteps(path)
 
@@ -223,57 +223,57 @@ func (s *PregenerateService) generateStep(ctx context.Context, path *models.Lear
 }
 
 // getRecentSteps returns steps since the last compaction
-func getRecentSteps(path *models.LearningPath) []models.Step {
-	if path.Memory == nil || path.Memory.Compaction == nil {
-		return path.Steps
+func getRecentSteps(course *models.Course) []models.Step {
+	if course.Memory == nil || course.Memory.Compaction == nil {
+		return course.Steps
 	}
 
-	lastIndex := path.Memory.Compaction.LastStepIndex
-	if lastIndex >= len(path.Steps)-1 {
+	lastIndex := course.Memory.Compaction.LastStepIndex
+	if lastIndex >= len(course.Steps)-1 {
 		return []models.Step{}
 	}
 
-	return path.Steps[lastIndex+1:]
+	return course.Steps[lastIndex+1:]
 }
 
-// buildMemoryContext builds a context string from the path's memory
-func buildMemoryContext(path *models.LearningPath) string {
+// buildMemoryContext builds a context string from the course's memory
+func buildMemoryContext(course *models.Course) string {
 	var sb strings.Builder
 
-	if path.Memory == nil {
+	if course.Memory == nil {
 		return "No prior learning history."
 	}
 
 	// Include compaction summary if available
-	if path.Memory.Compaction != nil && path.Memory.Compaction.Summary != "" {
+	if course.Memory.Compaction != nil && course.Memory.Compaction.Summary != "" {
 		sb.WriteString("Learning Summary: ")
-		sb.WriteString(path.Memory.Compaction.Summary)
+		sb.WriteString(course.Memory.Compaction.Summary)
 		sb.WriteString("\n")
 
-		if len(path.Memory.Compaction.Strengths) > 0 {
+		if len(course.Memory.Compaction.Strengths) > 0 {
 			sb.WriteString("Strengths: ")
-			sb.WriteString(strings.Join(path.Memory.Compaction.Strengths, ", "))
+			sb.WriteString(strings.Join(course.Memory.Compaction.Strengths, ", "))
 			sb.WriteString("\n")
 		}
 
-		if len(path.Memory.Compaction.Weaknesses) > 0 {
+		if len(course.Memory.Compaction.Weaknesses) > 0 {
 			sb.WriteString("Areas needing work: ")
-			sb.WriteString(strings.Join(path.Memory.Compaction.Weaknesses, ", "))
+			sb.WriteString(strings.Join(course.Memory.Compaction.Weaknesses, ", "))
 			sb.WriteString("\n")
 		}
 
-		if len(path.Memory.Compaction.Recommendations) > 0 {
+		if len(course.Memory.Compaction.Recommendations) > 0 {
 			sb.WriteString("Recommendations: ")
-			sb.WriteString(strings.Join(path.Memory.Compaction.Recommendations, ", "))
+			sb.WriteString(strings.Join(course.Memory.Compaction.Recommendations, ", "))
 			sb.WriteString("\n")
 		}
 	}
 
 	// Include topic confidence scores
-	if len(path.Memory.Topics) > 0 {
+	if len(course.Memory.Topics) > 0 {
 		sb.WriteString("Topic Confidence: ")
-		topicStrs := make([]string, 0, len(path.Memory.Topics))
-		for topic, mem := range path.Memory.Topics {
+		topicStrs := make([]string, 0, len(course.Memory.Topics))
+		for topic, mem := range course.Memory.Topics {
 			topicStrs = append(topicStrs, fmt.Sprintf("%s: %.0f%%", topic, mem.Confidence*100))
 		}
 		sb.WriteString(strings.Join(topicStrs, ", "))

@@ -11,44 +11,44 @@ import (
 
 // ContextHash creates a hash from learning context for cache invalidation.
 // The hash changes when: memory changes, recent steps change, or progress changes.
-func ContextHash(path *models.LearningPath) string {
+func ContextHash(course *models.Course) string {
 	var sb strings.Builder
 
 	// Include memory state
-	if path.Memory != nil && path.Memory.Compaction != nil {
-		sb.WriteString(path.Memory.Compaction.Summary)
-		sb.WriteString(strings.Join(path.Memory.Compaction.Weaknesses, ","))
+	if course.Memory != nil && course.Memory.Compaction != nil {
+		sb.WriteString(course.Memory.Compaction.Summary)
+		sb.WriteString(strings.Join(course.Memory.Compaction.Weaknesses, ","))
 	}
 
 	// Include recent step count and types
-	sb.WriteString(fmt.Sprintf("steps:%d", len(path.Steps)))
+	sb.WriteString(fmt.Sprintf("steps:%d", len(course.Steps)))
 
 	// Include last 3 step types for pattern detection
-	start := len(path.Steps) - 3
+	start := len(course.Steps) - 3
 	if start < 0 {
 		start = 0
 	}
-	for _, step := range path.Steps[start:] {
+	for _, step := range course.Steps[start:] {
 		sb.WriteString(step.Type)
 		sb.WriteString(step.Topic)
 	}
 
 	// Include progress percentage
-	sb.WriteString(fmt.Sprintf("progress:%d", path.Progress))
+	sb.WriteString(fmt.Sprintf("progress:%d", course.Progress))
 
 	hash := sha256.Sum256([]byte(sb.String()))
 	return hex.EncodeToString(hash[:8]) // Short 16-char hash
 }
 
 // TopicHash creates a hash for topic-specific caching.
-func TopicHash(path *models.LearningPath, topic string) string {
+func TopicHash(course *models.Course, topic string) string {
 	var sb strings.Builder
 
 	sb.WriteString(topic)
 
 	// Include topic confidence if available
-	if path.Memory != nil && path.Memory.Topics != nil {
-		if topicMem, ok := path.Memory.Topics[topic]; ok {
+	if course.Memory != nil && course.Memory.Topics != nil {
+		if topicMem, ok := course.Memory.Topics[topic]; ok {
 			sb.WriteString(fmt.Sprintf("conf:%.2f", topicMem.Confidence))
 		}
 	}

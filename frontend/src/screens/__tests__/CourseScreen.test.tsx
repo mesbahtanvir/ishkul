@@ -3,12 +3,12 @@ import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert, Platform } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { LearningPathScreen } from '../LearningPathScreen';
+import { CourseScreen } from '../CourseScreen';
 import type { RootStackParamList } from '../../types/navigation';
-import type { LearningPath, Step, CourseOutline } from '../../types/app';
+import type { Course, Step, CourseOutline } from '../../types/app';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'LearningPath'>;
-type ScreenRouteProp = RouteProp<RootStackParamList, 'LearningPath'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Course'>;
+type ScreenRouteProp = RouteProp<RootStackParamList, 'Course'>;
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');
@@ -103,7 +103,7 @@ const createMockOutline = (): CourseOutline => ({
 });
 
 // Create mock path
-const createMockPath = (overrides: Partial<LearningPath> = {}): LearningPath => ({
+const createMockCourse = (overrides: Partial<Course> = {}): Course => ({
   id: 'test-path-123',
   goal: 'Learn Python',
   emoji: '🐍',
@@ -130,25 +130,25 @@ const mockSetActivePath = jest.fn();
 const mockAddStep = jest.fn();
 const mockGetCachedPath = jest.fn();
 const mockIsCacheValid = jest.fn();
-let mockActivePath: LearningPath | null = null;
+let mockActivePath: Course | null = null;
 
 // Create a mock store object with getState function
 const mockStore = {
-  activePath: null as LearningPath | null,
+  activeCourse: null as Course | null,
   setActivePath: mockSetActivePath,
   addStep: mockAddStep,
-  getCachedPath: mockGetCachedPath,
+  getCachedCourse: mockGetCachedPath,
   pathsCache: new Map(),
   isCacheValid: mockIsCacheValid,
 };
 
-jest.mock('../../state/learningPathsStore', () => ({
-  useLearningPathsStore: Object.assign(
+jest.mock('../../state/coursesStore', () => ({
+  useCoursesStore: Object.assign(
     () => ({
-      activePath: mockActivePath,
+      activeCourse: mockActivePath,
       setActivePath: mockSetActivePath,
       addStep: mockAddStep,
-      getCachedPath: mockGetCachedPath,
+      getCachedCourse: mockGetCachedPath,
       pathsCache: new Map(),
       isCacheValid: mockIsCacheValid,
     }),
@@ -160,12 +160,12 @@ jest.mock('../../state/learningPathsStore', () => ({
 }));
 
 // Mock memory service
-const mockGetLearningPath = jest.fn();
+const mockGetCourse = jest.fn();
 const mockGetPathNextStep = jest.fn();
 const mockViewStep = jest.fn();
 
 jest.mock('../../services/memory', () => ({
-  getLearningPath: (...args: unknown[]) => mockGetLearningPath(...args),
+  getCourse: (...args: unknown[]) => mockGetCourse(...args),
   getPathNextStep: (...args: unknown[]) => mockGetPathNextStep(...args),
   viewStep: (...args: unknown[]) => mockViewStep(...args),
 }));
@@ -206,14 +206,14 @@ const mockNavigation = {
   replace: jest.fn(),
 } as unknown as NavigationProp;
 
-const createMockRoute = (pathId: string = 'test-path-123'): ScreenRouteProp =>
+const createMockRoute = (courseId: string = 'test-path-123'): ScreenRouteProp =>
   ({
-    key: 'LearningPath-test',
-    name: 'LearningPath',
-    params: { pathId },
+    key: 'Course-test',
+    name: 'Course',
+    params: { courseId },
   }) as unknown as ScreenRouteProp;
 
-describe('LearningPathScreen', () => {
+describe('CourseScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockActivePath = null;
@@ -226,16 +226,16 @@ describe('LearningPathScreen', () => {
   describe('path status states', () => {
     describe('active path', () => {
       beforeEach(() => {
-        const activePath = createMockPath({ status: 'active' });
-        mockActivePath = activePath;
-        mockGetLearningPath.mockResolvedValue(activePath);
-        mockGetCachedPath.mockReturnValue(activePath);
+        const activeCourse = createMockCourse({ status: 'active' });
+        mockActivePath = activeCourse;
+        mockGetCourse.mockResolvedValue(activeCourse);
+        mockGetCachedPath.mockReturnValue(activeCourse);
         mockIsCacheValid.mockReturnValue(true);
       });
 
       it('should render active path with Continue button', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -245,7 +245,7 @@ describe('LearningPathScreen', () => {
 
       it('should render path goal and progress', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -256,16 +256,16 @@ describe('LearningPathScreen', () => {
       });
 
       it('should show Continue when no current step', async () => {
-        const pathWithAllCompleted = createMockPath({
+        const pathWithAllCompleted = createMockCourse({
           status: 'active',
           steps: [createMockStep({ completed: true })],
         });
         mockActivePath = pathWithAllCompleted;
-        mockGetLearningPath.mockResolvedValue(pathWithAllCompleted);
+        mockGetCourse.mockResolvedValue(pathWithAllCompleted);
         mockGetCachedPath.mockReturnValue(pathWithAllCompleted);
 
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -275,7 +275,7 @@ describe('LearningPathScreen', () => {
 
       it('should navigate to Step screen when Continue is pressed', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -290,7 +290,7 @@ describe('LearningPathScreen', () => {
 
     describe('completed path', () => {
       beforeEach(() => {
-        const completedPath = createMockPath({
+        const completedPath = createMockCourse({
           status: 'completed',
           progress: 100,
           steps: [
@@ -300,14 +300,14 @@ describe('LearningPathScreen', () => {
           completedAt: Date.now(),
         });
         mockActivePath = completedPath;
-        mockGetLearningPath.mockResolvedValue(completedPath);
+        mockGetCourse.mockResolvedValue(completedPath);
         mockGetCachedPath.mockReturnValue(completedPath);
         mockIsCacheValid.mockReturnValue(true);
       });
 
       it('should render completion celebration UI', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -318,7 +318,7 @@ describe('LearningPathScreen', () => {
 
       it('should show steps completed badge', async () => {
         const { getAllByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -328,7 +328,7 @@ describe('LearningPathScreen', () => {
 
       it('should show Start New Track button', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -338,7 +338,7 @@ describe('LearningPathScreen', () => {
 
       it('should navigate to GoalSelection when Start New Track is pressed', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -347,11 +347,11 @@ describe('LearningPathScreen', () => {
 
         fireEvent.press(getByText('Start New Track'));
 
-        expect(mockNavigate).toHaveBeenCalledWith('GoalSelection', { isCreatingNewPath: true });
+        expect(mockNavigate).toHaveBeenCalledWith('GoalSelection', { isCreatingNewCourse: true });
       });
 
       it('should NOT fetch next step for completed path', async () => {
-        render(<LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />);
+        render(<CourseScreen navigation={mockNavigation} route={createMockRoute()} />);
 
         await waitFor(() => {
           expect(mockGetPathNextStep).not.toHaveBeenCalled();
@@ -360,7 +360,7 @@ describe('LearningPathScreen', () => {
 
       it('should still allow viewing completed steps', async () => {
         const { getByText, getAllByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -375,19 +375,19 @@ describe('LearningPathScreen', () => {
 
     describe('archived path', () => {
       beforeEach(() => {
-        const archivedPath = createMockPath({
+        const archivedPath = createMockCourse({
           status: 'archived',
           archivedAt: Date.now(),
         });
         mockActivePath = archivedPath;
-        mockGetLearningPath.mockResolvedValue(archivedPath);
+        mockGetCourse.mockResolvedValue(archivedPath);
         mockGetCachedPath.mockReturnValue(archivedPath);
         mockIsCacheValid.mockReturnValue(true);
       });
 
       it('should render archived notice', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -398,7 +398,7 @@ describe('LearningPathScreen', () => {
 
       it('should show Back to Home button', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -408,7 +408,7 @@ describe('LearningPathScreen', () => {
 
       it('should navigate back when Back to Home is pressed', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -421,7 +421,7 @@ describe('LearningPathScreen', () => {
       });
 
       it('should NOT fetch next step for archived path', async () => {
-        render(<LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />);
+        render(<CourseScreen navigation={mockNavigation} route={createMockRoute()} />);
 
         await waitFor(() => {
           expect(mockGetPathNextStep).not.toHaveBeenCalled();
@@ -431,17 +431,17 @@ describe('LearningPathScreen', () => {
 
     describe('legacy path without status', () => {
       beforeEach(() => {
-        const legacyPath = createMockPath();
-        delete (legacyPath as Partial<LearningPath>).status;
+        const legacyPath = createMockCourse();
+        delete (legacyPath as Partial<Course>).status;
         mockActivePath = legacyPath;
-        mockGetLearningPath.mockResolvedValue(legacyPath);
+        mockGetCourse.mockResolvedValue(legacyPath);
         mockGetCachedPath.mockReturnValue(legacyPath);
         mockIsCacheValid.mockReturnValue(true);
       });
 
       it('should treat path without status as active', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -453,16 +453,16 @@ describe('LearningPathScreen', () => {
 
   describe('step interaction', () => {
     beforeEach(() => {
-      const activePath = createMockPath({ status: 'active' });
-      mockActivePath = activePath;
-      mockGetLearningPath.mockResolvedValue(activePath);
-      mockGetCachedPath.mockReturnValue(activePath);
+      const activeCourse = createMockCourse({ status: 'active' });
+      mockActivePath = activeCourse;
+      mockGetCourse.mockResolvedValue(activeCourse);
+      mockGetCachedPath.mockReturnValue(activeCourse);
       mockIsCacheValid.mockReturnValue(true);
     });
 
     it('should navigate to StepDetail for completed steps', async () => {
       const { getAllByText } = render(
-        <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
       );
 
       await waitFor(() => {
@@ -483,26 +483,26 @@ describe('LearningPathScreen', () => {
 
   describe('loading states', () => {
     it('should show loading screen initially', () => {
-      mockGetLearningPath.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve(createMockPath()), 1000))
+      mockGetCourse.mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve(createMockCourse()), 1000))
       );
 
       const { getByTestId } = render(
-        <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
       );
 
       // LoadingScreen should be rendered (the component may use a testID)
       // Since LoadingScreen doesn't have testID, we check that main content is not rendered
-      expect(() => getByTestId('learning-path-content')).toThrow();
+      expect(() => getByTestId('course-content')).toThrow();
     });
   });
 
   describe('error handling', () => {
     it('should show error alert on load failure', async () => {
-      mockGetLearningPath.mockRejectedValue(new Error('Network error'));
+      mockGetCourse.mockRejectedValue(new Error('Network error'));
       mockGetCachedPath.mockReturnValue(null);
 
-      render(<LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />);
+      render(<CourseScreen navigation={mockNavigation} route={createMockRoute()} />);
 
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
@@ -512,13 +512,13 @@ describe('LearningPathScreen', () => {
       });
     });
 
-    it('should handle path not found gracefully', async () => {
+    it('should handle course not found gracefully', async () => {
       // When path is null, the component should still render without crashing
-      mockGetLearningPath.mockResolvedValue(null);
+      mockGetCourse.mockResolvedValue(null);
       mockGetCachedPath.mockReturnValue(null);
       mockIsCacheValid.mockReturnValue(false);
 
-      render(<LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />);
+      render(<CourseScreen navigation={mockNavigation} route={createMockRoute()} />);
 
       // Should show some form of error state
       await waitFor(() => {
@@ -529,16 +529,16 @@ describe('LearningPathScreen', () => {
 
   describe('next step generation', () => {
     it('should NOT fetch next step when current step exists', async () => {
-      const pathWithCurrentStep = createMockPath({
+      const pathWithCurrentStep = createMockCourse({
         status: 'active',
         steps: [createMockStep({ completed: false })],
       });
       mockActivePath = pathWithCurrentStep;
-      mockGetLearningPath.mockResolvedValue(pathWithCurrentStep);
+      mockGetCourse.mockResolvedValue(pathWithCurrentStep);
       mockGetCachedPath.mockReturnValue(pathWithCurrentStep);
       mockIsCacheValid.mockReturnValue(true);
 
-      render(<LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />);
+      render(<CourseScreen navigation={mockNavigation} route={createMockRoute()} />);
 
       await waitFor(() => {
         expect(mockGetPathNextStep).not.toHaveBeenCalled();
@@ -547,17 +547,17 @@ describe('LearningPathScreen', () => {
 
     it('should navigate to GeneratingStep when Continue is pressed', async () => {
       // Path with all steps completed - should show "Continue" button
-      const pathWithAllCompleted = createMockPath({
+      const pathWithAllCompleted = createMockCourse({
         status: 'active',
         steps: [createMockStep({ completed: true })],
       });
       mockActivePath = pathWithAllCompleted;
-      mockGetLearningPath.mockResolvedValue(pathWithAllCompleted);
+      mockGetCourse.mockResolvedValue(pathWithAllCompleted);
       mockGetCachedPath.mockReturnValue(pathWithAllCompleted);
       mockIsCacheValid.mockReturnValue(true);
 
       const { getByText } = render(
-        <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+        <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
       );
 
       await waitFor(() => {
@@ -568,7 +568,7 @@ describe('LearningPathScreen', () => {
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('GeneratingStep', {
-          pathId: 'test-path-123',
+          courseId: 'test-path-123',
           topic: pathWithAllCompleted.goal,
         });
       });
@@ -577,7 +577,7 @@ describe('LearningPathScreen', () => {
 
   describe('responsive outline behavior', () => {
     const createPathWithOutline = () =>
-      createMockPath({
+      createMockCourse({
         status: 'active',
         outline: createMockOutline(),
         outlinePosition: {
@@ -593,14 +593,14 @@ describe('LearningPathScreen', () => {
         mockIsMobile = true;
         const pathWithOutline = createPathWithOutline();
         mockActivePath = pathWithOutline;
-        mockGetLearningPath.mockResolvedValue(pathWithOutline);
+        mockGetCourse.mockResolvedValue(pathWithOutline);
         mockGetCachedPath.mockReturnValue(pathWithOutline);
         mockIsCacheValid.mockReturnValue(true);
       });
 
       it('should show CourseProgressBar on mobile when outline exists', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -611,7 +611,7 @@ describe('LearningPathScreen', () => {
 
       it('should open drawer when CourseProgressBar is pressed on mobile', async () => {
         const { getByText, getAllByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -638,7 +638,7 @@ describe('LearningPathScreen', () => {
         Object.defineProperty(Platform, 'OS', { value: 'web', writable: true });
         const pathWithOutline = createPathWithOutline();
         mockActivePath = pathWithOutline;
-        mockGetLearningPath.mockResolvedValue(pathWithOutline);
+        mockGetCourse.mockResolvedValue(pathWithOutline);
         mockGetCachedPath.mockReturnValue(pathWithOutline);
         mockIsCacheValid.mockReturnValue(true);
       });
@@ -650,7 +650,7 @@ describe('LearningPathScreen', () => {
 
       it('should show sidebar on web when outline exists', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -661,7 +661,7 @@ describe('LearningPathScreen', () => {
 
       it('should show module titles in sidebar on web', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -672,7 +672,7 @@ describe('LearningPathScreen', () => {
 
       it('should show progress stats in sidebar on web', async () => {
         const { getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -685,9 +685,9 @@ describe('LearningPathScreen', () => {
 
     describe('path without outline', () => {
       beforeEach(() => {
-        const pathWithoutOutline = createMockPath({ status: 'active' });
+        const pathWithoutOutline = createMockCourse({ status: 'active' });
         mockActivePath = pathWithoutOutline;
-        mockGetLearningPath.mockResolvedValue(pathWithoutOutline);
+        mockGetCourse.mockResolvedValue(pathWithoutOutline);
         mockGetCachedPath.mockReturnValue(pathWithoutOutline);
         mockIsCacheValid.mockReturnValue(true);
       });
@@ -695,7 +695,7 @@ describe('LearningPathScreen', () => {
       it('should NOT show Outline button when path has no outline (mobile)', async () => {
         mockIsMobile = true;
         const { queryByText, getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -712,7 +712,7 @@ describe('LearningPathScreen', () => {
         Object.defineProperty(Platform, 'OS', { value: 'web', writable: true });
 
         const { queryByText, getByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {
@@ -732,14 +732,14 @@ describe('LearningPathScreen', () => {
         mockIsMobile = true;
         const pathWithOutline = createPathWithOutline();
         mockActivePath = pathWithOutline;
-        mockGetLearningPath.mockResolvedValue(pathWithOutline);
+        mockGetCourse.mockResolvedValue(pathWithOutline);
         mockGetCachedPath.mockReturnValue(pathWithOutline);
         mockIsCacheValid.mockReturnValue(true);
       });
 
       it('should navigate to step when topic with stepId is pressed', async () => {
         const { getByText, getAllByText } = render(
-          <LearningPathScreen navigation={mockNavigation} route={createMockRoute()} />
+          <CourseScreen navigation={mockNavigation} route={createMockRoute()} />
         );
 
         await waitFor(() => {

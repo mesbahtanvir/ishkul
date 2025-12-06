@@ -7,11 +7,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 // Stores
 import { useUserStore } from '../state/userStore';
-import { useLearningPathsStore } from '../state/learningPathsStore';
+import { useCoursesStore } from '../state/coursesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { checkAuthState, initializeAuth } from '../services/auth';
 import { getUserDocument } from '../services/memory';
-import { learningPathsApi } from '../services/api';
+import { coursesApi } from '../services/api';
 import { tokenStorage } from '../services/api/tokenStorage';
 
 // Types
@@ -22,12 +22,8 @@ import { LandingScreen } from '../screens/LandingScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { GoalSelectionScreen } from '../screens/GoalSelectionScreen';
 import { HomeScreen } from '../screens/HomeScreen';
-import { LearningPathScreen } from '../screens/LearningPathScreen';
-import { LearningSessionScreen } from '../screens/LearningSessionScreen';
+import { CourseScreen } from '../screens/CourseScreen';
 import { StepDetailScreen } from '../screens/StepDetailScreen';
-import { LessonScreen } from '../screens/LessonScreen';
-import { QuizScreen } from '../screens/QuizScreen';
-import { PracticeScreen } from '../screens/PracticeScreen';
 import { StepScreen } from '../screens/StepScreen';
 import { GeneratingStepScreen } from '../screens/GeneratingStepScreen';
 import { CourseGeneratingScreen } from '../screens/CourseGeneratingScreen';
@@ -99,20 +95,14 @@ const LearnStack = () => {
       <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
       {/* Course generation screen - shows progress while outline is being generated */}
       <Stack.Screen name="CourseGenerating" component={CourseGeneratingScreen} />
-      {/* New: Main timeline view for learning path */}
-      <Stack.Screen name="LearningPath" component={LearningPathScreen} />
-      {/* Legacy: Redirect to LearningPath for backward compatibility */}
-      <Stack.Screen name="LearningSession" component={LearningSessionScreen} />
-      {/* New: Read-only view for completed steps */}
+      {/* Main course view */}
+      <Stack.Screen name="Course" component={CourseScreen} />
+      {/* Read-only view for completed steps */}
       <Stack.Screen name="StepDetail" component={StepDetailScreen} />
       {/* Generating step screen - engaging loader while AI generates */}
       <Stack.Screen name="GeneratingStep" component={GeneratingStepScreen} />
-      {/* New: Generic step screen using tool registry */}
+      {/* Generic step screen using tool registry */}
       <Stack.Screen name="Step" component={StepScreen} />
-      {/* Legacy step screens - kept for backward compatibility */}
-      <Stack.Screen name="Lesson" component={LessonScreen} />
-      <Stack.Screen name="Quiz" component={QuizScreen} />
-      <Stack.Screen name="Practice" component={PracticeScreen} />
     </Stack.Navigator>
   );
 };
@@ -236,7 +226,7 @@ const RootNavigator = ({ tokensInitialized }: { tokensInitialized: boolean }) =>
 // App Navigator with Auth State Management
 export const AppNavigator: React.FC = () => {
   const { _hasHydrated, setUser, setUserDocument, setLoading } = useUserStore();
-  const { setPaths, setLoading: setPathsLoading } = useLearningPathsStore();
+  const { setCourses, setLoading: setCoursesLoading } = useCoursesStore();
   const { fetchStatus } = useSubscriptionStore();
   // Track whether tokenStorage has been initialized (tokens loaded from localStorage/AsyncStorage)
   const [tokensInitialized, setTokensInitialized] = useState(false);
@@ -284,15 +274,15 @@ export const AppNavigator: React.FC = () => {
         if (validatedUser) {
           setUser(validatedUser);
           // Clear cache when user logs in to ensure fresh data from backend
-          useLearningPathsStore.getState().clearAllCache();
+          useCoursesStore.getState().clearAllCache();
           try {
-            // Fetch user document and learning paths in parallel
-            const [userDoc, paths] = await Promise.all([
+            // Fetch user document and learning courses in parallel
+            const [userDoc, courses] = await Promise.all([
               getUserDocument(),
-              learningPathsApi.getPaths(),
+              coursesApi.getCourses(),
             ]);
             setUserDocument(userDoc);
-            setPaths(paths);
+            setCourses(courses);
           } catch (error) {
             // Log detailed error information for debugging
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -309,7 +299,7 @@ export const AppNavigator: React.FC = () => {
           if (!tokenStorage.hasTokens()) {
             setUser(null);
             setUserDocument(null);
-            setPaths([]);
+            setCourses([]);
           }
           // If tokens exist but validation failed, keep existing user state
           // The user will see the Main dashboard with potentially stale data
@@ -326,11 +316,11 @@ export const AppNavigator: React.FC = () => {
         if (!tokenStorage.hasTokens()) {
           setUser(null);
           setUserDocument(null);
-          setPaths([]);
+          setCourses([]);
         }
       } finally {
         setLoading(false);
-        setPathsLoading(false);
+        setCoursesLoading(false);
       }
     };
 

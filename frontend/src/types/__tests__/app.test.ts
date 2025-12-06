@@ -1,25 +1,25 @@
-import { PathStatuses, PathStatus, LearningPath, Step } from '../app';
+import { CourseStatuses, CourseStatus, Course, Step } from '../app';
 
-describe('PathStatus', () => {
-  describe('PathStatuses constants', () => {
+describe('CourseStatus', () => {
+  describe('CourseStatuses constants', () => {
     it('should have ACTIVE status', () => {
-      expect(PathStatuses.ACTIVE).toBe('active');
+      expect(CourseStatuses.ACTIVE).toBe('active');
     });
 
     it('should have COMPLETED status', () => {
-      expect(PathStatuses.COMPLETED).toBe('completed');
+      expect(CourseStatuses.COMPLETED).toBe('completed');
     });
 
     it('should have ARCHIVED status', () => {
-      expect(PathStatuses.ARCHIVED).toBe('archived');
+      expect(CourseStatuses.ARCHIVED).toBe('archived');
     });
 
     it('should have DELETED status', () => {
-      expect(PathStatuses.DELETED).toBe('deleted');
+      expect(CourseStatuses.DELETED).toBe('deleted');
     });
 
     it('should have all four status types', () => {
-      const statuses = Object.values(PathStatuses);
+      const statuses = Object.values(CourseStatuses);
       expect(statuses).toHaveLength(4);
       expect(statuses).toContain('active');
       expect(statuses).toContain('completed');
@@ -28,12 +28,12 @@ describe('PathStatus', () => {
     });
   });
 
-  describe('PathStatus type', () => {
+  describe('CourseStatus type', () => {
     it('should accept valid status values', () => {
-      const active: PathStatus = 'active';
-      const completed: PathStatus = 'completed';
-      const archived: PathStatus = 'archived';
-      const deleted: PathStatus = 'deleted';
+      const active: CourseStatus = 'active';
+      const completed: CourseStatus = 'completed';
+      const archived: CourseStatus = 'archived';
+      const deleted: CourseStatus = 'deleted';
 
       expect(active).toBe('active');
       expect(completed).toBe('completed');
@@ -42,8 +42,8 @@ describe('PathStatus', () => {
     });
   });
 
-  describe('LearningPath interface', () => {
-    const createValidPath = (overrides: Partial<LearningPath> = {}): LearningPath => ({
+  describe('Course interface', () => {
+    const createValidPath = (overrides: Partial<Course> = {}): Course => ({
       id: 'test-id',
       goal: 'Learn Python',
       emoji: '🐍',

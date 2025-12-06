@@ -15,7 +15,7 @@ import (
 )
 
 // Helper to create request with path for learning paths handler
-func createLearningPathRequest(method, path string, body *bytes.Buffer, userID, email string) *http.Request {
+func createCourseRequest(method, path string, body *bytes.Buffer, userID, email string) *http.Request {
 	var req *http.Request
 	if body != nil {
 		req = httptest.NewRequest(method, path, body)
@@ -32,15 +32,15 @@ func createLearningPathRequest(method, path string, body *bytes.Buffer, userID, 
 }
 
 // =============================================================================
-// LearningPathsHandler Routing Tests
+// CoursesHandler Routing Tests
 // =============================================================================
 
-func TestLearningPathsHandler_Routing(t *testing.T) {
+func TestCoursesHandler_Routing(t *testing.T) {
 	t.Run("root path GET routes to list", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodGet, "/api/courses", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		// Will fail at DB level but validates routing
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
@@ -49,10 +49,10 @@ func TestLearningPathsHandler_Routing(t *testing.T) {
 
 	t.Run("root path POST routes to create", func(t *testing.T) {
 		body := `{"goal": "Learn Go"}`
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString(body), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 		assert.NotEqual(t, http.StatusNotFound, rr.Code)
@@ -63,10 +63,10 @@ func TestLearningPathsHandler_Routing(t *testing.T) {
 
 		for _, method := range methods {
 			t.Run(method, func(t *testing.T) {
-				req := createLearningPathRequest(method, "/api/learning-paths", nil, "user123", "test@example.com")
+				req := createCourseRequest(method, "/api/courses", nil, "user123", "test@example.com")
 				rr := httptest.NewRecorder()
 
-				LearningPathsHandler(rr, req)
+				CoursesHandler(rr, req)
 
 				assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 			})
@@ -74,266 +74,266 @@ func TestLearningPathsHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("path with ID GET routes to get", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths/path-123", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodGet, "/api/courses/path-123", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("path with ID PATCH routes to update", func(t *testing.T) {
 		body := `{"goal": "Updated Goal"}`
-		req := createLearningPathRequest(http.MethodPatch, "/api/learning-paths/path-123", bytes.NewBufferString(body), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPatch, "/api/courses/path-123", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("path with ID PUT routes to update", func(t *testing.T) {
 		body := `{"goal": "Updated Goal"}`
-		req := createLearningPathRequest(http.MethodPut, "/api/learning-paths/path-123", bytes.NewBufferString(body), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPut, "/api/courses/path-123", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("path with ID DELETE routes to delete", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodDelete, "/api/learning-paths/path-123", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodDelete, "/api/courses/path-123", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("path with ID rejects POST", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("next action only accepts POST", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/next", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/next", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("next action rejects GET", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths/path-123/next", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodGet, "/api/courses/path-123/next", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("complete action only accepts POST", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/complete", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/complete", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("memory action only accepts POST", func(t *testing.T) {
 		body := `{"topic": "Go basics", "confidence": 0.8}`
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/memory", bytes.NewBufferString(body), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/memory", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("memory action rejects GET", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths/path-123/memory", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodGet, "/api/courses/path-123/memory", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("step complete action only accepts POST", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/steps/step-456/complete", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/steps/step-456/complete", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("step complete rejects GET", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths/path-123/steps/step-456/complete", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodGet, "/api/courses/path-123/steps/step-456/complete", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("step view action only accepts POST", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/steps/step-456/view", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/steps/step-456/view", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("unknown action returns 404", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/unknown", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/unknown", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("unknown step action returns 404", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/steps/step-456/unknown", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/steps/step-456/unknown", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("session action routes same as next (backward compatibility)", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/session", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/session", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 		assert.NotEqual(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("archive action only accepts POST", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/archive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/archive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 		assert.NotEqual(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("archive action rejects GET", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths/path-123/archive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodGet, "/api/courses/path-123/archive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("archive action rejects PATCH", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPatch, "/api/learning-paths/path-123/archive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPatch, "/api/courses/path-123/archive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("archive action rejects PUT", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPut, "/api/learning-paths/path-123/archive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPut, "/api/courses/path-123/archive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("archive action rejects DELETE", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodDelete, "/api/learning-paths/path-123/archive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodDelete, "/api/courses/path-123/archive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("unarchive action only accepts POST", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/unarchive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/unarchive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 		assert.NotEqual(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("unarchive action rejects GET", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths/path-123/unarchive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodGet, "/api/courses/path-123/unarchive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("unarchive action rejects PATCH", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPatch, "/api/learning-paths/path-123/unarchive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPatch, "/api/courses/path-123/unarchive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("unarchive action rejects PUT", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPut, "/api/learning-paths/path-123/unarchive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPut, "/api/courses/path-123/unarchive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("unarchive action rejects DELETE", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodDelete, "/api/learning-paths/path-123/unarchive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodDelete, "/api/courses/path-123/unarchive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 }
 
 // =============================================================================
-// listLearningPaths Tests
+// listCourses Tests
 // =============================================================================
 
-func TestListLearningPaths(t *testing.T) {
+func TestListCourses(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths", nil, "", "")
+		req := createCourseRequest(http.MethodGet, "/api/courses", nil, "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 		assert.Contains(t, rr.Body.String(), "Unauthorized")
 	})
 
 	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodGet, "/api/courses", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 		assert.Contains(t, rr.Body.String(), "Database not available")
@@ -341,25 +341,25 @@ func TestListLearningPaths(t *testing.T) {
 }
 
 // =============================================================================
-// createLearningPath Tests
+// createCourse Tests
 // =============================================================================
 
-func TestCreateLearningPath(t *testing.T) {
+func TestCreateCourse(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
 		body := `{"goal": "Learn Go"}`
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString(body), "", "")
+		req := createCourseRequest(http.MethodPost, "/api/courses", bytes.NewBufferString(body), "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("rejects invalid JSON body", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString("invalid"), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses", bytes.NewBufferString("invalid"), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "Invalid request body")
@@ -367,10 +367,10 @@ func TestCreateLearningPath(t *testing.T) {
 
 	t.Run("rejects missing goal", func(t *testing.T) {
 		body := `{}`
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString(body), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "Goal is required")
@@ -378,10 +378,10 @@ func TestCreateLearningPath(t *testing.T) {
 
 	t.Run("rejects empty goal", func(t *testing.T) {
 		body := `{"goal": ""}`
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths", bytes.NewBufferString(body), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "Goal is required")
@@ -389,24 +389,24 @@ func TestCreateLearningPath(t *testing.T) {
 }
 
 // =============================================================================
-// getLearningPath Tests
+// getCourse Tests
 // =============================================================================
 
-func TestGetLearningPath(t *testing.T) {
+func TestGetCourse(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths/path-123", nil, "", "")
+		req := createCourseRequest(http.MethodGet, "/api/courses/path-123", nil, "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodGet, "/api/learning-paths/path-123", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodGet, "/api/courses/path-123", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		// Will fail at DB level
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
@@ -414,98 +414,98 @@ func TestGetLearningPath(t *testing.T) {
 }
 
 // =============================================================================
-// updateLearningPath Tests
+// updateCourse Tests
 // =============================================================================
 
-func TestUpdateLearningPath(t *testing.T) {
+func TestUpdateCourse(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
 		body := `{"goal": "Updated Goal"}`
-		req := createLearningPathRequest(http.MethodPatch, "/api/learning-paths/path-123", bytes.NewBufferString(body), "", "")
+		req := createCourseRequest(http.MethodPatch, "/api/courses/path-123", bytes.NewBufferString(body), "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("returns error when database not available", func(t *testing.T) {
 		body := `{"goal": "Updated Goal"}`
-		req := createLearningPathRequest(http.MethodPatch, "/api/learning-paths/path-123", bytes.NewBufferString(body), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPatch, "/api/courses/path-123", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 }
 
 // =============================================================================
-// deleteLearningPath Tests
+// deleteCourse Tests
 // =============================================================================
 
-func TestDeleteLearningPath(t *testing.T) {
+func TestDeleteCourse(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodDelete, "/api/learning-paths/path-123", nil, "", "")
+		req := createCourseRequest(http.MethodDelete, "/api/courses/path-123", nil, "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodDelete, "/api/learning-paths/path-123", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodDelete, "/api/courses/path-123", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 }
 
 // =============================================================================
-// archiveLearningPath Tests
+// archiveCourse Tests
 // =============================================================================
 
-func TestArchiveLearningPath(t *testing.T) {
+func TestArchiveCourse(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/archive", nil, "", "")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/archive", nil, "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/archive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/archive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 }
 
 // =============================================================================
-// unarchiveLearningPath Tests
+// unarchiveCourse Tests
 // =============================================================================
 
-func TestUnarchiveLearningPath(t *testing.T) {
+func TestUnarchiveCourse(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/unarchive", nil, "", "")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/unarchive", nil, "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/unarchive", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/unarchive", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
@@ -517,19 +517,19 @@ func TestUnarchiveLearningPath(t *testing.T) {
 
 func TestGetPathNextStep(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/next", nil, "", "")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/next", nil, "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/next", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/next", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
@@ -541,19 +541,19 @@ func TestGetPathNextStep(t *testing.T) {
 
 func TestCompleteCurrentStep(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/complete", nil, "", "")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/complete", nil, "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/complete", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/complete", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
@@ -565,19 +565,19 @@ func TestCompleteCurrentStep(t *testing.T) {
 
 func TestCompleteStep(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/steps/step-456/complete", nil, "", "")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/steps/step-456/complete", nil, "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/steps/step-456/complete", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/steps/step-456/complete", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
@@ -589,19 +589,19 @@ func TestCompleteStep(t *testing.T) {
 
 func TestViewStep(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/steps/step-456/view", nil, "", "")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/steps/step-456/view", nil, "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/steps/step-456/view", nil, "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/steps/step-456/view", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
@@ -614,19 +614,19 @@ func TestViewStep(t *testing.T) {
 func TestUpdatePathMemory(t *testing.T) {
 	t.Run("rejects unauthenticated request", func(t *testing.T) {
 		body := `{"topic": "Go basics", "confidence": 0.8}`
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/memory", bytes.NewBufferString(body), "", "")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/memory", bytes.NewBufferString(body), "", "")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("rejects invalid JSON body", func(t *testing.T) {
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/memory", bytes.NewBufferString("invalid"), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/memory", bytes.NewBufferString("invalid"), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "Invalid request body")
@@ -634,10 +634,10 @@ func TestUpdatePathMemory(t *testing.T) {
 
 	t.Run("rejects missing topic", func(t *testing.T) {
 		body := `{"confidence": 0.8, "timesTested": 5}`
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/memory", bytes.NewBufferString(body), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/memory", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "Topic is required")
@@ -645,10 +645,10 @@ func TestUpdatePathMemory(t *testing.T) {
 
 	t.Run("rejects empty topic", func(t *testing.T) {
 		body := `{"topic": "", "confidence": 0.8}`
-		req := createLearningPathRequest(http.MethodPost, "/api/learning-paths/path-123/memory", bytes.NewBufferString(body), "user123", "test@example.com")
+		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/memory", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
-		LearningPathsHandler(rr, req)
+		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "Topic is required")
@@ -659,9 +659,9 @@ func TestUpdatePathMemory(t *testing.T) {
 // Model JSON Serialization Tests
 // =============================================================================
 
-func TestLearningPathCreateJSON(t *testing.T) {
+func TestCourseCreateJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
-		req := models.LearningPathCreate{
+		req := models.CourseCreate{
 			Goal:  "Learn Go",
 			Emoji: "🎯",
 		}
@@ -678,7 +678,7 @@ func TestLearningPathCreateJSON(t *testing.T) {
 	})
 }
 
-func TestLearningPathUpdateJSON(t *testing.T) {
+func TestCourseUpdateJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
 		goal := "Updated Goal"
 		emoji := "🚀"
@@ -686,7 +686,7 @@ func TestLearningPathUpdateJSON(t *testing.T) {
 		lessonsCompleted := 5
 		totalLessons := 10
 
-		req := models.LearningPathUpdate{
+		req := models.CourseUpdate{
 			Goal:             &goal,
 			Emoji:            &emoji,
 			Progress:         &progress,
@@ -709,7 +709,7 @@ func TestLearningPathUpdateJSON(t *testing.T) {
 	})
 
 	t.Run("omits nil fields", func(t *testing.T) {
-		req := models.LearningPathUpdate{
+		req := models.CourseUpdate{
 			Goal: nil,
 		}
 
@@ -758,9 +758,9 @@ func TestStepCompleteJSON(t *testing.T) {
 	})
 }
 
-func TestLearningPathJSON(t *testing.T) {
+func TestCourseJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
-		path := models.LearningPath{
+		path := models.Course{
 			ID:               "path-123",
 			UserID:           "user-456",
 			Goal:             "Learn Go",
@@ -944,7 +944,7 @@ func TestGetCurrentStep(t *testing.T) {
 
 func TestGetRecentSteps(t *testing.T) {
 	t.Run("returns all steps when no memory", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Steps:  []models.Step{{ID: "1"}, {ID: "2"}, {ID: "3"}},
 			Memory: nil,
 		}
@@ -953,7 +953,7 @@ func TestGetRecentSteps(t *testing.T) {
 	})
 
 	t.Run("returns all steps when no compaction", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Steps: []models.Step{{ID: "1"}, {ID: "2"}, {ID: "3"}},
 			Memory: &models.Memory{
 				Compaction: nil,
@@ -964,7 +964,7 @@ func TestGetRecentSteps(t *testing.T) {
 	})
 
 	t.Run("returns steps after last compaction", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Steps: []models.Step{{ID: "1"}, {ID: "2"}, {ID: "3"}, {ID: "4"}, {ID: "5"}},
 			Memory: &models.Memory{
 				Compaction: &models.Compaction{
@@ -979,7 +979,7 @@ func TestGetRecentSteps(t *testing.T) {
 	})
 
 	t.Run("returns empty when all steps compacted", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Steps: []models.Step{{ID: "1"}, {ID: "2"}, {ID: "3"}},
 			Memory: &models.Memory{
 				Compaction: &models.Compaction{
@@ -994,13 +994,13 @@ func TestGetRecentSteps(t *testing.T) {
 
 func TestBuildMemoryContext(t *testing.T) {
 	t.Run("returns empty string for nil memory", func(t *testing.T) {
-		path := &models.LearningPath{Memory: nil}
+		path := &models.Course{Memory: nil}
 		result := buildMemoryContext(path)
 		assert.Empty(t, result)
 	})
 
 	t.Run("includes compaction summary", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Memory: &models.Memory{
 				Compaction: &models.Compaction{
 					Summary:    "User is making good progress",
@@ -1016,7 +1016,7 @@ func TestBuildMemoryContext(t *testing.T) {
 	})
 
 	t.Run("includes topic confidence scores", func(t *testing.T) {
-		path := &models.LearningPath{
+		path := &models.Course{
 			Memory: &models.Memory{
 				Topics: map[string]models.TopicMemory{
 					"Variables": {Confidence: 0.9},

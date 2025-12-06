@@ -20,7 +20,7 @@ interface SubscriptionState {
   limits: UsageLimits | null;
   canUpgrade: boolean;
   canGenerateSteps: boolean;
-  canCreatePath: boolean;
+  canCreateCourse: boolean;
   dailyLimitResetAt: Date | null;
 
   // UI state
@@ -45,7 +45,7 @@ interface SubscriptionState {
 
 const defaultLimits: UsageLimits = {
   dailySteps: { used: 0, limit: 100 },
-  activePaths: { used: 0, limit: 2 },
+  activeCourses: { used: 0, limit: 2 },
 };
 
 export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
@@ -56,7 +56,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   limits: defaultLimits,
   canUpgrade: true,
   canGenerateSteps: true,
-  canCreatePath: true,
+  canCreateCourse: true,
   dailyLimitResetAt: null,
   loading: false,
   error: null,
@@ -75,7 +75,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         limits: response.limits,
         canUpgrade: response.canUpgrade,
         canGenerateSteps: response.canGenerateSteps,
-        canCreatePath: response.canCreatePath,
+        canCreateCourse: response.canCreateCourse,
         dailyLimitResetAt: response.dailyLimitResetAt ? new Date(response.dailyLimitResetAt) : null,
         loading: false,
       });
@@ -229,7 +229,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       limits: defaultLimits,
       canUpgrade: true,
       canGenerateSteps: true,
-      canCreatePath: true,
+      canCreateCourse: true,
       dailyLimitResetAt: null,
       loading: false,
       error: null,
@@ -289,7 +289,7 @@ setupVisibilityListener();
 export const useIsPro = () => useSubscriptionStore((state) => state.tier === 'pro');
 
 // Helper to get usage percentage
-export const useUsagePercentage = (type: 'dailySteps' | 'activePaths') => {
+export const useUsagePercentage = (type: 'dailySteps' | 'activeCourses') => {
   return useSubscriptionStore((state) => {
     if (!state.limits) return 0;
     const limit = state.limits[type];

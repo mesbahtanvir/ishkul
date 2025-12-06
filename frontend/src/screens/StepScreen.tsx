@@ -14,7 +14,7 @@ import { Card } from '../components/Card';
 import { getTool } from '../tools';
 import { ToolContext, CompletionResult } from '../tools/types';
 import { useUserStore } from '../state/userStore';
-import { useLearningPathsStore } from '../state/learningPathsStore';
+import { useCoursesStore } from '../state/coursesStore';
 import { completeStep, getUserDocument } from '../services/memory';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -48,9 +48,9 @@ function getBadgeColorFromTheme(
 }
 
 export const StepScreen: React.FC<StepScreenProps> = ({ navigation, route }) => {
-  const { step, pathId } = route.params;
+  const { step, courseId } = route.params;
   const { setUserDocument } = useUserStore();
-  const { updatePath, setActivePath } = useLearningPathsStore();
+  const { updateCourse, setActiveCourse } = useCoursesStore();
   const [isCompleting, setIsCompleting] = useState(false);
   const { responsive } = useResponsive();
   const { colors } = useTheme();
@@ -80,21 +80,21 @@ export const StepScreen: React.FC<StepScreenProps> = ({ navigation, route }) => 
       setIsCompleting(true);
 
       // Complete the step with score and user answer
-      const apiResult = await completeStep(pathId, step.id, {
+      const apiResult = await completeStep(courseId, step.id, {
         userAnswer: result.userAnswer,
         score: result.score,
       });
 
       // Update local state
-      updatePath(pathId, apiResult.path);
-      setActivePath(apiResult.path);
+      updateCourse(courseId, apiResult.course);
+      setActiveCourse(apiResult.course);
 
       // Refresh user document
       const updatedDoc = await getUserDocument();
       setUserDocument(updatedDoc);
 
       // Navigate back to learning path timeline
-      navigation.navigate('LearningPath', { pathId });
+      navigation.navigate('Course', { courseId });
     } catch (error) {
       console.error('Error completing step:', error);
       Alert.alert('Error', 'Failed to save progress. Please try again.');
@@ -106,7 +106,7 @@ export const StepScreen: React.FC<StepScreenProps> = ({ navigation, route }) => 
   // Build context for the tool renderer
   const context: ToolContext = {
     step,
-    pathId,
+    courseId,
     onComplete: handleComplete,
     isCompleting,
   };
@@ -126,7 +126,7 @@ export const StepScreen: React.FC<StepScreenProps> = ({ navigation, route }) => 
   const badgeColor = getBadgeColorFromTheme(tool.metadata.badgeColor, colors);
 
   return (
-    <LearningLayout step={step} pathId={pathId} scrollable>
+    <LearningLayout step={step} courseId={courseId} scrollable>
       <View style={styles.content}>
         {/* Common Header */}
         <Card elevation="md" padding="lg" style={styles.headerCard}>

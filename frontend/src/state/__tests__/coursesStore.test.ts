@@ -1,15 +1,15 @@
 import { act } from '@testing-library/react-native';
 import {
-  useLearningPathsStore,
+  useCoursesStore,
   getCurrentStep,
   getCompletedSteps,
   getEmojiForGoal,
-  generatePathId,
-} from '../learningPathsStore';
-import { LearningPath, Step } from '../../types/app';
+  generateCourseId,
+} from '../coursesStore';
+import { Course, Step } from '../../types/app';
 
 // Helper to create mock learning path
-const createMockPath = (overrides: Partial<LearningPath> = {}): LearningPath => ({
+const createMockPath = (overrides: Partial<Course> = {}): Course => ({
   id: `path_${Date.now()}`,
   goal: 'Learn TypeScript',
   emoji: '💙',
@@ -38,169 +38,169 @@ const createMockStep = (overrides: Partial<Step> = {}): Step => ({
   ...overrides,
 });
 
-describe('learningPathsStore', () => {
+describe('coursesStore', () => {
   beforeEach(() => {
     // Reset store to initial state
     act(() => {
-      useLearningPathsStore.setState({
-        paths: [],
-        activePath: null,
+      useCoursesStore.setState({
+        courses: [],
+        activeCourse: null,
         loading: false,
         error: null,
-        pathsCache: new Map(),
+        coursesCache: new Map(),
         listCache: null,
       });
     });
   });
 
   describe('initial state', () => {
-    it('should have empty paths array', () => {
-      const state = useLearningPathsStore.getState();
-      expect(state.paths).toEqual([]);
+    it('should have empty courses array', () => {
+      const state = useCoursesStore.getState();
+      expect(state.courses).toEqual([]);
     });
 
-    it('should have null activePath', () => {
-      const state = useLearningPathsStore.getState();
-      expect(state.activePath).toBeNull();
+    it('should have null activeCourse', () => {
+      const state = useCoursesStore.getState();
+      expect(state.activeCourse).toBeNull();
     });
 
     it('should not be loading', () => {
-      const state = useLearningPathsStore.getState();
+      const state = useCoursesStore.getState();
       expect(state.loading).toBe(false);
     });
 
     it('should have no error', () => {
-      const state = useLearningPathsStore.getState();
+      const state = useCoursesStore.getState();
       expect(state.error).toBeNull();
     });
   });
 
-  describe('setPaths', () => {
-    it('should set paths and sort by lastAccessedAt', () => {
+  describe('setCourses', () => {
+    it('should set courses and sort by lastAccessedAt', () => {
       const older = createMockPath({ id: 'older', lastAccessedAt: 1000 });
       const newer = createMockPath({ id: 'newer', lastAccessedAt: 2000 });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([older, newer]);
+        useCoursesStore.getState().setCourses([older, newer]);
       });
 
-      const { paths } = useLearningPathsStore.getState();
-      expect(paths).toHaveLength(2);
-      expect(paths[0].id).toBe('newer'); // Most recent first
-      expect(paths[1].id).toBe('older');
+      const { courses } = useCoursesStore.getState();
+      expect(courses).toHaveLength(2);
+      expect(courses[0].id).toBe('newer'); // Most recent first
+      expect(courses[1].id).toBe('older');
     });
 
     it('should update list cache', () => {
       act(() => {
-        useLearningPathsStore.getState().setPaths([createMockPath()]);
+        useCoursesStore.getState().setCourses([createMockPath()]);
       });
 
-      const { listCache } = useLearningPathsStore.getState();
+      const { listCache } = useCoursesStore.getState();
       expect(listCache).not.toBeNull();
       expect(listCache?.timestamp).toBeDefined();
     });
   });
 
-  describe('setActivePath', () => {
+  describe('setActiveCourse', () => {
     it('should set active path', () => {
       const path = createMockPath();
 
       act(() => {
-        useLearningPathsStore.getState().setActivePath(path);
+        useCoursesStore.getState().setActiveCourse(path);
       });
 
-      expect(useLearningPathsStore.getState().activePath).toEqual(path);
+      expect(useCoursesStore.getState().activeCourse).toEqual(path);
     });
 
     it('should clear active path when set to null', () => {
       const path = createMockPath();
 
       act(() => {
-        useLearningPathsStore.getState().setActivePath(path);
-        useLearningPathsStore.getState().setActivePath(null);
+        useCoursesStore.getState().setActiveCourse(path);
+        useCoursesStore.getState().setActiveCourse(null);
       });
 
-      expect(useLearningPathsStore.getState().activePath).toBeNull();
+      expect(useCoursesStore.getState().activeCourse).toBeNull();
     });
   });
 
-  describe('addPath', () => {
+  describe('addCourse', () => {
     it('should add path to beginning of list', () => {
       const existing = createMockPath({ id: 'existing' });
       const newPath = createMockPath({ id: 'new' });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([existing]);
-        useLearningPathsStore.getState().addPath(newPath);
+        useCoursesStore.getState().setCourses([existing]);
+        useCoursesStore.getState().addCourse(newPath);
       });
 
-      const { paths } = useLearningPathsStore.getState();
-      expect(paths).toHaveLength(2);
-      expect(paths[0].id).toBe('new');
+      const { courses } = useCoursesStore.getState();
+      expect(courses).toHaveLength(2);
+      expect(courses[0].id).toBe('new');
     });
   });
 
-  describe('updatePath', () => {
+  describe('updateCourse', () => {
     it('should update path in list', () => {
       const path = createMockPath({ id: 'path-1', goal: 'Original' });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().updatePath('path-1', { goal: 'Updated' });
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().updateCourse('path-1', { goal: 'Updated' });
       });
 
-      const { paths } = useLearningPathsStore.getState();
-      expect(paths[0].goal).toBe('Updated');
+      const { courses } = useCoursesStore.getState();
+      expect(courses[0].goal).toBe('Updated');
     });
 
-    it('should update activePath if it matches', () => {
+    it('should update activeCourse if it matches', () => {
       const path = createMockPath({ id: 'path-1', goal: 'Original' });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().setActivePath(path);
-        useLearningPathsStore.getState().updatePath('path-1', { goal: 'Updated' });
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().setActiveCourse(path);
+        useCoursesStore.getState().updateCourse('path-1', { goal: 'Updated' });
       });
 
-      expect(useLearningPathsStore.getState().activePath?.goal).toBe('Updated');
+      expect(useCoursesStore.getState().activeCourse?.goal).toBe('Updated');
     });
 
-    it('should not update activePath if it does not match', () => {
+    it('should not update activeCourse if it does not match', () => {
       const path1 = createMockPath({ id: 'path-1', goal: 'Path 1' });
       const path2 = createMockPath({ id: 'path-2', goal: 'Path 2' });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path1, path2]);
-        useLearningPathsStore.getState().setActivePath(path1);
-        useLearningPathsStore.getState().updatePath('path-2', { goal: 'Updated' });
+        useCoursesStore.getState().setCourses([path1, path2]);
+        useCoursesStore.getState().setActiveCourse(path1);
+        useCoursesStore.getState().updateCourse('path-2', { goal: 'Updated' });
       });
 
-      expect(useLearningPathsStore.getState().activePath?.goal).toBe('Path 1');
+      expect(useCoursesStore.getState().activeCourse?.goal).toBe('Path 1');
     });
   });
 
-  describe('deletePath', () => {
+  describe('deleteCourse', () => {
     it('should remove path from list', () => {
       const path = createMockPath({ id: 'path-1' });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().deletePath('path-1');
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().deleteCourse('path-1');
       });
 
-      expect(useLearningPathsStore.getState().paths).toHaveLength(0);
+      expect(useCoursesStore.getState().courses).toHaveLength(0);
     });
 
-    it('should clear activePath if it was deleted', () => {
+    it('should clear activeCourse if it was deleted', () => {
       const path = createMockPath({ id: 'path-1' });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().setActivePath(path);
-        useLearningPathsStore.getState().deletePath('path-1');
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().setActiveCourse(path);
+        useCoursesStore.getState().deleteCourse('path-1');
       });
 
-      expect(useLearningPathsStore.getState().activePath).toBeNull();
+      expect(useCoursesStore.getState().activeCourse).toBeNull();
     });
   });
 
@@ -210,26 +210,26 @@ describe('learningPathsStore', () => {
       const step = createMockStep();
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().addStep('path-1', step);
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().addStep('path-1', step);
       });
 
-      const { paths } = useLearningPathsStore.getState();
-      expect(paths[0].steps).toHaveLength(1);
-      expect(paths[0].steps[0].id).toBe(step.id);
+      const { courses } = useCoursesStore.getState();
+      expect(courses[0].steps).toHaveLength(1);
+      expect(courses[0].steps[0].id).toBe(step.id);
     });
 
-    it('should update activePath steps if it matches', () => {
+    it('should update activeCourse steps if it matches', () => {
       const path = createMockPath({ id: 'path-1', steps: [] });
       const step = createMockStep();
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().setActivePath(path);
-        useLearningPathsStore.getState().addStep('path-1', step);
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().setActiveCourse(path);
+        useCoursesStore.getState().addStep('path-1', step);
       });
 
-      expect(useLearningPathsStore.getState().activePath?.steps).toHaveLength(1);
+      expect(useCoursesStore.getState().activeCourse?.steps).toHaveLength(1);
     });
   });
 
@@ -239,65 +239,65 @@ describe('learningPathsStore', () => {
       const path = createMockPath({ id: 'path-1', steps: [step] });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().updateStep('path-1', 'step-1', { completed: true });
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().updateStep('path-1', 'step-1', { completed: true });
       });
 
-      const { paths } = useLearningPathsStore.getState();
-      expect(paths[0].steps[0].completed).toBe(true);
+      const { courses } = useCoursesStore.getState();
+      expect(courses[0].steps[0].completed).toBe(true);
     });
   });
 
   describe('loading state', () => {
     it('should set loading state', () => {
       act(() => {
-        useLearningPathsStore.getState().setLoading(true);
+        useCoursesStore.getState().setLoading(true);
       });
 
-      expect(useLearningPathsStore.getState().loading).toBe(true);
+      expect(useCoursesStore.getState().loading).toBe(true);
     });
   });
 
   describe('error state', () => {
     it('should set error message', () => {
       act(() => {
-        useLearningPathsStore.getState().setError('Something went wrong');
+        useCoursesStore.getState().setError('Something went wrong');
       });
 
-      expect(useLearningPathsStore.getState().error).toBe('Something went wrong');
+      expect(useCoursesStore.getState().error).toBe('Something went wrong');
     });
 
     it('should clear error', () => {
       act(() => {
-        useLearningPathsStore.getState().setError('Error');
-        useLearningPathsStore.getState().setError(null);
+        useCoursesStore.getState().setError('Error');
+        useCoursesStore.getState().setError(null);
       });
 
-      expect(useLearningPathsStore.getState().error).toBeNull();
+      expect(useCoursesStore.getState().error).toBeNull();
     });
   });
 
-  describe('clearPaths', () => {
-    it('should clear all paths and reset state', () => {
+  describe('clearCourses', () => {
+    it('should clear all courses and reset state', () => {
       const path = createMockPath();
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().setActivePath(path);
-        useLearningPathsStore.getState().setError('Error');
-        useLearningPathsStore.getState().clearPaths();
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().setActiveCourse(path);
+        useCoursesStore.getState().setError('Error');
+        useCoursesStore.getState().clearCourses();
       });
 
-      const state = useLearningPathsStore.getState();
-      expect(state.paths).toHaveLength(0);
-      expect(state.activePath).toBeNull();
+      const state = useCoursesStore.getState();
+      expect(state.courses).toHaveLength(0);
+      expect(state.activeCourse).toBeNull();
       expect(state.error).toBeNull();
     });
   });
 
   describe('cache helpers', () => {
     it('should validate cache correctly', () => {
-      const { isCacheValid } = useLearningPathsStore.getState();
+      const { isCacheValid } = useCoursesStore.getState();
 
       expect(isCacheValid(null)).toBe(false);
       expect(isCacheValid({ timestamp: Date.now(), ttl: 5 * 60 * 1000 })).toBe(true);
@@ -308,15 +308,15 @@ describe('learningPathsStore', () => {
       const path = createMockPath({ id: 'path-1' });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
+        useCoursesStore.getState().setCourses([path]);
       });
 
-      const cached = useLearningPathsStore.getState().getCachedPath('path-1');
+      const cached = useCoursesStore.getState().getCachedCourse('path-1');
       expect(cached?.id).toBe('path-1');
     });
 
     it('should return null for non-existent cached path', () => {
-      const cached = useLearningPathsStore.getState().getCachedPath('non-existent');
+      const cached = useCoursesStore.getState().getCachedCourse('non-existent');
       expect(cached).toBeNull();
     });
 
@@ -324,35 +324,35 @@ describe('learningPathsStore', () => {
       const path = createMockPath({ id: 'path-1' });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().invalidatePathCache('path-1');
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().invalidateCourseCache('path-1');
       });
 
-      const { pathsCache } = useLearningPathsStore.getState();
-      expect(pathsCache.has('path-1')).toBe(false);
+      const { coursesCache } = useCoursesStore.getState();
+      expect(coursesCache.has('path-1')).toBe(false);
     });
 
     it('should invalidate list cache', () => {
       const path = createMockPath();
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().invalidateListCache();
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().invalidateListCache();
       });
 
-      expect(useLearningPathsStore.getState().listCache).toBeNull();
+      expect(useCoursesStore.getState().listCache).toBeNull();
     });
 
     it('should clear all cache', () => {
       const path = createMockPath({ id: 'path-1' });
 
       act(() => {
-        useLearningPathsStore.getState().setPaths([path]);
-        useLearningPathsStore.getState().clearAllCache();
+        useCoursesStore.getState().setCourses([path]);
+        useCoursesStore.getState().clearAllCache();
       });
 
-      const state = useLearningPathsStore.getState();
-      expect(state.pathsCache.size).toBe(0);
+      const state = useCoursesStore.getState();
+      expect(state.coursesCache.size).toBe(0);
       expect(state.listCache).toBeNull();
     });
   });
@@ -463,18 +463,18 @@ describe('helper functions', () => {
     });
   });
 
-  describe('generatePathId', () => {
+  describe('generateCourseId', () => {
     it('should generate unique IDs', () => {
       const ids = new Set<string>();
       for (let i = 0; i < 100; i++) {
-        ids.add(generatePathId());
+        ids.add(generateCourseId());
       }
       expect(ids.size).toBe(100); // All unique
     });
 
-    it('should start with path_ prefix', () => {
-      const id = generatePathId();
-      expect(id.startsWith('path_')).toBe(true);
+    it('should start with course_ prefix', () => {
+      const id = generateCourseId();
+      expect(id.startsWith('course_')).toBe(true);
     });
   });
 });

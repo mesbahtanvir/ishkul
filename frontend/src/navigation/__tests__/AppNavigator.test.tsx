@@ -3,12 +3,12 @@ import { render, waitFor } from '@testing-library/react-native';
 import { AppNavigator } from '../AppNavigator';
 import { useUserStore } from '../../state/userStore';
 import { useSubscriptionStore } from '../../state/subscriptionStore';
-import { useLearningPathsStore } from '../../state/learningPathsStore';
+import { useCoursesStore } from '../../state/coursesStore';
 
 // Mock the stores
 jest.mock('../../state/userStore');
 jest.mock('../../state/subscriptionStore');
-jest.mock('../../state/learningPathsStore');
+jest.mock('../../state/coursesStore');
 
 // Mock auth services
 jest.mock('../../services/auth', () => ({
@@ -23,8 +23,8 @@ jest.mock('../../services/memory', () => ({
 
 // Mock api services
 jest.mock('../../services/api', () => ({
-  learningPathsApi: {
-    getPaths: jest.fn().mockResolvedValue([]),
+  coursesApi: {
+    getCourses: jest.fn().mockResolvedValue([]),
   },
 }));
 
@@ -78,23 +78,11 @@ jest.mock('../../screens/GoalSelectionScreen', () => ({
 jest.mock('../../screens/HomeScreen', () => ({
   HomeScreen: () => null,
 }));
-jest.mock('../../screens/LearningPathScreen', () => ({
-  LearningPathScreen: () => null,
-}));
-jest.mock('../../screens/LearningSessionScreen', () => ({
-  LearningSessionScreen: () => null,
+jest.mock('../../screens/CourseScreen', () => ({
+  CourseScreen: () => null,
 }));
 jest.mock('../../screens/StepDetailScreen', () => ({
   StepDetailScreen: () => null,
-}));
-jest.mock('../../screens/LessonScreen', () => ({
-  LessonScreen: () => null,
-}));
-jest.mock('../../screens/QuizScreen', () => ({
-  QuizScreen: () => null,
-}));
-jest.mock('../../screens/PracticeScreen', () => ({
-  PracticeScreen: () => null,
 }));
 jest.mock('../../screens/StepScreen', () => ({
   StepScreen: () => null,
@@ -118,7 +106,7 @@ jest.mock('../../components/UpgradeModal', () => ({
 // Store mock setup
 const mockUseUserStore = useUserStore as jest.MockedFunction<typeof useUserStore>;
 const mockUseSubscriptionStore = useSubscriptionStore as jest.MockedFunction<typeof useSubscriptionStore>;
-const mockUseLearningPathsStore = useLearningPathsStore as jest.MockedFunction<typeof useLearningPathsStore>;
+const mockUseCoursesStore = useCoursesStore as jest.MockedFunction<typeof useCoursesStore>;
 
 describe('AppNavigator', () => {
   let mockFetchStatus: jest.Mock;
@@ -151,15 +139,15 @@ describe('AppNavigator', () => {
     });
     (useSubscriptionStore as unknown as { setState: jest.Mock }).setState = jest.fn();
 
-    // Mock useLearningPathsStore
-    mockUseLearningPathsStore.mockReturnValue({
-      setPaths: jest.fn(),
+    // Mock useCoursesStore
+    mockUseCoursesStore.mockReturnValue({
+      setCourses: jest.fn(),
       setLoading: jest.fn(),
       clearAllCache: jest.fn(),
-    } as unknown as ReturnType<typeof useLearningPathsStore>);
+    } as unknown as ReturnType<typeof useCoursesStore>);
 
     // Also mock getState for direct access
-    (useLearningPathsStore as unknown as { getState: () => unknown }).getState = jest.fn().mockReturnValue({
+    (useCoursesStore as unknown as { getState: () => unknown }).getState = jest.fn().mockReturnValue({
       clearAllCache: jest.fn(),
     });
   });

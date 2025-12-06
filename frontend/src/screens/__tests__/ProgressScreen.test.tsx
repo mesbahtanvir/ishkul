@@ -16,9 +16,9 @@ jest.mock('../../services/analytics/hooks', () => ({
     trackGoalSelected: jest.fn(),
     trackLevelSelected: jest.fn(),
     trackOnboardingComplete: jest.fn(),
-    trackLearningPathCreated: jest.fn(),
-    trackLearningPathOpened: jest.fn(),
-    trackLearningPathDeleted: jest.fn(),
+    trackCourseCreated: jest.fn(),
+    trackCourseOpened: jest.fn(),
+    trackCourseDeleted: jest.fn(),
     trackStepStarted: jest.fn(),
     trackStepCompleted: jest.fn(),
     trackLessonCompleted: jest.fn(),
@@ -96,7 +96,7 @@ describe('ProgressScreen', () => {
       mockUserDocument = {
         uid: 'test-user-123',
         goal: 'Learn Python',
-        learningPaths: [],
+        courses: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         memory: {
@@ -187,7 +187,7 @@ describe('ProgressScreen', () => {
       mockUserDocument = {
         uid: 'test-user-123',
         goal: 'Learn React',
-        learningPaths: [],
+        courses: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         memory: {
@@ -216,7 +216,7 @@ describe('ProgressScreen', () => {
       mockUserDocument = {
         uid: 'test-user-123',
         goal: 'Learn React',
-        learningPaths: [],
+        courses: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         memory: {
@@ -240,7 +240,7 @@ describe('ProgressScreen', () => {
       mockUserDocument = {
         uid: 'test-user-123',
         goal: 'Learn Go',
-        learningPaths: [],
+        courses: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         memory: {
@@ -270,7 +270,7 @@ describe('ProgressScreen', () => {
       mockUserDocument = {
         uid: 'test-user-123',
         goal: 'Test',
-        learningPaths: [],
+        courses: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         memory: { topics: {} },

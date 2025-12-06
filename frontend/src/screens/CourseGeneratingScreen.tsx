@@ -12,9 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
-import { LearningPath, OutlineStatuses } from '../types/app';
-import { learningPathsApi } from '../services/api';
-import { useLearningPathsStore } from '../state/learningPathsStore';
+import { Course, OutlineStatuses } from '../types/app';
+import { coursesApi } from '../services/api';
+import { useCoursesStore } from '../state/coursesStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CourseGenerating'>;
 
@@ -31,11 +31,11 @@ const PROGRESS_MESSAGES = [
 ];
 
 export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { pathId } = route.params;
-  const [path, setPath] = useState<LearningPath | null>(null);
+  const { courseId } = route.params;
+  const [path, setPath] = useState<Course | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [messageIndex, setMessageIndex] = useState(0);
-  const { updatePath } = useLearningPathsStore();
+  const { updateCourse } = useCoursesStore();
 
   // Animation values
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -103,10 +103,10 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
   // Poll for path status
   const pollPath = useCallback(async () => {
     try {
-      const fetchedPath = await learningPathsApi.getPath(pathId);
+      const fetchedPath = await coursesApi.getCourse(courseId);
       if (fetchedPath) {
         setPath(fetchedPath);
-        updatePath(pathId, fetchedPath);
+        updateCourse(courseId, fetchedPath);
 
         // If outline is ready or failed, stop polling
         if (fetchedPath.outlineStatus === OutlineStatuses.READY ||
@@ -120,7 +120,7 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
       setError('Failed to load course. Please try again.');
       return true; // Stop polling on error
     }
-  }, [pathId, updatePath]);
+  }, [courseId, updateCourse]);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
@@ -150,7 +150,7 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
   }, [pollPath]);
 
   const handleStartLearning = () => {
-    navigation.replace('LearningPath', { pathId });
+    navigation.replace('Course', { courseId });
   };
 
   const handleRetry = async () => {

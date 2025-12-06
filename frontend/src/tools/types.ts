@@ -26,7 +26,7 @@ export interface ToolContext {
   /** The full step data */
   step: Step;
   /** Learning path ID */
-  pathId: string;
+  courseId: string;
   /** Called when user completes the step */
   onComplete: (result: CompletionResult) => Promise<void>;
   /** Loading state during completion */

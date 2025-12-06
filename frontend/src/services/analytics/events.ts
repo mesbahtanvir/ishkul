@@ -45,20 +45,20 @@ export interface OnboardingCompleteParams {
 }
 
 // Learning Path Events
-export interface LearningPathCreatedParams {
+export interface CourseCreatedParams {
   path_id: string;
   goal: string;
   is_first_path: boolean;
 }
 
-export interface LearningPathOpenedParams {
+export interface CourseOpenedParams {
   path_id: string;
   goal: string;
   progress: number;
   steps_count: number;
 }
 
-export interface LearningPathDeletedParams {
+export interface CourseDeletedParams {
   path_id: string;
   progress_at_deletion: number;
   steps_completed: number;
@@ -200,9 +200,9 @@ export type AnalyticsEvent =
   | { name: 'onboarding_complete'; params: OnboardingCompleteParams }
 
   // Learning Path
-  | { name: 'learning_path_created'; params: LearningPathCreatedParams }
-  | { name: 'learning_path_opened'; params: LearningPathOpenedParams }
-  | { name: 'learning_path_deleted'; params: LearningPathDeletedParams }
+  | { name: 'learning_path_created'; params: CourseCreatedParams }
+  | { name: 'learning_path_opened'; params: CourseOpenedParams }
+  | { name: 'learning_path_deleted'; params: CourseDeletedParams }
 
   // Steps
   | { name: 'step_started'; params: StepStartedParams }
@@ -240,7 +240,7 @@ export type AnalyticsEvent =
 export interface UserProperties {
   user_tier?: 'free' | 'premium';
   signup_method?: AuthMethod;
-  paths_created_count?: number;
+  courses_created_count?: number;
   total_steps_completed?: number;
   avg_quiz_score?: 'low' | 'medium' | 'high';
   days_since_signup?: number;
@@ -263,9 +263,9 @@ export const EventNames = {
   ONBOARDING_COMPLETE: 'onboarding_complete',
 
   // Learning Path
-  LEARNING_PATH_CREATED: 'learning_path_created',
-  LEARNING_PATH_OPENED: 'learning_path_opened',
-  LEARNING_PATH_DELETED: 'learning_path_deleted',
+  LEARNING_COURSE_CREATED: 'learning_path_created',
+  LEARNING_COURSE_OPENED: 'learning_path_opened',
+  LEARNING_COURSE_DELETED: 'learning_path_deleted',
 
   // Steps
   STEP_STARTED: 'step_started',
@@ -307,7 +307,7 @@ export const ScreenNames = {
   GOAL_SELECTION: 'GoalSelection',
   LEVEL_SELECTION: 'LevelSelection',
   HOME: 'Home',
-  LEARNING_PATH: 'LearningPath',
+  LEARNING_PATH: 'Course',
   STEP_DETAIL: 'StepDetail',
   LESSON: 'Lesson',
   QUIZ: 'Quiz',

@@ -35,11 +35,11 @@ export function useAnalytics() {
     trackOnboardingComplete: analytics.trackOnboardingComplete.bind(analytics),
 
     // Learning Path
-    trackLearningPathCreated:
-      analytics.trackLearningPathCreated.bind(analytics),
-    trackLearningPathOpened: analytics.trackLearningPathOpened.bind(analytics),
-    trackLearningPathDeleted:
-      analytics.trackLearningPathDeleted.bind(analytics),
+    trackCourseCreated:
+      analytics.trackCourseCreated.bind(analytics),
+    trackCourseOpened: analytics.trackCourseOpened.bind(analytics),
+    trackCourseDeleted:
+      analytics.trackCourseDeleted.bind(analytics),
 
     // Steps
     trackStepStarted: analytics.trackStepStarted.bind(analytics),
@@ -173,7 +173,7 @@ export function useActiveTime(): ActiveTimeResult {
 // =============================================================================
 
 interface StepTrackingParams {
-  pathId: string;
+  courseId: string;
   stepId: string;
   stepType: StepType;
   topic: string;
@@ -190,7 +190,7 @@ interface StepTrackingResult {
  * Track step engagement (start, active time, completion)
  */
 export function useStepTracking(params: StepTrackingParams): StepTrackingResult {
-  const { pathId, stepId, stepType, topic, stepIndex } = params;
+  const { courseId, stepId, stepType, topic, stepIndex } = params;
   const { getActiveSeconds, resetTimer } = useActiveTime();
   const startTimeRef = useRef<number>(0);
   const hasStartedRef = useRef<boolean>(false);
@@ -203,13 +203,13 @@ export function useStepTracking(params: StepTrackingParams): StepTrackingResult 
     resetTimer();
 
     analytics.trackStepStarted({
-      path_id: pathId,
+      path_id: courseId,
       step_id: stepId,
       step_type: stepType,
       topic,
       step_index: stepIndex,
     });
-  }, [pathId, stepId, stepType, topic, stepIndex, resetTimer]);
+  }, [courseId, stepId, stepType, topic, stepIndex, resetTimer]);
 
   const completeStep = useCallback(
     async (score?: number) => {
@@ -217,7 +217,7 @@ export function useStepTracking(params: StepTrackingParams): StepTrackingResult 
       const totalTimeSec = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
       await analytics.trackStepCompleted({
-        path_id: pathId,
+        path_id: courseId,
         step_id: stepId,
         step_type: stepType,
         topic,
@@ -226,7 +226,7 @@ export function useStepTracking(params: StepTrackingParams): StepTrackingResult 
         score,
       });
     },
-    [pathId, stepId, stepType, topic, getActiveSeconds]
+    [courseId, stepId, stepType, topic, getActiveSeconds]
   );
 
   return { startStep, completeStep, getActiveSeconds };
@@ -237,7 +237,7 @@ export function useStepTracking(params: StepTrackingParams): StepTrackingResult 
 // =============================================================================
 
 interface QuizTrackingParams {
-  pathId: string;
+  courseId: string;
   stepId: string;
   topic: string;
 }
@@ -253,7 +253,7 @@ interface QuizTrackingResult {
  * Track quiz engagement (start, answers, completion)
  */
 export function useQuizTracking(params: QuizTrackingParams): QuizTrackingResult {
-  const { pathId, stepId, topic } = params;
+  const { courseId, stepId, topic } = params;
   const { getActiveSeconds, resetTimer } = useActiveTime();
   const startTimeRef = useRef<number>(0);
   const questionStartRef = useRef<number>(0);
@@ -268,11 +268,11 @@ export function useQuizTracking(params: QuizTrackingParams): QuizTrackingResult 
     resetTimer();
 
     analytics.trackQuizStarted({
-      path_id: pathId,
+      path_id: courseId,
       step_id: stepId,
       topic,
     });
-  }, [pathId, stepId, topic, resetTimer]);
+  }, [courseId, stepId, topic, resetTimer]);
 
   const answerQuestion = useCallback(
     async (isCorrect: boolean) => {
@@ -282,14 +282,14 @@ export function useQuizTracking(params: QuizTrackingParams): QuizTrackingResult 
       questionStartRef.current = Date.now(); // Reset for next question
 
       await analytics.trackQuizQuestionAnswered({
-        path_id: pathId,
+        path_id: courseId,
         step_id: stepId,
         topic,
         is_correct: isCorrect,
         answer_time_sec: answerTime,
       });
     },
-    [pathId, stepId, topic]
+    [courseId, stepId, topic]
   );
 
   const completeQuiz = useCallback(
@@ -300,7 +300,7 @@ export function useQuizTracking(params: QuizTrackingParams): QuizTrackingResult 
       );
 
       await analytics.trackQuizCompleted({
-        path_id: pathId,
+        path_id: courseId,
         step_id: stepId,
         topic,
         score,
@@ -308,7 +308,7 @@ export function useQuizTracking(params: QuizTrackingParams): QuizTrackingResult 
         active_time_sec: activeTimeSec,
       });
     },
-    [pathId, stepId, topic, getActiveSeconds]
+    [courseId, stepId, topic, getActiveSeconds]
   );
 
   return { startQuiz, answerQuestion, completeQuiz, getActiveSeconds };
@@ -360,16 +360,16 @@ export function useOnboardingTracking(): OnboardingTrackingResult {
 // =============================================================================
 
 interface AITrackingResult {
-  startRequest: (pathId: string, progress: number) => number;
+  startRequest: (courseId: string, progress: number) => number;
   completeRequest: (
     requestId: number,
-    pathId: string,
+    courseId: string,
     stepType: StepType,
     topic: string,
     modelUsed: string
   ) => Promise<void>;
   trackError: (
-    pathId: string,
+    courseId: string,
     errorType: string,
     retryCount: number
   ) => Promise<void>;
@@ -382,12 +382,12 @@ export function useAITracking(): AITrackingResult {
   const requestTimesRef = useRef<Map<number, number>>(new Map());
   const requestIdRef = useRef<number>(0);
 
-  const startRequest = useCallback((pathId: string, progress: number) => {
+  const startRequest = useCallback((courseId: string, progress: number) => {
     const requestId = ++requestIdRef.current;
     requestTimesRef.current.set(requestId, Date.now());
 
     analytics.trackNextStepRequested({
-      path_id: pathId,
+      path_id: courseId,
       current_progress: progress,
     });
 
@@ -397,7 +397,7 @@ export function useAITracking(): AITrackingResult {
   const completeRequest = useCallback(
     async (
       requestId: number,
-      pathId: string,
+      courseId: string,
       stepType: StepType,
       topic: string,
       modelUsed: string
@@ -407,7 +407,7 @@ export function useAITracking(): AITrackingResult {
       requestTimesRef.current.delete(requestId);
 
       await analytics.trackNextStepGenerated({
-        path_id: pathId,
+        path_id: courseId,
         step_type: stepType,
         topic,
         response_time_ms: responseTime,
@@ -418,9 +418,9 @@ export function useAITracking(): AITrackingResult {
   );
 
   const trackError = useCallback(
-    async (pathId: string, errorType: string, retryCount: number) => {
+    async (courseId: string, errorType: string, retryCount: number) => {
       await analytics.trackAIError({
-        path_id: pathId,
+        path_id: courseId,
         error_type: errorType,
         retry_count: retryCount,
       });
