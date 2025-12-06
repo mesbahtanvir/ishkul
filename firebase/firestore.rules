@@ -84,7 +84,14 @@ service cloud.firestore {
       allow write: if false; // All writes must go through backend Admin SDK
     }
 
-    // Learning paths collection - managed by backend
+    // Courses collection - managed by backend
+    match /courses/{courseId} {
+      allow read: if request.auth != null &&
+                     request.auth.uid == resource.data.userId;
+      allow write: if false; // All writes must go through backend Admin SDK
+    }
+
+    // Learning paths collection - legacy, kept for backward compatibility
     match /learning_paths/{pathId} {
       allow read: if request.auth != null &&
                      request.auth.uid == resource.data.userId;

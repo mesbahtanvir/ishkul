@@ -71,7 +71,7 @@ func DeleteCollectionWithPrefix(ctx context.Context) error {
 	}
 
 	// Delete documents from prefixed collections using BulkWriter
-	collections := []string{"users", "learning_paths"}
+	collections := []string{"users", "courses", "learning_paths"}
 	for _, col := range collections {
 		prefixedCol := collectionPrefix + col
 		log.Printf("Cleaning up collection: %s", prefixedCol)

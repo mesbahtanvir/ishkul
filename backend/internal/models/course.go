@@ -3,12 +3,12 @@ package models
 // MaxStepContentLength is the maximum character length for step content
 const MaxStepContentLength = 2000
 
-// Learning path status constants
+// Course status constants
 const (
-	PathStatusActive    = "active"
-	PathStatusCompleted = "completed"
-	PathStatusArchived  = "archived"
-	PathStatusDeleted   = "deleted"
+	CourseStatusActive    = "active"
+	CourseStatusCompleted = "completed"
+	CourseStatusArchived  = "archived"
+	CourseStatusDeleted   = "deleted"
 )
 
 // Outline status constants
@@ -18,18 +18,18 @@ const (
 	OutlineStatusFailed     = "failed"
 )
 
-// LearningPath represents a user's learning journey for a specific goal
-type LearningPath struct {
+// Course represents a user's learning journey for a specific goal
+type Course struct {
 	ID               string  `json:"id" firestore:"id"`
 	UserID           string  `json:"userId" firestore:"userId"`
 	Goal             string  `json:"goal" firestore:"goal"`
 	Emoji            string  `json:"emoji" firestore:"emoji"`
-	Status           string  `json:"status" firestore:"status"`                     // active, completed, archived, deleted
-	OutlineStatus    string  `json:"outlineStatus" firestore:"outlineStatus"`       // generating, ready, failed
-	Progress         int     `json:"progress" firestore:"progress"`                 // 0-100
-	LessonsCompleted int     `json:"lessonsCompleted" firestore:"lessonsCompleted"` // Number of completed steps
-	TotalLessons     int     `json:"totalLessons" firestore:"totalLessons"`         // Estimated total steps in path
-	Steps            []Step  `json:"steps" firestore:"steps"`                       // All steps (completed and current)
+	Status           string  `json:"status" firestore:"status"`               // active, completed, archived, deleted
+	OutlineStatus    string  `json:"outlineStatus" firestore:"outlineStatus"` // generating, ready, failed
+	Progress         int     `json:"progress" firestore:"progress"`           // 0-100
+	LessonsCompleted int     `json:"lessonsCompleted" firestore:"lessonsCompleted"`
+	TotalLessons     int     `json:"totalLessons" firestore:"totalLessons"`
+	Steps            []Step  `json:"steps" firestore:"steps"`
 	Memory           *Memory `json:"memory" firestore:"memory"`
 	// Course outline - auto-generated curriculum structure
 	Outline         *CourseOutline   `json:"outline,omitempty" firestore:"outline,omitempty"`
@@ -37,15 +37,15 @@ type LearningPath struct {
 	CreatedAt       int64            `json:"createdAt" firestore:"createdAt"`
 	UpdatedAt       int64            `json:"updatedAt" firestore:"updatedAt"`
 	LastAccessedAt  int64            `json:"lastAccessedAt" firestore:"lastAccessedAt"`
-	CompletedAt     int64            `json:"completedAt,omitempty" firestore:"completedAt,omitempty"` // When path was completed
-	ArchivedAt      int64            `json:"archivedAt,omitempty" firestore:"archivedAt,omitempty"`   // When path was archived
-	DeletedAt       int64            `json:"deletedAt,omitempty" firestore:"deletedAt,omitempty"`     // When path was soft deleted
+	CompletedAt     int64            `json:"completedAt,omitempty" firestore:"completedAt,omitempty"`
+	ArchivedAt      int64            `json:"archivedAt,omitempty" firestore:"archivedAt,omitempty"`
+	DeletedAt       int64            `json:"deletedAt,omitempty" firestore:"deletedAt,omitempty"`
 }
 
-// Step represents a single step in the learning path (lesson, quiz, practice, etc.)
+// Step represents a single step in the course (lesson, quiz, practice, etc.)
 type Step struct {
 	ID             string   `json:"id" firestore:"id"`
-	Index          int      `json:"index" firestore:"index"` // Position in path (0, 1, 2...)
+	Index          int      `json:"index" firestore:"index"` // Position in course (0, 1, 2...)
 	Type           string   `json:"type" firestore:"type"`   // "lesson", "quiz", "practice", "review", "summary"
 	Topic          string   `json:"topic" firestore:"topic"`
 	Title          string   `json:"title" firestore:"title"`
@@ -62,14 +62,14 @@ type Step struct {
 	CreatedAt      int64    `json:"createdAt" firestore:"createdAt"`
 }
 
-// LearningPathCreate represents the request to create a new learning path
-type LearningPathCreate struct {
+// CourseCreate represents the request to create a new course
+type CourseCreate struct {
 	Goal  string `json:"goal"`
 	Emoji string `json:"emoji"`
 }
 
-// LearningPathUpdate represents the request to update a learning path
-type LearningPathUpdate struct {
+// CourseUpdate represents the request to update a course
+type CourseUpdate struct {
 	Goal             *string `json:"goal,omitempty"`
 	Emoji            *string `json:"emoji,omitempty"`
 	Progress         *int    `json:"progress,omitempty"`
@@ -86,7 +86,7 @@ type StepComplete struct {
 // CompactionInterval defines how many steps trigger a memory compaction
 const CompactionInterval = 10
 
-// CourseOutline represents the auto-generated curriculum structure for a learning path
+// CourseOutline represents the auto-generated curriculum structure for a course
 type CourseOutline struct {
 	Title            string          `json:"title" firestore:"title"`
 	Description      string          `json:"description" firestore:"description"`
@@ -143,3 +143,24 @@ type OutlinePosition struct {
 	ModuleID    string `json:"moduleId" firestore:"moduleId"`
 	TopicID     string `json:"topicId" firestore:"topicId"`
 }
+
+// ============================================
+// Legacy type aliases for backward compatibility
+// ============================================
+
+// LearningPath is an alias for Course (deprecated)
+type LearningPath = Course
+
+// LearningPathCreate is an alias for CourseCreate (deprecated)
+type LearningPathCreate = CourseCreate
+
+// LearningPathUpdate is an alias for CourseUpdate (deprecated)
+type LearningPathUpdate = CourseUpdate
+
+// Legacy path status constants (deprecated, use CourseStatus* instead)
+const (
+	PathStatusActive    = CourseStatusActive
+	PathStatusCompleted = CourseStatusCompleted
+	PathStatusArchived  = CourseStatusArchived
+	PathStatusDeleted   = CourseStatusDeleted
+)

@@ -1,5 +1,5 @@
 import { apiConfig } from '../config/firebase.config';
-import { User, UserDocument, LearningPath, Step, StepCompleteRequest } from '../types/app';
+import { User, UserDocument, Course, Step, StepCompleteRequest } from '../types/app';
 import { tokenStorage } from './api/tokenStorage';
 
 /**
@@ -43,12 +43,17 @@ export const ErrorCodes = {
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
   MISSING_CREDENTIALS: 'MISSING_CREDENTIALS',
   NETWORK_ERROR: 'NETWORK_ERROR',
-  // Learning path error codes
-  PATH_COMPLETED: 'PATH_COMPLETED',
-  PATH_ARCHIVED: 'PATH_ARCHIVED',
-  PATH_DELETED: 'PATH_DELETED',
+  // Course error codes
+  COURSE_COMPLETED: 'COURSE_COMPLETED',
+  COURSE_ARCHIVED: 'COURSE_ARCHIVED',
+  COURSE_DELETED: 'COURSE_DELETED',
+  // Legacy aliases
+  PATH_COMPLETED: 'COURSE_COMPLETED',
+  PATH_ARCHIVED: 'COURSE_ARCHIVED',
+  PATH_DELETED: 'COURSE_DELETED',
   // Subscription limit error codes
-  PATH_LIMIT_REACHED: 'PATH_LIMIT_REACHED',
+  COURSE_LIMIT_REACHED: 'COURSE_LIMIT_REACHED',
+  PATH_LIMIT_REACHED: 'COURSE_LIMIT_REACHED',
   DAILY_STEP_LIMIT_REACHED: 'DAILY_STEP_LIMIT_REACHED',
 } as const;
 
@@ -502,87 +507,87 @@ export const userApi = {
 };
 
 /**
- * Normalize a learning path to ensure steps is always an array
+ * Normalize a course to ensure steps is always an array
  * This handles legacy data that may have null/undefined steps or old 'history' field
  */
-const normalizeLearningPath = (path: LearningPath | null): LearningPath | null => {
-  if (!path) return null;
+const normalizeCourse = (course: Course | null): Course | null => {
+  if (!course) return null;
   return {
-    ...path,
-    steps: Array.isArray(path.steps) ? path.steps : [],
-    memory: path.memory || { topics: {} },
+    ...course,
+    steps: Array.isArray(course.steps) ? course.steps : [],
+    memory: course.memory || { topics: {} },
   };
 };
 
 /**
- * Learning Paths API methods
+ * Courses API methods
  */
-export const learningPathsApi = {
+export const coursesApi = {
   /**
-   * Get all learning paths for the user
+   * Get all courses for the user
    */
-  async getPaths(): Promise<LearningPath[]> {
-    const response = await api.get<{ paths: LearningPath[] }>('/learning-paths');
-    const paths = response.paths || [];
-    return paths.map((p) => normalizeLearningPath(p)!);
+  async getCourses(): Promise<Course[]> {
+    const response = await api.get<{ courses: Course[] }>('/courses');
+    const courses = response.courses || [];
+    return courses.map((c) => normalizeCourse(c)!);
   },
 
   /**
-   * Get a specific learning path
+   * Get a specific course
    */
-  async getPath(pathId: string): Promise<LearningPath | null> {
-    const response = await api.get<{ path: LearningPath }>(`/learning-paths/${pathId}`);
-    return normalizeLearningPath(response.path);
+  async getCourse(courseId: string): Promise<Course | null> {
+    const response = await api.get<{ course: Course }>(`/courses/${courseId}`);
+    return normalizeCourse(response.course);
   },
 
   /**
-   * Create a new learning path
+   * Create a new course
    */
-  async createPath(path: Partial<LearningPath>): Promise<LearningPath> {
-    const response = await api.post<{ path: LearningPath }>('/learning-paths', path);
-    return normalizeLearningPath(response.path)!;
+  async createCourse(course: Partial<Course>): Promise<Course> {
+    const response = await api.post<{ course: Course }>('/courses', course);
+    return normalizeCourse(response.course)!;
   },
 
   /**
-   * Update a learning path
+   * Update a course
    */
-  async updatePath(pathId: string, updates: Partial<LearningPath>): Promise<void> {
-    await api.patch(`/learning-paths/${pathId}`, updates);
+  async updateCourse(courseId: string, updates: Partial<Course>): Promise<void> {
+    await api.patch(`/courses/${courseId}`, updates);
   },
 
   /**
-   * Delete a learning path
+   * Delete a course
    */
-  async deletePath(pathId: string): Promise<void> {
-    await api.delete(`/learning-paths/${pathId}`);
+  async deleteCourse(courseId: string): Promise<void> {
+    await api.delete(`/courses/${courseId}`);
   },
 
   /**
-   * Archive a learning path
+   * Archive a course
    */
-  async archivePath(pathId: string): Promise<LearningPath> {
-    const response = await api.post<{ path: LearningPath }>(
-      `/learning-paths/${pathId}/archive`
+  async archiveCourse(courseId: string): Promise<Course> {
+    const response = await api.post<{ course: Course }>(
+      `/courses/${courseId}/archive`
     );
-    return normalizeLearningPath(response.path)!;
+    return normalizeCourse(response.course)!;
   },
 
   /**
-   * Restore an archived learning path
+   * Restore an archived course
    */
-  async restorePath(pathId: string): Promise<LearningPath> {
-    const response = await api.post<{ path: LearningPath }>(
-      `/learning-paths/${pathId}/unarchive`
+  async restoreCourse(courseId: string): Promise<Course> {
+    const response = await api.post<{ course: Course }>(
+      `/courses/${courseId}/unarchive`
     );
-    return normalizeLearningPath(response.path)!;
+    return normalizeCourse(response.course)!;
   },
 
   /**
    * Get next step - returns existing incomplete step or generates new one
    */
-  async getNextStep(pathId: string): Promise<{ step: Step; stepIndex: number }> {
+  async getNextStep(courseId: string): Promise<{ step: Step; stepIndex: number }> {
     const response = await api.post<{ step: Step; stepIndex: number }>(
-      `/learning-paths/${pathId}/next`
+      `/courses/${courseId}/next`
     );
     return response;
   },
@@ -591,17 +596,17 @@ export const learningPathsApi = {
    * Complete current step (legacy endpoint - completes first incomplete step)
    */
   async completeCurrentStep(
-    pathId: string,
+    courseId: string,
     data?: StepCompleteRequest
-  ): Promise<{ path: LearningPath; completedStep: Step; nextStepNeeded: boolean }> {
+  ): Promise<{ course: Course; completedStep: Step; nextStepNeeded: boolean }> {
     const response = await api.post<{
-      path: LearningPath;
+      course: Course;
       completedStep: Step;
       nextStepNeeded: boolean;
-    }>(`/learning-paths/${pathId}/complete`, data || {});
+    }>(`/courses/${courseId}/complete`, data || {});
     return {
       ...response,
-      path: normalizeLearningPath(response.path)!,
+      course: normalizeCourse(response.course)!,
     };
   },
 
@@ -609,18 +614,18 @@ export const learningPathsApi = {
    * Complete a specific step by ID
    */
   async completeStep(
-    pathId: string,
+    courseId: string,
     stepId: string,
     data?: StepCompleteRequest
-  ): Promise<{ path: LearningPath; completedStep: Step; nextStepNeeded: boolean }> {
+  ): Promise<{ course: Course; completedStep: Step; nextStepNeeded: boolean }> {
     const response = await api.post<{
-      path: LearningPath;
+      course: Course;
       completedStep: Step;
       nextStepNeeded: boolean;
-    }>(`/learning-paths/${pathId}/steps/${stepId}/complete`, data || {});
+    }>(`/courses/${courseId}/steps/${stepId}/complete`, data || {});
     return {
       ...response,
-      path: normalizeLearningPath(response.path)!,
+      course: normalizeCourse(response.course)!,
     };
   },
 
@@ -628,24 +633,46 @@ export const learningPathsApi = {
    * View a step (records the view and updates lastReviewed in memory)
    */
   async viewStep(
-    pathId: string,
+    courseId: string,
     stepId: string
   ): Promise<{ success: boolean; step: Step }> {
     const response = await api.post<{ success: boolean; step: Step }>(
-      `/learning-paths/${pathId}/steps/${stepId}/view`
+      `/courses/${courseId}/steps/${stepId}/view`
     );
     return response;
   },
 
   /**
-   * Update memory for a topic in a specific learning path
+   * Update memory for a topic in a specific course
    */
-  async updatePathMemory(
-    pathId: string,
+  async updateCourseMemory(
+    courseId: string,
     memory: { topic: string; confidence: number; timesTested: number }
   ): Promise<void> {
-    await api.post(`/learning-paths/${pathId}/memory`, memory);
+    await api.post(`/courses/${courseId}/memory`, memory);
   },
+};
+
+// Legacy alias for backward compatibility
+export const learningPathsApi = {
+  getPaths: coursesApi.getCourses,
+  getPath: coursesApi.getCourse,
+  createPath: coursesApi.createCourse,
+  updatePath: coursesApi.updateCourse,
+  deletePath: coursesApi.deleteCourse,
+  archivePath: coursesApi.archiveCourse,
+  restorePath: coursesApi.restoreCourse,
+  getNextStep: coursesApi.getNextStep,
+  completeCurrentStep: async (pathId: string, data?: StepCompleteRequest) => {
+    const result = await coursesApi.completeCurrentStep(pathId, data);
+    return { path: result.course, completedStep: result.completedStep, nextStepNeeded: result.nextStepNeeded };
+  },
+  completeStep: async (pathId: string, stepId: string, data?: StepCompleteRequest) => {
+    const result = await coursesApi.completeStep(pathId, stepId, data);
+    return { path: result.course, completedStep: result.completedStep, nextStepNeeded: result.nextStepNeeded };
+  },
+  viewStep: coursesApi.viewStep,
+  updatePathMemory: coursesApi.updateCourseMemory,
 };
 
 /**
