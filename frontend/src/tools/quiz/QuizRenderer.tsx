@@ -90,10 +90,9 @@ export const QuizRenderer: React.FC<ToolRendererProps<QuizData>> = ({
                 style={[
                   styles.option,
                   { borderColor: colors.border },
-                  isSelected && styles.optionSelected,
-                  isSelected && { borderColor: colors.primary },
-                  isCorrectOption && styles.optionCorrect,
-                  isWrongSelection && styles.optionIncorrect,
+                  isSelected && { backgroundColor: colors.primary + '15', borderColor: colors.primary },
+                  isCorrectOption && { backgroundColor: colors.success + '20', borderColor: colors.success },
+                  isWrongSelection && { backgroundColor: colors.danger + '20', borderColor: colors.danger },
                 ]}
                 onPress={() => !isSubmitted && setSelectedOption(idx)}
                 disabled={isSubmitted}
@@ -195,17 +194,6 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.borderRadius.md,
     borderWidth: 2,
     marginBottom: Spacing.xs,
-  },
-  optionSelected: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-  },
-  optionCorrect: {
-    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-    borderColor: '#22c55e',
-  },
-  optionIncorrect: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-    borderColor: '#ef4444',
   },
   optionText: {
     ...Typography.body.medium,
