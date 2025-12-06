@@ -20,10 +20,16 @@ const (
 	ProDailyStepLimit  = 1000
 )
 
-// Active learning path limits
+// Active course limits
 const (
-	FreeMaxActivePaths = 2
-	ProMaxActivePaths  = 5
+	FreeMaxActiveCourses = 2
+	ProMaxActiveCourses  = 5
+)
+
+// Legacy aliases
+const (
+	FreeMaxActivePaths = FreeMaxActiveCourses
+	ProMaxActivePaths  = ProMaxActiveCourses
 )
 
 // Stripe pricing (in cents)
@@ -47,12 +53,17 @@ func GetDailyStepLimit(tier string) int {
 	return FreeDailyStepLimit
 }
 
-// GetMaxActivePaths returns the max active learning paths for the given tier
-func GetMaxActivePaths(tier string) int {
+// GetMaxActiveCourses returns the max active courses for the given tier
+func GetMaxActiveCourses(tier string) int {
 	if tier == TierPro {
-		return ProMaxActivePaths
+		return ProMaxActiveCourses
 	}
-	return FreeMaxActivePaths
+	return FreeMaxActiveCourses
+}
+
+// GetMaxActivePaths is an alias for GetMaxActiveCourses (deprecated)
+func GetMaxActivePaths(tier string) int {
+	return GetMaxActiveCourses(tier)
 }
 
 // GetCurrentTier returns the user's current tier based on subscription status

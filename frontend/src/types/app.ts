@@ -30,7 +30,7 @@ export interface Memory {
   compaction?: Compaction;
 }
 
-// Step represents a single step in the learning path (replaces NextStep + HistoryEntry)
+// Step represents a single step in the course (replaces NextStep + HistoryEntry)
 export interface Step {
   id: string;
   index: number;
@@ -74,15 +74,19 @@ export interface NextStep {
   task?: string;
 }
 
-// Learning path status constants (must match backend)
-export type PathStatus = 'active' | 'completed' | 'archived' | 'deleted';
+// Course status constants (must match backend)
+export type CourseStatus = 'active' | 'completed' | 'archived' | 'deleted';
 
-export const PathStatuses = {
-  ACTIVE: 'active' as PathStatus,
-  COMPLETED: 'completed' as PathStatus,
-  ARCHIVED: 'archived' as PathStatus,
-  DELETED: 'deleted' as PathStatus,
+export const CourseStatuses = {
+  ACTIVE: 'active' as CourseStatus,
+  COMPLETED: 'completed' as CourseStatus,
+  ARCHIVED: 'archived' as CourseStatus,
+  DELETED: 'deleted' as CourseStatus,
 } as const;
+
+// Legacy aliases for backward compatibility
+export type PathStatus = CourseStatus;
+export const PathStatuses = CourseStatuses;
 
 // Outline status constants (must match backend)
 export type OutlineStatus = 'generating' | 'ready' | 'failed';
@@ -146,12 +150,12 @@ export interface OutlinePosition {
   topicId: string;
 }
 
-// Learning Path - represents a single learning journey
-export interface LearningPath {
+// Course - represents a single learning journey
+export interface Course {
   id: string;
   goal: string;
   emoji: string;
-  status?: PathStatus; // Path status: active, completed, archived, deleted
+  status?: CourseStatus; // Course status: active, completed, archived, deleted
   outlineStatus?: OutlineStatus; // Outline generation status
   progress: number; // 0-100
   lessonsCompleted: number;
@@ -164,16 +168,20 @@ export interface LearningPath {
   createdAt: number;
   updatedAt: number;
   lastAccessedAt: number;
-  completedAt?: number; // Timestamp when path was completed
-  archivedAt?: number; // Timestamp when path was archived
+  completedAt?: number; // Timestamp when course was completed
+  archivedAt?: number; // Timestamp when course was archived
 }
+
+// Legacy alias for backward compatibility
+export type LearningPath = Course;
 
 export interface UserDocument {
   uid: string;
   email?: string;
   displayName?: string;
-  learningPaths: LearningPath[];
+  courses: Course[];
   // Legacy fields for backward compatibility (will be migrated)
+  learningPaths?: Course[]; // Legacy alias
   goal?: string;
   memory?: Memory;
   history?: HistoryEntry[];
@@ -210,7 +218,8 @@ export interface UsageLimit {
 
 export interface UsageLimits {
   dailySteps: UsageLimit;
-  activePaths: UsageLimit;
+  activeCourses: UsageLimit;
+  activePaths?: UsageLimit; // Legacy alias
 }
 
 export interface SubscriptionStatus {
@@ -220,7 +229,8 @@ export interface SubscriptionStatus {
   limits: UsageLimits;
   canUpgrade: boolean;
   canGenerateSteps: boolean;
-  canCreatePath: boolean;
+  canCreateCourse: boolean;
+  canCreatePath?: boolean; // Legacy alias
   dailyLimitResetAt: string | null;
 }
 
@@ -250,7 +260,7 @@ export interface PaymentSheetParams {
 // Limit error response from API
 export interface LimitErrorResponse {
   error: string;
-  code: 'PATH_LIMIT_REACHED' | 'DAILY_STEP_LIMIT_REACHED';
+  code: 'COURSE_LIMIT_REACHED' | 'PATH_LIMIT_REACHED' | 'DAILY_STEP_LIMIT_REACHED';
   canUpgrade: boolean;
   currentTier: TierType;
   limits: UsageLimits;

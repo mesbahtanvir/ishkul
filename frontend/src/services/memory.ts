@@ -6,12 +6,12 @@
  * The backend determines the user from the auth token.
  */
 
-import { userApi, learningPathsApi } from './api';
+import { userApi, coursesApi } from './api';
 import {
   UserDocument,
   HistoryEntry,
   NextStep,
-  LearningPath,
+  Course,
   Step,
   StepCompleteRequest,
 } from '../types/app';
@@ -25,132 +25,115 @@ export const getUserDocument = async (): Promise<UserDocument | null> => {
 
 /**
  * Create or initialize user document with goal
- * Optionally includes the first learning path
+ * Optionally includes the first course
  * Level is no longer required - AI adapts based on user context
  */
 export const createUserDocument = async (
   goal: string,
-  firstPath?: Partial<LearningPath>
+  firstCourse?: Partial<Course>
 ): Promise<void> => {
   await userApi.createUserDocument(goal);
 
-  // If a first path is provided, create it
-  if (firstPath) {
-    await learningPathsApi.createPath(firstPath);
+  // If a first course is provided, create it
+  if (firstCourse) {
+    await coursesApi.createCourse(firstCourse);
   }
 };
 
 /**
- * Add a new learning path
+ * Add a new course
  */
-export const addLearningPath = async (
-  path: Partial<LearningPath>
-): Promise<LearningPath> => {
-  return learningPathsApi.createPath(path);
+export const addCourse = async (
+  course: Partial<Course>
+): Promise<Course> => {
+  return coursesApi.createCourse(course);
 };
 
 /**
- * Get all learning paths
+ * Get all courses
  */
-export const getLearningPaths = async (): Promise<LearningPath[]> => {
-  return learningPathsApi.getPaths();
+export const getCourses = async (): Promise<Course[]> => {
+  return coursesApi.getCourses();
 };
 
 /**
- * Get a specific learning path
+ * Get a specific course
  */
-export const getLearningPath = async (
-  pathId: string
-): Promise<LearningPath | null> => {
-  return learningPathsApi.getPath(pathId);
+export const getCourse = async (
+  courseId: string
+): Promise<Course | null> => {
+  return coursesApi.getCourse(courseId);
 };
 
 /**
- * Update a learning path
+ * Update a course
  */
-export const updateLearningPath = async (
-  pathId: string,
-  updates: Partial<LearningPath>
+export const updateCourse = async (
+  courseId: string,
+  updates: Partial<Course>
 ): Promise<void> => {
-  await learningPathsApi.updatePath(pathId, updates);
+  await coursesApi.updateCourse(courseId, updates);
 };
 
 /**
- * Delete a learning path
+ * Delete a course
  */
-export const deleteLearningPath = async (pathId: string): Promise<void> => {
-  await learningPathsApi.deletePath(pathId);
+export const deleteCourse = async (courseId: string): Promise<void> => {
+  await coursesApi.deleteCourse(courseId);
 };
 
 /**
- * Archive a learning path
+ * Archive a course
  */
-export const archiveLearningPath = async (pathId: string): Promise<LearningPath> => {
-  return learningPathsApi.archivePath(pathId);
+export const archiveCourse = async (courseId: string): Promise<Course> => {
+  return coursesApi.archiveCourse(courseId);
 };
 
 /**
- * Restore an archived learning path
+ * Restore an archived course
  */
-export const restoreLearningPath = async (pathId: string): Promise<LearningPath> => {
-  return learningPathsApi.restorePath(pathId);
+export const restoreCourse = async (courseId: string): Promise<Course> => {
+  return coursesApi.restoreCourse(courseId);
 };
 
 /**
  * Get next step - returns existing incomplete step or generates new one
  */
-export const getPathNextStep = async (
-  pathId: string
+export const getCourseNextStep = async (
+  courseId: string
 ): Promise<{ step: Step; stepIndex: number }> => {
-  return learningPathsApi.getNextStep(pathId);
+  return coursesApi.getNextStep(courseId);
 };
 
 /**
  * Complete current step (first incomplete step)
  */
 export const completeCurrentStep = async (
-  pathId: string,
+  courseId: string,
   data?: StepCompleteRequest
-): Promise<{ path: LearningPath; completedStep: Step; nextStepNeeded: boolean }> => {
-  return learningPathsApi.completeCurrentStep(pathId, data);
+): Promise<{ course: Course; completedStep: Step; nextStepNeeded: boolean }> => {
+  return coursesApi.completeCurrentStep(courseId, data);
 };
 
 /**
  * Complete a specific step by ID
  */
 export const completeStep = async (
-  pathId: string,
+  courseId: string,
   stepId: string,
   data?: StepCompleteRequest
-): Promise<{ path: LearningPath; completedStep: Step; nextStepNeeded: boolean }> => {
-  return learningPathsApi.completeStep(pathId, stepId, data);
+): Promise<{ course: Course; completedStep: Step; nextStepNeeded: boolean }> => {
+  return coursesApi.completeStep(courseId, stepId, data);
 };
 
 /**
  * View a step (records the view and updates lastReviewed)
  */
 export const viewStep = async (
-  pathId: string,
+  courseId: string,
   stepId: string
 ): Promise<{ success: boolean; step: Step }> => {
-  return learningPathsApi.viewStep(pathId, stepId);
-};
-
-/**
- * Legacy: Complete a step in a learning path (backward compatibility)
- * @deprecated Use completeStep or completeCurrentStep instead
- */
-export const completePathStep = async (
-  pathId: string,
-  stepData: { type: string; topic: string; score?: number }
-): Promise<{ path: LearningPath; nextStep?: NextStep }> => {
-  const result = await learningPathsApi.completeCurrentStep(pathId, {
-    score: stepData.score,
-  });
-  return {
-    path: result.path,
-    nextStep: undefined, // New API doesn't return next step
-  };
+  return coursesApi.viewStep(courseId, stepId);
 };
 
 /**
@@ -213,15 +196,15 @@ export const updateTopicMemory = async (
 };
 
 /**
- * Update memory for a topic in a specific learning path
+ * Update memory for a topic in a specific course
  */
-export const updatePathTopicMemory = async (
-  pathId: string,
+export const updateCourseTopicMemory = async (
+  courseId: string,
   topic: string,
   confidence: number,
   timesTested: number
 ): Promise<void> => {
-  await learningPathsApi.updatePathMemory(pathId, {
+  await coursesApi.updateCourseMemory(courseId, {
     topic,
     confidence,
     timesTested,

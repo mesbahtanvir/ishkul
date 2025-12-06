@@ -211,6 +211,10 @@ func main() {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+	// New courses routes (primary)
+	expensiveAPI.HandleFunc("/api/courses", handlers.CoursesHandler)
+	expensiveAPI.HandleFunc("/api/courses/", handlers.CoursesHandler)
+	// Legacy learning-paths routes (redirects to courses)
 	expensiveAPI.HandleFunc("/api/learning-paths", handlers.LearningPathsHandler)
 	expensiveAPI.HandleFunc("/api/learning-paths/", handlers.LearningPathsHandler)
 
@@ -229,6 +233,8 @@ func main() {
 	mux.Handle("/api/context/summary", standardProtected)
 	mux.Handle("/api/context/update", expensiveProtected)
 	mux.Handle("/api/me/next-step", expensiveProtected)
+	mux.Handle("/api/courses", expensiveProtected)
+	mux.Handle("/api/courses/", expensiveProtected)
 	mux.Handle("/api/learning-paths", expensiveProtected)
 	mux.Handle("/api/learning-paths/", expensiveProtected)
 
