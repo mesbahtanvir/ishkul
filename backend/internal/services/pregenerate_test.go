@@ -210,7 +210,7 @@ func TestNewPregenerateService(t *testing.T) {
 	t.Run("creates service with all dependencies", func(t *testing.T) {
 		// Note: This is a basic test since we can't easily mock all dependencies
 		// In a real scenario, you'd use interfaces for better testability
-		service := NewPregenerateService(nil, nil, nil, nil, nil)
+		service := NewPregenerateService(nil, nil, "", nil, nil, nil)
 		assert.NotNil(t, service)
 	})
 }
