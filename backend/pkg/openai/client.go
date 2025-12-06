@@ -42,7 +42,7 @@ func NewClient() (*Client, error) {
 func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (*ChatCompletionResponse, error) {
 	// Set default model if not provided
 	if req.Model == "" {
-		req.Model = "gpt-4o-mini"
+		req.Model = "gpt-5"
 	}
 
 	// Marshal request to JSON

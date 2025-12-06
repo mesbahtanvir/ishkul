@@ -10,8 +10,8 @@ const (
 
 // Model constants for each tier
 const (
-	FreeModel = "gpt-4o-mini"
-	ProModel  = "gpt-5-pro-2025-10-06"
+	FreeModel = "gpt-5"
+	ProModel  = "gpt-5"
 )
 
 // Daily step limits

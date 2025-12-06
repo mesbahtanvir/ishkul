@@ -24,8 +24,8 @@ func TestTierConstants(t *testing.T) {
 
 func TestModelConstants(t *testing.T) {
 	t.Run("model values are correct", func(t *testing.T) {
-		assert.Equal(t, "gpt-4o-mini", FreeModel)
-		assert.Equal(t, "gpt-5-pro-2025-10-06", ProModel)
+		assert.Equal(t, "gpt-5", FreeModel)
+		assert.Equal(t, "gpt-5", ProModel)
 	})
 }
 
