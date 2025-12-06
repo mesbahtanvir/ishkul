@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Container } from './Container';
 import { CourseOutlineSidebar } from './CourseOutlineSidebar';
 import { useLearningPathsStore } from '../state/learningPathsStore';
@@ -17,8 +17,17 @@ interface LearningLayoutProps {
   scrollable?: boolean;
   /** Children to render in the main content area */
   children: React.ReactNode;
-  /** Optional navigation prop - if not provided, useNavigation will be called */
-  navigation?: NavigationProp<RootStackParamList>;
+}
+
+/**
+ * Custom hook that safely gets navigation - returns null if not in NavigationContainer
+ */
+function useSafeNavigation() {
+  try {
+    return useNavigation();
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -32,21 +41,10 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
   pathId,
   scrollable = true,
   children,
-  navigation: navigationProp,
 }) => {
   const { isMobile } = useResponsive();
   const { activePath } = useLearningPathsStore();
-
-  // Use provided navigation or fall back to hook
-  // The hook will throw if not in NavigationContainer, so we wrap it
-  let navigation: NavigationProp<RootStackParamList> | null = navigationProp || null;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (!navigation) navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  } catch {
-    // Not inside NavigationContainer, sidebar navigation won't work
-    navigation = null;
-  }
+  const navigation = useSafeNavigation();
 
   // Only show sidebar on web/tablet with an outline and navigation available
   const showSidebar = Platform.OS === 'web' && !isMobile && activePath?.outline && navigation;
