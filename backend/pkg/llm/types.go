@@ -43,8 +43,8 @@ const (
 type CircuitState string
 
 const (
-	CircuitClosed   CircuitState = "closed"   // Normal operation
-	CircuitOpen     CircuitState = "open"     // Failing, rejecting requests
+	CircuitClosed   CircuitState = "closed"    // Normal operation
+	CircuitOpen     CircuitState = "open"      // Failing, rejecting requests
 	CircuitHalfOpen CircuitState = "half_open" // Testing if recovered
 )
 
@@ -96,12 +96,12 @@ func (h *ProviderHealth) SuccessRate() float64 {
 
 // ProviderEntry holds a provider and its configuration
 type ProviderEntry struct {
-	Provider       Provider
-	Type           ProviderType
-	Priority       int // Lower = higher priority
-	Health         *ProviderHealth
-	CircuitConfig  CircuitBreakerConfig
-	halfOpenCount  int // Current requests in half-open state
+	Provider      Provider
+	Type          ProviderType
+	Priority      int // Lower = higher priority
+	Health        *ProviderHealth
+	CircuitConfig CircuitBreakerConfig
+	halfOpenCount int // Current requests in half-open state
 }
 
 // ModelTier represents different service tiers

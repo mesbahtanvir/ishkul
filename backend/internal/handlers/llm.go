@@ -136,22 +136,14 @@ func InitializeLLM(promptsDir string) error {
 // logInfo is a helper to log info messages if logger is available
 func logInfo(msg string, attrs ...slog.Attr) {
 	if appLogger != nil {
-		args := make([]any, len(attrs))
-		for i, attr := range attrs {
-			args[i] = attr
-		}
-		logger.Info(appLogger, context.Background(), msg, args...)
+		logger.Info(appLogger, context.Background(), msg, attrs...)
 	}
 }
 
 // logWarn is a helper to log warning messages if logger is available
 func logWarn(msg string, attrs ...slog.Attr) {
 	if appLogger != nil {
-		args := make([]any, len(attrs))
-		for i, attr := range attrs {
-			args[i] = attr
-		}
-		logger.Warn(appLogger, context.Background(), msg, args...)
+		logger.Warn(appLogger, context.Background(), msg, attrs...)
 	}
 }
 
