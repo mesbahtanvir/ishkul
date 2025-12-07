@@ -202,7 +202,7 @@ func TestRendererRenderToRequest(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.NotNil(t, req)
-		assert.Equal(t, "gpt-4.1-nano", req.Model) // RenderToRequest uses free tier by default
+		assert.Equal(t, "gpt-4o-mini", req.Model) // RenderToRequest uses free tier by default
 		assert.Equal(t, 0.7, req.Temperature)
 		assert.Equal(t, 1000, req.MaxTokens)
 		assert.Len(t, req.Messages, 1)
@@ -279,10 +279,10 @@ func TestRendererRenderToRequestWithTier(t *testing.T) {
 		req, err := renderer.RenderToRequestWithTier(template, Variables{}, "free")
 
 		require.NoError(t, err)
-		assert.Equal(t, "gpt-4.1-nano", req.Model) // Free tier uses gpt-4.1-nano
+		assert.Equal(t, "gpt-4o-mini", req.Model) // Free tier uses gpt-4o-mini
 	})
 
-	t.Run("pro tier upgrades mini to gpt-4.1", func(t *testing.T) {
+	t.Run("pro tier upgrades mini to gpt-4o", func(t *testing.T) {
 		template := &PromptTemplate{
 			Model: "gpt-4o-mini",
 			Messages: []PromptMessage{
@@ -293,7 +293,7 @@ func TestRendererRenderToRequestWithTier(t *testing.T) {
 		req, err := renderer.RenderToRequestWithTier(template, Variables{}, "pro")
 
 		require.NoError(t, err)
-		assert.Equal(t, "gpt-4.1", req.Model) // Pro tier uses gpt-4.1
+		assert.Equal(t, "gpt-4o", req.Model) // Pro tier uses gpt-4o
 	})
 
 	t.Run("pro tier keeps non-mini models unchanged", func(t *testing.T) {
