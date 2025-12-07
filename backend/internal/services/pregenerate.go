@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -192,7 +191,7 @@ func (s *PregenerateService) generateStep(ctx context.Context, path *models.Cour
 		Task           string   `json:"task,omitempty"`
 		Hints          []string `json:"hints,omitempty"`
 	}
-	if err := json.Unmarshal([]byte(content), &stepData); err != nil {
+	if err := llm.ParseJSONResponse(content, &stepData); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM response as JSON: %w (content: %s)", err, content)
 	}
 

@@ -18,6 +18,7 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/tools"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/cache"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 	"google.golang.org/api/iterator"
@@ -1183,7 +1184,7 @@ func generateNextStepForPath(path *models.Course) (*models.Step, error) {
 		Task           string   `json:"task,omitempty"`
 		Hints          []string `json:"hints,omitempty"`
 	}
-	if err := json.Unmarshal([]byte(content), &stepData); err != nil {
+	if err := llm.ParseJSONResponse(content, &stepData); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM response as JSON: %w (content: %s)", err, content)
 	}
 
@@ -1863,7 +1864,7 @@ func generateCourseOutline(goal string) (*models.CourseOutline, error) {
 		} `json:"metadata"`
 	}
 
-	if err := json.Unmarshal([]byte(content), &outlineData); err != nil {
+	if err := llm.ParseJSONResponse(content, &outlineData); err != nil {
 		return nil, fmt.Errorf("failed to parse outline response as JSON: %w (content: %s)", err, content)
 	}
 
@@ -1987,7 +1988,7 @@ func compactMemory(path *models.Course, upToStepIndex int) error {
 		Weaknesses      []string `json:"weaknesses"`
 		Recommendations []string `json:"recommendations"`
 	}
-	if err := json.Unmarshal([]byte(content), &compactionResult); err != nil {
+	if err := llm.ParseJSONResponse(content, &compactionResult); err != nil {
 		return fmt.Errorf("failed to parse compaction response: %w (content: %s)", err, content)
 	}
 
