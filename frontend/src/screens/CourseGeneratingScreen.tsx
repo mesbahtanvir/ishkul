@@ -214,7 +214,7 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
                 </View>
               </View>
               <View style={styles.topicsList}>
-                {module.topics.slice(0, 3).map((topic, topicIndex) => (
+                {module.topics.slice(0, 3).map((topic) => (
                   <View key={topic.id} style={styles.topicItem}>
                     <View style={styles.topicBullet} />
                     <Text style={styles.topicTitle} numberOfLines={1}>

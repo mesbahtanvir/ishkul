@@ -15,7 +15,7 @@ import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { CourseOutline, OutlineModule, OutlineTopic, OutlinePosition } from '../types/app';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.85, 400);
 
 interface CourseOutlineDrawerProps {

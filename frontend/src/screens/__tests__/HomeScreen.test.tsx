@@ -87,7 +87,6 @@ jest.mock('../../components/CourseCard', () => ({
 jest.mock('../../components/SegmentedControl', () => ({
   SegmentedControl: ({
     options,
-    selectedValue,
     onValueChange,
   }: {
     options: Array<{ value: string; label: string }>;

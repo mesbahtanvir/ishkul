@@ -62,7 +62,7 @@ interface SettingsScreenProps {
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
   useScreenTracking('Settings', 'SettingsScreen');
-  const { trackLogout, trackThemeChanged, trackDeleteAccountInitiated, getActiveTime } = useAnalytics();
+  const { trackLogout, trackThemeChanged, trackDeleteAccountInitiated } = useAnalytics();
   const { user, clearUser } = useUserStore();
   const { tier, status, paidUntil, fetchStatus } = useSubscriptionStore();
   const { colors, themeMode, setThemeMode } = useTheme();

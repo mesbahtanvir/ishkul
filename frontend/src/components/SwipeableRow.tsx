@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Text,
   Platform,
-  Dimensions,
 } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { Spacing } from '../theme/spacing';
@@ -40,7 +39,6 @@ export const SwipeableRow: React.FC<SwipeableRowProps> = ({
 }) => {
   const { colors } = useTheme();
   const translateX = useRef(new Animated.Value(0)).current;
-  const rowHeight = useRef(0);
 
   const leftActionsWidth = leftActions.length * actionWidth;
   const rightActionsWidth = rightActions.length * actionWidth;
@@ -85,7 +83,6 @@ export const SwipeableRow: React.FC<SwipeableRowProps> = ({
       onPanResponderRelease: (_, gestureState) => {
         translateX.flattenOffset();
         const { dx, vx } = gestureState;
-        const screenWidth = Dimensions.get('window').width;
 
         // Determine snap position based on velocity and position
         let snapTo = 0;

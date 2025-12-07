@@ -115,8 +115,8 @@ class AnalyticsService {
 
       this.isInitialized = true;
       this.log('Analytics initialized');
-    } catch (error) {
-      console.warn('[Analytics] Initialization failed:', error);
+    } catch {
+      console.warn('[Analytics] Initialization failed');
       this.isInitialized = true; // Continue without Firebase
     }
   }
@@ -136,7 +136,7 @@ class AnalyticsService {
         // TODO: Add @react-native-firebase/analytics with expo-dev-client
         this.firebaseAnalytics = this.createMockAnalytics();
       }
-    } catch (error) {
+    } catch {
       this.log('Firebase Analytics not available, using mock');
       this.firebaseAnalytics = this.createMockAnalytics();
     }

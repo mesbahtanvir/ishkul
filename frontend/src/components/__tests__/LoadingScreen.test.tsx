@@ -17,7 +17,7 @@ jest.mock('../../hooks/useTheme', () => ({
 
 describe('LoadingScreen', () => {
   it('should render without crashing', () => {
-    const { getByTestId } = render(<LoadingScreen />);
+    render(<LoadingScreen />);
     // ActivityIndicator doesn't have a test ID by default, but the component should render
   });
 
@@ -31,7 +31,7 @@ describe('LoadingScreen', () => {
   });
 
   it('should use theme colors for background', () => {
-    const { getByTestId, toJSON } = render(<LoadingScreen />);
+    const { toJSON } = render(<LoadingScreen />);
     const tree = toJSON();
     // The component should render with the background color from the theme
     expect(tree).toBeTruthy();

@@ -71,12 +71,10 @@ describe('OfflineQueue', () => {
 
     it('should add timestamp to queued event', async () => {
       await offlineQueue.initialize();
-      const before = Date.now();
 
       await offlineQueue.enqueue('test_event', { key: 'value' });
 
-      const after = Date.now();
-      // Event was added with timestamp between before and after
+      // Event was added with timestamp
       expect(offlineQueue.hasEvents()).toBe(true);
     });
   });

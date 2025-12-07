@@ -16,7 +16,7 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../hooks/useTheme';
 import { useScreenTracking } from '../services/analytics';
-import { ContextChange, UserSkill } from '../types/app';
+import { UserSkill } from '../types/app';
 
 // Skill level display
 const skillLevelDisplay: Record<string, { label: string; dots: number }> = {
@@ -59,7 +59,6 @@ export const ContextScreen: React.FC = () => {
     Typography.display.medium.fontSize,
     Typography.display.large.fontSize
   );
-  const cardPadding = responsive(Spacing.md, Spacing.lg, Spacing.lg, Spacing.xl);
 
   // Handle update button press
   const handleUpdate = useCallback(async () => {
@@ -92,7 +91,7 @@ export const ContextScreen: React.FC = () => {
 
     try {
       // Add to history
-      const changeDescriptions = pendingUpdate.changes.map((c: ContextChange) => c.description);
+      const changeDescriptions = pendingUpdate.changes.map((c) => c.description);
       addInputToHistory(inputText.trim(), changeDescriptions);
 
       // Apply the update locally
@@ -122,27 +121,6 @@ export const ContextScreen: React.FC = () => {
     !context.parsed.professional.role &&
     context.parsed.skills.length === 0 &&
     context.parsed.interests.length === 0;
-
-  // Render skill dots
-  const renderSkillDots = (level: string) => {
-    const { dots } = skillLevelDisplay[level] || { dots: 0 };
-    return (
-      <View style={styles.dotsContainer}>
-        {[1, 2, 3, 4].map((i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              {
-                backgroundColor:
-                  i <= dots ? colors.primary : colors.gray300,
-              },
-            ]}
-          />
-        ))}
-      </View>
-    );
-  };
 
   // Get skill intent color
   const getSkillIntentColor = (intent: string) => {
@@ -213,7 +191,7 @@ export const ContextScreen: React.FC = () => {
   };
 
   // Render change item
-  const renderChange = (change: ContextChange, index: number) => {
+  const renderChange = (change: { type: 'added' | 'updated' | 'removed'; description: string }, index: number) => {
     const iconMap = {
       added: { icon: 'add-circle', color: colors.success },
       updated: { icon: 'create', color: colors.primary },
