@@ -65,7 +65,6 @@ messages:
       **Topic**: {{topic}}
       **Description**: {{description}}
       **Language**: {{language}}
-      **Level**: {{level}}
       **Goal**: {{goal}}
       **Recent topics**: {{recentTopics}}
 
