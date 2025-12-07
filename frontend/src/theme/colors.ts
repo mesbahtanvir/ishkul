@@ -206,43 +206,44 @@ export const LightColors: ThemeColors = {
 
 /**
  * Dark Theme Colors
+ * Modern dark theme with subtle cool undertones for a refined, premium feel
  * Designed for reduced eye strain and OLED battery savings
  */
 export const DarkColors: ThemeColors = {
-  // Primary Colors - slightly brighter for dark backgrounds
-  primary: '#3B82F6',
-  primaryLight: '#1E3A5F',
-  primaryDark: '#60A5FA',
+  // Primary Colors - vibrant blue with good contrast
+  primary: '#6366F1', // Indigo - more modern than plain blue
+  primaryLight: '#312E81', // Deep indigo background
+  primaryDark: '#818CF8', // Lighter indigo for hover/active states
 
-  // Secondary Colors
-  secondary: '#9CA3AF',
-  secondaryLight: '#374151',
-  secondaryDark: '#D1D5DB',
+  // Secondary Colors - subtle cool gray
+  secondary: '#A1A1AA',
+  secondaryLight: '#3F3F46',
+  secondaryDark: '#E4E4E7',
 
-  // Accent Colors - slightly brighter for visibility
-  success: '#34D399',
-  warning: '#FBBF24',
-  danger: '#F87171',
-  info: '#60A5FA',
+  // Accent Colors - vivid and saturated for dark backgrounds
+  success: '#22C55E', // Vibrant green
+  warning: '#F59E0B', // Rich amber
+  danger: '#EF4444', // Bold red
+  info: '#38BDF8', // Sky blue
 
-  // iOS-style Accent Colors (adjusted for dark mode)
+  // iOS-style Accent Colors (enhanced for dark mode)
   ios: {
     blue: '#0A84FF',
     green: '#30D158',
     orange: '#FF9F0A',
-    purple: '#5E5CE6',
+    purple: '#BF5AF2', // Brighter purple
     gray: '#98989D',
-    lightGray: '#3A3A3C',
+    lightGray: '#38383A',
     systemGray6: '#1C1C1E',
   },
 
-  // Neutral Palette (inverted for dark mode)
+  // Neutral Palette - subtle blue undertone for depth
   white: '#FFFFFF',
   black: '#000000',
-  gray50: '#18181B',
-  gray100: '#27272A',
-  gray200: '#3F3F46',
-  gray300: '#52525B',
+  gray50: '#0C0C0E', // Near black with slight warmth
+  gray100: '#18181B',
+  gray200: '#27272A',
+  gray300: '#3F3F46',
   gray400: '#71717A',
   gray500: '#A1A1AA',
   gray600: '#D4D4D8',
@@ -250,58 +251,58 @@ export const DarkColors: ThemeColors = {
   gray800: '#F4F4F5',
   gray900: '#FAFAFA',
 
-  // Semantic Colors (inverted)
+  // Semantic Colors - refined text hierarchy
   text: {
-    primary: '#F9FAFB',
-    secondary: '#9CA3AF',
-    tertiary: '#6B7280',
-    inverse: '#111827',
+    primary: '#F4F4F5', // Slightly warm white
+    secondary: '#A1A1AA', // Medium gray
+    tertiary: '#71717A', // Muted gray
+    inverse: '#18181B',
   },
   background: {
-    primary: '#0F0F0F',
-    secondary: '#1A1A1A',
-    tertiary: '#262626',
-    overlay: 'rgba(0, 0, 0, 0.7)',
+    primary: '#09090B', // Deep charcoal with subtle warmth
+    secondary: '#18181B', // Elevated surface
+    tertiary: '#27272A', // Cards and modals
+    overlay: 'rgba(0, 0, 0, 0.75)',
   },
-  border: '#374151',
-  divider: '#27272A',
+  border: '#27272A', // Subtle borders
+  divider: '#1F1F23', // Very subtle dividers
 
-  // UI Component Colors (darker versions)
+  // UI Component Colors - rich, tinted backgrounds
   card: {
-    default: '#1C1C1E',
-    selected: '#1E3A5F',
-    lesson: '#14392B',
-    quiz: '#3D2814',
-    practice: '#2D2654',
+    default: '#1C1C20', // Slight blue undertone
+    selected: '#1E1B4B', // Deep indigo selection
+    lesson: '#052E16', // Rich forest green
+    quiz: '#451A03', // Warm amber/brown
+    practice: '#2E1065', // Deep purple
     stats: {
-      blue: '#1E3A5F',
-      orange: '#3D2814',
-      purple: '#2D2654',
-      green: '#14392B',
+      blue: '#172554', // Deep blue
+      orange: '#431407', // Deep orange/brown
+      purple: '#3B0764', // Rich purple
+      green: '#052E16', // Forest green
     },
   },
 
-  // Badge Colors (same as light, good contrast on dark)
+  // Badge Colors - vibrant and eye-catching
   badge: {
-    primary: '#0A84FF',
-    lesson: '#30D158',
-    quiz: '#FF9F0A',
-    practice: '#5E5CE6',
-    flashcard: '#FF375F',
+    primary: '#6366F1', // Indigo to match primary
+    lesson: '#22C55E', // Bright green
+    quiz: '#F59E0B', // Amber
+    practice: '#A855F7', // Bright purple
+    flashcard: '#EC4899', // Pink
   },
 
-  // Result Colors (darker backgrounds)
+  // Result Colors - clear feedback
   result: {
-    correct: '#14392B',
-    incorrect: '#3D1C1C',
-    correctText: '#34D399',
-    incorrectText: '#F87171',
+    correct: '#052E16', // Deep green background
+    incorrect: '#450A0A', // Deep red background
+    correctText: '#4ADE80', // Bright green text
+    incorrectText: '#F87171', // Bright red text
   },
 
   // Switch Colors
   switch: {
-    trackOff: '#3A3A3C',
-    trackOn: '#30D158',
+    trackOff: '#3F3F46',
+    trackOn: '#22C55E',
     thumb: '#FFFFFF',
   },
 };

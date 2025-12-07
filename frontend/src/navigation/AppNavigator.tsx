@@ -51,12 +51,31 @@ const linking: LinkingOptions<RootStackParamList> = {
   ],
   config: {
     screens: {
+      Login: 'login',
+      GoalSelection: 'goal-selection',
       Main: {
+        path: '',
         screens: {
-          SettingsTab: {
+          Learn: {
+            path: 'learn',
             screens: {
-              SubscriptionSuccess: 'subscription/success',
+              Home: 'home',
+              GoalSelection: 'goal-selection',
+              CourseGenerating: 'course-generating',
+              Course: 'course',
+              StepDetail: 'step-detail',
+              GeneratingStep: 'generating-step',
+              Step: 'step',
+            },
+          },
+          Progress: 'progress',
+          Context: 'context',
+          SettingsTab: {
+            path: 'settings',
+            screens: {
+              Settings: '',
               Subscription: 'subscription',
+              SubscriptionSuccess: 'subscription/success',
               ManageSubscription: 'subscription/manage',
             },
           },

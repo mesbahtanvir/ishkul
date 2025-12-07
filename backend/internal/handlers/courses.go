@@ -1007,10 +1007,11 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, courseID string) {
 		nextStep, genErr = generateNextStepForPath(&path)
 		if genErr != nil {
 			if appLogger != nil {
+				router := GetLLMRouter()
 				logger.Error(appLogger, ctx, "failed_to_generate_next_step",
 					slog.String("path_id", courseID),
 					slog.String("error", genErr.Error()),
-					slog.String("openai_client_nil", fmt.Sprintf("%v", openaiClient == nil)),
+					slog.String("llm_router_nil", fmt.Sprintf("%v", router == nil)),
 					slog.String("prompt_loader_nil", fmt.Sprintf("%v", promptLoader == nil)),
 				)
 			}
@@ -1082,14 +1083,16 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, courseID string) {
 	}
 }
 
-// generateNextStepForPath generates the next learning step using the LLM
+// generateNextStepForPath generates the next learning step using the LLM router
+// with automatic fallback between providers (DeepSeek primary, OpenAI fallback)
 func generateNextStepForPath(path *models.Course) (*models.Step, error) {
-	// Check if LLM is initialized
-	if openaiClient == nil || promptLoader == nil {
+	// Check if LLM router is initialized
+	router := GetLLMRouter()
+	if router == nil || promptLoader == nil {
 		if appLogger != nil {
 			logger.Error(appLogger, context.Background(), "llm_not_initialized",
 				slog.String("path_id", path.ID),
-				slog.String("openai_client_nil", fmt.Sprintf("%v", openaiClient == nil)),
+				slog.String("llm_router_nil", fmt.Sprintf("%v", router == nil)),
 				slog.String("prompt_loader_nil", fmt.Sprintf("%v", promptLoader == nil)),
 			)
 		}
@@ -1155,14 +1158,15 @@ func generateNextStepForPath(path *models.Course) (*models.Step, error) {
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	// Call OpenAI
-	completion, err := openaiClient.CreateChatCompletion(*openaiReq)
+	// Call LLM router (handles provider selection, fallback, and circuit breaker)
+	// Uses priority strategy: DeepSeek (priority 1) -> OpenAI (priority 2)
+	completion, err := router.Complete(*openaiReq)
 	if err != nil {
-		return nil, fmt.Errorf("OpenAI API error: %w", err)
+		return nil, fmt.Errorf("LLM API error: %w", err)
 	}
 
 	if len(completion.Choices) == 0 {
-		return nil, fmt.Errorf("no completion returned from OpenAI")
+		return nil, fmt.Errorf("no completion returned from LLM")
 	}
 
 	content := completion.Choices[0].Message.Content
