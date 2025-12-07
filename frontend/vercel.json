@@ -5,7 +5,6 @@
   "devCommand": "npm run web",
   "installCommand": "npm install",
   "framework": null,
-  "ignoreCommand": "bash -c 'git fetch --depth=1 origin main 2>/dev/null && git diff --quiet FETCH_HEAD HEAD -- .'",
   "rewrites": [
     {
       "source": "/(.*)",
