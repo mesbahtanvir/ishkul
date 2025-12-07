@@ -140,8 +140,13 @@ jobs:
             echo "ALLOWED_ORIGINS: \"${{ secrets.ALLOWED_ORIGINS }}\"" >> /tmp/env-vars.yaml
           fi
 
-          # Common optional secrets
+          # LLM Provider configuration
+          [ -n "${{ secrets.LLM_PROVIDER }}" ] && echo "LLM_PROVIDER: \"${{ secrets.LLM_PROVIDER }}\"" >> /tmp/env-vars.yaml
+          [ -n "${{ secrets.LLM_STRATEGY }}" ] && echo "LLM_STRATEGY: \"${{ secrets.LLM_STRATEGY }}\"" >> /tmp/env-vars.yaml
           [ -n "${{ secrets.OPENAI_API_KEY }}" ] && echo "OPENAI_API_KEY: \"${{ secrets.OPENAI_API_KEY }}\"" >> /tmp/env-vars.yaml
+          [ -n "${{ secrets.DEEPSEEK_API_KEY }}" ] && echo "DEEPSEEK_API_KEY: \"${{ secrets.DEEPSEEK_API_KEY }}\"" >> /tmp/env-vars.yaml
+
+          # Common optional secrets
           [ -n "${{ secrets.GOOGLE_WEB_CLIENT_ID }}" ] && echo "GOOGLE_WEB_CLIENT_ID: \"${{ secrets.GOOGLE_WEB_CLIENT_ID }}\"" >> /tmp/env-vars.yaml
           [ -n "${{ secrets.STRIPE_SECRET_KEY }}" ] && echo "STRIPE_SECRET_KEY: \"${{ secrets.STRIPE_SECRET_KEY }}\"" >> /tmp/env-vars.yaml
           [ -n "${{ secrets.STRIPE_WEBHOOK_SECRET }}" ] && echo "STRIPE_WEBHOOK_SECRET: \"${{ secrets.STRIPE_WEBHOOK_SECRET }}\"" >> /tmp/env-vars.yaml
