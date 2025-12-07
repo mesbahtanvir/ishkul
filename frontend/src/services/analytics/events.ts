@@ -302,7 +302,6 @@ export const EventNames = {
 // =============================================================================
 
 export const ScreenNames = {
-  LANDING: 'Landing',
   LOGIN: 'Login',
   GOAL_SELECTION: 'GoalSelection',
   LEVEL_SELECTION: 'LevelSelection',

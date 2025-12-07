@@ -86,7 +86,6 @@ Firebase automatically tracks `screen_view` events. Ensure each screen has:
 
 | Screen | screen_name | screen_class |
 |--------|-------------|--------------|
-| Landing | `"Landing"` | `"LandingScreen"` |
 | Login | `"Login"` | `"LoginScreen"` |
 | Home | `"Home"` | `"HomeScreen"` |
 | Learning Path | `"Learning Path"` | `"LearningPathScreen"` |
@@ -230,7 +229,7 @@ Firebase Analytics handles offline automatically, but custom events need:
 ### Funnel 1: Onboarding Conversion
 
 ```
-Landing Screen View
+Login Screen View
     ↓ (Target: 80%)
 sign_up
     ↓ (Target: 90%)
@@ -241,7 +240,7 @@ level_selected
 first_step_completed
 ```
 
-**Success Metric**: >60% from landing to first step
+**Success Metric**: >60% from login to first step
 
 ### Funnel 2: Daily Learning Session
 
