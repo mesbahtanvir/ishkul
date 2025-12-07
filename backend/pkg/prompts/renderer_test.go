@@ -202,7 +202,7 @@ func TestRendererRenderToRequest(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.NotNil(t, req)
-		assert.Equal(t, "gpt-4o-mini", req.Model)
+		assert.Equal(t, "gpt-4.1-nano", req.Model) // RenderToRequest uses free tier by default
 		assert.Equal(t, 0.7, req.Temperature)
 		assert.Equal(t, 1000, req.MaxTokens)
 		assert.Len(t, req.Messages, 1)
