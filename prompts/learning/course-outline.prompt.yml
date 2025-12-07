@@ -137,7 +137,6 @@ messages:
       Generate a complete course outline for:
 
       **Goal**: {{goal}}
-      **Level**: {{level}}
       **Category**: {{category}}
 
       Available tools for this course:

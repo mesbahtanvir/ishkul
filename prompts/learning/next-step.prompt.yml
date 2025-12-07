@@ -22,7 +22,6 @@ messages:
 
       User Context:
       - Goal: {{goal}}
-      - Current Level: {{level}}
       - Total Steps Completed: {{historyCount}}
       - Recent Topics: {{recentHistory}}
 
@@ -111,7 +110,6 @@ messages:
       Generate the next learning step for this user:
 
       Goal: {{goal}}
-      Level: {{level}}
       Steps Completed: {{historyCount}}
       Recent Topics: {{recentHistory}}
       {{#if currentTopic}}

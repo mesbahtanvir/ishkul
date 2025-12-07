@@ -11,7 +11,6 @@ messages:
 
       User Context:
       - Learning Goal: {{goal}}
-      - Level: {{level}}
       - Total Steps Completed: {{stepCount}}
 
       Previous Summary (if any):
@@ -46,7 +45,6 @@ messages:
       Analyze and summarize this learner's progress:
 
       Goal: {{goal}}
-      Level: {{level}}
       Steps Completed: {{stepCount}}
 
       Previous Summary: {{previousSummary}}

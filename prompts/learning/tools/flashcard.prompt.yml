@@ -49,7 +49,6 @@ messages:
 
       **Topic**: {{topic}}
       **Description**: {{description}}
-      **Level**: {{level}}
       **Goal**: {{goal}}
       **Recent topics**: {{recentTopics}}
 

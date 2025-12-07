@@ -60,7 +60,6 @@ messages:
 
       **Word**: {{word}}
       **Language**: {{language}}
-      **Level**: {{level}}
       **Goal**: {{goal}}
       **Context**: {{context}}
 

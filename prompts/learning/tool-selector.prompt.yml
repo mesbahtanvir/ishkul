@@ -33,7 +33,6 @@ messages:
       Select the next tool for this learner:
 
       Goal: {{goal}}
-      Level: {{level}}
       Steps completed: {{historyCount}}
       Recent steps: {{recentHistory}}
 
