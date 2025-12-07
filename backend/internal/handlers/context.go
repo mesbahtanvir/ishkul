@@ -120,9 +120,23 @@ func UpdateContext(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ApplyContextRequestContext is the context structure for ApplyContextRequest
+// It mirrors models.UserContext but uses int64 for timestamps to handle
+// frontend sending Unix milliseconds instead of ISO 8601 strings
+type ApplyContextRequestContext struct {
+	UserID       string                      `json:"userId"`
+	InputHistory []models.ContextInputHistory `json:"inputHistory"`
+	Parsed       models.ParsedContext        `json:"parsed"`
+	Derived      models.DerivedContext       `json:"derived"`
+	Summary      string                      `json:"summary"`
+	Version      int                         `json:"version"`
+	CreatedAt    int64                       `json:"createdAt"` // Unix milliseconds from frontend
+	UpdatedAt    int64                       `json:"updatedAt"` // Unix milliseconds from frontend
+}
+
 // ApplyContextRequest represents the request to save confirmed context
 type ApplyContextRequest struct {
-	Context models.UserContext `json:"context"`
+	Context ApplyContextRequestContext `json:"context"`
 }
 
 // ApplyContext saves the confirmed context update
@@ -151,15 +165,27 @@ func ApplyContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ensure userID is set
-	req.Context.UserID = userID
-	req.Context.UpdatedAt = time.Now()
-	if req.Context.CreatedAt.IsZero() {
-		req.Context.CreatedAt = time.Now()
+	// Convert request context to models.UserContext with proper time.Time values
+	now := time.Now()
+	userContext := models.UserContext{
+		UserID:       userID,
+		InputHistory: req.Context.InputHistory,
+		Parsed:       req.Context.Parsed,
+		Derived:      req.Context.Derived,
+		Summary:      req.Context.Summary,
+		Version:      req.Context.Version,
+		UpdatedAt:    now,
+	}
+
+	// Convert CreatedAt from Unix milliseconds if provided, otherwise use now
+	if req.Context.CreatedAt > 0 {
+		userContext.CreatedAt = time.UnixMilli(req.Context.CreatedAt)
+	} else {
+		userContext.CreatedAt = now
 	}
 
 	docRef := Collection(fs, "user_contexts").Doc(userID)
-	if _, err := docRef.Set(ctx, req.Context); err != nil {
+	if _, err := docRef.Set(ctx, userContext); err != nil {
 		http.Error(w, "Error saving context", http.StatusInternalServerError)
 		return
 	}
@@ -167,7 +193,7 @@ func ApplyContext(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"context": req.Context,
+		"context": userContext,
 	}); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 	}
