@@ -217,9 +217,65 @@ func (r *LLMRouter) callProvider(ctx context.Context, entry *ProviderEntry, req 
 	adjustedReq := req
 	adjustedReq.Model = GetModelForProvider(entry.Type, tier, req.Model)
 
+	// Calculate input size for logging
+	inputTokenEstimate := 0
+	for _, msg := range adjustedReq.Messages {
+		inputTokenEstimate += len(msg.Content) / 4 // rough estimate: 4 chars per token
+	}
+
+	// Log LLM call start
+	if r.logger != nil {
+		r.logger.Info("llm_call_start",
+			slog.String("provider", string(entry.Type)),
+			slog.String("model", adjustedReq.Model),
+			slog.String("tier", tier),
+			slog.Int("message_count", len(adjustedReq.Messages)),
+			slog.Int("input_tokens_estimate", inputTokenEstimate),
+			slog.Int("max_tokens", adjustedReq.MaxTokens),
+		)
+	}
+
 	start := time.Now()
 	resp, err := entry.Provider.CreateChatCompletion(ctx, adjustedReq)
 	latency := time.Since(start).Milliseconds()
+
+	// Log LLM call result
+	if r.logger != nil {
+		if err != nil {
+			r.logger.Error("llm_call_error",
+				slog.String("provider", string(entry.Type)),
+				slog.String("model", adjustedReq.Model),
+				slog.Int64("latency_ms", latency),
+				slog.String("error", err.Error()),
+			)
+		} else {
+			// Calculate output size
+			outputTokens := 0
+			outputChars := 0
+			if len(resp.Choices) > 0 {
+				outputChars = len(resp.Choices[0].Message.Content)
+				outputTokens = outputChars / 4 // rough estimate
+			}
+			// Use actual token counts if available
+			if resp.Usage.CompletionTokens > 0 {
+				outputTokens = resp.Usage.CompletionTokens
+			}
+			actualInputTokens := inputTokenEstimate
+			if resp.Usage.PromptTokens > 0 {
+				actualInputTokens = resp.Usage.PromptTokens
+			}
+
+			r.logger.Info("llm_call_success",
+				slog.String("provider", string(entry.Type)),
+				slog.String("model", adjustedReq.Model),
+				slog.Int64("latency_ms", latency),
+				slog.Int("input_tokens", actualInputTokens),
+				slog.Int("output_tokens", outputTokens),
+				slog.Int("output_chars", outputChars),
+				slog.Int("total_tokens", resp.Usage.TotalTokens),
+			)
+		}
+	}
 
 	// Update health stats with circuit breaker logic
 	r.recordResult(entry, err, latency)
