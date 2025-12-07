@@ -1,7 +1,6 @@
 import { Step } from './app';
 
 export type RootStackParamList = {
-  Landing: undefined;
   Login: undefined;
   GoalSelection: { isCreatingNewCourse?: boolean };
   LevelSelection: { goal: string; isCreatingNewCourse?: boolean };

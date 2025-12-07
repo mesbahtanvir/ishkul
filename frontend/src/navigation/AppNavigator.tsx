@@ -18,7 +18,6 @@ import { tokenStorage } from '../services/api/tokenStorage';
 import { RootStackParamList } from '../types/navigation';
 
 // Screens
-import { LandingScreen } from '../screens/LandingScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { GoalSelectionScreen } from '../screens/GoalSelectionScreen';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -212,10 +211,9 @@ const RootNavigator = ({ tokensInitialized }: { tokensInitialized: boolean }) =>
     >
       {!isAuthenticated ? (
         <>
-          <Stack.Screen name="Landing" component={LandingScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
-            </>
+        </>
       ) : (
         <Stack.Screen name="Main" component={MainTabs} />
       )}

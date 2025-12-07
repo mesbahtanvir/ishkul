@@ -308,7 +308,6 @@ describe('EventNames', () => {
 describe('ScreenNames', () => {
   it('should have all required screen names', () => {
     const expectedNames = [
-      'LANDING',
       'LOGIN',
       'GOAL_SELECTION',
       'LEVEL_SELECTION',
@@ -328,7 +327,7 @@ describe('ScreenNames', () => {
   });
 
   it('should use PascalCase for screen values', () => {
-    expect(ScreenNames.LANDING).toBe('Landing');
+    expect(ScreenNames.LOGIN).toBe('Login');
     expect(ScreenNames.GOAL_SELECTION).toBe('GoalSelection');
     expect(ScreenNames.LEARNING_PATH).toBe('Course');
   });

@@ -66,9 +66,6 @@ jest.mock('@react-navigation/bottom-tabs', () => ({
 }));
 
 // Mock screens and components
-jest.mock('../../screens/LandingScreen', () => ({
-  LandingScreen: () => null,
-}));
 jest.mock('../../screens/LoginScreen', () => ({
   LoginScreen: () => null,
 }));
