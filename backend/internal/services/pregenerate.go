@@ -167,8 +167,8 @@ func (s *PregenerateService) generateStep(ctx context.Context, path *models.Cour
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	// Call LLM provider
-	completion, err := s.llmProvider.CreateChatCompletion(*openaiReq)
+	// Call LLM provider with context for cancellation support
+	completion, err := s.llmProvider.CreateChatCompletion(ctx, *openaiReq)
 	if err != nil {
 		return nil, fmt.Errorf("%s API error: %w", s.llmProvider.Name(), err)
 	}

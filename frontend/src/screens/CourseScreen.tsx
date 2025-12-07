@@ -387,7 +387,7 @@ export const CourseScreen: React.FC<CourseScreenProps> = ({
       </ScrollView>
 
       {/* Sticky button at bottom - changes based on path status */}
-      <View style={[styles.buttonContainer, { backgroundColor: colors.background.primary }]}>
+      <View style={[styles.buttonContainer, { backgroundColor: colors.background.primary, borderTopColor: colors.divider }]}>
         {isPathCompleted ? (
           <Button
             title="Start New Track"
@@ -549,7 +549,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.05)',
   },
   errorContainer: {
     flex: 1,

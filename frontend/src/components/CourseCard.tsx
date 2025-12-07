@@ -30,12 +30,12 @@ const getProgressColor = (progress: number, colors: ThemeColors): string => {
   return colors.gray400;
 };
 
-const getStatusBadge = (status: CourseStatus | undefined): { label: string; color: string } | null => {
+const getStatusBadge = (status: CourseStatus | undefined, colors: ThemeColors): { label: string; color: string } | null => {
   switch (status) {
     case 'completed':
-      return { label: 'Completed', color: '#10B981' };
+      return { label: 'Completed', color: colors.success };
     case 'archived':
-      return { label: 'Archived', color: '#6B7280' };
+      return { label: 'Archived', color: colors.gray500 };
     default:
       return null;
   }
@@ -69,7 +69,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
     ? 'Not started'
     : `${path.lessonsCompleted} lessons done`;
 
-  const statusBadge = getStatusBadge(path.status);
+  const statusBadge = getStatusBadge(path.status, colors);
 
   const getActionButtonText = (): string => {
     if (isCompleted) return 'Review →';
@@ -97,7 +97,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           <Text style={styles.emoji}>{path.emoji}</Text>
           {isCompleted && (
             <View style={[styles.completedBadge, { backgroundColor: colors.success }]}>
-              <Text style={styles.completedIcon}>✓</Text>
+              <Text style={[styles.completedIcon, { color: colors.white }]}>✓</Text>
             </View>
           )}
         </View>
@@ -114,7 +114,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             </Text>
             {statusBadge && (
               <View style={[styles.statusBadge, { backgroundColor: statusBadge.color }]}>
-                <Text style={styles.statusBadgeText}>{statusBadge.label}</Text>
+                <Text style={[styles.statusBadgeText, { color: colors.white }]}>{statusBadge.label}</Text>
               </View>
             )}
           </View>
@@ -243,7 +243,6 @@ const styles = StyleSheet.create({
   },
   completedIcon: {
     fontSize: 11,
-    color: '#FFFFFF',
     fontWeight: '700',
   },
   titleContainer: {
@@ -268,7 +267,6 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#FFFFFF',
     textTransform: 'uppercase',
   },
   metaRow: {

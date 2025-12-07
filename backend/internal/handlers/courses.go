@@ -413,7 +413,9 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 	// Generate course outline in the background
 	// NOTE: First step pregeneration happens AFTER outline is ready (inside this goroutine)
 	go func(courseID, goal, userID string) {
-		bgCtx := context.Background()
+		// Use a timeout context for background LLM operations (2 minutes for outline generation)
+		bgCtx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		defer cancel()
 		bgFs := firebase.GetFirestore()
 
 		if appLogger != nil {
@@ -423,7 +425,7 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 
-		outline, err := generateCourseOutline(goal)
+		outline, err := generateCourseOutline(bgCtx, goal)
 		if err != nil {
 			if appLogger != nil {
 				logger.Error(appLogger, bgCtx, "outline_generation_failed",
@@ -1004,8 +1006,12 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, courseID string) {
 
 	// Cache miss - generate synchronously (fallback)
 	if nextStep == nil {
+		// Add timeout for LLM operations to prevent hanging requests
+		llmCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+		defer cancel()
+
 		var genErr error
-		nextStep, genErr = generateNextStepForPath(&path)
+		nextStep, genErr = generateNextStepForPath(llmCtx, &path)
 		if genErr != nil {
 			if appLogger != nil {
 				router := GetLLMRouter()
@@ -1086,7 +1092,7 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, courseID string) {
 
 // generateNextStepForPath generates the next learning step using the LLM router
 // with automatic fallback between providers (DeepSeek primary, OpenAI fallback)
-func generateNextStepForPath(path *models.Course) (*models.Step, error) {
+func generateNextStepForPath(ctx context.Context, path *models.Course) (*models.Step, error) {
 	// Check if LLM router is initialized
 	router := GetLLMRouter()
 	if router == nil || promptLoader == nil {
@@ -1161,7 +1167,7 @@ func generateNextStepForPath(path *models.Course) (*models.Step, error) {
 
 	// Call LLM router (handles provider selection, fallback, and circuit breaker)
 	// Uses priority strategy: DeepSeek (priority 1) -> OpenAI (priority 2)
-	completion, err := router.Complete(*openaiReq)
+	completion, err := router.Complete(ctx, *openaiReq)
 	if err != nil {
 		return nil, fmt.Errorf("LLM API error: %w", err)
 	}
@@ -1443,7 +1449,7 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, courseID strin
 
 	if stepsSinceCompaction >= models.CompactionInterval {
 		// Trigger compaction
-		if err := compactMemory(path, completedCount-1); err != nil {
+		if err := compactMemory(ctx, path, completedCount-1); err != nil {
 			fmt.Printf("Warning: memory compaction failed: %v\n", err)
 		}
 	}
@@ -1796,7 +1802,7 @@ func inferCategory(goal string) string {
 }
 
 // generateCourseOutline generates a course outline using the LLM
-func generateCourseOutline(goal string) (*models.CourseOutline, error) {
+func generateCourseOutline(ctx context.Context, goal string) (*models.CourseOutline, error) {
 	if openaiClient == nil || promptLoader == nil {
 		return nil, fmt.Errorf("LLM not initialized")
 	}
@@ -1824,7 +1830,7 @@ func generateCourseOutline(goal string) (*models.CourseOutline, error) {
 		return nil, fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	completion, err := openaiClient.CreateChatCompletion(*openaiReq)
+	completion, err := openaiClient.CreateChatCompletion(ctx, *openaiReq)
 	if err != nil {
 		return nil, fmt.Errorf("OpenAI API error: %w", err)
 	}
@@ -1928,7 +1934,7 @@ func countOutlineTopics(outline *models.CourseOutline) int {
 }
 
 // compactMemory uses LLM to summarize learning progress
-func compactMemory(path *models.Course, upToStepIndex int) error {
+func compactMemory(ctx context.Context, path *models.Course, upToStepIndex int) error {
 	if openaiClient == nil || promptLoader == nil {
 		return fmt.Errorf("LLM not initialized")
 	}
@@ -1970,7 +1976,7 @@ func compactMemory(path *models.Course, upToStepIndex int) error {
 		return fmt.Errorf("failed to render prompt: %w", err)
 	}
 
-	completion, err := openaiClient.CreateChatCompletion(*openaiReq)
+	completion, err := openaiClient.CreateChatCompletion(ctx, *openaiReq)
 	if err != nil {
 		return fmt.Errorf("OpenAI API error: %w", err)
 	}
