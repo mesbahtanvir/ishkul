@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"context"
 	"time"
 
 	"github.com/mesbahtanvir/ishkul/backend/pkg/openai"
@@ -17,11 +18,11 @@ const (
 // Provider defines the interface for LLM providers
 // All providers use the OpenAI-compatible request/response format
 type Provider interface {
-	// CreateChatCompletion sends a chat completion request
-	CreateChatCompletion(req openai.ChatCompletionRequest) (*openai.ChatCompletionResponse, error)
+	// CreateChatCompletion sends a chat completion request with context for cancellation
+	CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (*openai.ChatCompletionResponse, error)
 
 	// CreateSimpleCompletion is a helper for simple single-message requests
-	CreateSimpleCompletion(systemPrompt, userMessage string, temperature float64, maxTokens int) (string, error)
+	CreateSimpleCompletion(ctx context.Context, systemPrompt, userMessage string, temperature float64, maxTokens int) (string, error)
 
 	// Name returns the provider name (e.g., "openai", "deepseek")
 	Name() string

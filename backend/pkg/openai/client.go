@@ -2,6 +2,7 @@ package openai
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -44,7 +45,7 @@ func NewClient() (*Client, error) {
 }
 
 // CreateChatCompletion sends a chat completion request to OpenAI
-func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (*ChatCompletionResponse, error) {
+func (c *Client) CreateChatCompletion(ctx context.Context, req ChatCompletionRequest) (*ChatCompletionResponse, error) {
 	// Set default model if not provided
 	if req.Model == "" {
 		req.Model = "gpt-4o-mini" // Fast and cost-effective default
@@ -56,8 +57,9 @@ func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (*ChatCompletio
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// Create HTTP request
-	httpReq, err := http.NewRequest(
+	// Create HTTP request with context for cancellation
+	httpReq, err := http.NewRequestWithContext(
+		ctx,
 		"POST",
 		c.baseURL+"/chat/completions",
 		bytes.NewBuffer(jsonData),
@@ -102,7 +104,7 @@ func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (*ChatCompletio
 }
 
 // CreateSimpleCompletion is a helper for simple single-message requests
-func (c *Client) CreateSimpleCompletion(systemPrompt, userMessage string, temperature float64, maxTokens int) (string, error) {
+func (c *Client) CreateSimpleCompletion(ctx context.Context, systemPrompt, userMessage string, temperature float64, maxTokens int) (string, error) {
 	messages := []Message{
 		{Role: "system", Content: systemPrompt},
 		{Role: "user", Content: userMessage},
@@ -114,7 +116,7 @@ func (c *Client) CreateSimpleCompletion(systemPrompt, userMessage string, temper
 		MaxTokens:   maxTokens,
 	}
 
-	resp, err := c.CreateChatCompletion(req)
+	resp, err := c.CreateChatCompletion(ctx, req)
 	if err != nil {
 		return "", err
 	}

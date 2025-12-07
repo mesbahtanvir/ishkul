@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -97,12 +98,12 @@ func (r *LLMRouter) GetStrategy() SelectionStrategy {
 
 // Complete sends a chat completion request using the configured strategy
 // This is the main method - callers don't need to know about providers
-func (r *LLMRouter) Complete(req openai.ChatCompletionRequest) (*openai.ChatCompletionResponse, error) {
-	return r.CompleteWithTier(req, string(TierFree))
+func (r *LLMRouter) Complete(ctx context.Context, req openai.ChatCompletionRequest) (*openai.ChatCompletionResponse, error) {
+	return r.CompleteWithTier(ctx, req, string(TierFree))
 }
 
 // CompleteWithTier sends a request with tier-aware model selection
-func (r *LLMRouter) CompleteWithTier(req openai.ChatCompletionRequest, tier string) (*openai.ChatCompletionResponse, error) {
+func (r *LLMRouter) CompleteWithTier(ctx context.Context, req openai.ChatCompletionRequest, tier string) (*openai.ChatCompletionResponse, error) {
 	r.mu.RLock()
 	strategy := r.config.Strategy
 	providers := r.getAvailableProviders()
@@ -114,20 +115,20 @@ func (r *LLMRouter) CompleteWithTier(req openai.ChatCompletionRequest, tier stri
 
 	switch strategy {
 	case StrategyRoundRobin:
-		return r.completeRoundRobin(req, tier, providers)
+		return r.completeRoundRobin(ctx, req, tier, providers)
 	case StrategyRandom:
-		return r.completeRandom(req, tier, providers)
+		return r.completeRandom(ctx, req, tier, providers)
 	default: // StrategyPriority
-		return r.completePriority(req, tier, providers)
+		return r.completePriority(ctx, req, tier, providers)
 	}
 }
 
 // completePriority tries providers in priority order with fallback
-func (r *LLMRouter) completePriority(req openai.ChatCompletionRequest, tier string, providers []*ProviderEntry) (*openai.ChatCompletionResponse, error) {
+func (r *LLMRouter) completePriority(ctx context.Context, req openai.ChatCompletionRequest, tier string, providers []*ProviderEntry) (*openai.ChatCompletionResponse, error) {
 	var lastErr error
 
 	for _, entry := range providers {
-		resp, err := r.callProvider(entry, req, tier)
+		resp, err := r.callProvider(ctx, entry, req, tier)
 		if err == nil {
 			return resp, nil
 		}
@@ -146,7 +147,7 @@ func (r *LLMRouter) completePriority(req openai.ChatCompletionRequest, tier stri
 }
 
 // completeRoundRobin distributes requests across providers
-func (r *LLMRouter) completeRoundRobin(req openai.ChatCompletionRequest, tier string, providers []*ProviderEntry) (*openai.ChatCompletionResponse, error) {
+func (r *LLMRouter) completeRoundRobin(ctx context.Context, req openai.ChatCompletionRequest, tier string, providers []*ProviderEntry) (*openai.ChatCompletionResponse, error) {
 	if len(providers) == 0 {
 		return nil, fmt.Errorf("no providers available")
 	}
@@ -158,7 +159,7 @@ func (r *LLMRouter) completeRoundRobin(req openai.ChatCompletionRequest, tier st
 	// Try providers starting from the selected one
 	for i := 0; i < len(providers); i++ {
 		entry := providers[(int(startIdx)+i)%len(providers)]
-		resp, err := r.callProvider(entry, req, tier)
+		resp, err := r.callProvider(ctx, entry, req, tier)
 		if err == nil {
 			return resp, nil
 		}
@@ -175,7 +176,7 @@ func (r *LLMRouter) completeRoundRobin(req openai.ChatCompletionRequest, tier st
 }
 
 // completeRandom randomly selects a provider
-func (r *LLMRouter) completeRandom(req openai.ChatCompletionRequest, tier string, providers []*ProviderEntry) (*openai.ChatCompletionResponse, error) {
+func (r *LLMRouter) completeRandom(ctx context.Context, req openai.ChatCompletionRequest, tier string, providers []*ProviderEntry) (*openai.ChatCompletionResponse, error) {
 	if len(providers) == 0 {
 		return nil, fmt.Errorf("no providers available")
 	}
@@ -189,7 +190,7 @@ func (r *LLMRouter) completeRandom(req openai.ChatCompletionRequest, tier string
 
 	// Try each until one succeeds
 	for _, entry := range shuffled {
-		resp, err := r.callProvider(entry, req, tier)
+		resp, err := r.callProvider(ctx, entry, req, tier)
 		if err == nil {
 			return resp, nil
 		}
@@ -206,7 +207,7 @@ func (r *LLMRouter) completeRandom(req openai.ChatCompletionRequest, tier string
 }
 
 // callProvider calls a specific provider with circuit breaker logic
-func (r *LLMRouter) callProvider(entry *ProviderEntry, req openai.ChatCompletionRequest, tier string) (*openai.ChatCompletionResponse, error) {
+func (r *LLMRouter) callProvider(ctx context.Context, entry *ProviderEntry, req openai.ChatCompletionRequest, tier string) (*openai.ChatCompletionResponse, error) {
 	// Check circuit breaker state
 	if !r.canCallProvider(entry) {
 		return nil, fmt.Errorf("circuit breaker open for %s", entry.Type)
@@ -217,7 +218,7 @@ func (r *LLMRouter) callProvider(entry *ProviderEntry, req openai.ChatCompletion
 	adjustedReq.Model = GetModelForProvider(entry.Type, tier, req.Model)
 
 	start := time.Now()
-	resp, err := entry.Provider.CreateChatCompletion(adjustedReq)
+	resp, err := entry.Provider.CreateChatCompletion(ctx, adjustedReq)
 	latency := time.Since(start).Milliseconds()
 
 	// Update health stats with circuit breaker logic

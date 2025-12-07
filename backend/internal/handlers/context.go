@@ -100,8 +100,12 @@ func UpdateContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Add timeout for LLM operations to prevent hanging requests
+	llmCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	// Call LLM to parse and merge context
-	response, err := parseContextWithLLM(ctx, req.PreviousContext, req.NewInput)
+	response, err := parseContextWithLLM(llmCtx, req.PreviousContext, req.NewInput)
 	if err != nil {
 		if appLogger != nil {
 			logger.ErrorWithErr(appLogger, ctx, "context_parse_failed", err)
@@ -274,7 +278,7 @@ func parseContextWithLLM(ctx context.Context, previousContext models.ParsedConte
 	}
 
 	// Call LLM using router - handles provider selection automatically
-	response, err := llmRouter.Complete(*req)
+	response, err := llmRouter.Complete(ctx, *req)
 	if err != nil {
 		return nil, err
 	}

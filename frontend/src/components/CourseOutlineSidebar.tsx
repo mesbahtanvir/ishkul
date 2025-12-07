@@ -90,7 +90,14 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
   });
 
   return (
-    <View style={[styles.moduleCard, isCurrentModule && styles.currentModuleCard]}>
+    <View style={[
+      styles.moduleCard,
+      { borderColor: colors.border },
+      isCurrentModule && {
+        borderColor: colors.primary + '4D', // 30% opacity
+        backgroundColor: colors.primary + '08', // 3% opacity
+      },
+    ]}>
       <TouchableOpacity
         style={styles.moduleHeader}
         onPress={() => setExpanded(!expanded)}
@@ -111,9 +118,9 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
             ]}
           >
             {module.status === 'completed' ? (
-              <Text style={styles.moduleNumberText}>✓</Text>
+              <Text style={[styles.moduleNumberText, { color: colors.white }]}>✓</Text>
             ) : (
-              <Text style={styles.moduleNumberText}>{moduleIndex + 1}</Text>
+              <Text style={[styles.moduleNumberText, { color: colors.white }]}>{moduleIndex + 1}</Text>
             )}
           </View>
           <View style={styles.moduleInfo}>
@@ -159,7 +166,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
       </TouchableOpacity>
 
       {expanded && (
-        <View style={styles.topicsList}>
+        <View style={[styles.topicsList, { borderTopColor: colors.divider }]}>
           {module.topics.map((topic, topicIndex) => {
             const isCurrentTopic =
               isCurrentModule && currentTopicIndex === topicIndex;
@@ -170,6 +177,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
                 key={topic.id}
                 style={[
                   styles.topicItem,
+                  { borderBottomColor: colors.divider },
                   isCurrentTopic && {
                     backgroundColor: colors.primary + '10',
                     borderLeftColor: colors.primary,
@@ -222,7 +230,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
                 </View>
                 {isCurrentTopic && (
                   <View style={[styles.currentBadge, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.currentBadgeText}>NOW</Text>
+                    <Text style={[styles.currentBadgeText, { color: colors.white }]}>NOW</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -483,12 +491,10 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.borderRadius.md,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
     overflow: 'hidden',
   },
   currentModuleCard: {
-    borderColor: 'rgba(0, 122, 255, 0.3)',
-    backgroundColor: 'rgba(0, 122, 255, 0.03)',
+    // Colors applied inline with theme
   },
   moduleHeader: {
     flexDirection: 'row',
@@ -510,7 +516,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   moduleNumberText: {
-    color: '#FFF',
     fontWeight: '700',
     fontSize: 11,
   },
@@ -545,7 +550,6 @@ const styles = StyleSheet.create({
   },
   topicsList: {
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.05)',
   },
   topicItem: {
     flexDirection: 'row',
@@ -553,7 +557,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.03)',
   },
   topicIcon: {
     width: 28,
@@ -596,7 +599,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   currentBadgeText: {
-    color: '#FFF',
     fontSize: 8,
     fontWeight: '700',
   },
