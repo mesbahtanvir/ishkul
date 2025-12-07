@@ -48,15 +48,12 @@ func TestGetStepCacheStats(t *testing.T) {
 }
 
 func TestInitializeLLM(t *testing.T) {
-	t.Run("returns error when OpenAI client initialization fails", func(t *testing.T) {
-		// This test verifies the error path when OPENAI_API_KEY is not set
-		// In a real test environment, we'd mock the OpenAI client
+	t.Run("returns error when no providers available", func(t *testing.T) {
+		// This test verifies the error path when no API keys are set
+		// In a real test environment, we'd mock the providers
 
 		// Save original values
-		originalChatManager := chatManager
-		originalProviderRegistry := providerRegistry
-		originalLLMProvider := llmProvider
-		originalActiveProviderType := activeProviderType
+		originalRouter := llmRouter
 		originalClient := openaiClient
 		originalLoader := promptLoader
 		originalRenderer := promptRenderer
@@ -65,10 +62,7 @@ func TestInitializeLLM(t *testing.T) {
 
 		// Reset after test
 		defer func() {
-			chatManager = originalChatManager
-			providerRegistry = originalProviderRegistry
-			llmProvider = originalLLMProvider
-			activeProviderType = originalActiveProviderType
+			llmRouter = originalRouter
 			openaiClient = originalClient
 			promptLoader = originalLoader
 			promptRenderer = originalRenderer
@@ -77,21 +71,30 @@ func TestInitializeLLM(t *testing.T) {
 		}()
 
 		// Reset globals
-		chatManager = nil
-		providerRegistry = nil
-		llmProvider = nil
-		activeProviderType = ""
+		llmRouter = nil
 		openaiClient = nil
 		promptLoader = nil
 		promptRenderer = nil
 		stepCache = nil
 		pregenerateService = nil
 
-		// InitializeLLM should fail without OPENAI_API_KEY
+		// InitializeLLM should fail without any API keys
 		err := InitializeLLM("nonexistent-prompts-dir")
 
-		// Should return an error about OpenAI client initialization
+		// Should return an error about no providers available
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "OpenAI")
+		assert.Contains(t, err.Error(), "no LLM provider available")
+	})
+}
+
+func TestGetLLMHealth(t *testing.T) {
+	t.Run("returns nil when router is nil", func(t *testing.T) {
+		// Save original router
+		originalRouter := llmRouter
+		llmRouter = nil
+		defer func() { llmRouter = originalRouter }()
+
+		health := GetLLMHealth()
+		assert.Nil(t, health)
 	})
 }

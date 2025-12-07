@@ -26,206 +26,167 @@ const (
 )
 
 var (
-	// chatManager is the main interface for LLM calls - abstracts away providers
-	chatManager *llm.ChatCompletionManager
-	// providerRegistry manages all LLM providers with fallback support (legacy)
-	providerRegistry *llm.ProviderRegistry
-	// llmProvider is the primary LLM provider (for backwards compatibility)
-	llmProvider llm.Provider
-	// activeProviderType tracks which provider is active
-	activeProviderType llm.ProviderType
+	// llmRouter is the main interface for LLM calls - handles provider selection,
+	// fallback, health tracking, and circuit breaker logic automatically
+	llmRouter *llm.LLMRouter
+
 	// openaiClient is kept for backwards compatibility
 	openaiClient   *openai.Client
 	promptLoader   *prompts.Loader
 	promptRenderer *prompts.Renderer
 )
 
-// InitializeLLM initializes the LLM components (provider, prompt loader)
-// These are used internally by learning_paths.go for generating next steps
+// InitializeLLM initializes the LLM components (router, prompt loader)
 // Provider selection is controlled by LLM_PROVIDER environment variable:
 // - "deepseek" - Use DeepSeek as primary (requires DEEPSEEK_API_KEY)
 // - "openai" or empty - Use OpenAI as primary (requires OPENAI_API_KEY, default)
-// Both providers are initialized if credentials are available, enabling fallback
+// Both providers are initialized if credentials are available, enabling automatic fallback
 func InitializeLLM(promptsDir string) error {
-	var err error
-
-	// Create ChatCompletionManager - the main interface for LLM calls
-	chatManager = llm.NewChatCompletionManager(appLogger)
-
-	// Create provider registry for legacy support
-	providerRegistry = llm.NewProviderRegistry(appLogger)
-
-	// Determine primary provider and strategy from environment
+	// Determine configuration from environment
 	providerEnv := os.Getenv("LLM_PROVIDER")
 	strategyEnv := os.Getenv("LLM_STRATEGY")
 
-	// Set selection strategy
+	// Create router configuration
+	config := llm.DefaultRouterConfig()
 	switch strategyEnv {
 	case "round_robin":
-		chatManager.SetStrategy(llm.StrategyRoundRobin)
+		config.Strategy = llm.StrategyRoundRobin
 	case "random":
-		chatManager.SetStrategy(llm.StrategyRandom)
+		config.Strategy = llm.StrategyRandom
 	default:
-		chatManager.SetStrategy(llm.StrategyPriority)
+		config.Strategy = llm.StrategyPriority
 	}
 
-	// Try to initialize OpenAI (priority 1 if primary, 2 if fallback)
-	openaiClient, err = openai.NewClient()
-	if err == nil {
-		openaiPriority := 2
+	// Create the LLM router
+	llmRouter = llm.NewRouterWithConfig(appLogger, config)
+
+	// Track initialization errors for final check
+	var openaiErr, deepseekErr error
+
+	// Initialize OpenAI provider
+	openaiClient, openaiErr = openai.NewClient()
+	if openaiErr == nil {
+		priority := 2
 		if providerEnv != "deepseek" {
-			openaiPriority = 1
+			priority = 1 // OpenAI is primary by default
 		}
-		chatManager.RegisterProvider(llm.ProviderOpenAI, openaiClient, openaiPriority)
-		providerRegistry.Register(llm.ProviderOpenAI, openaiClient)
-		if appLogger != nil {
-			logger.Info(appLogger, context.Background(), "openai_client_registered",
-				slog.Int("priority", openaiPriority),
-			)
-		}
+		llmRouter.RegisterProvider(llm.ProviderOpenAI, openaiClient, priority)
+		logInfo("openai_provider_registered", slog.Int("priority", priority))
 	} else {
-		if appLogger != nil {
-			logger.Warn(appLogger, context.Background(), "openai_client_init_failed",
-				slog.String("error", err.Error()),
-			)
-		}
+		logWarn("openai_provider_unavailable", slog.String("error", openaiErr.Error()))
 	}
 
-	// Try to initialize DeepSeek (priority 1 if primary, 2 if fallback)
-	deepseekClient, dsErr := deepseek.NewClient()
-	if dsErr == nil {
-		deepseekPriority := 2
+	// Initialize DeepSeek provider
+	deepseekClient, deepseekErr := deepseek.NewClient()
+	if deepseekErr == nil {
+		priority := 2
 		if providerEnv == "deepseek" {
-			deepseekPriority = 1
+			priority = 1 // DeepSeek is primary when explicitly configured
 		}
-		chatManager.RegisterProvider(llm.ProviderDeepSeek, deepseekClient, deepseekPriority)
-		providerRegistry.Register(llm.ProviderDeepSeek, deepseekClient)
-		if appLogger != nil {
-			logger.Info(appLogger, context.Background(), "deepseek_client_registered",
-				slog.Int("priority", deepseekPriority),
-			)
-		}
+		llmRouter.RegisterProvider(llm.ProviderDeepSeek, deepseekClient, priority)
+		logInfo("deepseek_provider_registered", slog.Int("priority", priority))
 	} else {
-		if appLogger != nil {
-			logger.Warn(appLogger, context.Background(), "deepseek_client_init_skipped",
-				slog.String("reason", dsErr.Error()),
-			)
-		}
-	}
-
-	// Set primary and fallback in legacy registry based on LLM_PROVIDER env
-	// Note: SetPrimary/SetFallback errors are ignored because providers are already registered above
-	switch providerEnv {
-	case "deepseek":
-		if dsErr == nil {
-			_ = providerRegistry.SetPrimary(llm.ProviderDeepSeek)
-			llmProvider = deepseekClient
-			activeProviderType = llm.ProviderDeepSeek
-			if err == nil {
-				_ = providerRegistry.SetFallback(llm.ProviderOpenAI)
-			}
-		} else if err == nil {
-			_ = providerRegistry.SetPrimary(llm.ProviderOpenAI)
-			llmProvider = openaiClient
-			activeProviderType = llm.ProviderOpenAI
-			if appLogger != nil {
-				logger.Warn(appLogger, context.Background(), "deepseek_unavailable_using_openai")
-			}
-		}
-	default:
-		if err == nil {
-			_ = providerRegistry.SetPrimary(llm.ProviderOpenAI)
-			llmProvider = openaiClient
-			activeProviderType = llm.ProviderOpenAI
-			if dsErr == nil {
-				_ = providerRegistry.SetFallback(llm.ProviderDeepSeek)
-			}
-		} else if dsErr == nil {
-			_ = providerRegistry.SetPrimary(llm.ProviderDeepSeek)
-			llmProvider = deepseekClient
-			activeProviderType = llm.ProviderDeepSeek
-			if appLogger != nil {
-				logger.Warn(appLogger, context.Background(), "openai_unavailable_using_deepseek")
-			}
-		}
+		logWarn("deepseek_provider_unavailable", slog.String("error", deepseekErr.Error()))
 	}
 
 	// Ensure at least one provider is available
-	if chatManager.GetProviderCount() == 0 {
-		return fmt.Errorf("no LLM provider available: OpenAI error: %v, DeepSeek error: %v", err, dsErr)
+	if llmRouter.GetProviderCount() == 0 {
+		return fmt.Errorf("no LLM provider available: OpenAI error: %v, DeepSeek error: %v", openaiErr, deepseekErr)
 	}
 
 	// Initialize prompt loader
 	promptLoader = prompts.NewLoader(promptsDir)
-	if appLogger != nil {
-		logger.Info(appLogger, context.Background(), "prompt_loader_initialized",
-			slog.String("prompts_dir", promptsDir),
-		)
-	}
+	logInfo("prompt_loader_initialized", slog.String("prompts_dir", promptsDir))
 
+	// Initialize prompt renderer
 	promptRenderer = prompts.NewRenderer()
-	if appLogger != nil {
-		logger.Info(appLogger, context.Background(), "prompt_renderer_initialized")
-	}
+	logInfo("prompt_renderer_initialized")
 
 	// Initialize step cache for pre-generation
 	stepCache = cache.NewStepCache(StepCacheTTL)
 	stepCache.StartCleanup(CacheCleanupInterval)
-	if appLogger != nil {
-		logger.Info(appLogger, context.Background(), "step_cache_initialized",
-			slog.Duration("ttl", StepCacheTTL),
-			slog.Duration("cleanup_interval", CacheCleanupInterval),
-		)
-	}
+	logInfo("step_cache_initialized",
+		slog.Duration("ttl", StepCacheTTL),
+		slog.Duration("cleanup_interval", CacheCleanupInterval),
+	)
 
-	// Initialize pre-generation service with the active provider
+	// Initialize pre-generation service with the router
+	primaryProvider, primaryType := llmRouter.GetPrimaryProvider()
 	pregenerateService = services.NewPregenerateService(
 		stepCache,
-		llmProvider,
-		activeProviderType,
+		primaryProvider,
+		primaryType,
 		promptLoader,
 		promptRenderer,
 		appLogger,
 	)
-	if appLogger != nil {
-		logger.Info(appLogger, context.Background(), "pregenerate_service_initialized")
-	}
+	logInfo("pregenerate_service_initialized",
+		slog.String("primary_provider", string(primaryType)),
+	)
 
 	// Log initialization summary
-	log.Printf("LLM initialized: strategy=%s, providers=%d healthy, total=%d",
-		chatManager.GetStrategy(),
-		chatManager.GetHealthyProviderCount(),
-		chatManager.GetProviderCount())
+	log.Printf("LLM initialized: strategy=%s, healthy=%d, total=%d",
+		llmRouter.GetStrategy(),
+		llmRouter.GetHealthyProviderCount(),
+		llmRouter.GetProviderCount())
+
 	return nil
 }
 
+// logInfo is a helper to log info messages if logger is available
+func logInfo(msg string, attrs ...slog.Attr) {
+	if appLogger != nil {
+		args := make([]any, len(attrs))
+		for i, attr := range attrs {
+			args[i] = attr
+		}
+		logger.Info(appLogger, context.Background(), msg, args...)
+	}
+}
+
+// logWarn is a helper to log warning messages if logger is available
+func logWarn(msg string, attrs ...slog.Attr) {
+	if appLogger != nil {
+		args := make([]any, len(attrs))
+		for i, attr := range attrs {
+			args[i] = attr
+		}
+		logger.Warn(appLogger, context.Background(), msg, args...)
+	}
+}
+
+// GetLLMRouter returns the LLM router for making LLM calls
+// This is the preferred way to make LLM calls - it handles provider selection,
+// fallback, and circuit breaker logic automatically
+func GetLLMRouter() *llm.LLMRouter {
+	return llmRouter
+}
+
 // GetChatManager returns the ChatCompletionManager for making LLM calls
-// This is the preferred way to make LLM calls - it handles provider selection automatically
+// Deprecated: Use GetLLMRouter instead. This is kept for backwards compatibility.
 func GetChatManager() *llm.ChatCompletionManager {
-	return chatManager
+	return llmRouter // ChatCompletionManager is an alias for LLMRouter
 }
 
-// GetLLMProvider returns the primary LLM provider (legacy - prefer GetChatManager)
+// GetLLMProvider returns the primary LLM provider
+// Deprecated: Use GetLLMRouter().GetPrimaryProvider() instead
 func GetLLMProvider() llm.Provider {
-	return llmProvider
+	provider, _ := llmRouter.GetPrimaryProvider()
+	return provider
 }
 
-// GetProviderRegistry returns the provider registry (legacy - prefer GetChatManager)
-func GetProviderRegistry() *llm.ProviderRegistry {
-	return providerRegistry
-}
-
-// GetActiveProviderType returns the type of the active provider
+// GetActiveProviderType returns the type of the active (primary) provider
 func GetActiveProviderType() llm.ProviderType {
-	return activeProviderType
+	_, providerType := llmRouter.GetPrimaryProvider()
+	return providerType
 }
 
 // GetLLMHealth returns health status of all LLM providers
 func GetLLMHealth() map[llm.ProviderType]llm.ProviderHealth {
-	if chatManager == nil {
+	if llmRouter == nil {
 		return nil
 	}
-	return chatManager.GetHealth()
+	return llmRouter.GetHealth()
 }
 
 // GetStepCacheStats returns current cache statistics for monitoring
