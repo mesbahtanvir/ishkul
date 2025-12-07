@@ -268,7 +268,7 @@ func TestRendererRenderToRequest(t *testing.T) {
 func TestRendererRenderToRequestWithTier(t *testing.T) {
 	renderer := NewRenderer()
 
-	t.Run("free tier uses original model", func(t *testing.T) {
+	t.Run("free tier uses default free model", func(t *testing.T) {
 		template := &PromptTemplate{
 			Model: "gpt-4o-mini",
 			Messages: []PromptMessage{
@@ -279,10 +279,10 @@ func TestRendererRenderToRequestWithTier(t *testing.T) {
 		req, err := renderer.RenderToRequestWithTier(template, Variables{}, "free")
 
 		require.NoError(t, err)
-		assert.Equal(t, "gpt-4o-mini", req.Model)
+		assert.Equal(t, "gpt-4.1-nano", req.Model) // Free tier uses gpt-4.1-nano
 	})
 
-	t.Run("pro tier upgrades mini to gpt-5-pro", func(t *testing.T) {
+	t.Run("pro tier upgrades mini to gpt-4.1", func(t *testing.T) {
 		template := &PromptTemplate{
 			Model: "gpt-4o-mini",
 			Messages: []PromptMessage{
@@ -293,7 +293,7 @@ func TestRendererRenderToRequestWithTier(t *testing.T) {
 		req, err := renderer.RenderToRequestWithTier(template, Variables{}, "pro")
 
 		require.NoError(t, err)
-		assert.Equal(t, "gpt-5-pro-2025-10-06", req.Model)
+		assert.Equal(t, "gpt-4.1", req.Model) // Pro tier uses gpt-4.1
 	})
 
 	t.Run("pro tier keeps non-mini models unchanged", func(t *testing.T) {
