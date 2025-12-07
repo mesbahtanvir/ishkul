@@ -17,7 +17,7 @@ import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 
 import { RootStackParamList } from '../types/navigation';
-import { Course, CourseStatus } from '../types/app';
+import { Course } from '../types/app';
 import { useScreenTracking } from '../services/analytics';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<

@@ -29,7 +29,6 @@ export function SegmentedControl<T extends string>({
   onValueChange,
 }: SegmentedControlProps<T>): React.ReactElement {
   const { colors } = useTheme();
-  const [segmentWidths, setSegmentWidths] = React.useState<number[]>([]);
   const [containerWidth, setContainerWidth] = React.useState(0);
   const slideAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -54,13 +53,9 @@ export function SegmentedControl<T extends string>({
     setContainerWidth(event.nativeEvent.layout.width);
   };
 
-  const handleSegmentLayout = (index: number) => (event: LayoutChangeEvent) => {
-    const width = event.nativeEvent.layout.width;
-    setSegmentWidths((prev) => {
-      const newWidths = [...prev];
-      newWidths[index] = width;
-      return newWidths;
-    });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleSegmentLayout = (_index: number) => (_event: LayoutChangeEvent) => {
+    // Layout handler for segments - parameters reserved for future use
   };
 
   return (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import { AppNavigator } from '../AppNavigator';
 import { useUserStore } from '../../state/userStore';
 import { useSubscriptionStore } from '../../state/subscriptionStore';

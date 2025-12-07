@@ -5,7 +5,6 @@ import { Container } from './Container';
 import { CourseOutlineSidebar } from './CourseOutlineSidebar';
 import { useCoursesStore } from '../state/coursesStore';
 import { useResponsive } from '../hooks/useResponsive';
-import { RootStackParamList } from '../types/navigation';
 import { Step, OutlineTopic } from '../types/app';
 
 interface LearningLayoutProps {

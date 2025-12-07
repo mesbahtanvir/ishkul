@@ -193,7 +193,7 @@ describe('SegmentedControl', () => {
         { value: 'tab2' as const, label: 'Tab 2', count: 10 },
       ];
 
-      const { getByText, queryAllByText } = render(
+      const { getByText } = render(
         <SegmentedControl
           options={options}
           selectedValue="tab1"

@@ -5,7 +5,6 @@ import {
   UserContext,
   ParsedContext,
   DerivedContext,
-  ContextChange,
   ContextUpdateResponse,
 } from '../types/app';
 

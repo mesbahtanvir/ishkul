@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { analytics } from '../analyticsService';
 import { offlineQueue } from '../offlineQueue';
 import { EventNames } from '../events';

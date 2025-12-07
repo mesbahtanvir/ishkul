@@ -1,4 +1,3 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
 import { MarkdownContent } from '../MarkdownContent';
 
@@ -49,7 +48,7 @@ Some text with citation[^1].
 
 [^1]: Source reference
     `;
-    const { toJSON, queryByText } = render(
+    const { toJSON } = render(
       <MarkdownContent content={content} />
     );
     expect(toJSON()).toBeTruthy();

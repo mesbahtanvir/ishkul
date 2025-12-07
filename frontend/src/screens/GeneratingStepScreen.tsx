@@ -43,8 +43,8 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
 
   const [phase, setPhase] = useState<LoadingPhase>('generating');
   const [step, setStep] = useState<Step | null>(null);
-  // Error state kept for potential future error UI display
-  const [_error, setError] = useState<string | null>(null);
+  // Error state setter for error handling
+  const setError = useState<string | null>(null)[1];
 
   // Animation values for smooth transitions
   const generatingOpacity = useRef(new Animated.Value(1)).current;

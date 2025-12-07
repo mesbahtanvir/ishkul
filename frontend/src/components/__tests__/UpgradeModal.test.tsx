@@ -2,7 +2,6 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { UpgradeModal } from '../UpgradeModal';
 import { useSubscriptionStore } from '../../state/subscriptionStore';
-import { stripeService } from '../../services/stripe';
 
 // Mock the subscription store
 jest.mock('../../state/subscriptionStore');
