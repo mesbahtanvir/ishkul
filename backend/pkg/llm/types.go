@@ -119,15 +119,16 @@ type ModelMapping struct {
 }
 
 // DefaultModelMappings provides default model mappings for tier-based selection
+// Updated December 2025 - GPT-4.1 and GPT-5 series now available
 var DefaultModelMappings = map[ModelTier]ModelMapping{
-	// Free tier model - cost-effective options
+	// Free tier model - fast and cost-effective
 	TierFree: {
-		OpenAI:   "gpt-4o-mini",
+		OpenAI:   "gpt-4.1-nano", // Fastest and cheapest, good for simple tasks
 		DeepSeek: "deepseek-chat",
 	},
-	// Pro tier model - higher quality models
+	// Pro tier model - higher quality reasoning
 	TierPro: {
-		OpenAI:   "gpt-4o",
+		OpenAI:   "gpt-4.1", // Major improvements in coding and instruction following
 		DeepSeek: "deepseek-reasoner",
 	},
 }
