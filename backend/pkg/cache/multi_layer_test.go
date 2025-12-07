@@ -245,6 +245,7 @@ func TestMultiLayerCacheStep(t *testing.T) {
 func TestMultiLayerCacheInvalidation(t *testing.T) {
 	t.Run("invalidates all caches for path", func(t *testing.T) {
 		cache := NewMultiLayerCache()
+		path := &models.Course{ID: "path-1", Goal: "Test"}
 		selection := &ToolSelection{Tool: "lesson"}
 		step := &models.Step{ID: "step-1"}
 
@@ -265,6 +266,7 @@ func TestMultiLayerCacheInvalidation(t *testing.T) {
 
 	t.Run("invalidates for path preserves content", func(t *testing.T) {
 		cache := NewMultiLayerCache()
+		path := &models.Course{ID: "path-1", Goal: "Test"}
 		selection := &ToolSelection{Tool: "lesson"}
 		step := &models.Step{ID: "step-1"}
 
@@ -285,6 +287,7 @@ func TestMultiLayerCacheInvalidation(t *testing.T) {
 
 	t.Run("clears all caches", func(t *testing.T) {
 		cache := NewMultiLayerCache()
+		path := &models.Course{ID: "path-1", Goal: "Test"}
 
 		cache.SetSelection("path-1", path, &ToolSelection{Tool: "lesson"})
 		cache.SetContent("path-1", "lesson", path, "Topic", "content")
@@ -327,6 +330,7 @@ func TestMultiLayerCacheHitRates(t *testing.T) {
 
 	t.Run("content hit rate", func(t *testing.T) {
 		cache := NewMultiLayerCache()
+		path := &models.Course{ID: "path-1", Goal: "Test"}
 
 		cache.SetContent("path-1", "lesson", path, "Topic", "content")
 

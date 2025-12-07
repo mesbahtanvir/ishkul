@@ -164,18 +164,6 @@ func TestTopicHashFunction(t *testing.T) {
 		assert.NotEqual(t, hash1, hash2)
 	})
 
-	t.Run("includes level in hash", func(t *testing.T) {
-		path := &models.Course{
-			ID: "path1",
-		}
-
-		hash1 := TopicHash(path, "variables")
-
-		hash2 := TopicHash(path, "variables")
-
-		assert.NotEqual(t, hash1, hash2)
-	})
-
 	t.Run("includes topic confidence when available", func(t *testing.T) {
 		path := &models.Course{
 			ID: "path1",
