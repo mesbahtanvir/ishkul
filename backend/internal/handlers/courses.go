@@ -91,7 +91,7 @@ func logRequest(ctx context.Context, r *http.Request) {
 	if appLogger != nil {
 		logger.Info(appLogger, ctx, "courses_request",
 			slog.String("method", r.Method),
-			slog.String("course", r.URL.Path),
+			slog.String("path", r.URL.Path),
 		)
 	}
 }
