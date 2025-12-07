@@ -94,7 +94,7 @@ func UpdateContext(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if LLM is available
-	if llmProvider == nil || promptLoader == nil {
+	if llmRouter == nil || promptLoader == nil {
 		http.Error(w, "LLM service not available", http.StatusServiceUnavailable)
 		return
 	}
@@ -272,8 +272,8 @@ func parseContextWithLLM(ctx context.Context, previousContext models.ParsedConte
 		return nil, err
 	}
 
-	// Call LLM using ChatCompletionManager - handles provider selection automatically
-	response, err := chatManager.Complete(*req)
+	// Call LLM using router - handles provider selection automatically
+	response, err := llmRouter.Complete(*req)
 	if err != nil {
 		return nil, err
 	}
