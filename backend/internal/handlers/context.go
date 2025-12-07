@@ -153,9 +153,9 @@ func ApplyContext(w http.ResponseWriter, r *http.Request) {
 
 	// Ensure userID is set
 	req.Context.UserID = userID
-	req.Context.UpdatedAt = time.Now()
-	if req.Context.CreatedAt.IsZero() {
-		req.Context.CreatedAt = time.Now()
+	req.Context.UpdatedAt = time.Now().UnixMilli()
+	if req.Context.CreatedAt == 0 {
+		req.Context.CreatedAt = time.Now().UnixMilli()
 	}
 
 	docRef := Collection(fs, "user_contexts").Doc(userID)
