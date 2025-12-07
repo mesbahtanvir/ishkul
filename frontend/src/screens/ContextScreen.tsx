@@ -144,43 +144,73 @@ export const ContextScreen: React.FC = () => {
     );
   };
 
-  // Render skill card
-  const renderSkill = (skill: UserSkill, index: number) => (
-    <View
-      key={`${skill.name}-${index}`}
-      style={[styles.skillCard, { backgroundColor: colors.card.default }]}
-    >
-      <View style={styles.skillHeader}>
-        <Text style={[styles.skillName, { color: colors.text.primary }]}>
-          {skill.name}
-        </Text>
-        <Text style={styles.skillIntent}>
-          {skillIntentIcons[skill.intent] || ''}
-        </Text>
-      </View>
-      <View style={styles.skillLevel}>
-        {renderSkillDots(skill.level)}
-        <Text style={[styles.skillLevelText, { color: colors.text.secondary }]}>
-          {skillLevelDisplay[skill.level]?.label || skill.level}
-        </Text>
-      </View>
-      {skill.intent !== 'know' && skill.targetLevel && (
-        <View style={styles.targetLevel}>
-          <Text style={[styles.targetLabel, { color: colors.text.secondary }]}>
-            Goal:{' '}
-          </Text>
-          <Text style={[styles.targetValue, { color: colors.primary }]}>
-            {skillLevelDisplay[skill.targetLevel]?.label || skill.targetLevel}
+  // Get skill intent color
+  const getSkillIntentColor = (intent: string) => {
+    switch (intent) {
+      case 'know':
+        return colors.success;
+      case 'improving':
+        return colors.primary;
+      case 'want_to_learn':
+        return colors.warning;
+      default:
+        return colors.text.secondary;
+    }
+  };
+
+  // Render compact skill item
+  const renderSkill = (skill: UserSkill, index: number) => {
+    const intentColor = getSkillIntentColor(skill.intent);
+    const { dots } = skillLevelDisplay[skill.level] || { dots: 0 };
+
+    return (
+      <View
+        key={`${skill.name}-${index}`}
+        style={styles.skillItem}
+      >
+        <View style={styles.skillItemHeader}>
+          <View style={styles.skillNameRow}>
+            <Text style={[styles.skillItemName, { color: colors.text.primary }]}>
+              {skill.name}
+            </Text>
+            <Text style={[styles.skillIntentBadge, { color: intentColor }]}>
+              {skillIntentIcons[skill.intent] || ''}
+            </Text>
+          </View>
+          <Text style={[styles.skillLevelLabel, { color: colors.text.secondary }]}>
+            {skillLevelDisplay[skill.level]?.label || skill.level}
           </Text>
         </View>
-      )}
-      {skill.context && (
-        <Text style={[styles.skillContext, { color: colors.text.secondary }]}>
-          {skill.context}
-        </Text>
-      )}
-    </View>
-  );
+
+        {/* Progress bar */}
+        <View style={[styles.skillProgressBar, { backgroundColor: colors.gray200 }]}>
+          <View
+            style={[
+              styles.skillProgressFill,
+              {
+                backgroundColor: intentColor,
+                width: `${(dots / 4) * 100}%`,
+              },
+            ]}
+          />
+        </View>
+
+        {/* Target level if improving */}
+        {skill.intent !== 'know' && skill.targetLevel && (
+          <Text style={[styles.skillTargetText, { color: colors.text.tertiary }]}>
+            Goal: {skillLevelDisplay[skill.targetLevel]?.label || skill.targetLevel}
+          </Text>
+        )}
+
+        {/* Context note */}
+        {skill.context && (
+          <Text style={[styles.skillContextText, { color: colors.text.tertiary }]} numberOfLines={2}>
+            {skill.context}
+          </Text>
+        )}
+      </View>
+    );
+  };
 
   // Render change item
   const renderChange = (change: ContextChange, index: number) => {
@@ -254,72 +284,74 @@ export const ContextScreen: React.FC = () => {
     return (
       <Container>
         <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
-            <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
-              My Context
-            </Text>
-          </View>
-
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>📝</Text>
-            <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
-              Tell us about yourself
-            </Text>
-            <Text style={[styles.emptySubtitle, { color: colors.text.secondary }]}>
-              Write anything - your job, skills, goals, background.{'\n'}
-              AI will understand and use it to personalize your courses.
-            </Text>
-          </View>
-
-          <View style={[styles.inputSection, { backgroundColor: colors.card.default }]}>
-            <TextInput
-              style={[
-                styles.textInput,
-                {
-                  backgroundColor: colors.background.tertiary,
-                  color: colors.text.primary,
-                  borderColor: colors.border,
-                },
-              ]}
-              placeholder="Start typing..."
-              placeholderTextColor={colors.text.tertiary}
-              multiline
-              value={inputText}
-              onChangeText={setInputText}
-              textAlignVertical="top"
-            />
-
-            <Button
-              title="Update Context"
-              onPress={handleUpdate}
-              loading={updating}
-              disabled={updating || !inputText.trim()}
-              size="medium"
-            />
-
-            {error && (
-              <Text style={[styles.errorText, { color: colors.danger }]}>
-                {error}
+          <View style={styles.emptyStateContainer}>
+            {/* Hero illustration area */}
+            <View style={[styles.emptyHero, { backgroundColor: colors.primary + '10' }]}>
+              <Text style={styles.emptyHeroEmoji}>🧠</Text>
+              <Text style={[styles.emptyHeroTitle, { color: colors.text.primary }]}>
+                Help me personalize your learning
               </Text>
-            )}
-          </View>
+              <Text style={[styles.emptyHeroSubtitle, { color: colors.text.secondary }]}>
+                Tell me about yourself and I'll tailor courses just for you
+              </Text>
+            </View>
 
-          <View style={styles.examples}>
-            <Text style={[styles.examplesTitle, { color: colors.text.secondary }]}>
-              Examples:
-            </Text>
-            <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
-              • "Software engineer, 5 years experience"
-            </Text>
-            <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
-              • "Know Java well, want to learn Python"
-            </Text>
-            <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
-              • "Career goal: become a tech lead"
-            </Text>
-            <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
-              • "INFP, prefer hands-on learning"
-            </Text>
+            {/* Main input card */}
+            <View style={[styles.emptyInputCard, { backgroundColor: colors.card.default }]}>
+              <Text style={[styles.emptyInputLabel, { color: colors.text.primary }]}>
+                ✨ Tell me about yourself
+              </Text>
+              <TextInput
+                style={[
+                  styles.emptyTextInput,
+                  {
+                    backgroundColor: colors.background.secondary,
+                    color: colors.text.primary,
+                    borderColor: colors.border,
+                  },
+                ]}
+                placeholder="I'm a software engineer with 5 years of experience..."
+                placeholderTextColor={colors.text.tertiary}
+                multiline
+                value={inputText}
+                onChangeText={setInputText}
+                textAlignVertical="top"
+              />
+
+              <View style={styles.emptyExamplesSection}>
+                <Text style={[styles.emptyExamplesLabel, { color: colors.text.secondary }]}>
+                  Things you can mention:
+                </Text>
+                <View style={styles.emptyExampleChips}>
+                  <View style={[styles.exampleChip, { backgroundColor: colors.primary + '15' }]}>
+                    <Text style={[styles.exampleChipText, { color: colors.primary }]}>💼 Your role & experience</Text>
+                  </View>
+                  <View style={[styles.exampleChip, { backgroundColor: colors.success + '15' }]}>
+                    <Text style={[styles.exampleChipText, { color: colors.success }]}>🎯 What you want to learn</Text>
+                  </View>
+                  <View style={[styles.exampleChip, { backgroundColor: colors.warning + '15' }]}>
+                    <Text style={[styles.exampleChipText, { color: colors.warning }]}>⚡ Skills you have</Text>
+                  </View>
+                  <View style={[styles.exampleChip, { backgroundColor: colors.info + '15' }]}>
+                    <Text style={[styles.exampleChipText, { color: colors.info }]}>📚 How you prefer to learn</Text>
+                  </View>
+                </View>
+              </View>
+
+              <Button
+                title="Save My Context"
+                onPress={handleUpdate}
+                loading={updating}
+                disabled={updating || !inputText.trim()}
+                size="large"
+              />
+
+              {error && (
+                <Text style={[styles.errorText, { color: colors.danger }]}>
+                  {error}
+                </Text>
+              )}
+            </View>
           </View>
 
           {renderChangesSection()}
@@ -332,40 +364,47 @@ export const ContextScreen: React.FC = () => {
   return (
     <Container>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
         <View style={[styles.header, isSmallPhone && styles.headerSmall]}>
           <Text style={[styles.title, { fontSize: titleSize, color: colors.text.primary }]}>
             My Context
           </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.text.secondary }]}>
+            This helps personalize your learning experience
+          </Text>
         </View>
 
-        {/* Input Section */}
-        <View style={[styles.inputCard, { backgroundColor: colors.card.default, padding: cardPadding }]}>
-          <Text style={[styles.inputLabel, { color: colors.text.secondary }]}>
-            Tell me about yourself
-          </Text>
+        {/* Add More Context Card */}
+        <View style={[styles.addContextCard, { backgroundColor: colors.primary + '08', borderColor: colors.primary + '20' }]}>
+          <View style={styles.addContextHeader}>
+            <Text style={styles.addContextIcon}>✨</Text>
+            <Text style={[styles.addContextTitle, { color: colors.text.primary }]}>
+              Add more about yourself
+            </Text>
+          </View>
           <TextInput
             style={[
-              styles.textInputSmall,
+              styles.addContextInput,
               {
-                backgroundColor: colors.background.tertiary,
+                backgroundColor: colors.card.default,
                 color: colors.text.primary,
                 borderColor: colors.border,
               },
             ]}
-            placeholder="Add more context..."
+            placeholder="I recently started learning React Native..."
             placeholderTextColor={colors.text.tertiary}
             multiline
             value={inputText}
             onChangeText={setInputText}
             textAlignVertical="top"
           />
-          <View style={styles.updateButtonContainer}>
+          <View style={styles.addContextActions}>
             <Button
-              title="Update"
+              title="Update Context"
               onPress={handleUpdate}
               loading={updating}
               disabled={updating || !inputText.trim()}
-              size="small"
+              size="medium"
             />
           </View>
           {error && (
@@ -375,107 +414,97 @@ export const ContextScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Parsed Context Section */}
+        {/* What I Know About You Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-            Parsed Context
-          </Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionIcon}>🧠</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+              What I Know About You
+            </Text>
+          </View>
 
-          {/* Professional Info */}
-          {(context.parsed.professional.role || context.parsed.professional.company) && (
-            <View style={[styles.infoCard, { backgroundColor: colors.card.default }]}>
-              {context.parsed.professional.role && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoIcon}>💼</Text>
-                  <Text style={[styles.infoText, { color: colors.text.primary }]}>
-                    {context.parsed.professional.role}
-                    {context.parsed.professional.company &&
-                      ` at ${context.parsed.professional.company}`}
+          {/* Profile Summary Card */}
+          <View style={[styles.profileCard, { backgroundColor: colors.card.default }]}>
+            {/* Professional Info */}
+            {(context.parsed.professional.role || context.parsed.professional.company) && (
+              <View style={styles.profileSection}>
+                <View style={styles.profileRow}>
+                  <Text style={styles.profileIcon}>💼</Text>
+                  <View style={styles.profileContent}>
+                    <Text style={[styles.profilePrimary, { color: colors.text.primary }]}>
+                      {context.parsed.professional.role || 'Professional'}
+                      {context.parsed.professional.company &&
+                        ` at ${context.parsed.professional.company}`}
+                    </Text>
+                    {context.parsed.professional.yearsExperience && (
+                      <Text style={[styles.profileSecondary, { color: colors.text.secondary }]}>
+                        {context.parsed.professional.yearsExperience} years experience
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Location */}
+            {(context.parsed.location.current || context.parsed.location.journey?.length) && (
+              <View style={styles.profileSection}>
+                <View style={styles.profileRow}>
+                  <Text style={styles.profileIcon}>📍</Text>
+                  <Text style={[styles.profilePrimary, { color: colors.text.primary }]}>
+                    {context.parsed.location.journey?.length
+                      ? context.parsed.location.journey.join(' → ')
+                      : context.parsed.location.current}
                   </Text>
                 </View>
-              )}
-              {context.parsed.professional.yearsExperience && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoIcon}>⏱️</Text>
-                  <Text style={[styles.infoText, { color: colors.text.primary }]}>
-                    {context.parsed.professional.yearsExperience} years experience
+              </View>
+            )}
+
+            {/* Personality */}
+            {context.parsed.personality && (
+              <View style={styles.profileSection}>
+                <View style={styles.profileRow}>
+                  <Text style={styles.profileIcon}>🎭</Text>
+                  <Text style={[styles.profilePrimary, { color: colors.text.primary }]}>
+                    {context.parsed.personality}
                   </Text>
                 </View>
-              )}
-            </View>
-          )}
-
-          {/* Location */}
-          {(context.parsed.location.current || context.parsed.location.journey?.length) && (
-            <View style={[styles.infoCard, { backgroundColor: colors.card.default }]}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoIcon}>📍</Text>
-                <Text style={[styles.infoText, { color: colors.text.primary }]}>
-                  {context.parsed.location.journey?.length
-                    ? context.parsed.location.journey.join(' → ')
-                    : context.parsed.location.current}
-                </Text>
               </View>
-            </View>
-          )}
+            )}
+          </View>
 
-          {/* Personality */}
-          {context.parsed.personality && (
-            <View style={[styles.infoCard, { backgroundColor: colors.card.default }]}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoIcon}>🧠</Text>
-                <Text style={[styles.infoText, { color: colors.text.primary }]}>
-                  {context.parsed.personality}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Skills */}
+          {/* Skills Section */}
           {context.parsed.skills.length > 0 && (
-            <View style={styles.subsection}>
-              <Text style={[styles.subsectionTitle, { color: colors.text.secondary }]}>
-                SKILLS
-              </Text>
-              <View style={styles.skillsGrid}>
+            <View style={styles.contextSection}>
+              <View style={styles.contextSectionHeader}>
+                <Text style={styles.contextSectionIcon}>⚡</Text>
+                <Text style={[styles.contextSectionTitle, { color: colors.text.primary }]}>
+                  Skills
+                </Text>
+              </View>
+              <View style={[styles.skillsContainer, { backgroundColor: colors.card.default }]}>
                 {context.parsed.skills.map(renderSkill)}
               </View>
             </View>
           )}
 
-          {/* Interests */}
-          {context.parsed.interests.length > 0 && (
-            <View style={styles.subsection}>
-              <Text style={[styles.subsectionTitle, { color: colors.text.secondary }]}>
-                INTERESTS
-              </Text>
-              <View style={styles.tagsContainer}>
-                {context.parsed.interests.map((interest, index) => (
-                  <View
-                    key={`interest-${index}`}
-                    style={[styles.tag, { backgroundColor: colors.badge.primary }]}
-                  >
-                    <Text style={styles.tagText}>{interest}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Goals */}
+          {/* Goals Section */}
           {context.parsed.goals.length > 0 && (
-            <View style={styles.subsection}>
-              <Text style={[styles.subsectionTitle, { color: colors.text.secondary }]}>
-                GOALS
-              </Text>
+            <View style={styles.contextSection}>
+              <View style={styles.contextSectionHeader}>
+                <Text style={styles.contextSectionIcon}>🎯</Text>
+                <Text style={[styles.contextSectionTitle, { color: colors.text.primary }]}>
+                  Goals
+                </Text>
+              </View>
               <View style={styles.tagsContainer}>
                 {context.parsed.goals.map((goal, index) => (
                   <View
                     key={`goal-${index}`}
-                    style={[styles.tag, { backgroundColor: colors.success + '20' }]}
+                    style={[styles.goalTag, { backgroundColor: colors.success + '15' }]}
                   >
-                    <Text style={[styles.tagText, { color: colors.success }]}>
-                      🎯 {goal}
+                    <Text style={[styles.goalTagText, { color: colors.success }]}>
+                      {goal}
                     </Text>
                   </View>
                 ))}
@@ -483,35 +512,63 @@ export const ContextScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Preferences */}
+          {/* Interests Section */}
+          {context.parsed.interests.length > 0 && (
+            <View style={styles.contextSection}>
+              <View style={styles.contextSectionHeader}>
+                <Text style={styles.contextSectionIcon}>💡</Text>
+                <Text style={[styles.contextSectionTitle, { color: colors.text.primary }]}>
+                  Interests
+                </Text>
+              </View>
+              <View style={styles.tagsContainer}>
+                {context.parsed.interests.map((interest, index) => (
+                  <View
+                    key={`interest-${index}`}
+                    style={[styles.interestTag, { backgroundColor: colors.primary + '15' }]}
+                  >
+                    <Text style={[styles.interestTagText, { color: colors.primary }]}>
+                      {interest}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Learning Preferences Section */}
           {(context.parsed.preferences.learningStyle ||
-            context.parsed.preferences.studyTime) && (
-            <View style={styles.subsection}>
-              <Text style={[styles.subsectionTitle, { color: colors.text.secondary }]}>
-                PREFERENCES
-              </Text>
-              <View style={[styles.infoCard, { backgroundColor: colors.card.default }]}>
+            context.parsed.preferences.studyTime ||
+            context.parsed.preferences.sessionLength) && (
+            <View style={styles.contextSection}>
+              <View style={styles.contextSectionHeader}>
+                <Text style={styles.contextSectionIcon}>📚</Text>
+                <Text style={[styles.contextSectionTitle, { color: colors.text.primary }]}>
+                  Learning Preferences
+                </Text>
+              </View>
+              <View style={[styles.preferencesCard, { backgroundColor: colors.card.default }]}>
                 {context.parsed.preferences.learningStyle && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoIcon}>🛠️</Text>
-                    <Text style={[styles.infoText, { color: colors.text.primary }]}>
-                      {context.parsed.preferences.learningStyle} learning
+                  <View style={styles.preferenceItem}>
+                    <Text style={[styles.preferenceLabel, { color: colors.text.secondary }]}>Style</Text>
+                    <Text style={[styles.preferenceValue, { color: colors.text.primary }]}>
+                      {context.parsed.preferences.learningStyle}
                     </Text>
                   </View>
                 )}
                 {context.parsed.preferences.studyTime && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoIcon}>🕐</Text>
-                    <Text style={[styles.infoText, { color: colors.text.primary }]}>
-                      Studies in the {context.parsed.preferences.studyTime}
+                  <View style={styles.preferenceItem}>
+                    <Text style={[styles.preferenceLabel, { color: colors.text.secondary }]}>Best Time</Text>
+                    <Text style={[styles.preferenceValue, { color: colors.text.primary }]}>
+                      {context.parsed.preferences.studyTime}
                     </Text>
                   </View>
                 )}
                 {context.parsed.preferences.sessionLength && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoIcon}>⏱️</Text>
-                    <Text style={[styles.infoText, { color: colors.text.primary }]}>
-                      Prefers {context.parsed.preferences.sessionLength} sessions
+                  <View style={styles.preferenceItem}>
+                    <Text style={[styles.preferenceLabel, { color: colors.text.secondary }]}>Session Length</Text>
+                    <Text style={[styles.preferenceValue, { color: colors.text.primary }]}>
+                      {context.parsed.preferences.sessionLength}
                     </Text>
                   </View>
                 )}
@@ -520,35 +577,41 @@ export const ContextScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Auto-derived Section */}
-        {context.derived.completedCourses > 0 && (
+        {/* Auto-derived Stats */}
+        {(context.derived.completedCourses > 0 || context.derived.currentStreak > 0 || context.derived.avgQuizScore > 0) && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-              Auto-detected
-            </Text>
-            <View style={[styles.infoCard, { backgroundColor: colors.card.default }]}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>📊</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+                Your Learning Stats
+              </Text>
+            </View>
+            <View style={styles.statsGrid}>
               {context.derived.currentStreak > 0 && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoIcon}>🔥</Text>
-                  <Text style={[styles.infoText, { color: colors.text.primary }]}>
-                    {context.derived.currentStreak}-day learning streak
+                <View style={[styles.statItem, { backgroundColor: colors.warning + '15' }]}>
+                  <Text style={styles.statEmoji}>🔥</Text>
+                  <Text style={[styles.statValue, { color: colors.text.primary }]}>
+                    {context.derived.currentStreak}
                   </Text>
+                  <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Day Streak</Text>
                 </View>
               )}
               {context.derived.avgQuizScore > 0 && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoIcon}>⚡</Text>
-                  <Text style={[styles.infoText, { color: colors.text.primary }]}>
-                    {context.derived.avgQuizScore}% avg quiz score
+                <View style={[styles.statItem, { backgroundColor: colors.success + '15' }]}>
+                  <Text style={styles.statEmoji}>⚡</Text>
+                  <Text style={[styles.statValue, { color: colors.text.primary }]}>
+                    {context.derived.avgQuizScore}%
                   </Text>
+                  <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Avg Score</Text>
                 </View>
               )}
               {context.derived.completedCourses > 0 && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoIcon}>📚</Text>
-                  <Text style={[styles.infoText, { color: colors.text.primary }]}>
-                    {context.derived.completedCourses} courses completed
+                <View style={[styles.statItem, { backgroundColor: colors.primary + '15' }]}>
+                  <Text style={styles.statEmoji}>📚</Text>
+                  <Text style={[styles.statValue, { color: colors.text.primary }]}>
+                    {context.derived.completedCourses}
                   </Text>
+                  <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Courses</Text>
                 </View>
               )}
             </View>
@@ -557,7 +620,7 @@ export const ContextScreen: React.FC = () => {
 
         {/* Last updated */}
         {context.updatedAt > 0 && (
-          <Text style={[styles.lastUpdated, { color: colors.text.secondary }]}>
+          <Text style={[styles.lastUpdated, { color: colors.text.tertiary }]}>
             Last updated: {new Date(context.updatedAt).toLocaleDateString()}
           </Text>
         )}
@@ -569,6 +632,7 @@ export const ContextScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  // Header
   header: {
     marginBottom: Spacing.lg,
   },
@@ -577,50 +641,99 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.display.medium,
+    marginBottom: Spacing.xs,
   },
-  // Empty state
-  emptyState: {
+  headerSubtitle: {
+    ...Typography.body.medium,
+  },
+
+  // Empty State - New Design
+  emptyStateContainer: {
+    flex: 1,
+  },
+  emptyHero: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Spacing.borderRadius.xl,
+    marginBottom: Spacing.lg,
   },
-  emptyEmoji: {
-    fontSize: 64,
+  emptyHeroEmoji: {
+    fontSize: 56,
     marginBottom: Spacing.md,
   },
-  emptyTitle: {
+  emptyHeroTitle: {
     ...Typography.heading.h2,
     fontWeight: '600',
+    textAlign: 'center',
     marginBottom: Spacing.sm,
   },
-  emptySubtitle: {
+  emptyHeroSubtitle: {
     ...Typography.body.medium,
     textAlign: 'center',
-    paddingHorizontal: Spacing.lg,
   },
-  // Input section
-  inputSection: {
+  emptyInputCard: {
     borderRadius: Spacing.borderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
   },
-  inputCard: {
-    borderRadius: Spacing.borderRadius.lg,
-    marginBottom: Spacing.lg,
-  },
-  inputLabel: {
-    ...Typography.label.medium,
+  emptyInputLabel: {
+    ...Typography.heading.h4,
     fontWeight: '600',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  textInput: {
-    minHeight: 150,
+  emptyTextInput: {
+    minHeight: 120,
     borderRadius: Spacing.borderRadius.md,
     borderWidth: 1,
     padding: Spacing.md,
     ...Typography.body.medium,
     marginBottom: Spacing.md,
   },
-  textInputSmall: {
+  emptyExamplesSection: {
+    marginBottom: Spacing.lg,
+  },
+  emptyExamplesLabel: {
+    ...Typography.label.small,
+    fontWeight: '500',
+    marginBottom: Spacing.sm,
+  },
+  emptyExampleChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  exampleChip: {
+    paddingVertical: Spacing.xs + 2,
+    paddingHorizontal: Spacing.sm + 2,
+    borderRadius: Spacing.borderRadius.md,
+  },
+  exampleChipText: {
+    ...Typography.body.small,
+    fontWeight: '500',
+  },
+
+  // Add Context Card (Populated State)
+  addContextCard: {
+    borderRadius: Spacing.borderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+  },
+  addContextHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  addContextIcon: {
+    fontSize: 20,
+    marginRight: Spacing.sm,
+  },
+  addContextTitle: {
+    ...Typography.body.medium,
+    fontWeight: '600',
+  },
+  addContextInput: {
     minHeight: 80,
     borderRadius: Spacing.borderRadius.md,
     borderWidth: 1,
@@ -628,140 +741,202 @@ const styles = StyleSheet.create({
     ...Typography.body.medium,
     marginBottom: Spacing.md,
   },
-  updateButtonContainer: {
-    alignSelf: 'flex-end',
+  addContextActions: {
+    alignItems: 'flex-start',
   },
-  errorText: {
-    ...Typography.body.small,
-    marginTop: Spacing.sm,
-  },
-  // Examples
-  examples: {
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  examplesTitle: {
-    ...Typography.label.medium,
-    fontWeight: '600',
-    marginBottom: Spacing.sm,
-  },
-  exampleText: {
-    ...Typography.body.small,
-    marginBottom: Spacing.xs,
-  },
+
   // Sections
   section: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  sectionIcon: {
+    fontSize: 20,
+    marginRight: Spacing.sm,
   },
   sectionTitle: {
     ...Typography.heading.h3,
     fontWeight: '600',
+  },
+
+  // Profile Card
+  profileCard: {
+    borderRadius: Spacing.borderRadius.lg,
+    padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
-  subsection: {
-    marginTop: Spacing.md,
+  profileSection: {
+    marginBottom: Spacing.md,
   },
-  subsectionTitle: {
-    ...Typography.label.small,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: Spacing.sm,
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
-  // Info cards
-  infoCard: {
-    borderRadius: Spacing.borderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+  profileIcon: {
+    fontSize: 18,
+    marginRight: Spacing.sm,
+    marginTop: 2,
   },
-  infoRow: {
+  profileContent: {
+    flex: 1,
+  },
+  profilePrimary: {
+    ...Typography.body.medium,
+    fontWeight: '500',
+  },
+  profileSecondary: {
+    ...Typography.body.small,
+    marginTop: 2,
+  },
+
+  // Context Sections (Skills, Goals, etc.)
+  contextSection: {
+    marginTop: Spacing.lg,
+  },
+  contextSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
-  infoIcon: {
+  contextSectionIcon: {
     fontSize: 16,
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
-  infoText: {
+  contextSectionTitle: {
     ...Typography.body.medium,
-    flex: 1,
+    fontWeight: '600',
   },
-  // Skills
-  skillsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  skillCard: {
-    borderRadius: Spacing.borderRadius.md,
+
+  // Skills Container
+  skillsContainer: {
+    borderRadius: Spacing.borderRadius.lg,
     padding: Spacing.md,
-    minWidth: 140,
-    flex: 1,
-    maxWidth: '48%',
   },
-  skillHeader: {
+  skillItem: {
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  skillItemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.xs,
   },
-  skillName: {
-    ...Typography.body.medium,
-    fontWeight: '600',
-  },
-  skillIntent: {
-    fontSize: 14,
-  },
-  skillLevel: {
+  skillNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    flex: 1,
   },
-  dotsContainer: {
-    flexDirection: 'row',
-    gap: 4,
+  skillItemName: {
+    ...Typography.body.medium,
+    fontWeight: '500',
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  skillIntentBadge: {
+    fontSize: 14,
+    marginLeft: Spacing.xs,
   },
-  skillLevelText: {
+  skillLevelLabel: {
     ...Typography.body.small,
   },
-  targetLevel: {
-    flexDirection: 'row',
-    marginTop: Spacing.xs,
+  skillProgressBar: {
+    height: 4,
+    borderRadius: 2,
+    marginBottom: Spacing.xs,
   },
-  targetLabel: {
-    ...Typography.body.small,
+  skillProgressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
-  targetValue: {
+  skillTargetText: {
     ...Typography.body.small,
-    fontWeight: '600',
+    marginTop: 2,
   },
-  skillContext: {
+  skillContextText: {
     ...Typography.body.small,
-    marginTop: Spacing.xs,
     fontStyle: 'italic',
+    marginTop: 2,
   },
+
   // Tags
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },
-  tag: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
+  goalTag: {
+    paddingVertical: Spacing.xs + 2,
+    paddingHorizontal: Spacing.md,
     borderRadius: Spacing.borderRadius.full,
   },
-  tagText: {
+  goalTagText: {
+    ...Typography.body.small,
+    fontWeight: '600',
+  },
+  interestTag: {
+    paddingVertical: Spacing.xs + 2,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Spacing.borderRadius.full,
+  },
+  interestTagText: {
     ...Typography.body.small,
     fontWeight: '500',
-    color: '#FFFFFF',
   },
+
+  // Preferences Card
+  preferencesCard: {
+    borderRadius: Spacing.borderRadius.lg,
+    padding: Spacing.md,
+  },
+  preferenceItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  preferenceLabel: {
+    ...Typography.body.small,
+  },
+  preferenceValue: {
+    ...Typography.body.medium,
+    fontWeight: '500',
+  },
+
+  // Stats Grid
+  statsGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Spacing.borderRadius.lg,
+  },
+  statEmoji: {
+    fontSize: 24,
+    marginBottom: Spacing.xs,
+  },
+  statValue: {
+    ...Typography.heading.h3,
+    fontWeight: '700',
+  },
+  statLabel: {
+    ...Typography.body.small,
+    textAlign: 'center',
+  },
+
+  // Error text
+  errorText: {
+    ...Typography.body.small,
+    marginTop: Spacing.sm,
+  },
+
   // Changes section
   changesSection: {
     borderRadius: Spacing.borderRadius.lg,
@@ -808,9 +983,22 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
   },
+
+  // Last updated
   lastUpdated: {
     ...Typography.body.small,
     textAlign: 'center',
     marginBottom: Spacing.lg,
+  },
+
+  // Legacy styles (kept for compatibility)
+  dotsContainer: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
