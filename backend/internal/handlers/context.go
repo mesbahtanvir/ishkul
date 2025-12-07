@@ -12,6 +12,7 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 )
 
@@ -290,7 +291,7 @@ func parseContextWithLLM(ctx context.Context, previousContext models.ParsedConte
 		Summary        string                 `json:"summary"`
 	}
 
-	if err := json.Unmarshal([]byte(response.Choices[0].Message.Content), &llmResponse); err != nil {
+	if err := llm.ParseJSONResponse(response.Choices[0].Message.Content, &llmResponse); err != nil {
 		if appLogger != nil {
 			logger.Warn(appLogger, ctx, "context_parse_json_failed",
 				slog.String("error", err.Error()),
