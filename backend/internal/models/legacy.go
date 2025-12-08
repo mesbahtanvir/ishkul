@@ -124,7 +124,7 @@ type LegacyCourseOutline struct {
 // HistoryEntry represents a learning history entry (old model)
 // Deprecated: Use LessonProgress or BlockProgress instead
 type HistoryEntry struct {
-	Type      string  `json:"type" firestore:"type"`           // lesson, quiz, exercise
+	Type      string  `json:"type" firestore:"type"` // lesson, quiz, exercise
 	Topic     string  `json:"topic" firestore:"topic"`
 	Score     float64 `json:"score,omitempty" firestore:"score,omitempty"`
 	Timestamp int64   `json:"timestamp" firestore:"timestamp"` // Unix milliseconds
@@ -133,7 +133,7 @@ type HistoryEntry struct {
 // NextStep represents the user's next recommended learning step (old model)
 // Deprecated: Use CurrentPosition in Course instead
 type NextStep struct {
-	Type        string `json:"type" firestore:"type"`               // lesson, quiz, exercise
+	Type        string `json:"type" firestore:"type"` // lesson, quiz, exercise
 	Topic       string `json:"topic" firestore:"topic"`
 	CourseID    string `json:"courseId" firestore:"courseId"`
 	Reason      string `json:"reason,omitempty" firestore:"reason,omitempty"`
