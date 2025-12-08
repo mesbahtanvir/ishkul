@@ -135,6 +135,8 @@ type HistoryEntry struct {
 type NextStep struct {
 	Type        string `json:"type" firestore:"type"` // lesson, quiz, exercise
 	Topic       string `json:"topic" firestore:"topic"`
+	Title       string `json:"title,omitempty" firestore:"title,omitempty"`
+	Content     string `json:"content,omitempty" firestore:"content,omitempty"`
 	CourseID    string `json:"courseId" firestore:"courseId"`
 	Reason      string `json:"reason,omitempty" firestore:"reason,omitempty"`
 	GeneratedAt int64  `json:"generatedAt" firestore:"generatedAt"` // Unix milliseconds
