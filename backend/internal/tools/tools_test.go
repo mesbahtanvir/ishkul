@@ -121,41 +121,52 @@ func TestLessonTool(t *testing.T) {
 			"content": "This is a comprehensive lesson about variables in programming. Variables are containers for storing data values."
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 		require.NoError(t, err)
 
-		assert.Equal(t, "lesson", step.Type)
-		assert.Equal(t, "Variables", step.Topic)
-		assert.Equal(t, "Understanding Variables", step.Title)
-		assert.Contains(t, step.Content, "Variables are containers")
+		assert.Equal(t, models.BlockTypeText, block.Type)
+		assert.Equal(t, "Understanding Variables", block.Title)
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Text)
+		assert.Contains(t, block.Content.Text.Markdown, "Variables are containers")
 	})
 
 	t.Run("parse invalid JSON", func(t *testing.T) {
-		step := &models.Step{}
-		err := tool.ParseContent("invalid json", step)
+		block := &models.Block{}
+		err := tool.ParseContent("invalid json", block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to parse")
 	})
 
-	t.Run("validate valid step", func(t *testing.T) {
-		step := &models.Step{
-			Content: "This is a valid lesson content that is long enough to pass validation requirements.",
+	t.Run("validate valid block", func(t *testing.T) {
+		block := &models.Block{
+			Type: models.BlockTypeText,
+			Content: &models.BlockContent{
+				Text: &models.TextContent{
+					Markdown: "This is a valid lesson content that is long enough to pass validation requirements.",
+				},
+			},
 		}
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
 	t.Run("validate empty content", func(t *testing.T) {
-		step := &models.Step{Content: ""}
-		err := tool.Validate(step)
+		block := &models.Block{Type: models.BlockTypeText}
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "required")
 	})
 
 	t.Run("validate short content", func(t *testing.T) {
-		step := &models.Step{Content: "Too short"}
-		err := tool.Validate(step)
+		block := &models.Block{
+			Type: models.BlockTypeText,
+			Content: &models.BlockContent{
+				Text: &models.TextContent{Markdown: "Too short"},
+			},
+		}
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "too short")
 	})
@@ -165,8 +176,13 @@ func TestLessonTool(t *testing.T) {
 		for i := range longContent {
 			longContent[i] = 'a'
 		}
-		step := &models.Step{Content: string(longContent)}
-		err := tool.Validate(step)
+		block := &models.Block{
+			Type: models.BlockTypeText,
+			Content: &models.BlockContent{
+				Text: &models.TextContent{Markdown: string(longContent)},
+			},
+		}
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "too long")
 	})
@@ -183,7 +199,7 @@ func TestReviewTool(t *testing.T) {
 		assert.Equal(t, "🔄", meta.Icon)
 	})
 
-	t.Run("parse sets review type", func(t *testing.T) {
+	t.Run("parse sets text type", func(t *testing.T) {
 		content := `{
 			"type": "review",
 			"topic": "Variables",
@@ -191,10 +207,11 @@ func TestReviewTool(t *testing.T) {
 			"content": "Let's review what we learned about variables. Remember that variables store data."
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 		require.NoError(t, err)
-		assert.Equal(t, "review", step.Type)
+		assert.Equal(t, models.BlockTypeText, block.Type)
+		assert.Equal(t, "Review: Variables", block.Title)
 	})
 }
 
@@ -217,16 +234,32 @@ func TestSummaryTool(t *testing.T) {
 			"content": "In this module, we covered several important topics. Let's summarize."
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 		require.NoError(t, err)
-		assert.Equal(t, "summary", step.Type)
+		assert.Equal(t, "summary", block.Type)
+		assert.Equal(t, "Module 1 Summary", block.Title)
 	})
 }
 
 // TestQuizTool tests the quiz tool
 func TestQuizTool(t *testing.T) {
 	tool := &QuizTool{}
+
+	// Helper to create a valid quiz block
+	makeQuizBlock := func(question, answer string) *models.Block {
+		return &models.Block{
+			Type: models.BlockTypeQuestion,
+			Content: &models.BlockContent{
+				Question: &models.QuestionContent{
+					Question: models.Question{
+						Text:          question,
+						CorrectAnswer: answer,
+					},
+				},
+			},
+		}
+	}
 
 	t.Run("metadata", func(t *testing.T) {
 		meta := tool.Metadata()
@@ -256,14 +289,14 @@ func TestQuizTool(t *testing.T) {
 			"options": ["A function", "A container for storing data", "A loop", "A class"]
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 		require.NoError(t, err)
 
-		assert.Equal(t, "quiz", step.Type)
-		assert.Equal(t, "What is a variable in programming?", step.Question)
-		assert.Equal(t, "A container for storing data", step.ExpectedAnswer)
-		assert.Len(t, step.Options, 4)
+		assert.Equal(t, models.BlockTypeQuestion, block.Type)
+		assert.Equal(t, "What is a variable in programming?", block.Content.Question.Question.Text)
+		assert.Equal(t, "A container for storing data", block.Content.Question.Question.CorrectAnswer)
+		assert.Len(t, block.Content.Question.Question.Options, 4)
 	})
 
 	t.Run("parse content without options", func(t *testing.T) {
@@ -275,48 +308,36 @@ func TestQuizTool(t *testing.T) {
 			"expectedAnswer": "A storage container"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 		require.NoError(t, err)
 
-		assert.Nil(t, step.Options)
+		assert.Empty(t, block.Content.Question.Question.Options)
 	})
 
-	t.Run("validate valid step", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "This is a valid question?",
-			ExpectedAnswer: "Yes",
-		}
-		err := tool.Validate(step)
+	t.Run("validate valid block", func(t *testing.T) {
+		block := makeQuizBlock("This is a valid question?", "Yes")
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
 	t.Run("validate missing question", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "",
-			ExpectedAnswer: "Yes",
-		}
-		err := tool.Validate(step)
+		block := makeQuizBlock("", "Yes")
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "required")
 	})
 
 	t.Run("validate short question", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "Short?",
-			ExpectedAnswer: "Yes",
-		}
-		err := tool.Validate(step)
+		block := makeQuizBlock("Short?", "Yes")
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "too short")
 	})
 
 	t.Run("validate missing answer", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "This is a valid question?",
-			ExpectedAnswer: "",
-		}
-		err := tool.Validate(step)
+		block := makeQuizBlock("This is a valid question?", "")
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "required")
 	})
@@ -325,6 +346,19 @@ func TestQuizTool(t *testing.T) {
 // TestPracticeTool tests the practice tool
 func TestPracticeTool(t *testing.T) {
 	tool := &PracticeTool{}
+
+	// Helper to create a valid practice block
+	makePracticeBlock := func(task string, hints []string) *models.Block {
+		return &models.Block{
+			Type: models.BlockTypeTask,
+			Content: &models.BlockContent{
+				Task: &models.TaskContent{
+					Instruction: task,
+					Hints:       hints,
+				},
+			},
+		}
+	}
 
 	t.Run("metadata", func(t *testing.T) {
 		meta := tool.Metadata()
@@ -353,33 +387,31 @@ func TestPracticeTool(t *testing.T) {
 			"successCriteria": ["Variable is declared", "Variable has a value"]
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 		require.NoError(t, err)
 
-		assert.Equal(t, "practice", step.Type)
-		assert.Contains(t, step.Task, "variable")
-		assert.Len(t, step.Hints, 2)
+		assert.Equal(t, models.BlockTypeTask, block.Type)
+		assert.Contains(t, block.Content.Task.Instruction, "variable")
+		assert.Len(t, block.Content.Task.Hints, 2)
 	})
 
-	t.Run("validate valid step", func(t *testing.T) {
-		step := &models.Step{
-			Task: "Create a variable and assign it a value of your choice.",
-		}
-		err := tool.Validate(step)
+	t.Run("validate valid block", func(t *testing.T) {
+		block := makePracticeBlock("Create a variable and assign it a value of your choice.", nil)
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
 	t.Run("validate empty task", func(t *testing.T) {
-		step := &models.Step{Task: ""}
-		err := tool.Validate(step)
+		block := makePracticeBlock("", nil)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "required")
 	})
 
 	t.Run("validate short task", func(t *testing.T) {
-		step := &models.Step{Task: "Do something"}
-		err := tool.Validate(step)
+		block := makePracticeBlock("Do something", nil)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "too short")
 	})
@@ -388,6 +420,20 @@ func TestPracticeTool(t *testing.T) {
 // TestFlashcardTool tests the flashcard tool
 func TestFlashcardTool(t *testing.T) {
 	tool := &FlashcardTool{}
+
+	// Helper to create a valid flashcard block
+	makeFlashcardBlock := func(front, back, hint string) *models.Block {
+		return &models.Block{
+			Type: models.BlockTypeFlashcard,
+			Content: &models.BlockContent{
+				Flashcard: &models.FlashcardContent{
+					Front: front,
+					Back:  back,
+					Hint:  hint,
+				},
+			},
+		}
+	}
 
 	t.Run("metadata", func(t *testing.T) {
 		meta := tool.Metadata()
@@ -417,15 +463,14 @@ func TestFlashcardTool(t *testing.T) {
 			"hint": "Think about storage"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 		require.NoError(t, err)
 
-		assert.Equal(t, "flashcard", step.Type)
-		assert.Equal(t, "What is a variable?", step.Question)
-		assert.Equal(t, "A container for storing data", step.ExpectedAnswer)
-		assert.Len(t, step.Hints, 1)
-		assert.Equal(t, "Think about storage", step.Hints[0])
+		assert.Equal(t, models.BlockTypeFlashcard, block.Type)
+		assert.Equal(t, "What is a variable?", block.Content.Flashcard.Front)
+		assert.Equal(t, "A container for storing data", block.Content.Flashcard.Back)
+		assert.Equal(t, "Think about storage", block.Content.Flashcard.Hint)
 	})
 
 	t.Run("parse content without hint", func(t *testing.T) {
@@ -437,38 +482,29 @@ func TestFlashcardTool(t *testing.T) {
 			"back": "A storage container"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 		require.NoError(t, err)
 
-		assert.Nil(t, step.Hints)
+		assert.Empty(t, block.Content.Flashcard.Hint)
 	})
 
-	t.Run("validate valid step", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "Front text",
-			ExpectedAnswer: "Back text",
-		}
-		err := tool.Validate(step)
+	t.Run("validate valid block", func(t *testing.T) {
+		block := makeFlashcardBlock("Front text", "Back text", "")
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
 	t.Run("validate missing front", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "",
-			ExpectedAnswer: "Back text",
-		}
-		err := tool.Validate(step)
+		block := makeFlashcardBlock("", "Back text", "")
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "front")
 	})
 
 	t.Run("validate missing back", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "Front text",
-			ExpectedAnswer: "",
-		}
-		err := tool.Validate(step)
+		block := makeFlashcardBlock("Front text", "", "")
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "back")
 	})
