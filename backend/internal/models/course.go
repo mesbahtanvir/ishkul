@@ -77,6 +77,7 @@ type CourseCreate struct {
 // CourseUpdate represents the request to update a course
 type CourseUpdate struct {
 	Title            *string `json:"title,omitempty"` // was: Goal
+	Goal             *string `json:"goal,omitempty"`  // Deprecated: Use Title (kept for backward compatibility)
 	Emoji            *string `json:"emoji,omitempty"`
 	Progress         *int    `json:"progress,omitempty"`
 	LessonsCompleted *int    `json:"lessonsCompleted,omitempty"`

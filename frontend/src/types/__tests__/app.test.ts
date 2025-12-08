@@ -49,7 +49,7 @@ describe('CourseStatus', () => {
       title: 'Learn Python',
       goal: 'Learn Python',
       emoji: '🐍',
-      status: 'active',
+      // status is optional, so don't set a default - tests that need it will pass overrides
       outlineStatus: 'ready',
       progress: 50,
       lessonsCompleted: 5,

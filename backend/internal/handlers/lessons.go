@@ -15,7 +15,6 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
-	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 )
 
 // LessonsHandler handles /api/courses/{courseId}/lessons routes
@@ -617,7 +616,7 @@ func generateContentForBlock(ctx context.Context, course *models.Course, section
 		if err := llm.ParseJSONResponse(responseContent, &textResp); err != nil {
 			return nil, fmt.Errorf("failed to parse text response: %w", err)
 		}
-		content.Text = &models.TextContent{Text: textResp.Text}
+		content.Text = &models.TextContent{Markdown: textResp.Text}
 
 	case models.BlockTypeCode:
 		var codeResp models.CodeContent
