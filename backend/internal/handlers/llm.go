@@ -19,8 +19,8 @@ import (
 
 // Cache configuration constants
 const (
-	// StepCacheTTL is how long pre-generated steps stay in cache
-	StepCacheTTL = 10 * time.Minute
+	// BlockCacheTTL is how long pre-generated blocks stay in cache
+	BlockCacheTTL = 10 * time.Minute
 	// CacheCleanupInterval is how often expired entries are removed
 	CacheCleanupInterval = 5 * time.Minute
 )
@@ -102,18 +102,18 @@ func InitializeLLM(promptsDir string) error {
 	promptRenderer = prompts.NewRenderer()
 	logInfo("prompt_renderer_initialized")
 
-	// Initialize step cache for pre-generation
-	stepCache = cache.NewStepCache(StepCacheTTL)
-	stepCache.StartCleanup(CacheCleanupInterval)
-	logInfo("step_cache_initialized",
-		slog.Duration("ttl", StepCacheTTL),
+	// Initialize block cache for pre-generation
+	blockCache = cache.NewBlockCache(BlockCacheTTL)
+	blockCache.StartCleanup(CacheCleanupInterval)
+	logInfo("block_cache_initialized",
+		slog.Duration("ttl", BlockCacheTTL),
 		slog.Duration("cleanup_interval", CacheCleanupInterval),
 	)
 
 	// Initialize pre-generation service with the router
 	primaryProvider, primaryType := llmRouter.GetPrimaryProvider()
 	pregenerateService = services.NewPregenerateService(
-		stepCache,
+		blockCache,
 		primaryProvider,
 		primaryType,
 		promptLoader,
@@ -181,16 +181,16 @@ func GetLLMHealth() map[llm.ProviderType]llm.ProviderHealth {
 	return llmRouter.GetHealth()
 }
 
-// GetStepCacheStats returns current cache statistics for monitoring
-func GetStepCacheStats() map[string]interface{} {
-	if stepCache == nil {
+// GetBlockCacheStats returns current cache statistics for monitoring
+func GetBlockCacheStats() map[string]interface{} {
+	if blockCache == nil {
 		return map[string]interface{}{
 			"initialized": false,
 		}
 	}
 	return map[string]interface{}{
 		"initialized": true,
-		"size":        stepCache.Size(),
-		"ttl_minutes": StepCacheTTL.Minutes(),
+		"size":        blockCache.Size(),
+		"ttl_minutes": BlockCacheTTL.Minutes(),
 	}
 }

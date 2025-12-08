@@ -81,32 +81,52 @@ func (t *QuizTool) PromptFile() string {
 	return "learning/tools/quiz"
 }
 
-// ParseContent parses LLM response into a Step.
-func (t *QuizTool) ParseContent(content string, step *models.Step) error {
+// ParseContent parses LLM response into a Block.
+func (t *QuizTool) ParseContent(content string, block *models.Block) error {
 	var data QuizData
 	if err := json.Unmarshal([]byte(content), &data); err != nil {
 		return fmt.Errorf("failed to parse quiz content: %w", err)
 	}
 
-	step.Type = "quiz"
-	step.Topic = data.Topic
-	step.Title = data.Title
-	step.Question = data.Question
-	step.ExpectedAnswer = data.ExpectedAnswer
-	step.Options = data.Options
+	// Convert options to Option structs
+	options := make([]models.Option, len(data.Options))
+	for i, opt := range data.Options {
+		options[i] = models.Option{
+			ID:   string(rune('a' + i)), // a, b, c, d...
+			Text: opt,
+		}
+	}
+
+	block.Type = models.BlockTypeQuestion
+	block.Title = data.Title
+	block.Content = &models.BlockContent{
+		Question: &models.QuestionContent{
+			Question: models.Question{
+				Text:          data.Question,
+				Type:          models.QuestionTypeMultipleChoice,
+				Options:       options,
+				CorrectAnswer: data.ExpectedAnswer,
+				Explanation:   data.Explanation,
+			},
+		},
+	}
 
 	return nil
 }
 
-// Validate checks if the quiz step data is valid.
-func (t *QuizTool) Validate(step *models.Step) error {
-	if step.Question == "" {
+// Validate checks if the quiz block data is valid.
+func (t *QuizTool) Validate(block *models.Block) error {
+	if block.Content == nil || block.Content.Question == nil {
+		return fmt.Errorf("quiz question content is required")
+	}
+	q := block.Content.Question.Question
+	if q.Text == "" {
 		return fmt.Errorf("quiz question is required")
 	}
-	if len(step.Question) < 10 {
+	if len(q.Text) < 10 {
 		return fmt.Errorf("quiz question too short (min 10 chars)")
 	}
-	if step.ExpectedAnswer == "" {
+	if q.CorrectAnswer == "" {
 		return fmt.Errorf("quiz expected answer is required")
 	}
 	return nil

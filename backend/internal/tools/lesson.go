@@ -66,11 +66,11 @@ func (t *LessonTool) ParseContent(content string, block *models.Block) error {
 		return fmt.Errorf("failed to parse lesson content: %w", err)
 	}
 
-	block.Type = "text"
+	block.Type = models.BlockTypeText
 	block.Title = data.Title
 	block.Content = &models.BlockContent{
 		Text: &models.TextContent{
-			Text: data.Content,
+			Markdown: data.Content,
 		},
 	}
 
@@ -79,10 +79,10 @@ func (t *LessonTool) ParseContent(content string, block *models.Block) error {
 
 // Validate checks if the lesson block data is valid.
 func (t *LessonTool) Validate(block *models.Block) error {
-	if block.Content == nil || block.Content.Text == nil || block.Content.Text.Text == "" {
+	if block.Content == nil || block.Content.Text == nil || block.Content.Text.Markdown == "" {
 		return fmt.Errorf("lesson content is required")
 	}
-	text := block.Content.Text.Text
+	text := block.Content.Text.Markdown
 	if len(text) < 50 {
 		return fmt.Errorf("lesson content too short (min 50 chars)")
 	}

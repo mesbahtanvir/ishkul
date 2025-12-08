@@ -30,7 +30,7 @@ const MaxCoursesPerUser = 5
 
 // Global cache and pre-generation service
 var (
-	stepCache          *cache.StepCache
+	blockCache         *cache.BlockCache
 	pregenerateService *services.PregenerateService
 )
 
