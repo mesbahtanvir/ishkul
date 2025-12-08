@@ -155,7 +155,12 @@ func ApplyContext(w http.ResponseWriter, r *http.Request) {
 
 	var req ApplyContextRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		if appLogger != nil {
+			logger.ErrorWithErr(appLogger, ctx, "apply_context_decode_failed", err,
+				slog.String("user_id", userID),
+			)
+		}
+		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -186,7 +191,12 @@ func ApplyContext(w http.ResponseWriter, r *http.Request) {
 
 	docRef := Collection(fs, "user_contexts").Doc(userID)
 	if _, err := docRef.Set(ctx, userContext); err != nil {
-		http.Error(w, "Error saving context", http.StatusInternalServerError)
+		if appLogger != nil {
+			logger.ErrorWithErr(appLogger, ctx, "apply_context_save_failed", err,
+				slog.String("user_id", userID),
+			)
+		}
+		http.Error(w, "Error saving context: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
