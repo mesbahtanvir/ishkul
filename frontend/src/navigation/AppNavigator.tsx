@@ -28,6 +28,10 @@ import { GeneratingStepScreen } from '../screens/GeneratingStepScreen';
 import { CourseGeneratingScreen } from '../screens/CourseGeneratingScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { ContextScreen } from '../screens/ContextScreen';
+// New lesson-based screens (3-stage generation)
+import { LessonScreen } from '../screens/LessonScreen';
+import { LessonCompleteScreen } from '../screens/LessonCompleteScreen';
+import { CourseOutlineScreen } from '../screens/CourseOutlineScreen';
 
 // Initialize tool registry
 import '../tools';
@@ -66,6 +70,10 @@ const linking: LinkingOptions<RootStackParamList> = {
               StepDetail: 'step-detail',
               GeneratingStep: 'generating-step',
               Step: 'step',
+              // New lesson-based routes
+              CourseOutline: 'course-outline',
+              Lesson: 'lesson',
+              LessonComplete: 'lesson-complete',
             },
           },
           Progress: 'progress',
@@ -121,6 +129,15 @@ const LearnStack = () => {
       <Stack.Screen name="GeneratingStep" component={GeneratingStepScreen} />
       {/* Generic step screen using tool registry */}
       <Stack.Screen name="Step" component={StepScreen} />
+      {/* ============================================ */}
+      {/* New lesson-based screens (3-stage generation) */}
+      {/* ============================================ */}
+      {/* Course outline view - sections and lessons */}
+      <Stack.Screen name="CourseOutline" component={CourseOutlineScreen} />
+      {/* Lesson content with blocks */}
+      <Stack.Screen name="Lesson" component={LessonScreen} />
+      {/* Lesson completion summary */}
+      <Stack.Screen name="LessonComplete" component={LessonCompleteScreen} />
     </Stack.Navigator>
   );
 };

@@ -30,6 +30,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { Step, CourseStatuses, OutlineStatuses } from '../types/app';
 import { useScreenTracking } from '../services/analytics';
+import { usesNewStructure } from '../utils/courseHelpers';
 
 type CourseScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -78,6 +79,13 @@ export const CourseScreen: React.FC<CourseScreenProps> = ({
 
       if (path) {
         setActiveCourse(path);
+
+        // Check if this course uses the new section/lesson structure
+        // If so, redirect to the new CourseOutlineScreen
+        if (usesNewStructure(path)) {
+          navigation.replace('CourseOutline', { courseId });
+          return;
+        }
       } else {
         Alert.alert('Error', 'Course not found');
         navigation.goBack();
