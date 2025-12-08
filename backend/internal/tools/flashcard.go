@@ -78,31 +78,35 @@ func (t *FlashcardTool) PromptFile() string {
 	return "learning/tools/flashcard"
 }
 
-// ParseContent parses LLM response into a Step.
-func (t *FlashcardTool) ParseContent(content string, step *models.Step) error {
+// ParseContent parses LLM response into a Block.
+func (t *FlashcardTool) ParseContent(content string, block *models.Block) error {
 	var data FlashcardData
 	if err := json.Unmarshal([]byte(content), &data); err != nil {
 		return fmt.Errorf("failed to parse flashcard content: %w", err)
 	}
 
-	step.Type = "flashcard"
-	step.Topic = data.Topic
-	step.Title = data.Title
-	step.Question = data.Front
-	step.ExpectedAnswer = data.Back
-	if data.Hint != "" {
-		step.Hints = []string{data.Hint}
+	block.Type = models.BlockTypeFlashcard
+	block.Title = data.Title
+	block.Content = &models.BlockContent{
+		Flashcard: &models.FlashcardContent{
+			Front: data.Front,
+			Back:  data.Back,
+			Hint:  data.Hint,
+		},
 	}
 
 	return nil
 }
 
-// Validate checks if the flashcard step data is valid.
-func (t *FlashcardTool) Validate(step *models.Step) error {
-	if step.Question == "" {
+// Validate checks if the flashcard block data is valid.
+func (t *FlashcardTool) Validate(block *models.Block) error {
+	if block.Content == nil || block.Content.Flashcard == nil {
+		return fmt.Errorf("flashcard content is required")
+	}
+	if block.Content.Flashcard.Front == "" {
 		return fmt.Errorf("flashcard front (question) is required")
 	}
-	if step.ExpectedAnswer == "" {
+	if block.Content.Flashcard.Back == "" {
 		return fmt.Errorf("flashcard back (answer) is required")
 	}
 	return nil

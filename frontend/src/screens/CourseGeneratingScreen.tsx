@@ -161,7 +161,7 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
 
   // Calculate total topics and estimated time
   const getTotals = () => {
-    if (!path?.outline) return { topics: 0, minutes: 0 };
+    if (!path?.outline?.modules) return { topics: 0, minutes: 0 };
     let topics = 0;
     let minutes = 0;
     path.outline.modules.forEach((module) => {
@@ -184,7 +184,7 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{path.outline.modules.length}</Text>
+            <Text style={styles.statValue}>{path.outline.modules?.length ?? 0}</Text>
             <Text style={styles.statLabel}>Modules</Text>
           </View>
           <View style={styles.statDivider} />
@@ -200,7 +200,7 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
         </View>
 
         <ScrollView style={styles.modulesList} showsVerticalScrollIndicator={false}>
-          {path.outline.modules.map((module, index) => (
+          {path.outline.modules?.map((module, index) => (
             <View key={module.id} style={styles.moduleCard}>
               <View style={styles.moduleHeader}>
                 <View style={styles.moduleNumber}>

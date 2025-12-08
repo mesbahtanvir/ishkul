@@ -81,11 +81,11 @@ const getBlockBadgeColor = (type: BlockType, colors: ReturnType<typeof useTheme>
     case 'text':
       return colors.badge?.lesson || colors.primary;
     case 'code':
-      return colors.badge?.exercise || '#6366f1';
+      return colors.badge?.practice || '#6366f1';
     case 'question':
       return colors.badge?.quiz || '#f59e0b';
     case 'task':
-      return colors.badge?.exercise || '#10b981';
+      return colors.badge?.practice || '#10b981';
     case 'flashcard':
       return colors.badge?.flashcard || '#8b5cf6';
     case 'summary':

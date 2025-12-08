@@ -287,7 +287,7 @@ export const CourseOutlineDrawer: React.FC<CourseOutlineDrawerProps> = ({
     }
   }, [visible, slideAnim, fadeAnim]);
 
-  if (!outline) return null;
+  if (!outline || !outline.modules) return null;
 
   const totalTopics = outline.modules.reduce((sum, m) => sum + m.topics.length, 0);
   const completedTopics = outline.modules.reduce(

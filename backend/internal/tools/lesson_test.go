@@ -116,21 +116,22 @@ func TestLessonToolParseContent(t *testing.T) {
 			"content": "Variables in Go are declared using the var keyword. Go is statically typed, meaning you must specify the type of each variable."
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "lesson", step.Type)
-		assert.Equal(t, "Go Basics", step.Topic)
-		assert.Equal(t, "Understanding Variables", step.Title)
-		assert.Contains(t, step.Content, "Variables in Go")
+		assert.Equal(t, models.BlockTypeText, block.Type)
+		assert.Equal(t, "Understanding Variables", block.Title)
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Text)
+		assert.Contains(t, block.Content.Text.Markdown, "Variables in Go")
 	})
 
 	t.Run("returns error for invalid JSON", func(t *testing.T) {
 		content := `{invalid json}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to parse lesson content")
@@ -139,8 +140,8 @@ func TestLessonToolParseContent(t *testing.T) {
 	t.Run("returns error for empty content", func(t *testing.T) {
 		content := ``
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		assert.Error(t, err)
 	})
@@ -152,12 +153,14 @@ func TestLessonToolParseContent(t *testing.T) {
 			"content": "# Heading\n\n**Bold text** and *italic text*\n\n- List item 1\n- List item 2"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Contains(t, step.Content, "# Heading")
-		assert.Contains(t, step.Content, "**Bold text**")
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Text)
+		assert.Contains(t, block.Content.Text.Markdown, "# Heading")
+		assert.Contains(t, block.Content.Text.Markdown, "**Bold text**")
 	})
 
 	t.Run("handles unicode content", func(t *testing.T) {
@@ -167,12 +170,14 @@ func TestLessonToolParseContent(t *testing.T) {
 			"content": "ひらがなは日本語の基本文字です。あいうえおから始めましょう。"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "日本語レッスン", step.Topic)
-		assert.Contains(t, step.Content, "ひらがな")
+		assert.Equal(t, "ひらがな入門", block.Title)
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Text)
+		assert.Contains(t, block.Content.Text.Markdown, "ひらがな")
 	})
 }
 
@@ -183,60 +188,94 @@ func TestLessonToolParseContent(t *testing.T) {
 func TestLessonToolValidate(t *testing.T) {
 	tool := &LessonTool{}
 
-	t.Run("validates valid step", func(t *testing.T) {
-		step := &models.Step{
-			Content: strings.Repeat("a", 100), // 100 characters
+	t.Run("validates valid block", func(t *testing.T) {
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Text: &models.TextContent{
+					Markdown: strings.Repeat("a", 100), // 100 characters
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
 	t.Run("returns error for empty content", func(t *testing.T) {
-		step := &models.Step{
-			Content: "",
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Text: &models.TextContent{
+					Markdown: "",
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "content is required")
+	})
+
+	t.Run("returns error for nil content", func(t *testing.T) {
+		block := &models.Block{
+			Content: nil,
+		}
+
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "content is required")
 	})
 
 	t.Run("returns error for short content", func(t *testing.T) {
-		step := &models.Step{
-			Content: strings.Repeat("a", 49), // Less than 50 characters
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Text: &models.TextContent{
+					Markdown: strings.Repeat("a", 49), // Less than 50 characters
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "content too short")
 	})
 
 	t.Run("returns error for long content", func(t *testing.T) {
-		step := &models.Step{
-			Content: strings.Repeat("a", 1501), // More than 1500 characters
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Text: &models.TextContent{
+					Markdown: strings.Repeat("a", 1501), // More than 1500 characters
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "content too long")
 	})
 
 	t.Run("validates content with exactly 50 characters", func(t *testing.T) {
-		step := &models.Step{
-			Content: strings.Repeat("a", 50),
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Text: &models.TextContent{
+					Markdown: strings.Repeat("a", 50),
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
 	t.Run("validates content with exactly 1500 characters", func(t *testing.T) {
-		step := &models.Step{
-			Content: strings.Repeat("a", 1500),
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Text: &models.TextContent{
+					Markdown: strings.Repeat("a", 1500),
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 }
@@ -273,26 +312,26 @@ func TestReviewToolMetadata(t *testing.T) {
 func TestReviewToolParseContent(t *testing.T) {
 	tool := &ReviewTool{}
 
-	t.Run("parses content and sets type to review", func(t *testing.T) {
+	t.Run("parses content and sets type to text", func(t *testing.T) {
 		content := `{
 			"topic": "Review Topic",
 			"title": "Quick Review",
 			"content": "This is review content to refresh your memory about the previously learned concept."
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "review", step.Type)
-		assert.Equal(t, "Review Topic", step.Topic)
+		assert.Equal(t, models.BlockTypeText, block.Type)
+		assert.Equal(t, "Quick Review", block.Title)
 	})
 
 	t.Run("returns error for invalid JSON", func(t *testing.T) {
 		content := `{invalid}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		assert.Error(t, err)
 	})
@@ -302,11 +341,15 @@ func TestReviewToolInheritsValidation(t *testing.T) {
 	tool := &ReviewTool{}
 
 	t.Run("validates like LessonTool", func(t *testing.T) {
-		step := &models.Step{
-			Content: "Short",
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Text: &models.TextContent{
+					Markdown: "Short",
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "content too short")
 	})
@@ -351,19 +394,19 @@ func TestSummaryToolParseContent(t *testing.T) {
 			"content": "In this module, we covered three key concepts: variables, functions, and control flow."
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "summary", step.Type)
-		assert.Equal(t, "Module Summary", step.Topic)
+		assert.Equal(t, "summary", block.Type)
+		assert.Equal(t, "Key Concepts Review", block.Title)
 	})
 
 	t.Run("returns error for invalid JSON", func(t *testing.T) {
 		content := `{invalid}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		assert.Error(t, err)
 	})
@@ -373,11 +416,11 @@ func TestSummaryToolInheritsValidation(t *testing.T) {
 	tool := &SummaryTool{}
 
 	t.Run("validates like LessonTool", func(t *testing.T) {
-		step := &models.Step{
-			Content: "",
+		block := &models.Block{
+			Content: nil,
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "content is required")
 	})

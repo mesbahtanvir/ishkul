@@ -104,12 +104,17 @@ export interface BlockResult {
 }
 
 export interface LessonProgress {
-  currentBlockIndex: number;
-  blockResults: BlockResult[];
-  startedAt: number;
+  currentBlockIndex?: number;
+  blockResults?: BlockResult[];
+  startedAt?: number;
   completedAt?: number;
   score?: number;
   timeSpent?: number; // seconds
+  // Additional fields for local tracking
+  lessonId?: string;
+  completedBlocks?: string[]; // IDs of completed blocks
+  lastBlockId?: string;
+  updatedAt?: number;
 }
 
 export interface CompletedLessonSummary {
@@ -136,7 +141,7 @@ export interface CourseProgress {
 // Lesson and Section Types (New Structure)
 // ============================================
 
-export type LessonStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
+export type LessonStatus = 'pending' | 'in_progress' | 'completed' | 'skipped' | 'locked';
 export type SectionStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
 
 export interface Lesson {
@@ -275,6 +280,8 @@ export interface CourseOutline {
   prerequisites: string[];
   learningOutcomes: string[];
   sections: Section[];
+  // Legacy compatibility: modules is an alias for sections with legacy structure
+  modules?: OutlineModule[];
   metadata?: OutlineMetadata;
   generatedAt: number;
 }

@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { BlockContent, TextContent } from '../../types/app';
+import { BlockContent } from '../../types/app';
 import { MarkdownContent } from '../MarkdownContent';
 
 interface TextBlockRendererProps {
@@ -12,11 +12,12 @@ interface TextBlockRendererProps {
 }
 
 export const TextBlockRenderer: React.FC<TextBlockRendererProps> = ({ content }) => {
-  const textContent = content as TextContent;
+  // BlockContent.text is TextContent which has a text property
+  const textValue = content.text?.text || '';
 
   return (
     <View style={styles.container}>
-      <MarkdownContent content={textContent.text} />
+      <MarkdownContent content={textValue} />
     </View>
   );
 };

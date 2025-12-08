@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput } from 'react-native';
-import { BlockContent, TaskContent } from '../../types/app';
+import { BlockContent } from '../../types/app';
 import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
@@ -20,30 +20,43 @@ interface TaskBlockRendererProps {
 export const TaskBlockRenderer: React.FC<TaskBlockRendererProps> = ({
   content,
   onComplete,
-  isActive = false,
 }) => {
   const { colors } = useTheme();
-  const taskContent = content as TaskContent;
+  // Access the task content from BlockContent.task
+  const taskContent = content.task;
 
   const [userSolution, setUserSolution] = useState('');
-  const [showSolution, setShowSolution] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
-
-  const handleShowSolution = () => {
-    setShowSolution(true);
-  };
 
   const handleComplete = () => {
     setIsCompleted(true);
     onComplete?.();
   };
 
+  if (!taskContent) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       {/* Task Description */}
       <View style={styles.taskContainer}>
-        <MarkdownContent content={taskContent.task} />
+        <MarkdownContent content={taskContent.instructions || ''} />
       </View>
+
+      {/* Steps */}
+      {taskContent.steps && taskContent.steps.length > 0 && (
+        <View style={[styles.hintsContainer, { backgroundColor: colors.primary + '10', borderColor: colors.primary }]}>
+          <Text style={[styles.hintsTitle, { color: colors.primary }]}>
+            📝 Steps
+          </Text>
+          {taskContent.steps.map((step, index) => (
+            <Text key={index} style={[styles.hintText, { color: colors.text.primary }]}>
+              {index + 1}. {step}
+            </Text>
+          ))}
+        </View>
+      )}
 
       {/* Hints */}
       {taskContent.hints && taskContent.hints.length > 0 && (
@@ -84,26 +97,20 @@ export const TaskBlockRenderer: React.FC<TaskBlockRendererProps> = ({
         />
       </View>
 
-      {/* Example Solution */}
-      {showSolution && taskContent.solution && (
+      {/* Success Criteria */}
+      {taskContent.successCriteria && (
         <View style={[styles.solutionContainer, { backgroundColor: colors.success + '10', borderColor: colors.success }]}>
           <Text style={[styles.solutionTitle, { color: colors.success }]}>
-            ✅ Example Solution
+            ✅ Success Criteria
           </Text>
-          <MarkdownContent content={taskContent.solution} />
+          <Text style={[styles.hintText, { color: colors.text.primary }]}>
+            {taskContent.successCriteria}
+          </Text>
         </View>
       )}
 
       {/* Action Buttons */}
       <View style={styles.buttonContainer}>
-        {!showSolution && taskContent.solution && (
-          <Button
-            title="Show Solution"
-            onPress={handleShowSolution}
-            variant="outline"
-            style={styles.button}
-          />
-        )}
         <Button
           title={isCompleted ? 'Completed' : 'Mark Complete'}
           onPress={handleComplete}

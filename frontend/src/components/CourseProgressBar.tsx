@@ -23,7 +23,7 @@ export const CourseProgressBar: React.FC<CourseProgressBarProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  if (!outline) return null;
+  if (!outline || !outline.modules) return null;
 
   const totalTopics = outline.modules.reduce((sum, m) => sum + m.topics.length, 0);
   const completedTopics = outline.modules.reduce(
@@ -81,8 +81,8 @@ export const CourseProgressBar: React.FC<CourseProgressBarProps> = ({
               ]}
             />
             {/* Module markers */}
-            {outline.modules.map((module, idx) => {
-              const moduleStartPosition = outline.modules
+            {outline.modules?.map((module, idx) => {
+              const moduleStartPosition = outline.modules!
                 .slice(0, idx)
                 .reduce((sum, m) => sum + m.topics.length, 0);
               const markerPosition = (moduleStartPosition / totalTopics) * 100;

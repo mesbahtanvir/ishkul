@@ -18,7 +18,7 @@ type ToolSelection struct {
 //
 // Layer 1: Selection Cache - Tool selection results (5 min TTL)
 // Layer 2: Content Cache  - Tool-specific content (10 min TTL)
-// Layer 3: Step Cache     - Complete pre-generated steps (15 min TTL)
+// Layer 3: Block Cache    - Complete pre-generated blocks (15 min TTL)
 type MultiLayerCache struct {
 	// Layer 1: Tool selection results
 	selectionCache *GenericCache
@@ -26,8 +26,8 @@ type MultiLayerCache struct {
 	// Layer 2: Tool-specific content
 	contentCache *GenericCache
 
-	// Layer 3: Complete steps (uses existing StepCache)
-	stepCache *StepCache
+	// Layer 3: Complete blocks (uses existing BlockCache)
+	blockCache *BlockCache
 
 	// Metrics
 	metrics *CacheMetrics
@@ -39,8 +39,8 @@ type CacheMetrics struct {
 	SelectionMisses int64
 	ContentHits     int64
 	ContentMisses   int64
-	StepHits        int64
-	StepMisses      int64
+	BlockHits       int64
+	BlockMisses     int64
 	SpeculativeHits int64 // Content that was pre-generated and used
 }
 
@@ -49,7 +49,7 @@ func NewMultiLayerCache() *MultiLayerCache {
 	return &MultiLayerCache{
 		selectionCache: NewGenericCache(5 * time.Minute),
 		contentCache:   NewGenericCache(10 * time.Minute),
-		stepCache:      NewStepCache(15 * time.Minute),
+		blockCache:     NewBlockCache(15 * time.Minute),
 		metrics:        &CacheMetrics{},
 	}
 }
@@ -58,7 +58,7 @@ func NewMultiLayerCache() *MultiLayerCache {
 func (m *MultiLayerCache) StartCleanup(interval time.Duration) {
 	m.selectionCache.StartCleanup(interval)
 	m.contentCache.StartCleanup(interval)
-	m.stepCache.StartCleanup(interval)
+	m.blockCache.StartCleanup(interval)
 }
 
 // --- Layer 1: Selection Cache ---
@@ -127,32 +127,32 @@ func (m *MultiLayerCache) InvalidateAllContent(courseID string) {
 	m.contentCache.DeleteByPrefix("content:" + courseID)
 }
 
-// --- Layer 3: Step Cache ---
+// --- Layer 3: Block Cache ---
 
-// GetStep retrieves a cached complete step.
-func (m *MultiLayerCache) GetStep(courseID, userID string) *models.Step {
-	step := m.stepCache.Get(courseID, userID)
-	if step != nil {
-		atomic.AddInt64(&m.metrics.StepHits, 1)
+// GetBlock retrieves a cached complete block.
+func (m *MultiLayerCache) GetBlock(courseID, lessonID, blockID string) *models.Block {
+	block := m.blockCache.Get(courseID, lessonID, blockID)
+	if block != nil {
+		atomic.AddInt64(&m.metrics.BlockHits, 1)
 	} else {
-		atomic.AddInt64(&m.metrics.StepMisses, 1)
+		atomic.AddInt64(&m.metrics.BlockMisses, 1)
 	}
-	return step
+	return block
 }
 
-// SetStep stores a complete step.
-func (m *MultiLayerCache) SetStep(courseID, userID string, step *models.Step) {
-	m.stepCache.Set(courseID, userID, step)
+// SetBlock stores a complete block.
+func (m *MultiLayerCache) SetBlock(courseID, lessonID, blockID string, block *models.Block) {
+	m.blockCache.Set(courseID, lessonID, blockID, block)
 }
 
-// InvalidateStep removes a cached step.
-func (m *MultiLayerCache) InvalidateStep(courseID, userID string) {
-	m.stepCache.Delete(courseID, userID)
+// InvalidateBlock removes a cached block.
+func (m *MultiLayerCache) InvalidateBlock(courseID, lessonID, blockID string) {
+	m.blockCache.Delete(courseID, lessonID, blockID)
 }
 
-// HasStep checks if a step is cached.
-func (m *MultiLayerCache) HasStep(courseID, userID string) bool {
-	return m.stepCache.Has(courseID, userID)
+// HasBlock checks if a block is cached.
+func (m *MultiLayerCache) HasBlock(courseID, lessonID, blockID string) bool {
+	return m.blockCache.Has(courseID, lessonID, blockID)
 }
 
 // --- Metrics ---
@@ -164,8 +164,8 @@ func (m *MultiLayerCache) GetMetrics() CacheMetrics {
 		SelectionMisses: atomic.LoadInt64(&m.metrics.SelectionMisses),
 		ContentHits:     atomic.LoadInt64(&m.metrics.ContentHits),
 		ContentMisses:   atomic.LoadInt64(&m.metrics.ContentMisses),
-		StepHits:        atomic.LoadInt64(&m.metrics.StepHits),
-		StepMisses:      atomic.LoadInt64(&m.metrics.StepMisses),
+		BlockHits:       atomic.LoadInt64(&m.metrics.BlockHits),
+		BlockMisses:     atomic.LoadInt64(&m.metrics.BlockMisses),
 		SpeculativeHits: atomic.LoadInt64(&m.metrics.SpeculativeHits),
 	}
 }
@@ -192,10 +192,10 @@ func (m *MultiLayerCache) ContentHitRate() float64 {
 	return float64(hits) / float64(total)
 }
 
-// StepHitRate returns the step cache hit rate.
-func (m *MultiLayerCache) StepHitRate() float64 {
-	hits := atomic.LoadInt64(&m.metrics.StepHits)
-	misses := atomic.LoadInt64(&m.metrics.StepMisses)
+// BlockHitRate returns the block cache hit rate.
+func (m *MultiLayerCache) BlockHitRate() float64 {
+	hits := atomic.LoadInt64(&m.metrics.BlockHits)
+	misses := atomic.LoadInt64(&m.metrics.BlockMisses)
 	total := hits + misses
 	if total == 0 {
 		return 0
@@ -206,23 +206,22 @@ func (m *MultiLayerCache) StepHitRate() float64 {
 // --- Invalidation Helpers ---
 
 // InvalidateForCourse invalidates all caches related to a course.
-// Call this when a step is completed.
-func (m *MultiLayerCache) InvalidateForCourse(courseID, userID string) {
+// Call this when a block is completed.
+func (m *MultiLayerCache) InvalidateForCourse(courseID string) {
 	m.InvalidateSelection(courseID)
-	m.InvalidateStep(courseID, userID)
-	// Content cache is not invalidated as it may still be valid for same topic
+	// Content cache and block cache are not invalidated as they may still be valid
 }
 
 // InvalidateAll clears all caches for a course.
-func (m *MultiLayerCache) InvalidateAll(courseID, userID string) {
+func (m *MultiLayerCache) InvalidateAll(courseID string) {
 	m.InvalidateSelection(courseID)
 	m.InvalidateAllContent(courseID)
-	m.InvalidateStep(courseID, userID)
+	// Note: Block cache uses courseID:lessonID:blockID keys, so we'd need prefix delete
 }
 
 // Clear removes all items from all cache layers.
 func (m *MultiLayerCache) Clear() {
 	m.selectionCache.Clear()
 	m.contentCache.Clear()
-	m.stepCache.Clear()
+	m.blockCache.Clear()
 }

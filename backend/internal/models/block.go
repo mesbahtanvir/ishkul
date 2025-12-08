@@ -30,8 +30,8 @@ const (
 // Block represents a content block within a lesson (Stage 2 + Stage 3 output)
 type Block struct {
 	ID            string        `json:"id" firestore:"id"`
-	Type          string        `json:"type" firestore:"type"`     // text, code, question, task, flashcard, summary
-	Title         string        `json:"title" firestore:"title"`   // Block title (from skeleton)
+	Type          string        `json:"type" firestore:"type"`       // text, code, question, task, flashcard, summary
+	Title         string        `json:"title" firestore:"title"`     // Block title (from skeleton)
 	Purpose       string        `json:"purpose" firestore:"purpose"` // What this block achieves (from skeleton)
 	Order         int           `json:"order" firestore:"order"`
 	ContentStatus string        `json:"contentStatus" firestore:"contentStatus"` // pending, generating, ready, error

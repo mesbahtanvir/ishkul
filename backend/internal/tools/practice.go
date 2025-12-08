@@ -86,28 +86,32 @@ func (t *PracticeTool) PromptFile() string {
 	return "learning/tools/practice"
 }
 
-// ParseContent parses LLM response into a Step.
-func (t *PracticeTool) ParseContent(content string, step *models.Step) error {
+// ParseContent parses LLM response into a Block.
+func (t *PracticeTool) ParseContent(content string, block *models.Block) error {
 	var data PracticeData
 	if err := json.Unmarshal([]byte(content), &data); err != nil {
 		return fmt.Errorf("failed to parse practice content: %w", err)
 	}
 
-	step.Type = "practice"
-	step.Topic = data.Topic
-	step.Title = data.Title
-	step.Task = data.Task
-	step.Hints = data.Hints
+	block.Type = models.BlockTypeTask
+	block.Title = data.Title
+	block.Content = &models.BlockContent{
+		Task: &models.TaskContent{
+			Instruction:     data.Task,
+			Hints:           data.Hints,
+			SuccessCriteria: data.SuccessCriteria,
+		},
+	}
 
 	return nil
 }
 
-// Validate checks if the practice step data is valid.
-func (t *PracticeTool) Validate(step *models.Step) error {
-	if step.Task == "" {
-		return fmt.Errorf("practice task is required")
+// Validate checks if the practice block data is valid.
+func (t *PracticeTool) Validate(block *models.Block) error {
+	if block.Content == nil || block.Content.Task == nil || block.Content.Task.Instruction == "" {
+		return fmt.Errorf("practice task instruction is required")
 	}
-	if len(step.Task) < 20 {
+	if len(block.Content.Task.Instruction) < 20 {
 		return fmt.Errorf("practice task too short (min 20 chars)")
 	}
 	return nil

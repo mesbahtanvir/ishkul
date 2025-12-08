@@ -123,16 +123,18 @@ func TestQuizToolParseContent(t *testing.T) {
 			"explanation": "Go uses 'var' for variable declarations"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "quiz", step.Type)
-		assert.Equal(t, "Go Programming", step.Topic)
-		assert.Equal(t, "Variable Declaration Quiz", step.Title)
-		assert.Equal(t, "What keyword is used to declare a variable in Go?", step.Question)
-		assert.Equal(t, "var", step.ExpectedAnswer)
-		assert.Equal(t, []string{"let", "var", "const", "define"}, step.Options)
+		assert.Equal(t, models.BlockTypeQuestion, block.Type)
+		assert.Equal(t, "Variable Declaration Quiz", block.Title)
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Question)
+		assert.Equal(t, "What keyword is used to declare a variable in Go?", block.Content.Question.Question.Text)
+		assert.Equal(t, "var", block.Content.Question.Question.CorrectAnswer)
+		assert.Len(t, block.Content.Question.Question.Options, 4)
+		assert.Equal(t, "Go uses 'var' for variable declarations", block.Content.Question.Question.Explanation)
 	})
 
 	t.Run("parses content without optional fields", func(t *testing.T) {
@@ -143,19 +145,19 @@ func TestQuizToolParseContent(t *testing.T) {
 			"expectedAnswer": "Testing individual units of code"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "quiz", step.Type)
-		assert.Nil(t, step.Options)
+		assert.Equal(t, models.BlockTypeQuestion, block.Type)
+		assert.Empty(t, block.Content.Question.Question.Options)
 	})
 
 	t.Run("returns error for invalid JSON", func(t *testing.T) {
 		content := `{invalid json}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to parse quiz content")
@@ -164,8 +166,8 @@ func TestQuizToolParseContent(t *testing.T) {
 	t.Run("returns error for empty content", func(t *testing.T) {
 		content := ``
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		assert.Error(t, err)
 	})
@@ -178,12 +180,12 @@ func TestQuizToolParseContent(t *testing.T) {
 			"expectedAnswer": "やま"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "日本語", step.Topic)
-		assert.Equal(t, "やま", step.ExpectedAnswer)
+		assert.Equal(t, "漢字クイズ", block.Title)
+		assert.Equal(t, "やま", block.Content.Question.Question.CorrectAnswer)
 	})
 }
 
@@ -194,66 +196,71 @@ func TestQuizToolParseContent(t *testing.T) {
 func TestQuizToolValidate(t *testing.T) {
 	tool := &QuizTool{}
 
-	t.Run("validates valid step", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "This is a valid question with enough characters",
-			ExpectedAnswer: "Valid answer",
+	// Helper to create a valid block with question content
+	makeBlock := func(question, answer string) *models.Block {
+		return &models.Block{
+			Type: models.BlockTypeQuestion,
+			Content: &models.BlockContent{
+				Question: &models.QuestionContent{
+					Question: models.Question{
+						Text:          question,
+						CorrectAnswer: answer,
+					},
+				},
+			},
 		}
+	}
 
-		err := tool.Validate(step)
+	t.Run("validates valid block", func(t *testing.T) {
+		block := makeBlock("This is a valid question with enough characters", "Valid answer")
+
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
-	t.Run("returns error for empty question", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "",
-			ExpectedAnswer: "Answer",
-		}
+	t.Run("returns error for nil content", func(t *testing.T) {
+		block := &models.Block{Type: models.BlockTypeQuestion}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "content is required")
+	})
+
+	t.Run("returns error for empty question", func(t *testing.T) {
+		block := makeBlock("", "Answer")
+
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "question is required")
 	})
 
 	t.Run("returns error for short question", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "Short?",
-			ExpectedAnswer: "Answer",
-		}
+		block := makeBlock("Short?", "Answer")
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "question too short")
 	})
 
 	t.Run("returns error for empty expected answer", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "This is a valid question with enough characters",
-			ExpectedAnswer: "",
-		}
+		block := makeBlock("This is a valid question with enough characters", "")
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "expected answer is required")
 	})
 
 	t.Run("validates question with exactly 10 characters", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "1234567890",
-			ExpectedAnswer: "Answer",
-		}
+		block := makeBlock("1234567890", "Answer")
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
 	t.Run("rejects question with 9 characters", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "123456789",
-			ExpectedAnswer: "Answer",
-		}
+		block := makeBlock("123456789", "Answer")
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 	})
 }

@@ -7,39 +7,39 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 )
 
-// CachedStep represents a pre-generated step stored in cache
-type CachedStep struct {
-	Step      *models.Step
+// CachedBlock represents a pre-generated block stored in cache
+type CachedBlock struct {
+	Block     *models.Block
 	CreatedAt time.Time
 	ExpiresAt time.Time
 }
 
-// StepCache provides thread-safe in-memory caching for pre-generated steps
-type StepCache struct {
+// BlockCache provides thread-safe in-memory caching for pre-generated blocks
+type BlockCache struct {
 	mu    sync.RWMutex
-	items map[string]*CachedStep // key: "pathID:userID"
+	items map[string]*CachedBlock // key: "courseID:lessonID:blockID"
 	ttl   time.Duration
 }
 
-// NewStepCache creates a new step cache with the specified TTL
-func NewStepCache(ttl time.Duration) *StepCache {
-	return &StepCache{
-		items: make(map[string]*CachedStep),
+// NewBlockCache creates a new block cache with the specified TTL
+func NewBlockCache(ttl time.Duration) *BlockCache {
+	return &BlockCache{
+		items: make(map[string]*CachedBlock),
 		ttl:   ttl,
 	}
 }
 
-// cacheKey generates a unique key for a path-user combination
-func cacheKey(pathID, userID string) string {
-	return pathID + ":" + userID
+// cacheKey generates a unique key for a block
+func cacheKey(courseID, lessonID, blockID string) string {
+	return courseID + ":" + lessonID + ":" + blockID
 }
 
-// Get retrieves a cached step if it exists and hasn't expired
-func (c *StepCache) Get(pathID, userID string) *models.Step {
+// Get retrieves a cached block if it exists and hasn't expired
+func (c *BlockCache) Get(courseID, lessonID, blockID string) *models.Block {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	key := cacheKey(pathID, userID)
+	key := cacheKey(courseID, lessonID, blockID)
 	cached, exists := c.items[key]
 	if !exists {
 		return nil
@@ -50,38 +50,38 @@ func (c *StepCache) Get(pathID, userID string) *models.Step {
 		return nil
 	}
 
-	return cached.Step
+	return cached.Block
 }
 
-// Set stores a step in the cache
-func (c *StepCache) Set(pathID, userID string, step *models.Step) {
+// Set stores a block in the cache
+func (c *BlockCache) Set(courseID, lessonID, blockID string, block *models.Block) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	key := cacheKey(pathID, userID)
+	key := cacheKey(courseID, lessonID, blockID)
 	now := time.Now()
-	c.items[key] = &CachedStep{
-		Step:      step,
+	c.items[key] = &CachedBlock{
+		Block:     block,
 		CreatedAt: now,
 		ExpiresAt: now.Add(c.ttl),
 	}
 }
 
-// Delete removes a cached step
-func (c *StepCache) Delete(pathID, userID string) {
+// Delete removes a cached block
+func (c *BlockCache) Delete(courseID, lessonID, blockID string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	key := cacheKey(pathID, userID)
+	key := cacheKey(courseID, lessonID, blockID)
 	delete(c.items, key)
 }
 
-// Has checks if a valid (non-expired) cached step exists
-func (c *StepCache) Has(pathID, userID string) bool {
+// Has checks if a valid (non-expired) cached block exists
+func (c *BlockCache) Has(courseID, lessonID, blockID string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	key := cacheKey(pathID, userID)
+	key := cacheKey(courseID, lessonID, blockID)
 	cached, exists := c.items[key]
 	if !exists {
 		return false
@@ -91,14 +91,14 @@ func (c *StepCache) Has(pathID, userID string) bool {
 }
 
 // Size returns the number of items in the cache (including expired)
-func (c *StepCache) Size() int {
+func (c *BlockCache) Size() int {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return len(c.items)
 }
 
 // StartCleanup starts a goroutine that periodically removes expired entries
-func (c *StepCache) StartCleanup(interval time.Duration) {
+func (c *BlockCache) StartCleanup(interval time.Duration) {
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -110,7 +110,7 @@ func (c *StepCache) StartCleanup(interval time.Duration) {
 }
 
 // cleanup removes expired entries from the cache
-func (c *StepCache) cleanup() {
+func (c *BlockCache) cleanup() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -123,8 +123,8 @@ func (c *StepCache) cleanup() {
 }
 
 // Clear removes all items from the cache
-func (c *StepCache) Clear() {
+func (c *BlockCache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.items = make(map[string]*CachedStep)
+	c.items = make(map[string]*CachedBlock)
 }

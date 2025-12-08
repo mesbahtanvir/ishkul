@@ -4,21 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/cache"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 )
 
-// PregenerateService handles background pre-generation of learning steps
+// PregenerateService handles background pre-generation of learning blocks
 type PregenerateService struct {
-	cache        *cache.StepCache
+	cache        *cache.BlockCache
 	llmProvider  llm.Provider
 	providerType llm.ProviderType
 	loader       *prompts.Loader
@@ -29,7 +27,7 @@ type PregenerateService struct {
 
 // NewPregenerateService creates a new pre-generation service
 func NewPregenerateService(
-	stepCache *cache.StepCache,
+	blockCache *cache.BlockCache,
 	provider llm.Provider,
 	providerType llm.ProviderType,
 	promptLoader *prompts.Loader,
@@ -37,7 +35,7 @@ func NewPregenerateService(
 	logger *slog.Logger,
 ) *PregenerateService {
 	return &PregenerateService{
-		cache:        stepCache,
+		cache:        blockCache,
 		llmProvider:  provider,
 		providerType: providerType,
 		loader:       promptLoader,
@@ -46,19 +44,20 @@ func NewPregenerateService(
 	}
 }
 
-// TriggerPregeneration starts background generation for a course
+// TriggerPregeneration starts background generation for a course's next block
 // It's safe to call multiple times - duplicate calls will be ignored
 func (s *PregenerateService) TriggerPregeneration(course *models.Course, userTier string) {
 	if s.llmProvider == nil || s.loader == nil {
 		return // LLM not initialized
 	}
 
-	key := course.ID + ":" + course.UserID
-
-	// Skip if already cached
-	if s.cache.Has(course.ID, course.UserID) {
-		return
+	// Get current lesson
+	lesson := course.GetCurrentLesson()
+	if lesson == nil {
+		return // No current lesson
 	}
+
+	key := course.ID + ":" + lesson.ID
 
 	// Skip if already generating
 	if _, exists := s.inProgress.LoadOrStore(key, true); exists {
@@ -72,11 +71,12 @@ func (s *PregenerateService) TriggerPregeneration(course *models.Course, userTie
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
-		step, err := s.generateStep(ctx, course, userTier)
+		block, err := s.generateBlock(ctx, course, lesson, userTier)
 		if err != nil {
 			if s.logger != nil {
 				s.logger.Error("pregeneration_failed",
 					slog.String("course_id", course.ID),
+					slog.String("lesson_id", lesson.ID),
 					slog.String("user_id", course.UserID),
 					slog.String("user_tier", userTier),
 					slog.String("error", err.Error()),
@@ -86,77 +86,51 @@ func (s *PregenerateService) TriggerPregeneration(course *models.Course, userTie
 		}
 
 		// Store in cache
-		s.cache.Set(course.ID, course.UserID, step)
+		s.cache.Set(course.ID, lesson.ID, block.ID, block)
 
 		if s.logger != nil {
 			s.logger.Info("pregeneration_complete",
 				slog.String("course_id", course.ID),
+				slog.String("lesson_id", lesson.ID),
 				slog.String("user_tier", userTier),
-				slog.String("step_type", step.Type),
-				slog.String("step_topic", step.Topic),
+				slog.String("block_type", block.Type),
+				slog.String("block_title", block.Title),
 			)
 		}
 	}()
 }
 
-// IsGenerating checks if a course is currently being pre-generated
-func (s *PregenerateService) IsGenerating(courseID, userID string) bool {
-	key := courseID + ":" + userID
+// IsGenerating checks if a course/lesson is currently being pre-generated
+func (s *PregenerateService) IsGenerating(courseID, lessonID string) bool {
+	key := courseID + ":" + lessonID
 	_, exists := s.inProgress.Load(key)
 	return exists
 }
 
-// generateStep creates a new step using the LLM with tier-aware model selection
-func (s *PregenerateService) generateStep(ctx context.Context, path *models.Course, userTier string) (*models.Step, error) {
-	// Get recent steps since last compaction
-	recentSteps := getRecentSteps(path)
-
-	// Build recent history string
-	recentHistory := ""
-	if len(recentSteps) > 0 {
-		topics := make([]string, 0, len(recentSteps))
-		for _, step := range recentSteps {
-			topics = append(topics, step.Topic)
-		}
-		// Get last 5 topics for context
-		start := len(topics) - 5
-		if start < 0 {
-			start = 0
-		}
-		recentHistory = strings.Join(topics[start:], ", ")
-	}
-
-	// Build memory context
-	memorySummary := buildMemoryContext(path)
+// generateBlock creates a new block using the LLM with tier-aware model selection
+func (s *PregenerateService) generateBlock(ctx context.Context, course *models.Course, lesson *models.Lesson, userTier string) (*models.Block, error) {
+	// Build context from course progress
+	memorySummary := buildCourseContext(course)
 
 	// Prepare variables for the prompt
 	vars := prompts.Variables{
-		"goal":          path.Goal,
-		"historyCount":  strconv.Itoa(len(path.Steps)),
-		"memory":        memorySummary,
-		"recentHistory": recentHistory,
+		"courseTitle":       course.Title,
+		"lessonTitle":       lesson.Title,
+		"lessonDescription": lesson.Description,
+		"context":           memorySummary,
 	}
 
-	// Add outline context if available
-	if path.Outline != nil && path.OutlinePosition != nil {
-		moduleIdx := path.OutlinePosition.ModuleIndex
-		topicIdx := path.OutlinePosition.TopicIndex
-
-		if moduleIdx < len(path.Outline.Modules) {
-			module := path.Outline.Modules[moduleIdx]
-			vars["currentModule"] = module.Title
-
-			if topicIdx < len(module.Topics) {
-				topic := module.Topics[topicIdx]
-				vars["currentTopic"] = topic.Title
-				vars["currentTopicType"] = topic.ToolID
-				vars["currentTopicDescription"] = topic.Description
-			}
+	// Add current section context if available
+	if course.Outline != nil && course.CurrentPosition != nil {
+		sectionIdx := course.CurrentPosition.SectionIndex
+		if sectionIdx < len(course.Outline.Sections) {
+			section := course.Outline.Sections[sectionIdx]
+			vars["currentSection"] = section.Title
 		}
 	}
 
-	// Load the next-step prompt template
-	template, err := s.loader.LoadByName("learning/next-step")
+	// Load the block generation prompt template
+	template, err := s.loader.LoadByName("learning/generate-block")
 	if err != nil {
 		return nil, fmt.Errorf("failed to load prompt template: %w", err)
 	}
@@ -180,106 +154,59 @@ func (s *PregenerateService) generateStep(ctx context.Context, path *models.Cour
 	content := completion.Choices[0].Message.Content
 
 	// Parse the JSON response
-	var stepData struct {
-		Type           string   `json:"type"`
-		Topic          string   `json:"topic"`
-		Title          string   `json:"title"`
-		Content        string   `json:"content,omitempty"`
-		Question       string   `json:"question,omitempty"`
-		Options        []string `json:"options,omitempty"`
-		ExpectedAnswer string   `json:"expectedAnswer,omitempty"`
-		Task           string   `json:"task,omitempty"`
-		Hints          []string `json:"hints,omitempty"`
+	var blockData struct {
+		Type    string `json:"type"`
+		Title   string `json:"title"`
+		Purpose string `json:"purpose"`
+		Content string `json:"content"`
 	}
-	if err := llm.ParseJSONResponse(content, &stepData); err != nil {
+	if err := llm.ParseJSONResponse(content, &blockData); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM response as JSON: %w (content: %s)", err, content)
 	}
 
-	// Truncate content if too long
-	if len(stepData.Content) > models.MaxStepContentLength {
-		stepData.Content = stepData.Content[:models.MaxStepContentLength]
+	// Create the Block
+	block := &models.Block{
+		ID:            fmt.Sprintf("block_%d", time.Now().UnixNano()),
+		Type:          blockData.Type,
+		Title:         blockData.Title,
+		Purpose:       blockData.Purpose,
+		ContentStatus: models.ContentStatusReady,
+		Content: &models.BlockContent{
+			Text: &models.TextContent{
+				Markdown: blockData.Content,
+			},
+		},
 	}
 
-	// Create the Step
-	now := time.Now().UnixMilli()
-	step := &models.Step{
-		ID:             uuid.New().String(),
-		Index:          len(path.Steps),
-		Type:           stepData.Type,
-		Topic:          stepData.Topic,
-		Title:          stepData.Title,
-		Content:        stepData.Content,
-		Question:       stepData.Question,
-		Options:        stepData.Options,
-		ExpectedAnswer: stepData.ExpectedAnswer,
-		Task:           stepData.Task,
-		Hints:          stepData.Hints,
-		Completed:      false,
-		CreatedAt:      now,
-	}
-
-	return step, nil
+	return block, nil
 }
 
-// getRecentSteps returns steps since the last compaction
-func getRecentSteps(course *models.Course) []models.Step {
-	if course.Memory == nil || course.Memory.Compaction == nil {
-		return course.Steps
-	}
-
-	lastIndex := course.Memory.Compaction.LastStepIndex
-	if lastIndex >= len(course.Steps)-1 {
-		return []models.Step{}
-	}
-
-	return course.Steps[lastIndex+1:]
-}
-
-// buildMemoryContext builds a context string from the course's memory
-func buildMemoryContext(course *models.Course) string {
+// buildCourseContext builds a context string from the course's progress
+func buildCourseContext(course *models.Course) string {
 	var sb strings.Builder
 
-	if course.Memory == nil {
-		return "No prior learning history."
-	}
+	sb.WriteString(fmt.Sprintf("Course: %s\n", course.Title))
+	sb.WriteString(fmt.Sprintf("Progress: %d%%\n", course.Progress))
 
-	// Include compaction summary if available
-	if course.Memory.Compaction != nil && course.Memory.Compaction.Summary != "" {
-		sb.WriteString("Learning Summary: ")
-		sb.WriteString(course.Memory.Compaction.Summary)
-		sb.WriteString("\n")
+	if course.Outline != nil {
+		sb.WriteString(fmt.Sprintf("Sections: %d\n", len(course.Outline.Sections)))
 
-		if len(course.Memory.Compaction.Strengths) > 0 {
-			sb.WriteString("Strengths: ")
-			sb.WriteString(strings.Join(course.Memory.Compaction.Strengths, ", "))
-			sb.WriteString("\n")
+		// Count completed lessons
+		completed := 0
+		total := 0
+		for _, section := range course.Outline.Sections {
+			for _, lesson := range section.Lessons {
+				total++
+				if lesson.Status == models.LessonStatusCompleted {
+					completed++
+				}
+			}
 		}
-
-		if len(course.Memory.Compaction.Weaknesses) > 0 {
-			sb.WriteString("Areas needing work: ")
-			sb.WriteString(strings.Join(course.Memory.Compaction.Weaknesses, ", "))
-			sb.WriteString("\n")
-		}
-
-		if len(course.Memory.Compaction.Recommendations) > 0 {
-			sb.WriteString("Recommendations: ")
-			sb.WriteString(strings.Join(course.Memory.Compaction.Recommendations, ", "))
-			sb.WriteString("\n")
-		}
-	}
-
-	// Include topic confidence scores
-	if len(course.Memory.Topics) > 0 {
-		sb.WriteString("Topic Confidence: ")
-		topicStrs := make([]string, 0, len(course.Memory.Topics))
-		for topic, mem := range course.Memory.Topics {
-			topicStrs = append(topicStrs, fmt.Sprintf("%s: %.0f%%", topic, mem.Confidence*100))
-		}
-		sb.WriteString(strings.Join(topicStrs, ", "))
+		sb.WriteString(fmt.Sprintf("Lessons completed: %d/%d\n", completed, total))
 	}
 
 	if sb.Len() == 0 {
-		return "No prior learning history."
+		return "Starting new course."
 	}
 
 	return sb.String()

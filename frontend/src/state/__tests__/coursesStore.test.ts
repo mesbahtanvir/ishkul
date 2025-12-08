@@ -11,9 +11,12 @@ import { Course, Step } from '../../types/app';
 // Helper to create mock learning path
 const createMockPath = (overrides: Partial<Course> = {}): Course => ({
   id: `path_${Date.now()}`,
+  userId: 'test-user-id',
+  title: 'Learn TypeScript',
   goal: 'Learn TypeScript',
   emoji: '💙',
   status: 'active',
+  outlineStatus: 'ready',
   progress: 0,
   lessonsCompleted: 0,
   totalLessons: 10,
@@ -216,7 +219,7 @@ describe('coursesStore', () => {
 
       const { courses } = useCoursesStore.getState();
       expect(courses[0].steps).toHaveLength(1);
-      expect(courses[0].steps[0].id).toBe(step.id);
+      expect(courses[0].steps![0].id).toBe(step.id);
     });
 
     it('should update activeCourse steps if it matches', () => {
@@ -244,7 +247,7 @@ describe('coursesStore', () => {
       });
 
       const { courses } = useCoursesStore.getState();
-      expect(courses[0].steps[0].completed).toBe(true);
+      expect(courses[0].steps![0].completed).toBe(true);
     });
   });
 

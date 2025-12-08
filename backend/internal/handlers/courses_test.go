@@ -760,21 +760,22 @@ func TestStepCompleteJSON(t *testing.T) {
 
 func TestCourseJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
-		path := models.Course{
-			ID:               "path-123",
+		course := models.Course{
+			ID:               "course-123",
 			UserID:           "user-456",
-			Goal:             "Learn Go",
+			Title:            "Learn Go",
 			Emoji:            "🎯",
+			Status:           "active",
+			OutlineStatus:    "ready",
 			Progress:         50,
 			LessonsCompleted: 5,
 			TotalLessons:     10,
-			Steps:            []models.Step{},
 			CreatedAt:        1234567890,
 			UpdatedAt:        1234567890,
 			LastAccessedAt:   1234567890,
 		}
 
-		jsonBytes, err := json.Marshal(path)
+		jsonBytes, err := json.Marshal(course)
 		require.NoError(t, err)
 
 		var parsed map[string]interface{}
@@ -783,12 +784,13 @@ func TestCourseJSON(t *testing.T) {
 
 		assert.Contains(t, parsed, "id")
 		assert.Contains(t, parsed, "userId")
-		assert.Contains(t, parsed, "goal")
+		assert.Contains(t, parsed, "title")
 		assert.Contains(t, parsed, "emoji")
+		assert.Contains(t, parsed, "status")
+		assert.Contains(t, parsed, "outlineStatus")
 		assert.Contains(t, parsed, "progress")
 		assert.Contains(t, parsed, "lessonsCompleted")
 		assert.Contains(t, parsed, "totalLessons")
-		assert.Contains(t, parsed, "steps")
 		assert.Contains(t, parsed, "createdAt")
 		assert.Contains(t, parsed, "updatedAt")
 		assert.Contains(t, parsed, "lastAccessedAt")

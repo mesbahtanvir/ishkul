@@ -8,8 +8,8 @@ import (
 )
 
 func TestLLMConstants(t *testing.T) {
-	t.Run("StepCacheTTL is set correctly", func(t *testing.T) {
-		assert.Equal(t, 10*time.Minute, StepCacheTTL)
+	t.Run("BlockCacheTTL is set correctly", func(t *testing.T) {
+		assert.Equal(t, 10*time.Minute, BlockCacheTTL)
 	})
 
 	t.Run("CacheCleanupInterval is set correctly", func(t *testing.T) {
@@ -18,18 +18,18 @@ func TestLLMConstants(t *testing.T) {
 
 	t.Run("cleanup interval is shorter than TTL", func(t *testing.T) {
 		// This ensures expired entries are cleaned up before TTL expires
-		assert.Less(t, CacheCleanupInterval, StepCacheTTL)
+		assert.Less(t, CacheCleanupInterval, BlockCacheTTL)
 	})
 }
 
-func TestGetStepCacheStats(t *testing.T) {
+func TestGetBlockCacheStats(t *testing.T) {
 	t.Run("returns uninitialized when cache is nil", func(t *testing.T) {
 		// Save original cache
-		originalCache := stepCache
-		stepCache = nil
-		defer func() { stepCache = originalCache }()
+		originalCache := blockCache
+		blockCache = nil
+		defer func() { blockCache = originalCache }()
 
-		stats := GetStepCacheStats()
+		stats := GetBlockCacheStats()
 
 		assert.NotNil(t, stats)
 		assert.Equal(t, false, stats["initialized"])
@@ -37,11 +37,11 @@ func TestGetStepCacheStats(t *testing.T) {
 
 	t.Run("returns stats structure", func(t *testing.T) {
 		// Save original cache
-		originalCache := stepCache
-		stepCache = nil
-		defer func() { stepCache = originalCache }()
+		originalCache := blockCache
+		blockCache = nil
+		defer func() { blockCache = originalCache }()
 
-		stats := GetStepCacheStats()
+		stats := GetBlockCacheStats()
 
 		assert.Contains(t, stats, "initialized")
 	})
@@ -57,7 +57,7 @@ func TestInitializeLLM(t *testing.T) {
 		originalClient := openaiClient
 		originalLoader := promptLoader
 		originalRenderer := promptRenderer
-		originalCache := stepCache
+		originalCache := blockCache
 		originalPregenerateService := pregenerateService
 
 		// Reset after test
@@ -66,7 +66,7 @@ func TestInitializeLLM(t *testing.T) {
 			openaiClient = originalClient
 			promptLoader = originalLoader
 			promptRenderer = originalRenderer
-			stepCache = originalCache
+			blockCache = originalCache
 			pregenerateService = originalPregenerateService
 		}()
 
@@ -75,7 +75,7 @@ func TestInitializeLLM(t *testing.T) {
 		openaiClient = nil
 		promptLoader = nil
 		promptRenderer = nil
-		stepCache = nil
+		blockCache = nil
 		pregenerateService = nil
 
 		// InitializeLLM should fail without any API keys

@@ -195,7 +195,7 @@ export const CourseScreen: React.FC<CourseScreenProps> = ({
     // Don't allow generating new steps for completed/archived paths
     const isPathActive = !activeCourse.status || activeCourse.status === CourseStatuses.ACTIVE;
 
-    const currentStep = getCurrentStep(activeCourse.steps);
+    const currentStep = getCurrentStep(activeCourse.steps ?? []);
     if (currentStep) {
       handleStartStep(currentStep);
     } else if (isPathActive) {
@@ -233,9 +233,10 @@ export const CourseScreen: React.FC<CourseScreenProps> = ({
     );
   }
 
-  const currentStep = getCurrentStep(activeCourse.steps);
-  const completedSteps = activeCourse.steps.filter((s) => s.completed);
-  const hasSteps = activeCourse.steps.length > 0;
+  const steps = activeCourse.steps ?? [];
+  const currentStep = getCurrentStep(steps);
+  const completedSteps = steps.filter((s) => s.completed);
+  const hasSteps = steps.length > 0;
   const isPathCompleted = activeCourse.status === CourseStatuses.COMPLETED;
   const isPathArchived = activeCourse.status === CourseStatuses.ARCHIVED;
   const isPathActive = !activeCourse.status || activeCourse.status === CourseStatuses.ACTIVE;
@@ -247,7 +248,7 @@ export const CourseScreen: React.FC<CourseScreenProps> = ({
     setOutlineDrawerVisible(false);
     // If topic has a stepId, find and navigate to that step
     if (topic.stepId) {
-      const step = activeCourse.steps.find((s) => s.id === topic.stepId);
+      const step = steps.find((s) => s.id === topic.stepId);
       if (step) {
         if (step.completed) {
           navigation.navigate('StepDetail', { step, courseId });
@@ -381,11 +382,11 @@ export const CourseScreen: React.FC<CourseScreenProps> = ({
         )}
 
         {/* Render all steps */}
-        {activeCourse.steps.map((step, index) => (
+        {steps.map((step, index) => (
           <StepCard
             key={step.id}
             step={step}
-            isCurrentStep={!step.completed && index === activeCourse.steps.length - 1}
+            isCurrentStep={!step.completed && index === steps.length - 1}
             onPress={() => handleStepPress(step)}
           />
         ))}

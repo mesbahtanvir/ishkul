@@ -30,7 +30,7 @@ const MaxCoursesPerUser = 5
 
 // Global cache and pre-generation service
 var (
-	stepCache          *cache.StepCache
+	blockCache         *cache.BlockCache
 	pregenerateService *services.PregenerateService
 )
 
@@ -694,10 +694,8 @@ func deleteCourse(w http.ResponseWriter, r *http.Request, courseID string) {
 		return
 	}
 
-	// Clear pre-generated cache for this path
-	if stepCache != nil {
-		stepCache.Delete(courseID, userID)
-	}
+	// TODO: Clear pre-generated cache for this path
+	// Legacy stepCache has been removed. New blockCache uses different API (courseID, lessonID, blockID)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
@@ -759,10 +757,8 @@ func archiveCourse(w http.ResponseWriter, r *http.Request, courseID string) {
 		return
 	}
 
-	// Clear pre-generated cache for this path
-	if stepCache != nil {
-		stepCache.Delete(courseID, userID)
-	}
+	// TODO: Clear pre-generated cache for this path
+	// Legacy stepCache has been removed. New blockCache uses different API (courseID, lessonID, blockID)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
@@ -997,24 +993,10 @@ func getPathNextStep(w http.ResponseWriter, r *http.Request, courseID string) {
 		return
 	}
 
-	// No current step - try to get from cache first (instant response)
+	// No current step - generate one
+	// TODO: Implement pre-generation caching with new blockCache
+	// Legacy stepCache has been removed. New blockCache uses different API (courseID, lessonID, blockID)
 	var nextStep *models.Step
-
-	if stepCache != nil {
-		nextStep = stepCache.Get(courseID, userID)
-		if nextStep != nil {
-			// Update step index to match current path state
-			nextStep.Index = len(path.Steps)
-			// Remove from cache since we're using it
-			stepCache.Delete(courseID, userID)
-			if appLogger != nil {
-				logger.Info(appLogger, ctx, "step_cache_hit",
-					slog.String("path_id", courseID),
-					slog.String("step_type", nextStep.Type),
-				)
-			}
-		}
-	}
 
 	// Cache miss - generate synchronously (fallback)
 	if nextStep == nil {
@@ -1556,10 +1538,8 @@ func completeStepInternal(w http.ResponseWriter, r *http.Request, courseID strin
 		}
 	}
 
-	// Clear cache if path is completed
-	if courseCompleted && stepCache != nil {
-		stepCache.Delete(courseID, path.UserID)
-	}
+	// TODO: Clear cache if path is completed
+	// Legacy stepCache has been removed. New blockCache uses different API (courseID, lessonID, blockID)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{

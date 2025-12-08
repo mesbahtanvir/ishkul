@@ -141,15 +141,16 @@ func TestPracticeToolParseContent(t *testing.T) {
 			"estimatedTime": "5 minutes"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "practice", step.Type)
-		assert.Equal(t, "Go Programming", step.Topic)
-		assert.Equal(t, "Write a Function", step.Title)
-		assert.Contains(t, step.Task, "factorial")
-		assert.Equal(t, []string{"Start with the base case", "Use recursion or iteration"}, step.Hints)
+		assert.Equal(t, models.BlockTypeTask, block.Type)
+		assert.Equal(t, "Write a Function", block.Title)
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Task)
+		assert.Contains(t, block.Content.Task.Instruction, "factorial")
+		assert.Equal(t, []string{"Start with the base case", "Use recursion or iteration"}, block.Content.Task.Hints)
 	})
 
 	t.Run("parses content without optional hints", func(t *testing.T) {
@@ -159,12 +160,14 @@ func TestPracticeToolParseContent(t *testing.T) {
 			"task": "Write unit tests for the calculator add function"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "practice", step.Type)
-		assert.Nil(t, step.Hints)
+		assert.Equal(t, models.BlockTypeTask, block.Type)
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Task)
+		assert.Nil(t, block.Content.Task.Hints)
 	})
 
 	t.Run("parses content with empty hints array", func(t *testing.T) {
@@ -175,18 +178,20 @@ func TestPracticeToolParseContent(t *testing.T) {
 			"hints": []
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Empty(t, step.Hints)
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Task)
+		assert.Empty(t, block.Content.Task.Hints)
 	})
 
 	t.Run("returns error for invalid JSON", func(t *testing.T) {
 		content := `{invalid json}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to parse practice content")
@@ -195,8 +200,8 @@ func TestPracticeToolParseContent(t *testing.T) {
 	t.Run("returns error for empty content", func(t *testing.T) {
 		content := ``
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		assert.Error(t, err)
 	})
@@ -209,12 +214,14 @@ func TestPracticeToolParseContent(t *testing.T) {
 			"hints": ["基本ケースから始める", "再帰か反復を使う"]
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "日本語プログラミング", step.Topic)
-		assert.Contains(t, step.Task, "階乗")
+		assert.Equal(t, "関数を書く", block.Title)
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Task)
+		assert.Contains(t, block.Content.Task.Instruction, "階乗")
 	})
 
 	t.Run("handles code snippets in task", func(t *testing.T) {
@@ -224,12 +231,14 @@ func TestPracticeToolParseContent(t *testing.T) {
 			"task": "Fix the bug in this code:\n\nfunc add(a, b int) {\n    return a + b\n}\n\nThe function should return the sum."
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Contains(t, step.Task, "func add")
-		assert.Contains(t, step.Task, "return a + b")
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Task)
+		assert.Contains(t, block.Content.Task.Instruction, "func add")
+		assert.Contains(t, block.Content.Task.Instruction, "return a + b")
 	})
 }
 
@@ -240,59 +249,93 @@ func TestPracticeToolParseContent(t *testing.T) {
 func TestPracticeToolValidate(t *testing.T) {
 	tool := &PracticeTool{}
 
-	t.Run("validates valid step", func(t *testing.T) {
-		step := &models.Step{
-			Task: "Write a function that calculates the sum of two numbers and returns the result",
+	t.Run("validates valid block", func(t *testing.T) {
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Task: &models.TaskContent{
+					Instruction: "Write a function that calculates the sum of two numbers and returns the result",
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
 	t.Run("returns error for empty task", func(t *testing.T) {
-		step := &models.Step{
-			Task: "",
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Task: &models.TaskContent{
+					Instruction: "",
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "task is required")
+		assert.Contains(t, err.Error(), "task instruction is required")
+	})
+
+	t.Run("returns error for nil content", func(t *testing.T) {
+		block := &models.Block{
+			Content: nil,
+		}
+
+		err := tool.Validate(block)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "task instruction is required")
 	})
 
 	t.Run("returns error for short task", func(t *testing.T) {
-		step := &models.Step{
-			Task: "Short task",
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Task: &models.TaskContent{
+					Instruction: "Short task",
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "task too short")
 	})
 
 	t.Run("validates task with exactly 20 characters", func(t *testing.T) {
-		step := &models.Step{
-			Task: strings.Repeat("a", 20),
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Task: &models.TaskContent{
+					Instruction: strings.Repeat("a", 20),
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
 	t.Run("rejects task with 19 characters", func(t *testing.T) {
-		step := &models.Step{
-			Task: strings.Repeat("a", 19),
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Task: &models.TaskContent{
+					Instruction: strings.Repeat("a", 19),
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 	})
 
 	t.Run("validates long task", func(t *testing.T) {
-		step := &models.Step{
-			Task: strings.Repeat("a", 500),
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Task: &models.TaskContent{
+					Instruction: strings.Repeat("a", 500),
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 }
