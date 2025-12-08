@@ -1,5 +1,15 @@
 import { create } from 'zustand';
-import { Course, Step, CourseStatus } from '../types/app';
+import {
+  Course,
+  Step,
+  CourseStatus,
+  Section,
+  Lesson,
+  LessonStatus,
+  LessonPosition,
+  CourseOutline,
+  getCourseTitle,
+} from '../types/app';
 
 interface CacheMetadata {
   timestamp: number;
@@ -24,6 +34,15 @@ interface CoursesState {
   restoreCourse: (courseId: string) => void;
   addStep: (courseId: string, step: Step) => void;
   updateStep: (courseId: string, stepId: string, updates: Partial<Step>) => void;
+  // New course structure actions
+  setCourseOutline: (courseId: string, outline: CourseOutline) => void;
+  updateLesson: (courseId: string, sectionId: string, lessonId: string, updates: Partial<Lesson>) => void;
+  updateLessonStatus: (courseId: string, sectionId: string, lessonId: string, status: LessonStatus) => void;
+  setCoursePosition: (courseId: string, position: LessonPosition) => void;
+  // New selectors
+  getLessonFromCourse: (courseId: string, sectionId: string, lessonId: string) => Lesson | null;
+  getSectionLessons: (courseId: string, sectionId: string) => Lesson[];
+  getNextLesson: (courseId: string, currentSectionId: string, currentLessonId: string) => LessonPosition | null;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearCourses: () => void;
@@ -191,6 +210,147 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
           ? { ...activeCourse, steps: updateSteps(activeCourse.steps) }
           : activeCourse,
     });
+  },
+
+  // New course structure actions
+  setCourseOutline: (courseId, outline) => {
+    const { courses, activeCourse, coursesCache } = get();
+    const updatedCourses = courses.map((c) =>
+      c.id === courseId ? { ...c, outline, updatedAt: Date.now() } : c
+    );
+    coursesCache.set(courseId, { timestamp: Date.now(), ttl: CACHE_TTL });
+    set({
+      courses: updatedCourses,
+      activeCourse:
+        activeCourse?.id === courseId
+          ? { ...activeCourse, outline, updatedAt: Date.now() }
+          : activeCourse,
+      coursesCache,
+    });
+  },
+
+  updateLesson: (courseId, sectionId, lessonId, updates) => {
+    const { courses, activeCourse } = get();
+
+    const updateLessonInSections = (sections: Section[] | undefined): Section[] | undefined => {
+      if (!sections) return sections;
+      return sections.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            lessons: section.lessons.map((lesson) =>
+              lesson.id === lessonId ? { ...lesson, ...updates } : lesson
+            ),
+          };
+        }
+        return section;
+      });
+    };
+
+    const updatedCourses = courses.map((c) => {
+      if (c.id === courseId && c.outline) {
+        return {
+          ...c,
+          outline: {
+            ...c.outline,
+            sections: updateLessonInSections(c.outline.sections),
+          },
+          updatedAt: Date.now(),
+        };
+      }
+      return c;
+    });
+
+    set({
+      courses: updatedCourses,
+      activeCourse:
+        activeCourse?.id === courseId && activeCourse.outline
+          ? {
+              ...activeCourse,
+              outline: {
+                ...activeCourse.outline,
+                sections: updateLessonInSections(activeCourse.outline.sections),
+              },
+              updatedAt: Date.now(),
+            }
+          : activeCourse,
+    });
+  },
+
+  updateLessonStatus: (courseId, sectionId, lessonId, status) => {
+    get().updateLesson(courseId, sectionId, lessonId, { status });
+  },
+
+  setCoursePosition: (courseId, position) => {
+    const { courses, activeCourse } = get();
+    const updatedCourses = courses.map((c) =>
+      c.id === courseId
+        ? { ...c, currentPosition: position, lastAccessedAt: Date.now(), updatedAt: Date.now() }
+        : c
+    );
+    // Re-sort after update (most recent first)
+    updatedCourses.sort((a, b) => b.lastAccessedAt - a.lastAccessedAt);
+    set({
+      courses: updatedCourses,
+      activeCourse:
+        activeCourse?.id === courseId
+          ? { ...activeCourse, currentPosition: position, lastAccessedAt: Date.now(), updatedAt: Date.now() }
+          : activeCourse,
+    });
+  },
+
+  // New selectors
+  getLessonFromCourse: (courseId, sectionId, lessonId) => {
+    const { courses } = get();
+    const course = courses.find((c) => c.id === courseId);
+    if (!course?.outline?.sections) return null;
+    const section = course.outline.sections.find((s) => s.id === sectionId);
+    if (!section) return null;
+    return section.lessons.find((l) => l.id === lessonId) ?? null;
+  },
+
+  getSectionLessons: (courseId, sectionId) => {
+    const { courses } = get();
+    const course = courses.find((c) => c.id === courseId);
+    if (!course?.outline?.sections) return [];
+    const section = course.outline.sections.find((s) => s.id === sectionId);
+    return section?.lessons ?? [];
+  },
+
+  getNextLesson: (courseId, currentSectionId, currentLessonId) => {
+    const { courses } = get();
+    const course = courses.find((c) => c.id === courseId);
+    if (!course?.outline?.sections) return null;
+
+    const sections = course.outline.sections;
+    const sectionIndex = sections.findIndex((s) => s.id === currentSectionId);
+    if (sectionIndex === -1) return null;
+
+    const section = sections[sectionIndex];
+    const lessonIndex = section.lessons.findIndex((l) => l.id === currentLessonId);
+    if (lessonIndex === -1) return null;
+
+    // Check for next lesson in same section
+    if (lessonIndex < section.lessons.length - 1) {
+      return {
+        sectionId: currentSectionId,
+        lessonId: section.lessons[lessonIndex + 1].id,
+      };
+    }
+
+    // Check for first lesson in next section
+    if (sectionIndex < sections.length - 1) {
+      const nextSection = sections[sectionIndex + 1];
+      if (nextSection.lessons.length > 0) {
+        return {
+          sectionId: nextSection.id,
+          lessonId: nextSection.lessons[0].id,
+        };
+      }
+    }
+
+    // Course complete - no more lessons
+    return null;
   },
 
   setLoading: (loading) => set({ loading }),
