@@ -8,6 +8,170 @@ export const MAX_STEP_CONTENT_LENGTH = 2000;
 // Number of steps before memory compaction triggers
 export const COMPACTION_INTERVAL = 10;
 
+// ============================================
+// Block Types (New 3-Stage Generation)
+// ============================================
+
+export type BlockType = 'text' | 'code' | 'question' | 'task' | 'flashcard' | 'summary';
+
+export type ContentStatus = 'pending' | 'generating' | 'ready' | 'error';
+
+export type QuestionType = 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_answer' | 'code';
+
+export interface Option {
+  id: string;
+  text: string;
+}
+
+export interface Question {
+  id: string;
+  text: string;
+  type: QuestionType;
+  options?: Option[];
+  correctAnswer: string;
+  explanation?: string;
+  hints?: string[];
+  points?: number;
+}
+
+export interface TextContent {
+  text: string;
+}
+
+export interface CodeContent {
+  language: string;
+  code: string;
+  explanation?: string;
+}
+
+export interface QuestionContent {
+  question: Question;
+}
+
+export interface TaskContent {
+  instructions: string;
+  steps?: string[];
+  hints?: string[];
+  successCriteria?: string;
+}
+
+export interface FlashcardContent {
+  front: string;
+  back: string;
+  hints?: string[];
+}
+
+export interface SummaryContent {
+  keyPoints: string[];
+  nextSteps?: string;
+}
+
+export interface BlockContent {
+  text?: TextContent;
+  code?: CodeContent;
+  question?: QuestionContent;
+  task?: TaskContent;
+  flashcard?: FlashcardContent;
+  summary?: SummaryContent;
+}
+
+export interface Block {
+  id: string;
+  type: BlockType;
+  title: string;
+  purpose: string;
+  order: number;
+  contentStatus: ContentStatus;
+  contentError?: string;
+  content?: BlockContent;
+}
+
+// ============================================
+// Progress Types
+// ============================================
+
+export interface BlockResult {
+  blockId: string;
+  blockType: BlockType;
+  completed: boolean;
+  completedAt?: number;
+  userAnswer?: string;
+  isCorrect?: boolean;
+  score?: number;
+  attempts?: number;
+  selfReportedComplete?: boolean;
+  timeSpent?: number; // seconds
+}
+
+export interface LessonProgress {
+  currentBlockIndex: number;
+  blockResults: BlockResult[];
+  startedAt: number;
+  completedAt?: number;
+  score?: number;
+  timeSpent?: number; // seconds
+}
+
+export interface CompletedLessonSummary {
+  lessonId: string;
+  sectionId: string;
+  title: string;
+  score: number;
+  timeSpent: number;
+  keyConceptsLearned: string[];
+  completedAt: number;
+}
+
+export interface CourseProgress {
+  completedLessons: CompletedLessonSummary[];
+  currentLessonId?: string;
+  currentSectionId?: string;
+  overallScore: number;
+  totalTimeSpent: number; // minutes
+  strugglingTopics: string[];
+  lastAccessedAt: number;
+}
+
+// ============================================
+// Lesson and Section Types (New Structure)
+// ============================================
+
+export type LessonStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
+export type SectionStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
+
+export interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  estimatedMinutes: number;
+  blocksStatus: ContentStatus;
+  blocksError?: string;
+  blocks?: Block[];
+  status: LessonStatus;
+  progress?: LessonProgress;
+}
+
+export interface Section {
+  id: string;
+  title: string;
+  description: string;
+  estimatedMinutes: number;
+  learningOutcomes: string[];
+  lessons: Lesson[];
+  status: SectionStatus;
+}
+
+export interface LessonPosition {
+  sectionId: string;
+  lessonId: string;
+  sectionIndex: number;
+  lessonIndex: number;
+}
+
+// ============================================
+// Legacy Types (kept for backward compatibility)
+// ============================================
+
 export interface TopicMemory {
   confidence: number;
   lastReviewed: string;
@@ -30,7 +194,7 @@ export interface Memory {
   compaction?: Compaction;
 }
 
-// Step represents a single step in the course (replaces NextStep + HistoryEntry)
+// Step represents a single step in the course (legacy - kept for backward compatibility)
 export interface Step {
   id: string;
   index: number;
@@ -93,22 +257,72 @@ export const OutlineStatuses = {
   FAILED: 'failed' as OutlineStatus,
 } as const;
 
-// Course outline types
+// Course outline metadata
+export interface OutlineMetadata {
+  difficulty: string;
+  category: string;
+  tags: string[];
+}
+
+// New Course Outline structure (uses Section/Lesson)
+export interface CourseOutline {
+  title: string;
+  description: string;
+  emoji: string;
+  estimatedMinutes: number;
+  difficulty: string;
+  category: string;
+  prerequisites: string[];
+  learningOutcomes: string[];
+  sections: Section[];
+  metadata?: OutlineMetadata;
+  generatedAt: number;
+}
+
+// Course - represents a single learning journey
+export interface Course {
+  id: string;
+  userId: string;
+  title: string; // Renamed from 'goal'
+  emoji: string;
+  status?: CourseStatus;
+  outlineStatus?: OutlineStatus;
+  progress: number; // 0-100
+  lessonsCompleted: number;
+  totalLessons: number;
+  // New structure
+  outline?: CourseOutline;
+  currentPosition?: LessonPosition;
+  courseProgress?: CourseProgress;
+  // Legacy fields (kept for backward compatibility)
+  goal?: string; // Deprecated: use title instead
+  steps?: Step[];
+  memory?: Memory;
+  outlinePosition?: OutlinePosition;
+  // Timestamps
+  createdAt: number;
+  updatedAt: number;
+  lastAccessedAt: number;
+  completedAt?: number;
+  archivedAt?: number;
+}
+
+// Legacy outline types (kept for backward compatibility)
 export interface TopicPerformance {
   score: number;
-  timeSpent: number; // seconds
+  timeSpent: number;
   completedAt: number;
 }
 
 export interface OutlineTopic {
   id: string;
   title: string;
-  toolId: string; // lesson, quiz, practice, flashcard, etc.
+  toolId: string;
   estimatedMinutes: number;
   description: string;
   prerequisites: string[];
   status: 'pending' | 'completed' | 'skipped' | 'needs_review';
-  stepId?: string; // Links to generated Step
+  stepId?: string;
   performance?: TopicPerformance;
 }
 
@@ -122,50 +336,11 @@ export interface OutlineModule {
   status: 'pending' | 'in_progress' | 'completed' | 'skipped';
 }
 
-export interface OutlineMetadata {
-  difficulty: string;
-  category: string;
-  tags: string[];
-}
-
-export interface CourseOutline {
-  title: string;
-  description: string;
-  estimatedMinutes: number;
-  prerequisites: string[];
-  learningOutcomes: string[];
-  modules: OutlineModule[];
-  metadata: OutlineMetadata;
-  generatedAt: number;
-}
-
 export interface OutlinePosition {
   moduleIndex: number;
   topicIndex: number;
   moduleId: string;
   topicId: string;
-}
-
-// Course - represents a single learning journey
-export interface Course {
-  id: string;
-  goal: string;
-  emoji: string;
-  status?: CourseStatus; // Course status: active, completed, archived, deleted
-  outlineStatus?: OutlineStatus; // Outline generation status
-  progress: number; // 0-100
-  lessonsCompleted: number;
-  totalLessons: number;
-  steps: Step[]; // All steps (completed and current)
-  memory: Memory;
-  // Course outline - auto-generated curriculum structure
-  outline?: CourseOutline;
-  outlinePosition?: OutlinePosition;
-  createdAt: number;
-  updatedAt: number;
-  lastAccessedAt: number;
-  completedAt?: number; // Timestamp when course was completed
-  archivedAt?: number; // Timestamp when course was archived
 }
 
 export interface UserDocument {
@@ -339,4 +514,54 @@ export interface ContextUpdateResponse {
   changes: ContextChange[];
   confidence: number;
   summary: string;
+}
+
+// ============================================
+// API Request/Response Types (New Lesson/Block Endpoints)
+// ============================================
+
+// GET /api/courses/{id}/lessons/{lessonId}
+export interface GetLessonResponse {
+  lesson: Lesson;
+  sectionId: string;
+}
+
+// POST /api/courses/{id}/lessons/{lessonId}/generate-blocks
+export interface GenerateBlocksResponse {
+  status: ContentStatus;
+  blocks?: Block[];
+  message?: string;
+}
+
+// POST /api/courses/{id}/lessons/{lessonId}/blocks/{blockId}/generate
+export interface GenerateBlockContentResponse {
+  status: ContentStatus;
+  content?: BlockContent;
+  message?: string;
+}
+
+// POST /api/courses/{id}/lessons/{lessonId}/blocks/{blockId}/complete
+export interface CompleteBlockRequest {
+  userAnswer?: string;
+  score?: number;
+  timeSpent?: number; // seconds
+}
+
+export interface CompleteBlockResponse {
+  success: boolean;
+  blockResult: BlockResult;
+  lessonComplete: boolean;
+  lessonProgress: LessonProgress;
+}
+
+// Course create request (updated for new structure)
+export interface CourseCreateRequest {
+  title: string; // Was 'goal'
+  emoji?: string;
+  category?: string;
+}
+
+// Helper function to get course title (handles legacy 'goal' field)
+export function getCourseTitle(course: Course): string {
+  return course.title || course.goal || 'Untitled Course';
 }

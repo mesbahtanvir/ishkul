@@ -54,6 +54,12 @@ func SetAppLogger(log *slog.Logger) {
 //   - POST   /api/courses/{id}/memory  -> update memory
 //   - POST   /api/courses/{id}/steps/{stepId}/complete -> complete step
 //   - POST   /api/courses/{id}/steps/{stepId}/view     -> view step
+//
+// Lesson routes (new 3-stage generation):
+//   - GET    /api/courses/{id}/lessons/{lessonId}                           -> get lesson with blocks
+//   - POST   /api/courses/{id}/lessons/{lessonId}/generate-blocks           -> generate block skeletons
+//   - POST   /api/courses/{id}/lessons/{lessonId}/blocks/{blockId}/generate -> generate block content
+//   - POST   /api/courses/{id}/lessons/{lessonId}/blocks/{blockId}/complete -> complete a block
 func CoursesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
@@ -62,6 +68,12 @@ func CoursesHandler(w http.ResponseWriter, r *http.Request) {
 	logRequest(ctx, r)
 
 	segments := parsePath(r.URL.Path, "/api/courses")
+
+	// Check for lessons routes first (segments[1] == "lessons")
+	if len(segments) >= 3 && segments[1] == "lessons" {
+		LessonsHandler(w, r, segments[0], segments[2:])
+		return
+	}
 
 	switch len(segments) {
 	case 0:

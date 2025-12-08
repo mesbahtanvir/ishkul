@@ -305,6 +305,391 @@
       ]
     },
     {
+      "name": "Lessons (3-Stage Generation)",
+      "description": "Tests for the new lesson-based course structure with block generation",
+      "item": [
+        {
+          "name": "Get Courses List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Skip if no auth token",
+                  "if (!pm.variables.get('authToken')) {",
+                  "    pm.test.skip('Skipped: No auth token provided');",
+                  "    return;",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has courses array', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('courses');",
+                  "    pm.expect(json.courses).to.be.an('array');",
+                  "});",
+                  "",
+                  "// Store first course ID with new structure for later tests",
+                  "const json = pm.response.json();",
+                  "if (json.courses && json.courses.length > 0) {",
+                  "    const courseWithSections = json.courses.find(c => c.outline && c.outline.sections && c.outline.sections.length > 0);",
+                  "    if (courseWithSections) {",
+                  "        pm.collectionVariables.set('testCourseId', courseWithSections.id);",
+                  "        const firstSection = courseWithSections.outline.sections[0];",
+                  "        pm.collectionVariables.set('testSectionId', firstSection.id);",
+                  "        if (firstSection.lessons && firstSection.lessons.length > 0) {",
+                  "            pm.collectionVariables.set('testLessonId', firstSection.lessons[0].id);",
+                  "        }",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses"]
+            }
+          }
+        },
+        {
+          "name": "Get Lesson Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Skip if no auth token or no test course",
+                  "if (!pm.variables.get('authToken')) {",
+                  "    pm.test.skip('Skipped: No auth token provided');",
+                  "    return;",
+                  "}",
+                  "if (!pm.collectionVariables.get('testCourseId') || !pm.collectionVariables.get('testLessonId')) {",
+                  "    pm.test.skip('Skipped: No test course/lesson available');",
+                  "    return;",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has lesson data', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('lesson');",
+                  "    pm.expect(json.lesson).to.have.property('id');",
+                  "    pm.expect(json.lesson).to.have.property('title');",
+                  "});",
+                  "",
+                  "pm.test('Lesson has blocksStatus', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.lesson).to.have.property('blocksStatus');",
+                  "    pm.expect(json.lesson.blocksStatus).to.be.oneOf(['pending', 'generating', 'ready', 'error']);",
+                  "});",
+                  "",
+                  "// If lesson has blocks, store first block ID",
+                  "const json = pm.response.json();",
+                  "if (json.lesson.blocks && json.lesson.blocks.length > 0) {",
+                  "    pm.collectionVariables.set('testBlockId', json.lesson.blocks[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{testCourseId}}/lessons/{{testLessonId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{testCourseId}}", "lessons", "{{testLessonId}}"]
+            }
+          }
+        },
+        {
+          "name": "Generate Lesson Blocks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Skip if no auth token or no test course",
+                  "if (!pm.variables.get('authToken')) {",
+                  "    pm.test.skip('Skipped: No auth token provided');",
+                  "    return;",
+                  "}",
+                  "if (!pm.collectionVariables.get('testCourseId') || !pm.collectionVariables.get('testLessonId')) {",
+                  "    pm.test.skip('Skipped: No test course/lesson available');",
+                  "    return;",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200 or 202', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 202]);",
+                  "});",
+                  "",
+                  "pm.test('Response has blocks array', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('blocks');",
+                  "    pm.expect(json.blocks).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Blocks have required properties', function () {",
+                  "    const json = pm.response.json();",
+                  "    if (json.blocks && json.blocks.length > 0) {",
+                  "        const block = json.blocks[0];",
+                  "        pm.expect(block).to.have.property('id');",
+                  "        pm.expect(block).to.have.property('type');",
+                  "        pm.expect(block).to.have.property('title');",
+                  "        pm.expect(block).to.have.property('order');",
+                  "        pm.expect(block.type).to.be.oneOf(['text', 'code', 'question', 'task', 'flashcard', 'summary']);",
+                  "    }",
+                  "});",
+                  "",
+                  "// Store first block ID for content generation test",
+                  "const json = pm.response.json();",
+                  "if (json.blocks && json.blocks.length > 0) {",
+                  "    pm.collectionVariables.set('testBlockId', json.blocks[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{testCourseId}}/lessons/{{testLessonId}}/generate-blocks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{testCourseId}}", "lessons", "{{testLessonId}}", "generate-blocks"]
+            }
+          }
+        },
+        {
+          "name": "Generate Block Content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Skip if no auth token or no test block",
+                  "if (!pm.variables.get('authToken')) {",
+                  "    pm.test.skip('Skipped: No auth token provided');",
+                  "    return;",
+                  "}",
+                  "if (!pm.collectionVariables.get('testCourseId') || !pm.collectionVariables.get('testLessonId') || !pm.collectionVariables.get('testBlockId')) {",
+                  "    pm.test.skip('Skipped: No test course/lesson/block available');",
+                  "    return;",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200 or 202', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 202]);",
+                  "});",
+                  "",
+                  "pm.test('Response has block and content', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('block');",
+                  "    pm.expect(json).to.have.property('content');",
+                  "});",
+                  "",
+                  "pm.test('Block content status is ready or generating', function () {",
+                  "    const json = pm.response.json();",
+                  "    if (json.block) {",
+                  "        pm.expect(json.block.contentStatus).to.be.oneOf(['generating', 'ready']);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Response time is within LLM timeout', function () {",
+                  "    // LLM calls can take up to 30s",
+                  "    pm.expect(pm.response.responseTime).to.be.below(30000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{testCourseId}}/lessons/{{testLessonId}}/blocks/{{testBlockId}}/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{testCourseId}}", "lessons", "{{testLessonId}}", "blocks", "{{testBlockId}}", "generate"]
+            }
+          }
+        },
+        {
+          "name": "Complete Block",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Skip if no auth token or no test block",
+                  "if (!pm.variables.get('authToken')) {",
+                  "    pm.test.skip('Skipped: No auth token provided');",
+                  "    return;",
+                  "}",
+                  "if (!pm.collectionVariables.get('testCourseId') || !pm.collectionVariables.get('testLessonId') || !pm.collectionVariables.get('testBlockId')) {",
+                  "    pm.test.skip('Skipped: No test course/lesson/block available');",
+                  "    return;",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success status', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('success');",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response has updated progress', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('progress');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timeSpent\": 60,\n  \"isCorrect\": true,\n  \"score\": 100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{testCourseId}}/lessons/{{testLessonId}}/blocks/{{testBlockId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{testCourseId}}", "lessons", "{{testLessonId}}", "blocks", "{{testBlockId}}", "complete"]
+            }
+          }
+        },
+        {
+          "name": "Get Lesson - Unauthorized",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 401 without token', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/test-course/lessons/test-lesson",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "test-course", "lessons", "test-lesson"]
+            }
+          }
+        },
+        {
+          "name": "Generate Blocks - Invalid Course",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Skip if no auth token",
+                  "if (!pm.variables.get('authToken')) {",
+                  "    pm.test.skip('Skipped: No auth token provided');",
+                  "    return;",
+                  "}",
+                  "",
+                  "pm.test('Returns 404 for invalid course', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/nonexistent-course-12345/lessons/nonexistent-lesson/generate-blocks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "nonexistent-course-12345", "lessons", "nonexistent-lesson", "generate-blocks"]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Error Handling",
       "item": [
         {
