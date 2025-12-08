@@ -1,5 +1,21 @@
 import { apiConfig } from '../config/firebase.config';
-import { User, UserDocument, Course, Step, StepCompleteRequest } from '../types/app';
+import {
+  User,
+  UserDocument,
+  Course,
+  Step,
+  StepCompleteRequest,
+  Lesson,
+  Block,
+  BlockContent,
+  BlockResult,
+  LessonProgress,
+  GetLessonResponse,
+  GenerateBlocksResponse,
+  GenerateBlockContentResponse,
+  CompleteBlockRequest,
+  CompleteBlockResponse,
+} from '../types/app';
 import { tokenStorage } from './api/tokenStorage';
 
 /**
@@ -645,6 +661,90 @@ export const coursesApi = {
     memory: { topic: string; confidence: number; timesTested: number }
   ): Promise<void> {
     await api.post(`/courses/${courseId}/memory`, memory);
+  },
+};
+
+/**
+ * Lessons API methods for 3-stage content generation
+ */
+export const lessonsApi = {
+  /**
+   * Get a specific lesson with its blocks
+   */
+  async getLesson(courseId: string, lessonId: string): Promise<GetLessonResponse> {
+    const response = await api.get<GetLessonResponse>(
+      `/courses/${courseId}/lessons/${lessonId}`
+    );
+    return response;
+  },
+
+  /**
+   * Generate blocks for a lesson (Stage 2)
+   * Returns block skeletons with contentStatus: 'pending'
+   */
+  async generateBlocks(courseId: string, lessonId: string): Promise<GenerateBlocksResponse> {
+    const response = await api.post<GenerateBlocksResponse>(
+      `/courses/${courseId}/lessons/${lessonId}/generate-blocks`
+    );
+    return response;
+  },
+
+  /**
+   * Generate content for a specific block (Stage 3)
+   * Returns the block content based on block type
+   */
+  async generateBlockContent(
+    courseId: string,
+    lessonId: string,
+    blockId: string
+  ): Promise<GenerateBlockContentResponse> {
+    const response = await api.post<GenerateBlockContentResponse>(
+      `/courses/${courseId}/lessons/${lessonId}/blocks/${blockId}/generate`
+    );
+    return response;
+  },
+
+  /**
+   * Complete a block and record the result
+   */
+  async completeBlock(
+    courseId: string,
+    lessonId: string,
+    blockId: string,
+    data?: CompleteBlockRequest
+  ): Promise<CompleteBlockResponse> {
+    const response = await api.post<CompleteBlockResponse>(
+      `/courses/${courseId}/lessons/${lessonId}/blocks/${blockId}/complete`,
+      data || {}
+    );
+    return response;
+  },
+
+  /**
+   * Get all lessons for a section (for progress display)
+   */
+  async getSectionLessons(
+    courseId: string,
+    sectionId: string
+  ): Promise<{ lessons: Lesson[] }> {
+    const response = await api.get<{ lessons: Lesson[] }>(
+      `/courses/${courseId}/sections/${sectionId}/lessons`
+    );
+    return response;
+  },
+
+  /**
+   * Update lesson progress (for partial saves)
+   */
+  async updateLessonProgress(
+    courseId: string,
+    lessonId: string,
+    progress: Partial<LessonProgress>
+  ): Promise<void> {
+    await api.patch(
+      `/courses/${courseId}/lessons/${lessonId}/progress`,
+      progress
+    );
   },
 };
 
