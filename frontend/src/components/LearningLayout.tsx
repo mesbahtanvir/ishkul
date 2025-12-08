@@ -50,7 +50,7 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
 
   // Find current position in outline based on step
   const getCurrentPosition = () => {
-    if (!activeCourse?.outline || !step) return null;
+    if (!activeCourse?.outline?.modules || !step) return null;
 
     for (let moduleIndex = 0; moduleIndex < activeCourse.outline.modules.length; moduleIndex++) {
       const module = activeCourse.outline.modules[moduleIndex];
@@ -79,7 +79,7 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
     if (!navigation) return;
 
     if (topic.stepId && topic.stepId !== step.id) {
-      const targetStep = activeCourse?.steps.find((s) => s.id === topic.stepId);
+      const targetStep = activeCourse?.steps?.find((s) => s.id === topic.stepId);
       if (targetStep) {
         // Type assertion needed for dynamic navigation
         const nav = navigation as { navigate: (screen: string, params: object) => void };

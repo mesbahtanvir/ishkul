@@ -335,6 +335,8 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
       return {
         sectionId: currentSectionId,
         lessonId: section.lessons[lessonIndex + 1].id,
+        sectionIndex,
+        lessonIndex: lessonIndex + 1,
       };
     }
 
@@ -345,6 +347,8 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
         return {
           sectionId: nextSection.id,
           lessonId: nextSection.lessons[0].id,
+          sectionIndex: sectionIndex + 1,
+          lessonIndex: 0,
         };
       }
     }

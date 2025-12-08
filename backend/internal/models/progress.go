@@ -6,22 +6,22 @@ type LessonProgress struct {
 	BlockResults      []BlockResult `json:"blockResults" firestore:"blockResults"`           // Results for each completed block
 	StartedAt         int64         `json:"startedAt" firestore:"startedAt"`                 // When user started the lesson
 	CompletedAt       int64         `json:"completedAt,omitempty" firestore:"completedAt,omitempty"`
-	Score             float64       `json:"score,omitempty" firestore:"score,omitempty"`           // Aggregated score (0-100)
-	TimeSpent         int           `json:"timeSpent,omitempty" firestore:"timeSpent,omitempty"`   // Total time in seconds
+	Score             float64       `json:"score,omitempty" firestore:"score,omitempty"`         // Aggregated score (0-100)
+	TimeSpent         int           `json:"timeSpent,omitempty" firestore:"timeSpent,omitempty"` // Total time in seconds
 }
 
 // BlockResult tracks how user performed on a specific block
 type BlockResult struct {
-	BlockID     string   `json:"blockId" firestore:"blockId"`
-	BlockType   string   `json:"blockType" firestore:"blockType"` // text, code, question, task, etc.
-	Completed   bool     `json:"completed" firestore:"completed"`
-	CompletedAt int64    `json:"completedAt,omitempty" firestore:"completedAt,omitempty"`
+	BlockID     string `json:"blockId" firestore:"blockId"`
+	BlockType   string `json:"blockType" firestore:"blockType"` // text, code, question, task, etc.
+	Completed   bool   `json:"completed" firestore:"completed"`
+	CompletedAt int64  `json:"completedAt,omitempty" firestore:"completedAt,omitempty"`
 
 	// For question blocks
-	UserAnswer string `json:"userAnswer,omitempty" firestore:"userAnswer,omitempty"` // User's answer
-	IsCorrect  bool   `json:"isCorrect,omitempty" firestore:"isCorrect,omitempty"`   // Was the answer correct?
-	Score      float64 `json:"score,omitempty" firestore:"score,omitempty"`          // Points earned (0-100)
-	Attempts   int    `json:"attempts,omitempty" firestore:"attempts,omitempty"`     // How many tries
+	UserAnswer string  `json:"userAnswer,omitempty" firestore:"userAnswer,omitempty"` // User's answer
+	IsCorrect  bool    `json:"isCorrect,omitempty" firestore:"isCorrect,omitempty"`   // Was the answer correct?
+	Score      float64 `json:"score,omitempty" firestore:"score,omitempty"`           // Points earned (0-100)
+	Attempts   int     `json:"attempts,omitempty" firestore:"attempts,omitempty"`     // How many tries
 
 	// For task blocks
 	SelfReportedComplete bool `json:"selfReportedComplete,omitempty" firestore:"selfReportedComplete,omitempty"`
@@ -32,13 +32,13 @@ type BlockResult struct {
 
 // CourseProgress tracks overall course progress
 type CourseProgress struct {
-	CompletedLessons   []CompletedLessonSummary `json:"completedLessons" firestore:"completedLessons"`
-	CurrentLessonID    string                   `json:"currentLessonId,omitempty" firestore:"currentLessonId,omitempty"`
-	CurrentSectionID   string                   `json:"currentSectionId,omitempty" firestore:"currentSectionId,omitempty"`
-	OverallScore       float64                  `json:"overallScore" firestore:"overallScore"`             // Average score across all lessons
-	TotalTimeSpent     int                      `json:"totalTimeSpent" firestore:"totalTimeSpent"`         // Total time in minutes
-	StrugglingTopics   []string                 `json:"strugglingTopics" firestore:"strugglingTopics"`     // Topics with low scores
-	LastAccessedAt     int64                    `json:"lastAccessedAt" firestore:"lastAccessedAt"`
+	CompletedLessons []CompletedLessonSummary `json:"completedLessons" firestore:"completedLessons"`
+	CurrentLessonID  string                   `json:"currentLessonId,omitempty" firestore:"currentLessonId,omitempty"`
+	CurrentSectionID string                   `json:"currentSectionId,omitempty" firestore:"currentSectionId,omitempty"`
+	OverallScore     float64                  `json:"overallScore" firestore:"overallScore"`         // Average score across all lessons
+	TotalTimeSpent   int                      `json:"totalTimeSpent" firestore:"totalTimeSpent"`     // Total time in minutes
+	StrugglingTopics []string                 `json:"strugglingTopics" firestore:"strugglingTopics"` // Topics with low scores
+	LastAccessedAt   int64                    `json:"lastAccessedAt" firestore:"lastAccessedAt"`
 }
 
 // CompletedLessonSummary summarizes a completed lesson for context

@@ -46,12 +46,16 @@ export function usesLegacyStructure(course: Course | null): boolean {
 export function getFirstLessonPosition(course: Course): LessonPosition | null {
   if (!course.outline?.sections) return null;
 
-  for (const section of course.outline.sections) {
-    for (const lesson of section.lessons) {
-      if (lesson.status !== 'completed' && lesson.status !== 'locked') {
+  for (let sectionIndex = 0; sectionIndex < course.outline.sections.length; sectionIndex++) {
+    const section = course.outline.sections[sectionIndex];
+    for (let lessonIndex = 0; lessonIndex < section.lessons.length; lessonIndex++) {
+      const lesson = section.lessons[lessonIndex];
+      if (lesson.status !== 'completed' && lesson.status !== 'skipped') {
         return {
           sectionId: section.id,
           lessonId: lesson.id,
+          sectionIndex,
+          lessonIndex,
         };
       }
     }
@@ -63,6 +67,8 @@ export function getFirstLessonPosition(course: Course): LessonPosition | null {
     return {
       sectionId: firstSection.id,
       lessonId: firstSection.lessons[0].id,
+      sectionIndex: 0,
+      lessonIndex: 0,
     };
   }
 

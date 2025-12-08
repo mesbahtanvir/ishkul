@@ -16,22 +16,22 @@ interface SummaryBlockRendererProps {
 
 export const SummaryBlockRenderer: React.FC<SummaryBlockRendererProps> = ({ content }) => {
   const { colors } = useTheme();
-  const summaryContent = content as SummaryContent;
+  // Access the summary content from BlockContent.summary
+  const summaryContent = content.summary;
+
+  if (!summaryContent) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
-      {/* Summary Text */}
-      <View style={styles.summaryContainer}>
-        <MarkdownContent content={summaryContent.summary} />
-      </View>
-
       {/* Key Points */}
       {summaryContent.keyPoints && summaryContent.keyPoints.length > 0 && (
         <View style={[styles.keyPointsContainer, { backgroundColor: colors.primary + '10', borderColor: colors.primary }]}>
           <Text style={[styles.keyPointsTitle, { color: colors.primary }]}>
             🔑 Key Points
           </Text>
-          {summaryContent.keyPoints.map((point, index) => (
+          {summaryContent.keyPoints.map((point: string, index: number) => (
             <View key={index} style={styles.keyPoint}>
               <Text style={[styles.keyPointBullet, { color: colors.primary }]}>
                 •
@@ -45,21 +45,14 @@ export const SummaryBlockRenderer: React.FC<SummaryBlockRendererProps> = ({ cont
       )}
 
       {/* Next Steps (if any) */}
-      {summaryContent.nextSteps && summaryContent.nextSteps.length > 0 && (
+      {summaryContent.nextSteps && (
         <View style={[styles.nextStepsContainer, { backgroundColor: colors.success + '10', borderColor: colors.success }]}>
           <Text style={[styles.nextStepsTitle, { color: colors.success }]}>
-            ➡️ Next Steps
+            ➡️ Coming Up Next
           </Text>
-          {summaryContent.nextSteps.map((step, index) => (
-            <View key={index} style={styles.nextStep}>
-              <Text style={[styles.nextStepNumber, { color: colors.success }]}>
-                {index + 1}.
-              </Text>
-              <Text style={[styles.nextStepText, { color: colors.text.primary }]}>
-                {step}
-              </Text>
-            </View>
-          ))}
+          <Text style={[styles.nextStepText, { color: colors.text.primary }]}>
+            {summaryContent.nextSteps}
+          </Text>
         </View>
       )}
     </View>

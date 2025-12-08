@@ -16,7 +16,12 @@ interface CodeBlockRendererProps {
 
 export const CodeBlockRenderer: React.FC<CodeBlockRendererProps> = ({ content }) => {
   const { colors } = useTheme();
-  const codeContent = content as CodeContent;
+  // Access the code content from BlockContent.code
+  const codeContent = content.code;
+
+  if (!codeContent) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
@@ -42,20 +47,6 @@ export const CodeBlockRenderer: React.FC<CodeBlockRendererProps> = ({ content })
           </Text>
         </ScrollView>
       </View>
-
-      {/* Output (if any) */}
-      {codeContent.output && (
-        <View style={styles.outputSection}>
-          <Text style={[styles.outputLabel, { color: colors.text.secondary }]}>
-            Output:
-          </Text>
-          <View style={[styles.outputContainer, { backgroundColor: colors.background.tertiary || colors.background.secondary }]}>
-            <Text style={[styles.outputText, { color: colors.text.secondary }]}>
-              {codeContent.output}
-            </Text>
-          </View>
-        </View>
-      )}
     </View>
   );
 };

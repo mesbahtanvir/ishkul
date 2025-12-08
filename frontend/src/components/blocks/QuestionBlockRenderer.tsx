@@ -24,10 +24,10 @@ export const QuestionBlockRenderer: React.FC<QuestionBlockRendererProps> = ({
   content,
   onAnswer,
   onComplete,
-  isActive = false,
 }) => {
   const { colors } = useTheme();
-  const questionContent = content as QuestionContent;
+  // Extract the question from content.question.question (QuestionContent -> Question)
+  const question = content.question?.question;
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState('');
@@ -54,12 +54,12 @@ export const QuestionBlockRenderer: React.FC<QuestionBlockRendererProps> = ({
 
     // Check answer
     let correct = false;
-    if (questionContent.type === 'multiple_choice' || questionContent.type === 'true_false') {
-      const correctOption = questionContent.options?.find((o) => o.isCorrect);
+    if (question?.type === 'multiple_choice' || question?.type === 'true_false') {
+      const correctOption = question?.options?.find((o: Option) => o.id === question?.correctAnswer);
       correct = selectedOption === correctOption?.id;
-    } else if (questionContent.type === 'fill_blank' || questionContent.type === 'short_answer') {
+    } else if (question?.type === 'fill_blank' || question?.type === 'short_answer') {
       // Simple case-insensitive comparison for now
-      correct = textAnswer.toLowerCase().trim() === questionContent.correctAnswer?.toLowerCase().trim();
+      correct = textAnswer.toLowerCase().trim() === question?.correctAnswer?.toLowerCase().trim();
     }
 
     setIsCorrect(correct);
@@ -67,7 +67,7 @@ export const QuestionBlockRenderer: React.FC<QuestionBlockRendererProps> = ({
   };
 
   const canSubmit = () => {
-    if (questionContent.type === 'multiple_choice' || questionContent.type === 'true_false') {
+    if (question?.type === 'multiple_choice' || question?.type === 'true_false') {
       return selectedOption !== null;
     }
     return textAnswer.trim().length > 0;
@@ -76,20 +76,20 @@ export const QuestionBlockRenderer: React.FC<QuestionBlockRendererProps> = ({
   // Render question text
   const renderQuestion = () => (
     <View style={styles.questionContainer}>
-      <MarkdownContent content={questionContent.question} />
+      <MarkdownContent content={question?.text || ''} />
     </View>
   );
 
   // Render options for multiple choice / true-false
   const renderOptions = () => {
-    if (!questionContent.options) return null;
+    if (!question?.options) return null;
 
     return (
       <View style={styles.optionsContainer}>
-        {questionContent.options.map((option: Option) => {
+        {question.options.map((option: Option) => {
           const isSelected = selectedOption === option.id;
-          const showCorrect = isSubmitted && option.isCorrect;
-          const showIncorrect = isSubmitted && isSelected && !option.isCorrect;
+          const showCorrect = isSubmitted && option.id === question.correctAnswer;
+          const showIncorrect = isSubmitted && isSelected && option.id !== question.correctAnswer;
 
           let borderColor = colors.border;
           let backgroundColor = 'transparent';
@@ -160,13 +160,13 @@ export const QuestionBlockRenderer: React.FC<QuestionBlockRendererProps> = ({
         value={textAnswer}
         onChangeText={handleTextChange}
         placeholder={
-          questionContent.type === 'fill_blank'
+          question?.type === 'fill_blank'
             ? 'Fill in the blank...'
             : 'Type your answer...'
         }
         placeholderTextColor={colors.text.secondary}
-        multiline={questionContent.type === 'short_answer'}
-        numberOfLines={questionContent.type === 'short_answer' ? 3 : 1}
+        multiline={question?.type === 'short_answer'}
+        numberOfLines={question?.type === 'short_answer' ? 3 : 1}
         editable={!isSubmitted}
       />
     </View>
@@ -195,9 +195,9 @@ export const QuestionBlockRenderer: React.FC<QuestionBlockRendererProps> = ({
         >
           {isCorrect ? 'Correct!' : 'Not quite right'}
         </Text>
-        {questionContent.explanation && (
+        {question?.explanation && (
           <View style={styles.explanationContainer}>
-            <MarkdownContent content={questionContent.explanation} />
+            <MarkdownContent content={question.explanation} />
           </View>
         )}
       </View>
@@ -208,13 +208,13 @@ export const QuestionBlockRenderer: React.FC<QuestionBlockRendererProps> = ({
     <View style={styles.container}>
       {renderQuestion()}
 
-      {(questionContent.type === 'multiple_choice' ||
-        questionContent.type === 'true_false') &&
+      {(question?.type === 'multiple_choice' ||
+        question?.type === 'true_false') &&
         renderOptions()}
 
-      {(questionContent.type === 'fill_blank' ||
-        questionContent.type === 'short_answer' ||
-        questionContent.type === 'code') &&
+      {(question?.type === 'fill_blank' ||
+        question?.type === 'short_answer' ||
+        question?.type === 'code') &&
         renderTextInput()}
 
       {renderFeedback()}

@@ -145,12 +145,12 @@ type BlockCompleteRequest struct {
 // NewCourse creates a new course with default values
 func NewCourse(userID, title, emoji string) *Course {
 	return &Course{
-		UserID:        userID,
-		Title:         title,
-		Emoji:         emoji,
-		Status:        CourseStatusActive,
-		OutlineStatus: OutlineStatusGenerating,
-		Progress:      0,
+		UserID:         userID,
+		Title:          title,
+		Emoji:          emoji,
+		Status:         CourseStatusActive,
+		OutlineStatus:  OutlineStatusGenerating,
+		Progress:       0,
 		CourseProgress: NewCourseProgress(),
 	}
 }

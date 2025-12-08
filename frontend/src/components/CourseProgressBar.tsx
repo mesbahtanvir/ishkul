@@ -23,7 +23,7 @@ export const CourseProgressBar: React.FC<CourseProgressBarProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  if (!outline) return null;
+  if (!outline || !outline.modules) return null;
 
   const totalTopics = outline.modules.reduce((sum, m) => sum + m.topics.length, 0);
   const completedTopics = outline.modules.reduce(
