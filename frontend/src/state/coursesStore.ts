@@ -8,7 +8,6 @@ import {
   LessonStatus,
   LessonPosition,
   CourseOutline,
-  getCourseTitle,
 } from '../types/app';
 
 interface CacheMetadata {

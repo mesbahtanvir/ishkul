@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useLessonStore, getNextLessonPosition } from '../state/lessonStore';
+import { useLessonStore } from '../state/lessonStore';
 import { useCoursesStore } from '../state/coursesStore';
 import { Block, BlockResult, LessonPosition } from '../types/app';
 
@@ -65,7 +65,6 @@ export function useLesson({
   const {
     currentLesson,
     currentBlockIndex,
-    activeBlock,
     lessonLoading,
     blocksGenerating,
     blockContentGenerating,

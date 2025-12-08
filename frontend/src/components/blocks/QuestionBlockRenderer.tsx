@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
-import { BlockContent, QuestionContent, Option } from '../../types/app';
+import { BlockContent, Option } from '../../types/app';
 import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';

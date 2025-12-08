@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { BlockContent, TextContent } from '../../types/app';
+import { BlockContent } from '../../types/app';
 import { MarkdownContent } from '../MarkdownContent';
 
 interface TextBlockRendererProps {

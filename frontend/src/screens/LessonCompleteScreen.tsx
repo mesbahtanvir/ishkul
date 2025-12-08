@@ -51,7 +51,7 @@ export const LessonCompleteScreen: React.FC<LessonCompleteScreenProps> = ({
   navigation,
   route,
 }) => {
-  const { courseId, lessonId, sectionId, score, timeSpent, nextLesson } = route.params;
+  const { courseId, score, timeSpent, nextLesson } = route.params;
   const { colors } = useTheme();
   const { responsive } = useResponsive();
 

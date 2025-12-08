@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Container } from '../components/Container';
 import { Card } from '../components/Card';
@@ -64,7 +64,6 @@ const getLessonStatusColor = (
 interface SectionCardProps {
   section: Section;
   sectionIndex: number;
-  courseId: string;
   isExpanded: boolean;
   onToggle: () => void;
   onLessonPress: (lesson: Lesson) => void;
@@ -73,7 +72,6 @@ interface SectionCardProps {
 const SectionCard: React.FC<SectionCardProps> = ({
   section,
   sectionIndex,
-  courseId,
   isExpanded,
   onToggle,
   onLessonPress,
@@ -361,7 +359,6 @@ export const CourseOutlineScreen: React.FC<CourseOutlineScreenProps> = ({
               key={section.id}
               section={section}
               sectionIndex={index}
-              courseId={courseId}
               isExpanded={expandedSections.has(section.id)}
               onToggle={() => toggleSection(section.id)}
               onLessonPress={(lesson) => handleLessonPress(lesson, section.id)}

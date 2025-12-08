@@ -4,11 +4,10 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { BlockContent, SummaryContent } from '../../types/app';
+import { BlockContent } from '../../types/app';
 import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
-import { MarkdownContent } from '../MarkdownContent';
 
 interface SummaryBlockRendererProps {
   content: BlockContent;

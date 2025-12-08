@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput } from 'react-native';
-import { BlockContent, TaskContent } from '../../types/app';
+import { BlockContent } from '../../types/app';
 import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
@@ -26,12 +26,7 @@ export const TaskBlockRenderer: React.FC<TaskBlockRendererProps> = ({
   const taskContent = content.task;
 
   const [userSolution, setUserSolution] = useState('');
-  const [showSolution, setShowSolution] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
-
-  const handleShowSolution = () => {
-    setShowSolution(true);
-  };
 
   const handleComplete = () => {
     setIsCompleted(true);
