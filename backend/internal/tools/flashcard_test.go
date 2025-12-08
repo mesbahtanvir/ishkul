@@ -129,16 +129,17 @@ func TestFlashcardToolParseContent(t *testing.T) {
 			"hint": "Think about the first three letters of variable"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "flashcard", step.Type)
-		assert.Equal(t, "Go Programming", step.Topic)
-		assert.Equal(t, "Variable Declaration", step.Title)
-		assert.Equal(t, "What keyword is used to declare a variable in Go?", step.Question)
-		assert.Equal(t, "The 'var' keyword is used for variable declaration", step.ExpectedAnswer)
-		assert.Equal(t, []string{"Think about the first three letters of variable"}, step.Hints)
+		assert.Equal(t, models.BlockTypeFlashcard, block.Type)
+		assert.Equal(t, "Variable Declaration", block.Title)
+		require.NotNil(t, block.Content)
+		require.NotNil(t, block.Content.Flashcard)
+		assert.Equal(t, "What keyword is used to declare a variable in Go?", block.Content.Flashcard.Front)
+		assert.Equal(t, "The 'var' keyword is used for variable declaration", block.Content.Flashcard.Back)
+		assert.Equal(t, "Think about the first three letters of variable", block.Content.Flashcard.Hint)
 	})
 
 	t.Run("parses content without optional hint", func(t *testing.T) {
@@ -149,12 +150,12 @@ func TestFlashcardToolParseContent(t *testing.T) {
 			"back": "Testing individual units of code in isolation"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "flashcard", step.Type)
-		assert.Nil(t, step.Hints)
+		assert.Equal(t, models.BlockTypeFlashcard, block.Type)
+		assert.Empty(t, block.Content.Flashcard.Hint)
 	})
 
 	t.Run("parses content with empty hint", func(t *testing.T) {
@@ -166,18 +167,18 @@ func TestFlashcardToolParseContent(t *testing.T) {
 			"hint": ""
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Nil(t, step.Hints, "empty hint should not be added to hints slice")
+		assert.Empty(t, block.Content.Flashcard.Hint, "empty hint should remain empty")
 	})
 
 	t.Run("returns error for invalid JSON", func(t *testing.T) {
 		content := `{invalid json}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to parse flashcard content")
@@ -186,8 +187,8 @@ func TestFlashcardToolParseContent(t *testing.T) {
 	t.Run("returns error for empty content", func(t *testing.T) {
 		content := ``
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		assert.Error(t, err)
 	})
@@ -201,13 +202,12 @@ func TestFlashcardToolParseContent(t *testing.T) {
 			"hint": "H2Oを思い出して"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Equal(t, "日本語", step.Topic)
-		assert.Equal(t, "「水」の読み方は？", step.Question)
-		assert.Equal(t, "みず (mizu)", step.ExpectedAnswer)
+		assert.Equal(t, "「水」の読み方は？", block.Content.Flashcard.Front)
+		assert.Equal(t, "みず (mizu)", block.Content.Flashcard.Back)
 	})
 
 	t.Run("handles special characters", func(t *testing.T) {
@@ -218,12 +218,12 @@ func TestFlashcardToolParseContent(t *testing.T) {
 			"back": "4 (because 4² = 16)"
 		}`
 
-		step := &models.Step{}
-		err := tool.ParseContent(content, step)
+		block := &models.Block{}
+		err := tool.ParseContent(content, block)
 
 		require.NoError(t, err)
-		assert.Contains(t, step.Question, "√")
-		assert.Contains(t, step.ExpectedAnswer, "²")
+		assert.Contains(t, block.Content.Flashcard.Front, "√")
+		assert.Contains(t, block.Content.Flashcard.Back, "²")
 	})
 }
 
@@ -234,50 +234,86 @@ func TestFlashcardToolParseContent(t *testing.T) {
 func TestFlashcardToolValidate(t *testing.T) {
 	tool := &FlashcardTool{}
 
-	t.Run("validates valid step", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "What is the capital of France?",
-			ExpectedAnswer: "Paris",
+	t.Run("validates valid block", func(t *testing.T) {
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Flashcard: &models.FlashcardContent{
+					Front: "What is the capital of France?",
+					Back:  "Paris",
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.NoError(t, err)
 	})
 
 	t.Run("returns error for empty question (front)", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "",
-			ExpectedAnswer: "Paris",
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Flashcard: &models.FlashcardContent{
+					Front: "",
+					Back:  "Paris",
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "front")
-		assert.Contains(t, err.Error(), "question")
 	})
 
 	t.Run("returns error for empty expected answer (back)", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "What is the capital of France?",
-			ExpectedAnswer: "",
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Flashcard: &models.FlashcardContent{
+					Front: "What is the capital of France?",
+					Back:  "",
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "back")
-		assert.Contains(t, err.Error(), "answer")
 	})
 
 	t.Run("returns error when both are empty", func(t *testing.T) {
-		step := &models.Step{
-			Question:       "",
-			ExpectedAnswer: "",
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Flashcard: &models.FlashcardContent{
+					Front: "",
+					Back:  "",
+				},
+			},
 		}
 
-		err := tool.Validate(step)
+		err := tool.Validate(block)
 		assert.Error(t, err)
-		// Should fail on question first
+		// Should fail on front first
 		assert.Contains(t, err.Error(), "front")
+	})
+
+	t.Run("returns error for nil content", func(t *testing.T) {
+		block := &models.Block{
+			Content: nil,
+		}
+
+		err := tool.Validate(block)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "flashcard content is required")
+	})
+
+	t.Run("returns error for nil flashcard", func(t *testing.T) {
+		block := &models.Block{
+			Content: &models.BlockContent{
+				Flashcard: nil,
+			},
+		}
+
+		err := tool.Validate(block)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "flashcard content is required")
 	})
 }
 

@@ -58,11 +58,19 @@ type Course struct {
 	CompletedAt    int64 `json:"completedAt,omitempty" firestore:"completedAt,omitempty"`
 	ArchivedAt     int64 `json:"archivedAt,omitempty" firestore:"archivedAt,omitempty"`
 	DeletedAt      int64 `json:"deletedAt,omitempty" firestore:"deletedAt,omitempty"`
+
+	// Legacy fields for backward compatibility (deprecated)
+	// TODO: Remove after migration to new Block-based model is complete
+	Goal            string           `json:"goal,omitempty" firestore:"goal,omitempty"`                       // Deprecated: Use Title
+	Steps           []Step           `json:"steps,omitempty" firestore:"steps,omitempty"`                     // Deprecated: Use Outline.Sections[].Lessons[].Blocks
+	Memory          *Memory          `json:"memory,omitempty" firestore:"memory,omitempty"`                   // Deprecated: Use CourseProgress
+	OutlinePosition *OutlinePosition `json:"outlinePosition,omitempty" firestore:"outlinePosition,omitempty"` // Deprecated: Use CurrentPosition
 }
 
 // CourseCreate represents the request to create a new course
 type CourseCreate struct {
 	Title string `json:"title"` // was: Goal
+	Goal  string `json:"goal"`  // Deprecated: Use Title (kept for backward compatibility)
 	Emoji string `json:"emoji"`
 }
 
@@ -85,6 +93,9 @@ type CourseOutline struct {
 	Sections         []Section       `json:"sections" firestore:"sections"` // was: Modules
 	Metadata         OutlineMetadata `json:"metadata" firestore:"metadata"`
 	GeneratedAt      int64           `json:"generatedAt" firestore:"generatedAt"`
+
+	// Legacy field for backward compatibility
+	Modules []OutlineModule `json:"modules,omitempty" firestore:"modules,omitempty"` // Deprecated: Use Sections
 }
 
 // Section represents a chapter/module in the course outline (was: OutlineModule)
