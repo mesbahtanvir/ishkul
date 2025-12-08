@@ -26,9 +26,13 @@ jest.mock('../../hooks/useTheme', () => ({
 const createMockOutline = (overrides: Partial<CourseOutline> = {}): CourseOutline => ({
   title: 'Learn Python Basics',
   description: 'A comprehensive course on Python',
+  emoji: '🐍',
   estimatedMinutes: 120,
+  difficulty: 'beginner',
+  category: 'programming',
   prerequisites: [],
   learningOutcomes: ['Understand Python basics', 'Write simple programs'],
+  sections: [],
   modules: [
     {
       id: 'module-1',

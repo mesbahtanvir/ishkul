@@ -177,7 +177,7 @@ export const useLessonStore = create<LessonState>((set, get) => ({
           blocksGenerating: false,
         });
       }
-      return response.blocks;
+      return response.blocks ?? null;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate blocks';
       set({ error: message, blocksGenerating: false });
@@ -190,7 +190,7 @@ export const useLessonStore = create<LessonState>((set, get) => ({
     try {
       const response = await lessonsApi.generateBlockContent(courseId, lessonId, blockId);
       const { currentLesson } = get();
-      if (currentLesson && currentLesson.id === lessonId) {
+      if (currentLesson && currentLesson.id === lessonId && response.content) {
         const updatedBlocks = currentLesson.blocks?.map((b) =>
           b.id === blockId
             ? { ...b, content: response.content, contentStatus: 'ready' as ContentStatus }
@@ -201,7 +201,7 @@ export const useLessonStore = create<LessonState>((set, get) => ({
           blockContentGenerating: null,
         });
       }
-      return response.content;
+      return response.content ?? null;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate content';
       // Mark block as error

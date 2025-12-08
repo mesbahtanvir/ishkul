@@ -81,8 +81,8 @@ export const CourseProgressBar: React.FC<CourseProgressBarProps> = ({
               ]}
             />
             {/* Module markers */}
-            {outline.modules.map((module, idx) => {
-              const moduleStartPosition = outline.modules
+            {outline.modules?.map((module, idx) => {
+              const moduleStartPosition = outline.modules!
                 .slice(0, idx)
                 .reduce((sum, m) => sum + m.topics.length, 0);
               const markerPosition = (moduleStartPosition / totalTopics) * 100;

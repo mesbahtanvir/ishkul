@@ -45,8 +45,12 @@ describe('CourseStatus', () => {
   describe('Course interface', () => {
     const createValidPath = (overrides: Partial<Course> = {}): Course => ({
       id: 'test-id',
+      userId: 'test-user-id',
+      title: 'Learn Python',
       goal: 'Learn Python',
       emoji: '🐍',
+      status: 'active',
+      outlineStatus: 'ready',
       progress: 50,
       lessonsCompleted: 5,
       totalLessons: 10,

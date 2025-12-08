@@ -31,9 +31,13 @@ const createMockStep = (overrides: Partial<Step> = {}): Step => ({
 const createMockOutline = (): CourseOutline => ({
   title: 'Learn Python Basics',
   description: 'A comprehensive course on Python',
+  emoji: '🐍',
   estimatedMinutes: 120,
+  difficulty: 'beginner',
+  category: 'programming',
   prerequisites: [],
   learningOutcomes: ['Understand Python basics', 'Write simple programs'],
+  sections: [],
   modules: [
     {
       id: 'module-1',
@@ -105,8 +109,12 @@ const createMockOutline = (): CourseOutline => ({
 // Create mock path
 const createMockCourse = (overrides: Partial<Course> = {}): Course => ({
   id: 'test-path-123',
+  userId: 'test-user-123',
+  title: 'Learn Python',
   goal: 'Learn Python',
   emoji: '🐍',
+  status: 'active',
+  outlineStatus: 'ready',
   progress: 50,
   lessonsCompleted: 5,
   totalLessons: 10,

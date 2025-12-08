@@ -178,7 +178,7 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
     const { courses, activeCourse } = get();
     const updatedCourses = courses.map((c) => {
       if (c.id === courseId) {
-        return { ...c, steps: [...c.steps, step] };
+        return { ...c, steps: [...(c.steps ?? []), step] };
       }
       return c;
     });
@@ -186,7 +186,7 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
       courses: updatedCourses,
       activeCourse:
         activeCourse?.id === courseId
-          ? { ...activeCourse, steps: [...activeCourse.steps, step] }
+          ? { ...activeCourse, steps: [...(activeCourse.steps ?? []), step] }
           : activeCourse,
     });
   },
@@ -198,7 +198,7 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
 
     const updatedCourses = courses.map((c) => {
       if (c.id === courseId) {
-        return { ...c, steps: updateSteps(c.steps) };
+        return { ...c, steps: updateSteps(c.steps ?? []) };
       }
       return c;
     });
@@ -207,7 +207,7 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
       courses: updatedCourses,
       activeCourse:
         activeCourse?.id === courseId
-          ? { ...activeCourse, steps: updateSteps(activeCourse.steps) }
+          ? { ...activeCourse, steps: updateSteps(activeCourse.steps ?? []) }
           : activeCourse,
     });
   },
@@ -232,8 +232,8 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
   updateLesson: (courseId, sectionId, lessonId, updates) => {
     const { courses, activeCourse } = get();
 
-    const updateLessonInSections = (sections: Section[] | undefined): Section[] | undefined => {
-      if (!sections) return sections;
+    const updateLessonInSections = (sections: Section[] | undefined): Section[] => {
+      if (!sections) return [];
       return sections.map((section) => {
         if (section.id === sectionId) {
           return {
