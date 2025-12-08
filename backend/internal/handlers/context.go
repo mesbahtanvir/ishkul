@@ -101,7 +101,8 @@ func UpdateContext(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add timeout for LLM operations to prevent hanging requests
-	llmCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	// Increased to 120s to handle large context inputs (20-100 lines of text)
+	llmCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cancel()
 
 	// Call LLM to parse and merge context

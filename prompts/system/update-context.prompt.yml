@@ -1,6 +1,6 @@
 name: Update User Context
 description: Merges new user input into existing context for personalized learning
-model: gpt-4o-mini
+model: gpt-4o
 modelParameters:
   temperature: 0.3
   maxTokens: 2000
@@ -97,6 +97,14 @@ messages:
       3. For location journeys, append to the list, don't replace
       4. Keep the summary concise but informative for course personalization
       5. If the input is unclear or doesn't provide new info, return the context unchanged with empty changes array
+
+      ## Handling Large Inputs
+      When the user provides a lot of text (bio, resume, detailed description):
+      - Extract ONLY the most relevant learning-related information
+      - Focus on: skills, experience level, goals, interests, preferences
+      - Ignore: irrelevant personal details, verbose descriptions
+      - Be efficient - don't repeat information that's already in context
+      - Consolidate similar skills (e.g., "JavaScript, JS, Node.js" → one skill entry)
 
       IMPORTANT: Return ONLY valid JSON, no additional text.
 
