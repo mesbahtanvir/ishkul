@@ -10,27 +10,23 @@ import (
 )
 
 // ContextHash creates a hash from learning context for cache invalidation.
-// The hash changes when: memory changes, recent steps change, or progress changes.
+// The hash changes when: outline changes, current position changes, or progress changes.
 func ContextHash(course *models.Course) string {
 	var sb strings.Builder
 
-	// Include memory state
-	if course.Memory != nil && course.Memory.Compaction != nil {
-		sb.WriteString(course.Memory.Compaction.Summary)
-		sb.WriteString(strings.Join(course.Memory.Compaction.Weaknesses, ","))
+	// Include outline section/lesson count
+	if course.Outline != nil {
+		sb.WriteString(fmt.Sprintf("sections:%d", len(course.Outline.Sections)))
+		totalLessons := 0
+		for _, section := range course.Outline.Sections {
+			totalLessons += len(section.Lessons)
+		}
+		sb.WriteString(fmt.Sprintf("lessons:%d", totalLessons))
 	}
 
-	// Include recent step count and types
-	sb.WriteString(fmt.Sprintf("steps:%d", len(course.Steps)))
-
-	// Include last 3 step types for pattern detection
-	start := len(course.Steps) - 3
-	if start < 0 {
-		start = 0
-	}
-	for _, step := range course.Steps[start:] {
-		sb.WriteString(step.Type)
-		sb.WriteString(step.Topic)
+	// Include current position
+	if course.CurrentPosition != nil {
+		sb.WriteString(fmt.Sprintf("pos:%d:%d", course.CurrentPosition.SectionIndex, course.CurrentPosition.LessonIndex))
 	}
 
 	// Include progress percentage
@@ -46,12 +42,8 @@ func TopicHash(course *models.Course, topic string) string {
 
 	sb.WriteString(topic)
 
-	// Include topic confidence if available
-	if course.Memory != nil && course.Memory.Topics != nil {
-		if topicMem, ok := course.Memory.Topics[topic]; ok {
-			sb.WriteString(fmt.Sprintf("conf:%.2f", topicMem.Confidence))
-		}
-	}
+	// Include progress for context
+	sb.WriteString(fmt.Sprintf("progress:%d", course.Progress))
 
 	hash := sha256.Sum256([]byte(sb.String()))
 	return hex.EncodeToString(hash[:8])

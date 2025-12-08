@@ -59,11 +59,11 @@ type LearningTool interface {
 	// PromptFile returns the path to the tool-specific prompt template.
 	PromptFile() string
 
-	// ParseContent parses the LLM response into a Step.
-	ParseContent(content string, step *models.Step) error
+	// ParseContent parses the LLM response into a Block.
+	ParseContent(content string, block *models.Block) error
 
-	// Validate checks if the step data is valid.
-	Validate(step *models.Step) error
+	// Validate checks if the block data is valid.
+	Validate(block *models.Block) error
 }
 
 // BaseToolData contains common fields for all tool types.

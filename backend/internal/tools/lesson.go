@@ -59,30 +59,34 @@ func (t *LessonTool) PromptFile() string {
 	return "learning/tools/lesson"
 }
 
-// ParseContent parses LLM response into a Step.
-func (t *LessonTool) ParseContent(content string, step *models.Step) error {
+// ParseContent parses LLM response into a Block.
+func (t *LessonTool) ParseContent(content string, block *models.Block) error {
 	var data LessonData
 	if err := json.Unmarshal([]byte(content), &data); err != nil {
 		return fmt.Errorf("failed to parse lesson content: %w", err)
 	}
 
-	step.Type = "lesson"
-	step.Topic = data.Topic
-	step.Title = data.Title
-	step.Content = data.Content
+	block.Type = "text"
+	block.Title = data.Title
+	block.Content = &models.BlockContent{
+		Text: &models.TextContent{
+			Text: data.Content,
+		},
+	}
 
 	return nil
 }
 
-// Validate checks if the lesson step data is valid.
-func (t *LessonTool) Validate(step *models.Step) error {
-	if step.Content == "" {
+// Validate checks if the lesson block data is valid.
+func (t *LessonTool) Validate(block *models.Block) error {
+	if block.Content == nil || block.Content.Text == nil || block.Content.Text.Text == "" {
 		return fmt.Errorf("lesson content is required")
 	}
-	if len(step.Content) < 50 {
+	text := block.Content.Text.Text
+	if len(text) < 50 {
 		return fmt.Errorf("lesson content too short (min 50 chars)")
 	}
-	if len(step.Content) > 1500 {
+	if len(text) > 1500 {
 		return fmt.Errorf("lesson content too long (max 1500 chars)")
 	}
 	return nil
@@ -105,12 +109,12 @@ func (t *ReviewTool) Metadata() ToolMetadata {
 	}
 }
 
-// ParseContent parses LLM response into a Step with review type.
-func (t *ReviewTool) ParseContent(content string, step *models.Step) error {
-	if err := t.LessonTool.ParseContent(content, step); err != nil {
+// ParseContent parses LLM response into a Block with review type.
+func (t *ReviewTool) ParseContent(content string, block *models.Block) error {
+	if err := t.LessonTool.ParseContent(content, block); err != nil {
 		return err
 	}
-	step.Type = "review"
+	// Review is still a text block, just with a different semantic meaning
 	return nil
 }
 
@@ -131,12 +135,12 @@ func (t *SummaryTool) Metadata() ToolMetadata {
 	}
 }
 
-// ParseContent parses LLM response into a Step with summary type.
-func (t *SummaryTool) ParseContent(content string, step *models.Step) error {
-	if err := t.LessonTool.ParseContent(content, step); err != nil {
+// ParseContent parses LLM response into a Block with summary type.
+func (t *SummaryTool) ParseContent(content string, block *models.Block) error {
+	if err := t.LessonTool.ParseContent(content, block); err != nil {
 		return err
 	}
-	step.Type = "summary"
+	block.Type = "summary"
 	return nil
 }
 
