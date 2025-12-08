@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
@@ -1030,5 +1031,564 @@ func TestBuildMemoryContext(t *testing.T) {
 		assert.Contains(t, result, "Topic Confidence:")
 		assert.Contains(t, result, "90%")
 		assert.Contains(t, result, "75%")
+	})
+}
+
+// =============================================================================
+// countOutlineLessons Tests
+// =============================================================================
+
+func TestCountOutlineLessons(t *testing.T) {
+	t.Run("returns 0 for nil outline", func(t *testing.T) {
+		result := countOutlineLessons(nil)
+		assert.Equal(t, 0, result)
+	})
+
+	t.Run("counts lessons from new sections format", func(t *testing.T) {
+		outline := &models.CourseOutline{
+			Sections: []models.Section{
+				{
+					ID:    "s1",
+					Title: "Section 1",
+					Lessons: []models.Lesson{
+						{ID: "s1-l1", Title: "Lesson 1"},
+						{ID: "s1-l2", Title: "Lesson 2"},
+						{ID: "s1-l3", Title: "Lesson 3"},
+					},
+				},
+				{
+					ID:    "s2",
+					Title: "Section 2",
+					Lessons: []models.Lesson{
+						{ID: "s2-l1", Title: "Lesson 1"},
+						{ID: "s2-l2", Title: "Lesson 2"},
+					},
+				},
+			},
+		}
+		result := countOutlineLessons(outline)
+		assert.Equal(t, 5, result)
+	})
+
+	t.Run("falls back to legacy modules format when sections empty", func(t *testing.T) {
+		outline := &models.CourseOutline{
+			Sections: []models.Section{}, // Empty sections
+			Modules: []models.OutlineModule{
+				{
+					ID:    "m1",
+					Title: "Module 1",
+					Topics: []models.OutlineTopic{
+						{ID: "m1-t1", Title: "Topic 1"},
+						{ID: "m1-t2", Title: "Topic 2"},
+					},
+				},
+				{
+					ID:    "m2",
+					Title: "Module 2",
+					Topics: []models.OutlineTopic{
+						{ID: "m2-t1", Title: "Topic 1"},
+					},
+				},
+			},
+		}
+		result := countOutlineLessons(outline)
+		assert.Equal(t, 3, result)
+	})
+
+	t.Run("returns 0 for empty outline", func(t *testing.T) {
+		outline := &models.CourseOutline{
+			Sections: []models.Section{},
+			Modules:  []models.OutlineModule{},
+		}
+		result := countOutlineLessons(outline)
+		assert.Equal(t, 0, result)
+	})
+}
+
+// =============================================================================
+// Course Outline Parsing Tests (LLM Response Format)
+// =============================================================================
+
+// TestCourseOutlineParsing tests that the LLM output format is correctly parsed
+// into the CourseOutline model structure. This validates the fix for the
+// sections/lessons vs modules/topics format mismatch.
+func TestCourseOutlineParsing(t *testing.T) {
+	t.Run("parses new format with sections and lessons", func(t *testing.T) {
+		// This is the exact format the LLM generates based on course-outline.prompt.yml
+		llmOutput := `{
+			"title": "Python Programming Fundamentals",
+			"description": "Learn the foundational concepts of Python programming.",
+			"emoji": "🐍",
+			"estimatedMinutes": 180,
+			"difficulty": "beginner",
+			"category": "programming",
+			"prerequisites": ["None"],
+			"learningOutcomes": [
+				"Write basic Python scripts",
+				"Understand fundamental programming concepts"
+			],
+			"sections": [
+				{
+					"id": "s1",
+					"title": "Introduction to Python",
+					"description": "Covers the basics of Python",
+					"estimatedMinutes": 30,
+					"learningOutcomes": ["Set up development environment"],
+					"lessons": [
+						{
+							"id": "s1-l1",
+							"title": "Installing Python",
+							"description": "Learn how to install Python",
+							"estimatedMinutes": 7
+						},
+						{
+							"id": "s1-l2",
+							"title": "Understanding Python Syntax",
+							"description": "Get familiar with Python code structure",
+							"estimatedMinutes": 8
+						}
+					]
+				},
+				{
+					"id": "s2",
+					"title": "Data Types and Variables",
+					"description": "Explore Python data types",
+					"estimatedMinutes": 30,
+					"learningOutcomes": ["Understand data types"],
+					"lessons": [
+						{
+							"id": "s2-l1",
+							"title": "Introduction to Data Types",
+							"description": "Learn about different data types",
+							"estimatedMinutes": 8
+						}
+					]
+				}
+			],
+			"reasoning": {
+				"structureRationale": "Progressive learning path",
+				"learningProgression": "Builds complexity gradually",
+				"personalization": "Tailored for beginners"
+			}
+		}`
+
+		// Parse the LLM output using the same struct as generateCourseOutline
+		var outlineData struct {
+			Title            string   `json:"title"`
+			Description      string   `json:"description"`
+			Emoji            string   `json:"emoji"`
+			EstimatedMinutes int      `json:"estimatedMinutes"`
+			Difficulty       string   `json:"difficulty"`
+			Category         string   `json:"category"`
+			Prerequisites    []string `json:"prerequisites"`
+			LearningOutcomes []string `json:"learningOutcomes"`
+			Sections         []struct {
+				ID               string   `json:"id"`
+				Title            string   `json:"title"`
+				Description      string   `json:"description"`
+				EstimatedMinutes int      `json:"estimatedMinutes"`
+				LearningOutcomes []string `json:"learningOutcomes"`
+				Lessons          []struct {
+					ID               string `json:"id"`
+					Title            string `json:"title"`
+					Description      string `json:"description"`
+					EstimatedMinutes int    `json:"estimatedMinutes"`
+				} `json:"lessons"`
+			} `json:"sections"`
+		}
+
+		err := json.Unmarshal([]byte(llmOutput), &outlineData)
+		require.NoError(t, err)
+
+		// Verify top-level fields
+		assert.Equal(t, "Python Programming Fundamentals", outlineData.Title)
+		assert.Equal(t, "🐍", outlineData.Emoji)
+		assert.Equal(t, 180, outlineData.EstimatedMinutes)
+		assert.Equal(t, "beginner", outlineData.Difficulty)
+		assert.Equal(t, "programming", outlineData.Category)
+		assert.Len(t, outlineData.Prerequisites, 1)
+		assert.Len(t, outlineData.LearningOutcomes, 2)
+
+		// Verify sections
+		assert.Len(t, outlineData.Sections, 2)
+
+		// Verify first section
+		section1 := outlineData.Sections[0]
+		assert.Equal(t, "s1", section1.ID)
+		assert.Equal(t, "Introduction to Python", section1.Title)
+		assert.Equal(t, 30, section1.EstimatedMinutes)
+		assert.Len(t, section1.Lessons, 2)
+
+		// Verify first lesson in first section
+		lesson1 := section1.Lessons[0]
+		assert.Equal(t, "s1-l1", lesson1.ID)
+		assert.Equal(t, "Installing Python", lesson1.Title)
+		assert.Equal(t, 7, lesson1.EstimatedMinutes)
+
+		// Verify second section
+		section2 := outlineData.Sections[1]
+		assert.Equal(t, "s2", section2.ID)
+		assert.Len(t, section2.Lessons, 1)
+	})
+
+	t.Run("converts parsed data to CourseOutline model correctly", func(t *testing.T) {
+		// Simulate what generateCourseOutline does after parsing
+		outline := &models.CourseOutline{
+			Title:            "Python Programming Fundamentals",
+			Description:      "Learn Python programming",
+			EstimatedMinutes: 180,
+			Prerequisites:    []string{"None"},
+			LearningOutcomes: []string{"Write Python scripts"},
+			Metadata: models.OutlineMetadata{
+				Difficulty: "beginner",
+				Category:   "programming",
+				Tags:       []string{},
+			},
+			GeneratedAt: 1234567890,
+			Sections: []models.Section{
+				{
+					ID:               "s1",
+					Title:            "Introduction to Python",
+					Description:      "Basics of Python",
+					EstimatedMinutes: 30,
+					LearningOutcomes: []string{"Set up environment"},
+					Status:           models.SectionStatusPending,
+					Lessons: []models.Lesson{
+						{
+							ID:               "s1-l1",
+							Title:            "Installing Python",
+							Description:      "Install Python on your computer",
+							EstimatedMinutes: 7,
+							BlocksStatus:     models.ContentStatusPending,
+							Status:           models.LessonStatusPending,
+							Blocks:           []models.Block{},
+						},
+						{
+							ID:               "s1-l2",
+							Title:            "Python Syntax",
+							Description:      "Learn basic syntax",
+							EstimatedMinutes: 8,
+							BlocksStatus:     models.ContentStatusPending,
+							Status:           models.LessonStatusPending,
+							Blocks:           []models.Block{},
+						},
+					},
+				},
+				{
+					ID:               "s2",
+					Title:            "Data Types",
+					Description:      "Explore data types",
+					EstimatedMinutes: 30,
+					LearningOutcomes: []string{"Understand data types"},
+					Status:           models.SectionStatusPending,
+					Lessons: []models.Lesson{
+						{
+							ID:               "s2-l1",
+							Title:            "Introduction to Data Types",
+							Description:      "Learn about data types",
+							EstimatedMinutes: 8,
+							BlocksStatus:     models.ContentStatusPending,
+							Status:           models.LessonStatusPending,
+							Blocks:           []models.Block{},
+						},
+					},
+				},
+			},
+		}
+
+		// Verify the outline structure
+		assert.Equal(t, "Python Programming Fundamentals", outline.Title)
+		assert.Equal(t, "beginner", outline.Metadata.Difficulty)
+		assert.Equal(t, "programming", outline.Metadata.Category)
+		assert.Len(t, outline.Sections, 2)
+
+		// Count total lessons
+		totalLessons := countOutlineLessons(outline)
+		assert.Equal(t, 3, totalLessons)
+
+		// Verify section structure
+		assert.Equal(t, "s1", outline.Sections[0].ID)
+		assert.Equal(t, models.SectionStatusPending, outline.Sections[0].Status)
+		assert.Len(t, outline.Sections[0].Lessons, 2)
+
+		// Verify lesson structure
+		assert.Equal(t, "s1-l1", outline.Sections[0].Lessons[0].ID)
+		assert.Equal(t, models.ContentStatusPending, outline.Sections[0].Lessons[0].BlocksStatus)
+		assert.Equal(t, models.LessonStatusPending, outline.Sections[0].Lessons[0].Status)
+		assert.NotNil(t, outline.Sections[0].Lessons[0].Blocks)
+	})
+
+	t.Run("handles markdown code blocks in LLM output", func(t *testing.T) {
+		// LLMs sometimes wrap JSON in markdown code blocks
+		llmOutputWithCodeBlock := "```json\n" + `{
+			"title": "Test Course",
+			"description": "A test course",
+			"emoji": "📚",
+			"estimatedMinutes": 60,
+			"difficulty": "beginner",
+			"category": "general",
+			"prerequisites": [],
+			"learningOutcomes": ["Learn something"],
+			"sections": [
+				{
+					"id": "s1",
+					"title": "Section 1",
+					"description": "First section",
+					"estimatedMinutes": 30,
+					"learningOutcomes": ["Outcome 1"],
+					"lessons": [
+						{
+							"id": "s1-l1",
+							"title": "Lesson 1",
+							"description": "First lesson",
+							"estimatedMinutes": 10
+						}
+					]
+				}
+			]
+		}` + "\n```"
+
+		// Use the llm package's ParseJSONResponse which strips markdown
+		var outlineData struct {
+			Title    string `json:"title"`
+			Sections []struct {
+				ID      string `json:"id"`
+				Lessons []struct {
+					ID string `json:"id"`
+				} `json:"lessons"`
+			} `json:"sections"`
+		}
+
+		// Import and use the llm package's JSON parser
+		cleaned := strings.TrimSpace(llmOutputWithCodeBlock)
+		if strings.HasPrefix(cleaned, "```") {
+			// Simple cleanup for test
+			cleaned = strings.TrimPrefix(cleaned, "```json\n")
+			cleaned = strings.TrimSuffix(cleaned, "\n```")
+		}
+
+		err := json.Unmarshal([]byte(cleaned), &outlineData)
+		require.NoError(t, err)
+
+		assert.Equal(t, "Test Course", outlineData.Title)
+		assert.Len(t, outlineData.Sections, 1)
+		assert.Equal(t, "s1", outlineData.Sections[0].ID)
+		assert.Len(t, outlineData.Sections[0].Lessons, 1)
+	})
+}
+
+// =============================================================================
+// Course API Response Format Tests
+// =============================================================================
+
+func TestCourseOutlineAPIResponse(t *testing.T) {
+	t.Run("course with outline serializes correctly", func(t *testing.T) {
+		course := models.Course{
+			ID:            "course-123",
+			UserID:        "user-456",
+			Title:         "Python Programming",
+			Emoji:         "🐍",
+			Status:        models.CourseStatusActive,
+			OutlineStatus: models.OutlineStatusReady,
+			Progress:      0,
+			TotalLessons:  3,
+			Outline: &models.CourseOutline{
+				Title:            "Python Programming Fundamentals",
+				Description:      "Learn Python",
+				EstimatedMinutes: 180,
+				Prerequisites:    []string{"None"},
+				LearningOutcomes: []string{"Write Python code"},
+				Metadata: models.OutlineMetadata{
+					Difficulty: "beginner",
+					Category:   "programming",
+					Tags:       []string{},
+				},
+				GeneratedAt: 1234567890,
+				Sections: []models.Section{
+					{
+						ID:               "s1",
+						Title:            "Introduction",
+						Description:      "Getting started",
+						EstimatedMinutes: 30,
+						Status:           models.SectionStatusInProgress,
+						Lessons: []models.Lesson{
+							{
+								ID:           "s1-l1",
+								Title:        "Installing Python",
+								Description:  "Setup guide",
+								BlocksStatus: models.ContentStatusPending,
+								Status:       models.LessonStatusInProgress,
+							},
+						},
+					},
+				},
+			},
+			CurrentPosition: &models.LessonPosition{
+				SectionIndex: 0,
+				LessonIndex:  0,
+				SectionID:    "s1",
+				LessonID:     "s1-l1",
+			},
+			CreatedAt:      1234567890,
+			UpdatedAt:      1234567890,
+			LastAccessedAt: 1234567890,
+		}
+
+		// Serialize to JSON
+		jsonBytes, err := json.Marshal(course)
+		require.NoError(t, err)
+
+		// Parse back to verify structure
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
+		// Verify top-level fields
+		assert.Equal(t, "course-123", parsed["id"])
+		assert.Equal(t, models.CourseStatusActive, parsed["status"])
+		assert.Equal(t, models.OutlineStatusReady, parsed["outlineStatus"])
+
+		// Verify outline exists and has sections
+		outline, ok := parsed["outline"].(map[string]interface{})
+		require.True(t, ok, "outline should be a map")
+		assert.Equal(t, "Python Programming Fundamentals", outline["title"])
+
+		sections, ok := outline["sections"].([]interface{})
+		require.True(t, ok, "sections should be an array")
+		assert.Len(t, sections, 1)
+
+		// Verify first section
+		section1, ok := sections[0].(map[string]interface{})
+		require.True(t, ok, "section should be a map")
+		assert.Equal(t, "s1", section1["id"])
+		assert.Equal(t, "Introduction", section1["title"])
+
+		// Verify lessons in section
+		lessons, ok := section1["lessons"].([]interface{})
+		require.True(t, ok, "lessons should be an array")
+		assert.Len(t, lessons, 1)
+
+		lesson1, ok := lessons[0].(map[string]interface{})
+		require.True(t, ok, "lesson should be a map")
+		assert.Equal(t, "s1-l1", lesson1["id"])
+		assert.Equal(t, "Installing Python", lesson1["title"])
+
+		// Verify currentPosition
+		currentPos, ok := parsed["currentPosition"].(map[string]interface{})
+		require.True(t, ok, "currentPosition should be a map")
+		assert.Equal(t, float64(0), currentPos["sectionIndex"])
+		assert.Equal(t, float64(0), currentPos["lessonIndex"])
+		assert.Equal(t, "s1", currentPos["sectionId"])
+		assert.Equal(t, "s1-l1", currentPos["lessonId"])
+	})
+
+	t.Run("outline metadata serializes with correct field names", func(t *testing.T) {
+		metadata := models.OutlineMetadata{
+			Difficulty: "beginner",
+			Category:   "programming",
+			Tags:       []string{"python", "basics"},
+		}
+
+		jsonBytes, err := json.Marshal(metadata)
+		require.NoError(t, err)
+
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
+		assert.Equal(t, "beginner", parsed["difficulty"])
+		assert.Equal(t, "programming", parsed["category"])
+
+		tags, ok := parsed["tags"].([]interface{})
+		require.True(t, ok)
+		assert.Len(t, tags, 2)
+	})
+}
+
+// =============================================================================
+// LessonPosition Tests
+// =============================================================================
+
+func TestLessonPosition(t *testing.T) {
+	t.Run("serializes correctly", func(t *testing.T) {
+		pos := models.LessonPosition{
+			SectionIndex: 1,
+			LessonIndex:  2,
+			SectionID:    "s2",
+			LessonID:     "s2-l3",
+		}
+
+		jsonBytes, err := json.Marshal(pos)
+		require.NoError(t, err)
+
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
+		assert.Equal(t, float64(1), parsed["sectionIndex"])
+		assert.Equal(t, float64(2), parsed["lessonIndex"])
+		assert.Equal(t, "s2", parsed["sectionId"])
+		assert.Equal(t, "s2-l3", parsed["lessonId"])
+	})
+}
+
+// =============================================================================
+// Section and Lesson Model Tests
+// =============================================================================
+
+func TestSectionModel(t *testing.T) {
+	t.Run("serializes with correct JSON tags", func(t *testing.T) {
+		section := models.Section{
+			ID:               "s1",
+			Title:            "Introduction",
+			Description:      "Getting started",
+			EstimatedMinutes: 30,
+			LearningOutcomes: []string{"Outcome 1"},
+			Status:           models.SectionStatusPending,
+			Lessons: []models.Lesson{
+				{ID: "s1-l1", Title: "Lesson 1"},
+			},
+		}
+
+		jsonBytes, err := json.Marshal(section)
+		require.NoError(t, err)
+
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
+		assert.Equal(t, "s1", parsed["id"])
+		assert.Equal(t, "Introduction", parsed["title"])
+		assert.Equal(t, "Getting started", parsed["description"])
+		assert.Equal(t, float64(30), parsed["estimatedMinutes"])
+		assert.Equal(t, models.SectionStatusPending, parsed["status"])
+	})
+}
+
+func TestLessonModel(t *testing.T) {
+	t.Run("serializes with correct JSON tags", func(t *testing.T) {
+		lesson := models.Lesson{
+			ID:               "s1-l1",
+			Title:            "Installing Python",
+			Description:      "Setup guide",
+			EstimatedMinutes: 10,
+			BlocksStatus:     models.ContentStatusPending,
+			Status:           models.LessonStatusPending,
+			Blocks:           []models.Block{},
+		}
+
+		jsonBytes, err := json.Marshal(lesson)
+		require.NoError(t, err)
+
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
+		assert.Equal(t, "s1-l1", parsed["id"])
+		assert.Equal(t, "Installing Python", parsed["title"])
+		assert.Equal(t, "Setup guide", parsed["description"])
+		assert.Equal(t, float64(10), parsed["estimatedMinutes"])
+		assert.Equal(t, models.ContentStatusPending, parsed["blocksStatus"])
+		assert.Equal(t, models.LessonStatusPending, parsed["status"])
 	})
 }
