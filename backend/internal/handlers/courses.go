@@ -456,20 +456,20 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Calculate total lessons from outline
-		totalTopics := countOutlineTopics(outline)
+		totalLessons := countOutlineLessons(outline)
 
-		// Initialize outline position at the start
-		outlinePosition := &models.OutlinePosition{
-			ModuleIndex: 0,
-			TopicIndex:  0,
+		// Initialize current position at the start using new LessonPosition
+		currentPosition := &models.LessonPosition{
+			SectionIndex: 0,
+			LessonIndex:  0,
 		}
-		if len(outline.Modules) > 0 {
-			// Mark first module and topic as in_progress
-			outline.Modules[0].Status = "in_progress"
-			outlinePosition.ModuleID = outline.Modules[0].ID
-			if len(outline.Modules[0].Topics) > 0 {
-				outline.Modules[0].Topics[0].Status = "in_progress"
-				outlinePosition.TopicID = outline.Modules[0].Topics[0].ID
+		if len(outline.Sections) > 0 {
+			// Mark first section and lesson as in_progress
+			outline.Sections[0].Status = models.SectionStatusInProgress
+			currentPosition.SectionID = outline.Sections[0].ID
+			if len(outline.Sections[0].Lessons) > 0 {
+				outline.Sections[0].Lessons[0].Status = models.LessonStatusInProgress
+				currentPosition.LessonID = outline.Sections[0].Lessons[0].ID
 			}
 		}
 
@@ -477,9 +477,9 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 		if bgFs != nil {
 			_, updateErr := Collection(bgFs, "courses").Doc(courseID).Update(bgCtx, []firestore.Update{
 				{Path: "outline", Value: outline},
-				{Path: "outlinePosition", Value: outlinePosition},
+				{Path: "currentPosition", Value: currentPosition},
 				{Path: "outlineStatus", Value: models.OutlineStatusReady},
-				{Path: "totalLessons", Value: totalTopics},
+				{Path: "totalLessons", Value: totalLessons},
 				{Path: "updatedAt", Value: time.Now().UnixMilli()},
 			})
 			if updateErr != nil {
@@ -500,8 +500,8 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 			if appLogger != nil {
 				logger.Info(appLogger, bgCtx, "outline_generation_completed",
 					slog.String("path_id", courseID),
-					slog.Int("modules", len(outline.Modules)),
-					slog.Int("total_topics", totalTopics),
+					slog.Int("sections", len(outline.Sections)),
+					slog.Int("total_lessons", totalLessons),
 				)
 			}
 
@@ -514,7 +514,7 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 					Goal:            goal,
 					Steps:           []models.Step{},
 					Outline:         outline,
-					OutlinePosition: outlinePosition,
+					CurrentPosition: currentPosition,
 					Memory: &models.Memory{
 						Topics: make(map[string]models.TopicMemory),
 					},
@@ -1833,40 +1833,43 @@ func generateCourseOutline(ctx context.Context, goal string) (*models.CourseOutl
 
 	content := completion.Choices[0].Message.Content
 
-	// Parse the JSON response
+	// Parse the JSON response - supports new format (sections/lessons)
 	var outlineData struct {
 		Title            string   `json:"title"`
 		Description      string   `json:"description"`
+		Emoji            string   `json:"emoji"`
 		EstimatedMinutes int      `json:"estimatedMinutes"`
+		Difficulty       string   `json:"difficulty"` // top-level in new format
+		Category         string   `json:"category"`   // top-level in new format
 		Prerequisites    []string `json:"prerequisites"`
 		LearningOutcomes []string `json:"learningOutcomes"`
-		Modules          []struct {
+		// New format: sections with lessons
+		Sections []struct {
 			ID               string   `json:"id"`
 			Title            string   `json:"title"`
 			Description      string   `json:"description"`
 			EstimatedMinutes int      `json:"estimatedMinutes"`
 			LearningOutcomes []string `json:"learningOutcomes"`
-			Topics           []struct {
-				ID               string   `json:"id"`
-				Title            string   `json:"title"`
-				ToolID           string   `json:"toolId"`
-				EstimatedMinutes int      `json:"estimatedMinutes"`
-				Description      string   `json:"description"`
-				Prerequisites    []string `json:"prerequisites"`
-			} `json:"topics"`
-		} `json:"modules"`
-		Metadata struct {
-			Difficulty string   `json:"difficulty"`
-			Category   string   `json:"category"`
-			Tags       []string `json:"tags"`
-		} `json:"metadata"`
+			Lessons          []struct {
+				ID               string `json:"id"`
+				Title            string `json:"title"`
+				Description      string `json:"description"`
+				EstimatedMinutes int    `json:"estimatedMinutes"`
+			} `json:"lessons"`
+		} `json:"sections"`
+		// Reasoning field (optional, for debugging)
+		Reasoning struct {
+			StructureRationale  string `json:"structureRationale"`
+			LearningProgression string `json:"learningProgression"`
+			Personalization     string `json:"personalization"`
+		} `json:"reasoning"`
 	}
 
 	if err := llm.ParseJSONResponse(content, &outlineData); err != nil {
 		return nil, fmt.Errorf("failed to parse outline response as JSON: %w (content: %s)", err, content)
 	}
 
-	// Convert to CourseOutline model
+	// Convert to CourseOutline model using new Section/Lesson structure
 	outline := &models.CourseOutline{
 		Title:            outlineData.Title,
 		Description:      outlineData.Description,
@@ -1874,53 +1877,61 @@ func generateCourseOutline(ctx context.Context, goal string) (*models.CourseOutl
 		Prerequisites:    outlineData.Prerequisites,
 		LearningOutcomes: outlineData.LearningOutcomes,
 		Metadata: models.OutlineMetadata{
-			Difficulty: outlineData.Metadata.Difficulty,
-			Category:   outlineData.Metadata.Category,
-			Tags:       outlineData.Metadata.Tags,
+			Difficulty: outlineData.Difficulty,
+			Category:   outlineData.Category,
+			Tags:       []string{}, // Tags not in new format, initialize empty
 		},
 		GeneratedAt: time.Now().UnixMilli(),
-		Modules:     make([]models.OutlineModule, 0, len(outlineData.Modules)),
+		Sections:    make([]models.Section, 0, len(outlineData.Sections)),
 	}
 
-	// Convert modules and topics
-	for _, m := range outlineData.Modules {
-		module := models.OutlineModule{
-			ID:               m.ID,
-			Title:            m.Title,
-			Description:      m.Description,
-			EstimatedMinutes: m.EstimatedMinutes,
-			LearningOutcomes: m.LearningOutcomes,
-			Status:           "pending",
-			Topics:           make([]models.OutlineTopic, 0, len(m.Topics)),
+	// Convert sections and lessons to the new model structure
+	for _, s := range outlineData.Sections {
+		section := models.Section{
+			ID:               s.ID,
+			Title:            s.Title,
+			Description:      s.Description,
+			EstimatedMinutes: s.EstimatedMinutes,
+			LearningOutcomes: s.LearningOutcomes,
+			Status:           models.SectionStatusPending,
+			Lessons:          make([]models.Lesson, 0, len(s.Lessons)),
 		}
 
-		for _, t := range m.Topics {
-			topic := models.OutlineTopic{
-				ID:               t.ID,
-				Title:            t.Title,
-				ToolID:           t.ToolID,
-				EstimatedMinutes: t.EstimatedMinutes,
-				Description:      t.Description,
-				Prerequisites:    t.Prerequisites,
-				Status:           "pending",
+		for _, l := range s.Lessons {
+			lesson := models.Lesson{
+				ID:               l.ID,
+				Title:            l.Title,
+				Description:      l.Description,
+				EstimatedMinutes: l.EstimatedMinutes,
+				BlocksStatus:     models.ContentStatusPending,
+				Status:           models.LessonStatusPending,
+				Blocks:           []models.Block{},
 			}
-			module.Topics = append(module.Topics, topic)
+			section.Lessons = append(section.Lessons, lesson)
 		}
 
-		outline.Modules = append(outline.Modules, module)
+		outline.Sections = append(outline.Sections, section)
 	}
 
 	return outline, nil
 }
 
-// countOutlineTopics returns the total number of topics in an outline
-func countOutlineTopics(outline *models.CourseOutline) int {
+// countOutlineLessons returns the total number of lessons in an outline
+// (counts from new Sections/Lessons format, falls back to legacy Modules/Topics)
+func countOutlineLessons(outline *models.CourseOutline) int {
 	if outline == nil {
 		return 0
 	}
 	count := 0
-	for _, m := range outline.Modules {
-		count += len(m.Topics)
+	// New format: count lessons from sections
+	for _, s := range outline.Sections {
+		count += len(s.Lessons)
+	}
+	// Fallback: if no sections, try legacy modules
+	if count == 0 {
+		for _, m := range outline.Modules {
+			count += len(m.Topics)
+		}
 	}
 	return count
 }
