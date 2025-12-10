@@ -45,8 +45,13 @@ npm run build            # Build for web
 ```bash
 go run cmd/server/main.go   # Run locally
 go test ./...               # Run tests
+go vet ./...                # Static analysis (run before commits)
+gofmt -w .                  # Format code (run before commits)
 gcloud run deploy ishkul-backend --source .  # Deploy to Cloud Run
 ```
+
+**IMPORTANT for Claude**: Always run `go vet ./...`, `gofmt -w .`, and `go test ./...`
+after making Go changes, even if not explicitly asked. These are required CI checks.
 
 ### E2E & Performance Testing
 ```bash

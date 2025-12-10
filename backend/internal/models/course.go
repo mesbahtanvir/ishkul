@@ -126,7 +126,8 @@ type Lesson struct {
 	Blocks []Block `json:"blocks,omitempty" firestore:"blocks,omitempty"`
 
 	// Lesson completion status
-	Status string `json:"status" firestore:"status"` // pending, in_progress, completed, skipped
+	Status      string `json:"status" firestore:"status"`                               // pending, in_progress, completed, skipped
+	CompletedAt int64  `json:"completedAt,omitempty" firestore:"completedAt,omitempty"` // Unix timestamp in milliseconds
 
 	// Progress tracking for this lesson
 	Progress *LessonProgress `json:"progress,omitempty" firestore:"progress,omitempty"`

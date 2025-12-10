@@ -3,11 +3,27 @@ import { tokenStorage } from './tokenStorage';
 
 export class ApiError extends Error {
   status: number;
+  code: string;
+  statusCode?: number;
 
-  constructor(message: string, status: number) {
-    super(message);
+  constructor(message: string, status: number);
+  constructor(code: string, message: string, statusCode?: number);
+  constructor(messageOrCode: string, statusOrMessage: string | number, statusCode?: number) {
+    // Detect which overload is being used based on second argument type
+    if (typeof statusOrMessage === 'number') {
+      // Old signature: (message, status)
+      super(messageOrCode);
+      this.status = statusOrMessage;
+      this.code = '';
+      this.statusCode = statusOrMessage;
+    } else {
+      // New signature: (code, message, statusCode?)
+      super(statusOrMessage);
+      this.code = messageOrCode;
+      this.status = statusCode ?? 0;
+      this.statusCode = statusCode;
+    }
     this.name = 'ApiError';
-    this.status = status;
   }
 }
 
