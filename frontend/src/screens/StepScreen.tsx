@@ -8,7 +8,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { LearningLayout } from '../components/LearningLayout';
 import { Container } from '../components/Container';
 import { Card } from '../components/Card';
 import { getTool } from '../tools';
@@ -126,7 +125,7 @@ export const StepScreen: React.FC<StepScreenProps> = ({ navigation, route }) => 
   const badgeColor = getBadgeColorFromTheme(tool.metadata.badgeColor, colors);
 
   return (
-    <LearningLayout step={step} courseId={courseId} scrollable>
+    <Container scrollable>
       <View style={styles.content}>
         {/* Common Header */}
         <Card elevation="md" padding="lg" style={styles.headerCard}>
@@ -153,7 +152,7 @@ export const StepScreen: React.FC<StepScreenProps> = ({ navigation, route }) => 
         {/* Tool-specific Renderer */}
         <ToolRenderer data={data} context={context} />
       </View>
-    </LearningLayout>
+    </Container>
   );
 };
 

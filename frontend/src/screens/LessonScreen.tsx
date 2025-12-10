@@ -10,7 +10,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Container } from '../components/Container';
+import { LearningLayout } from '../components/LearningLayout';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { ProgressBar } from '../components/ProgressBar';
@@ -21,6 +21,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types/navigation';
+import { LessonPosition } from '../types/app';
 
 type LessonScreenProps = NativeStackScreenProps<RootStackParamList, 'Lesson'>;
 
@@ -70,24 +71,40 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     }
   }, [isLessonComplete, lesson, courseId, lessonId, sectionId, score, finishLesson, navigation]);
 
+  // Build current position for sidebar highlighting
+  const currentPosition: LessonPosition | undefined = sectionId && lessonId ? {
+    sectionId,
+    lessonId,
+    sectionIndex: 0, // Will be determined by sidebar
+    lessonIndex: 0,
+  } : undefined;
+
   // Loading state
   if (isLoading) {
     return (
-      <Container scrollable>
+      <LearningLayout
+        courseId={courseId}
+        currentPosition={currentPosition}
+        title="Loading..."
+      >
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.text.secondary }]}>
             Loading lesson...
           </Text>
         </View>
-      </Container>
+      </LearningLayout>
     );
   }
 
-  // Generating blocks state
+  // Generating blocks state - show sidebar to maintain context
   if (isGeneratingBlocks) {
     return (
-      <Container scrollable>
+      <LearningLayout
+        courseId={courseId}
+        currentPosition={currentPosition}
+        title="Preparing Lesson"
+      >
         <View style={styles.centerContainer}>
           <Text style={styles.generatingEmoji}>🧠</Text>
           <Text style={[styles.generatingTitle, { color: colors.text.primary }]}>
@@ -102,14 +119,18 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
             style={styles.generatingLoader}
           />
         </View>
-      </Container>
+      </LearningLayout>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <Container scrollable>
+      <LearningLayout
+        courseId={courseId}
+        currentPosition={currentPosition}
+        title="Error"
+      >
         <Card elevation="md" padding="lg">
           <View style={styles.errorContainer}>
             <Text style={styles.errorIcon}>⚠️</Text>
@@ -127,14 +148,18 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
             />
           </View>
         </Card>
-      </Container>
+      </LearningLayout>
     );
   }
 
   // No lesson data
   if (!lesson) {
     return (
-      <Container scrollable>
+      <LearningLayout
+        courseId={courseId}
+        currentPosition={currentPosition}
+        title="Not Found"
+      >
         <Card elevation="md" padding="lg">
           <View style={styles.errorContainer}>
             <Text style={styles.errorIcon}>📭</Text>
@@ -149,7 +174,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
             />
           </View>
         </Card>
-      </Container>
+      </LearningLayout>
     );
   }
 
@@ -164,7 +189,12 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
   const progress = totalBlocks > 0 ? (completedBlocksCount / totalBlocks) * 100 : 0;
 
   return (
-    <Container scrollable>
+    <LearningLayout
+      courseId={courseId}
+      currentPosition={currentPosition}
+      title={lesson.title}
+      showBackButton={false}
+    >
       <View style={styles.content}>
         {/* Lesson Header */}
         <Card elevation="sm" padding="md" style={styles.headerCard}>
@@ -252,21 +282,32 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
             disabled={currentBlockIndex === 0}
             style={styles.navButton}
           />
-          <Button
-            title={currentBlockIndex === totalBlocks - 1 ? 'Finish' : 'Next'}
-            onPress={() => {
-              if (currentBlockIndex === totalBlocks - 1) {
-                completeCurrentBlock();
-              } else {
-                nextBlock();
-              }
-            }}
-            disabled={!currentBlock || currentBlock.contentStatus !== 'ready'}
-            style={styles.navButton}
-          />
+          <View style={styles.navButtonRight}>
+            <Button
+              title={currentBlockIndex === totalBlocks - 1 ? 'Finish' : 'Next'}
+              onPress={() => {
+                if (currentBlockIndex === totalBlocks - 1) {
+                  completeCurrentBlock();
+                } else {
+                  nextBlock();
+                }
+              }}
+              disabled={!currentBlock || currentBlock.contentStatus !== 'ready'}
+              style={styles.navButton}
+            />
+            {/* Show generating indicator next to button when content is loading */}
+            {currentBlock && currentBlock.contentStatus !== 'ready' && (
+              <View style={styles.buttonLoadingIndicator}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.buttonLoadingText, { color: colors.text.secondary }]}>
+                  Generating...
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
-    </Container>
+    </LearningLayout>
   );
 };
 
@@ -382,6 +423,19 @@ const styles = StyleSheet.create({
   },
   navButton: {
     flex: 1,
+  },
+  navButtonRight: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  buttonLoadingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  buttonLoadingText: {
+    ...Typography.label.small,
+    marginLeft: Spacing.xs,
   },
 });
 

@@ -182,7 +182,7 @@ export const GeneratingStepScreen: React.FC<GeneratingStepScreenProps> = ({
         <Animated.View style={[styles.fullScreen, { opacity: generatingOpacity }]}>
           <ScreenHeader title="" onBack={handleBack} />
           <GeneratingContent
-            contentType="step"
+            contentType="lesson"
             topic={topic || activeCourse?.goal}
           />
         </Animated.View>

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { LearningLayout } from '../components/LearningLayout';
+import { Container } from '../components/Container';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
@@ -104,7 +104,7 @@ export const StepDetailScreen: React.FC<StepDetailScreenProps> = ({
   };
 
   return (
-    <LearningLayout step={step} courseId={courseId} scrollable={false}>
+    <Container>
       <View style={styles.content}>
         {/* Top bar with back button (mobile only) and completed badge */}
         <View style={styles.topBar}>
@@ -303,7 +303,7 @@ export const StepDetailScreen: React.FC<StepDetailScreenProps> = ({
           <View style={styles.bottomSpacer} />
         </ScrollView>
       </View>
-    </LearningLayout>
+    </Container>
   );
 };
 
