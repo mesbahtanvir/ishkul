@@ -78,12 +78,6 @@ jest.mock('../../screens/HomeScreen', () => ({
 jest.mock('../../screens/CourseScreen', () => ({
   CourseScreen: () => null,
 }));
-jest.mock('../../screens/StepDetailScreen', () => ({
-  StepDetailScreen: () => null,
-}));
-jest.mock('../../screens/StepScreen', () => ({
-  StepScreen: () => null,
-}));
 jest.mock('../../screens/ProgressScreen', () => ({
   ProgressScreen: () => null,
 }));

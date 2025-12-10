@@ -1,4 +1,4 @@
-import { Step, Lesson, Block, LessonPosition } from './app';
+import { Lesson, Block, LessonPosition } from './app';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -9,14 +9,8 @@ export type RootStackParamList = {
   Home: undefined;
   // Course generation screen - shows progress while outline is being generated
   CourseGenerating: { courseId: string };
-  // Main course timeline view
+  // Main course view - redirects to CourseOutline
   Course: { courseId: string };
-  // Generating step screen - engaging loader while AI generates content
-  GeneratingStep: { courseId: string; topic?: string };
-  // Generic step screen - uses tool registry to render any step type
-  Step: { step: Step; courseId: string };
-  // Step detail view for reviewing past steps
-  StepDetail: { step: Step; courseId: string };
   Progress: undefined;
   Settings: undefined;
   SettingsTab: undefined;
@@ -25,7 +19,7 @@ export type RootStackParamList = {
   SubscriptionSuccess: { session_id?: string } | undefined;
   ManageSubscription: undefined;
   // ============================================
-  // Lesson Screens (New 3-Stage Generation)
+  // Lesson Screens (3-Stage Generation)
   // ============================================
   // Lesson content view - shows blocks and handles progression
   Lesson: {
