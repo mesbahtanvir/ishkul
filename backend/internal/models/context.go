@@ -88,8 +88,8 @@ type UserContext struct {
 	Derived      DerivedContext        `json:"derived" firestore:"derived"`
 	Summary      string                `json:"summary" firestore:"summary"`
 	Version      int                   `json:"version" firestore:"version"`
-	CreatedAt    time.Time             `json:"createdAt" firestore:"createdAt"`
-	UpdatedAt    time.Time             `json:"updatedAt" firestore:"updatedAt"`
+	CreatedAt    int64                 `json:"createdAt" firestore:"createdAt"`
+	UpdatedAt    int64                 `json:"updatedAt" firestore:"updatedAt"`
 }
 
 // ContextChange represents a single change made to the context
@@ -112,7 +112,7 @@ type ContextUpdateResponse struct {
 
 // NewUserContext creates a new empty user context
 func NewUserContext(userID string) *UserContext {
-	now := time.Now()
+	now := time.Now().UnixMilli()
 	return &UserContext{
 		UserID:       userID,
 		InputHistory: []ContextInputHistory{},
