@@ -594,7 +594,7 @@ func TestLLMContext_ToJSON(t *testing.T) {
 
 func TestLLMContextIntegration(t *testing.T) {
 	// Create a complete realistic scenario
-	now := time.Now()
+	now := time.Now().UnixMilli()
 
 	// User context
 	userCtx := &UserContext{
@@ -658,8 +658,8 @@ func TestLLMContextIntegration(t *testing.T) {
 	// Progress
 	progress := &CourseProgress{
 		CompletedLessons: []CompletedLessonSummary{
-			{LessonID: "l1", Title: "Installation", Score: 100, CompletedAt: now.Unix()},
-			{LessonID: "l2", Title: "Hello World", Score: 90, CompletedAt: now.Unix()},
+			{LessonID: "l1", Title: "Installation", Score: 100, CompletedAt: now},
+			{LessonID: "l2", Title: "Hello World", Score: 90, CompletedAt: now},
 		},
 		CurrentLessonID:  "l3",
 		CurrentSectionID: "s2",
