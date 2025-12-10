@@ -46,8 +46,8 @@ export default defineConfig({
     /* Screenshot on failure */
     screenshot: 'only-on-failure',
 
-    /* Video on failure */
-    video: 'on-first-retry',
+    /* Always record video */
+    video: 'on',
   },
 
   /* Configure projects for major browsers */
