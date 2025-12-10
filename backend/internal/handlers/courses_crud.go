@@ -133,11 +133,13 @@ func getCourse(w http.ResponseWriter, r *http.Request, courseID string) {
 
 // createCourse creates a new course.
 func createCourse(w http.ResponseWriter, r *http.Request) {
-	rc := GetRequestContext(w, r)
-	if rc == nil {
+	// 1. Auth check (before DB)
+	ctx, userID := GetAuthContext(w, r)
+	if userID == "" {
 		return
 	}
 
+	// 2. Parse and validate input (before DB)
 	var req models.CourseCreate
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		SendError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid request body")
@@ -148,6 +150,14 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 		SendError(w, http.StatusBadRequest, "MISSING_GOAL", "Goal is required")
 		return
 	}
+
+	// 3. Now get DB connection
+	fs := GetFirestoreClient(w)
+	if fs == nil {
+		return
+	}
+
+	rc := &RequestContext{Ctx: ctx, UserID: userID, FS: fs, Request: r}
 
 	// Validate course limit
 	if err := validateCourseLimit(w, rc, req); err != nil {

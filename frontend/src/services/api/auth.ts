@@ -52,6 +52,62 @@ export const authApi = {
   },
 
   /**
+   * Login with email and password
+   */
+  async loginWithEmail(email: string, password: string): Promise<{ user: User; tokens: LoginResponse }> {
+    const response = await apiClient.post<LoginResponse>(
+      '/auth/login/email',
+      { email, password },
+      { skipAuth: true }
+    );
+
+    // Save tokens
+    await tokenStorage.saveTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      expiresIn: response.expiresIn,
+    });
+
+    // Map backend user to frontend User type
+    const user: User = {
+      uid: response.user.id,
+      email: response.user.email,
+      displayName: response.user.displayName,
+      photoURL: response.user.photoUrl || null,
+    };
+
+    return { user, tokens: response };
+  },
+
+  /**
+   * Register a new user with email and password
+   */
+  async register(email: string, password: string, displayName: string): Promise<{ user: User; tokens: LoginResponse }> {
+    const response = await apiClient.post<LoginResponse>(
+      '/auth/register',
+      { email, password, displayName },
+      { skipAuth: true }
+    );
+
+    // Save tokens
+    await tokenStorage.saveTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      expiresIn: response.expiresIn,
+    });
+
+    // Map backend user to frontend User type
+    const user: User = {
+      uid: response.user.id,
+      email: response.user.email,
+      displayName: response.user.displayName,
+      photoURL: response.user.photoUrl || null,
+    };
+
+    return { user, tokens: response };
+  },
+
+  /**
    * Logout - clear local tokens and notify backend
    * Errors are propagated to the caller so they can notify the user
    */

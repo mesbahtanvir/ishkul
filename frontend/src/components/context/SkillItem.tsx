@@ -58,7 +58,7 @@ export const SkillItem: React.FC<SkillItemProps> = ({ skill }) => {
 
   const intentColor = getIntentColor(skill.intent);
   const { dots } = SKILL_LEVEL_DISPLAY[skill.level] || { dots: 0 };
-  const progressWidth = `${(dots / 4) * 100}%`;
+  const progressWidth = `${(dots / 4) * 100}%` as const;
 
   return (
     <View style={styles.container}>

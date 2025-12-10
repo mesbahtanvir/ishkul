@@ -28,11 +28,13 @@ type UpdatePathMemoryRequest struct {
 
 // updatePathMemory updates memory for a specific topic in a course.
 func updatePathMemory(w http.ResponseWriter, r *http.Request, courseID string) {
-	rc := GetRequestContext(w, r)
-	if rc == nil {
+	// 1. Auth check (before DB)
+	ctx, userID := GetAuthContext(w, r)
+	if userID == "" {
 		return
 	}
 
+	// 2. Parse and validate input (before DB)
 	var req UpdatePathMemoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		SendError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid request body")
@@ -43,6 +45,14 @@ func updatePathMemory(w http.ResponseWriter, r *http.Request, courseID string) {
 		SendError(w, http.StatusBadRequest, "MISSING_TOPIC", "Topic is required")
 		return
 	}
+
+	// 3. Now get DB connection
+	fs := GetFirestoreClient(w)
+	if fs == nil {
+		return
+	}
+
+	rc := &RequestContext{Ctx: ctx, UserID: userID, FS: fs, Request: r}
 
 	course := GetCourseByID(w, rc, courseID)
 	if course == nil {

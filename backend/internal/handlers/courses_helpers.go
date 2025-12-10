@@ -52,6 +52,32 @@ func GetRequestContext(w http.ResponseWriter, r *http.Request) *RequestContext {
 	}
 }
 
+// GetAuthContext extracts user auth context without DB check.
+// Used when input validation should happen before DB operations.
+// Returns empty userID if not authenticated.
+func GetAuthContext(w http.ResponseWriter, r *http.Request) (context.Context, string) {
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+
+	if userID == "" {
+		SendError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
+		return nil, ""
+	}
+
+	return ctx, userID
+}
+
+// GetFirestoreClient gets the Firestore client with error handling.
+// Returns nil and sends error response if DB is not available.
+func GetFirestoreClient(w http.ResponseWriter) *firestore.Client {
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		SendError(w, http.StatusInternalServerError, "DB_UNAVAILABLE", "Database not available")
+		return nil
+	}
+	return fs
+}
+
 // =============================================================================
 // Response Helpers
 // =============================================================================
