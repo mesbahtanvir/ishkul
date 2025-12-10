@@ -909,7 +909,7 @@ func TestUpdatePathMemoryRequestJSON(t *testing.T) {
 func TestGetCurrentStep(t *testing.T) {
 	t.Run("returns nil for empty steps", func(t *testing.T) {
 		steps := []models.Step{}
-		result := getCurrentStep(steps)
+		result := GetCurrentStep(steps)
 		assert.Nil(t, result)
 	})
 
@@ -919,7 +919,7 @@ func TestGetCurrentStep(t *testing.T) {
 			{ID: "2", Completed: true},
 			{ID: "3", Completed: true},
 		}
-		result := getCurrentStep(steps)
+		result := GetCurrentStep(steps)
 		assert.Nil(t, result)
 	})
 
@@ -929,7 +929,7 @@ func TestGetCurrentStep(t *testing.T) {
 			{ID: "2", Completed: false},
 			{ID: "3", Completed: false},
 		}
-		result := getCurrentStep(steps)
+		result := GetCurrentStep(steps)
 		require.NotNil(t, result)
 		assert.Equal(t, "2", result.ID)
 	})
@@ -939,7 +939,7 @@ func TestGetCurrentStep(t *testing.T) {
 			{ID: "1", Completed: false},
 			{ID: "2", Completed: false},
 		}
-		result := getCurrentStep(steps)
+		result := GetCurrentStep(steps)
 		require.NotNil(t, result)
 		assert.Equal(t, "1", result.ID)
 	})
@@ -998,7 +998,7 @@ func TestGetRecentSteps(t *testing.T) {
 func TestBuildMemoryContext(t *testing.T) {
 	t.Run("returns empty string for nil memory", func(t *testing.T) {
 		path := &models.Course{Memory: nil}
-		result := buildMemoryContext(path)
+		result := BuildMemoryContext(path)
 		assert.Empty(t, result)
 	})
 
@@ -1012,7 +1012,7 @@ func TestBuildMemoryContext(t *testing.T) {
 				},
 			},
 		}
-		result := buildMemoryContext(path)
+		result := BuildMemoryContext(path)
 		assert.Contains(t, result, "Learning Summary: User is making good progress")
 		assert.Contains(t, result, "Strengths: Variables, Functions")
 		assert.Contains(t, result, "Weaknesses: Pointers")
@@ -1027,7 +1027,7 @@ func TestBuildMemoryContext(t *testing.T) {
 				},
 			},
 		}
-		result := buildMemoryContext(path)
+		result := BuildMemoryContext(path)
 		assert.Contains(t, result, "Topic Confidence:")
 		assert.Contains(t, result, "90%")
 		assert.Contains(t, result, "75%")
