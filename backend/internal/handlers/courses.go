@@ -174,4 +174,3 @@ func routeStepAction(w http.ResponseWriter, r *http.Request, segments []string) 
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 }
-
