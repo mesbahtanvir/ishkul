@@ -594,7 +594,7 @@ func TestLLMContext_ToJSON(t *testing.T) {
 
 func TestLLMContextIntegration(t *testing.T) {
 	// Create a complete realistic scenario
-	now := time.Now()
+	now := time.Now().UnixMilli()
 
 	// User context
 	userCtx := &UserContext{
