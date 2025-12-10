@@ -31,12 +31,18 @@ test.describe('Smoke Tests', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Filter out known benign errors (e.g., extension-related)
+    // Filter out known benign errors (e.g., extension-related, auth-related for unauthenticated tests)
     const criticalErrors = consoleErrors.filter(
       (error) =>
         !error.includes('extension') &&
         !error.includes('favicon') &&
-        !error.includes('ResizeObserver')
+        !error.includes('ResizeObserver') &&
+        !error.includes('401') &&  // Expected for unauthenticated users
+        !error.includes('403') &&  // Expected for unauthenticated users
+        !error.includes('Provider') &&  // Auth provider messages
+        !error.includes('accounts list is empty') &&  // Expected when not logged in
+        !error.includes('GSI_LOGGER') &&  // Google Sign-In logger messages
+        !error.includes('FedCM')  // Federated Credential Management errors in automated browsers
     );
 
     expect(criticalErrors).toHaveLength(0);
@@ -45,16 +51,21 @@ test.describe('Smoke Tests', () => {
   test('page has correct title', async ({ page }) => {
     await page.goto('/');
 
-    // Check for app title
-    await expect(page).toHaveTitle(/ishkul|Ishkul|Learning/i);
+    // Check for app title (includes Login page title from Vercel deployment)
+    await expect(page).toHaveTitle(/ishkul|Ishkul|Learning|Login/i);
   });
 
   test('sign in button is visible', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Look for sign in / get started button
-    const signInButton = page.getByRole('button', { name: /sign|google|continue|get started/i });
+    // Look for sign in / get started button (React Native Web may not use button role)
+    // Try multiple selectors for compatibility
+    const signInButton = page.locator('text=/Sign In/i').or(
+      page.getByRole('button', { name: /sign in|google|continue|get started/i })
+    ).or(
+      page.locator('[data-testid*="sign"], [data-testid*="login"]')
+    );
     await expect(signInButton.first()).toBeVisible({ timeout: 10000 });
   });
 });
