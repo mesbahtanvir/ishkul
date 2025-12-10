@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Container } from '../components/Container';
+import { LearningLayout } from '../components/LearningLayout';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useTheme } from '../hooks/useTheme';
@@ -13,6 +13,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types/navigation';
+import { LessonPosition } from '../types/app';
 
 type LessonCompleteScreenProps = NativeStackScreenProps<RootStackParamList, 'LessonComplete'>;
 
@@ -51,9 +52,17 @@ export const LessonCompleteScreen: React.FC<LessonCompleteScreenProps> = ({
   navigation,
   route,
 }) => {
-  const { courseId, score, timeSpent, nextLesson } = route.params;
+  const { courseId, lessonId, sectionId, score, timeSpent, nextLesson } = route.params;
   const { colors } = useTheme();
   const { responsive } = useResponsive();
+
+  // Build current position for sidebar highlighting (show completed lesson)
+  const currentPosition: LessonPosition | undefined = sectionId && lessonId ? {
+    sectionId,
+    lessonId,
+    sectionIndex: 0,
+    lessonIndex: 0,
+  } : undefined;
 
   const handleContinue = () => {
     if (nextLesson) {
@@ -84,7 +93,12 @@ export const LessonCompleteScreen: React.FC<LessonCompleteScreenProps> = ({
   const message = getMessage(score);
 
   return (
-    <Container scrollable>
+    <LearningLayout
+      courseId={courseId}
+      currentPosition={currentPosition}
+      title="Lesson Complete"
+      showBackButton={false}
+    >
       <View style={styles.content}>
         {/* Celebration Card */}
         <Card elevation="lg" padding="xl" style={styles.mainCard}>
@@ -186,7 +200,7 @@ export const LessonCompleteScreen: React.FC<LessonCompleteScreenProps> = ({
           )}
         </View>
       </View>
-    </Container>
+    </LearningLayout>
   );
 };
 

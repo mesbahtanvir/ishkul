@@ -22,13 +22,10 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { GoalSelectionScreen } from '../screens/GoalSelectionScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CourseScreen } from '../screens/CourseScreen';
-import { StepDetailScreen } from '../screens/StepDetailScreen';
-import { StepScreen } from '../screens/StepScreen';
-import { GeneratingStepScreen } from '../screens/GeneratingStepScreen';
 import { CourseGeneratingScreen } from '../screens/CourseGeneratingScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { ContextScreen } from '../screens/ContextScreen';
-// New lesson-based screens (3-stage generation)
+// Lesson-based screens (3-stage generation)
 import { LessonScreen } from '../screens/LessonScreen';
 import { LessonCompleteScreen } from '../screens/LessonCompleteScreen';
 import { CourseOutlineScreen } from '../screens/CourseOutlineScreen';
@@ -67,10 +64,6 @@ const linking: LinkingOptions<RootStackParamList> = {
               GoalSelection: 'goal-selection',
               CourseGenerating: 'course-generating',
               Course: 'course',
-              StepDetail: 'step-detail',
-              GeneratingStep: 'generating-step',
-              Step: 'step',
-              // New lesson-based routes
               CourseOutline: 'course-outline',
               Lesson: 'lesson',
               LessonComplete: 'lesson-complete',
@@ -121,17 +114,8 @@ const LearnStack = () => {
       <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
       {/* Course generation screen - shows progress while outline is being generated */}
       <Stack.Screen name="CourseGenerating" component={CourseGeneratingScreen} />
-      {/* Main course view */}
+      {/* Main course view - redirects to CourseOutline */}
       <Stack.Screen name="Course" component={CourseScreen} />
-      {/* Read-only view for completed steps */}
-      <Stack.Screen name="StepDetail" component={StepDetailScreen} />
-      {/* Generating step screen - engaging loader while AI generates */}
-      <Stack.Screen name="GeneratingStep" component={GeneratingStepScreen} />
-      {/* Generic step screen using tool registry */}
-      <Stack.Screen name="Step" component={StepScreen} />
-      {/* ============================================ */}
-      {/* New lesson-based screens (3-stage generation) */}
-      {/* ============================================ */}
       {/* Course outline view - sections and lessons */}
       <Stack.Screen name="CourseOutline" component={CourseOutlineScreen} />
       {/* Lesson content with blocks */}

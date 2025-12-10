@@ -176,7 +176,7 @@ const LEARNING_TIPS = [
 
 interface GeneratingContentProps {
   /** Type of content being generated */
-  contentType?: 'lesson' | 'quiz' | 'practice' | 'review' | 'summary' | 'step';
+  contentType?: 'lesson' | 'quiz' | 'practice' | 'review' | 'summary' | 'block';
   /** Topic being generated (optional - for personalized message) */
   topic?: string;
   /** How long tips display before rotating (ms) */
@@ -184,7 +184,7 @@ interface GeneratingContentProps {
 }
 
 export const GeneratingContent: React.FC<GeneratingContentProps> = ({
-  contentType = 'step',
+  contentType = 'lesson',
   topic,
   tipRotationInterval = 4000,
 }) => {
@@ -227,9 +227,9 @@ export const GeneratingContent: React.FC<GeneratingContentProps> = ({
       practice: 'Setting up practice',
       review: 'Building your review',
       summary: 'Generating summary',
-      step: 'Creating your next step',
+      block: 'Creating content block',
     };
-    return messages[contentType] || messages.step;
+    return messages[contentType] || messages.lesson;
   };
 
   const currentTip = LEARNING_TIPS[currentTipIndex];
