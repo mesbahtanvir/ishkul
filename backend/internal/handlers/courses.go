@@ -10,12 +10,10 @@
 package handlers
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
-	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/internal/services"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/cache"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
@@ -177,39 +175,3 @@ func routeStepAction(w http.ResponseWriter, r *http.Request, segments []string) 
 	}
 }
 
-// =============================================================================
-// Backward Compatibility Aliases
-// =============================================================================
-
-// The following functions are aliased for backward compatibility.
-// New code should use the capitalized versions from courses_helpers.go.
-
-// normalizeCourse is an alias for NormalizeCourse for internal use.
-func normalizeCourse(course *models.Course) {
-	NormalizeCourse(course)
-}
-
-// getCurrentStep is an alias for GetCurrentStep for internal use.
-func getCurrentStep(steps []models.Step) *models.Step {
-	return GetCurrentStep(steps)
-}
-
-// parsePath is an alias for ParsePathSegments for internal use.
-func parsePath(urlPath, prefix string) []string {
-	return ParsePathSegments(urlPath, prefix)
-}
-
-// logRequest is an alias for LogRequest for internal use.
-func logRequest(ctx context.Context, r *http.Request) {
-	LogRequest(ctx, r)
-}
-
-// inferCategory is an alias for InferCategory for internal use.
-func inferCategory(goal string) string {
-	return InferCategory(goal)
-}
-
-// buildMemoryContext is an alias for BuildMemoryContext for internal use.
-func buildMemoryContext(course *models.Course) string {
-	return BuildMemoryContext(course)
-}
