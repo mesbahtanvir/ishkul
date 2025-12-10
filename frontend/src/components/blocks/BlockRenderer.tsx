@@ -24,8 +24,10 @@ export interface BlockRendererProps {
   block: Block;
   onAnswer?: (answer: string | string[]) => void;
   onComplete?: () => void;
+  onGenerateContent?: () => void; // Callback to trigger content generation
   isActive?: boolean;
   showHeader?: boolean;
+  isGenerating?: boolean; // Whether content is currently being generated
   style?: ViewStyle;
 }
 
@@ -102,23 +104,37 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
   block,
   onAnswer,
   onComplete,
+  onGenerateContent,
   isActive = false,
   showHeader = true,
+  isGenerating = false,
   style,
 }) => {
   const { colors } = useTheme();
 
   // Handle pending/generating content
-  if (block.contentStatus === 'pending' || block.contentStatus === 'generating') {
+  if (block.contentStatus === 'pending' || block.contentStatus === 'generating' || isGenerating) {
+    const isCurrentlyGenerating = block.contentStatus === 'generating' || isGenerating;
     return (
       <Card elevation="md" padding="lg" style={style}>
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingIcon, { color: colors.text.secondary }]}>
-            {block.contentStatus === 'generating' ? '⏳' : '📦'}
+            {isCurrentlyGenerating ? '⏳' : '📦'}
           </Text>
           <Text style={[styles.loadingText, { color: colors.text.secondary }]}>
-            {block.contentStatus === 'generating' ? 'Generating content...' : 'Content pending'}
+            {isCurrentlyGenerating ? 'Generating content...' : 'Content pending'}
           </Text>
+          {/* Show generate button if pending and not generating */}
+          {block.contentStatus === 'pending' && !isCurrentlyGenerating && onGenerateContent && (
+            <View style={styles.generateButtonContainer}>
+              <Text
+                style={[styles.generateButton, { color: colors.primary }]}
+                onPress={onGenerateContent}
+              >
+                Generate Content
+              </Text>
+            </View>
+          )}
         </View>
       </Card>
     );
@@ -133,6 +149,22 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
           <Text style={[styles.errorText, { color: colors.danger }]}>
             Failed to load content
           </Text>
+          {block.contentError && (
+            <Text style={[styles.errorDetail, { color: colors.text.secondary }]}>
+              {block.contentError}
+            </Text>
+          )}
+          {/* Show retry button */}
+          {onGenerateContent && (
+            <View style={styles.generateButtonContainer}>
+              <Text
+                style={[styles.retryButton, { color: colors.primary }]}
+                onPress={onGenerateContent}
+              >
+                Retry
+              </Text>
+            </View>
+          )}
         </View>
       </Card>
     );
@@ -277,6 +309,26 @@ const styles = StyleSheet.create({
   errorText: {
     ...Typography.body.medium,
     textAlign: 'center',
+  },
+  errorDetail: {
+    ...Typography.body.small,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+  },
+  generateButtonContainer: {
+    marginTop: Spacing.md,
+  },
+  generateButton: {
+    ...Typography.label.medium,
+    fontWeight: '600',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  retryButton: {
+    ...Typography.label.medium,
+    fontWeight: '600',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
   },
   unknownType: {
     ...Typography.body.medium,

@@ -149,8 +149,28 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
     };
   }, [pollPath]);
 
-  const handleStartLearning = () => {
-    navigation.replace('Course', { courseId });
+  const handleViewOutline = () => {
+    // Navigate directly to outline (skip CourseScreen redirect)
+    navigation.replace('CourseOutline', { courseId });
+  };
+
+  const handleStartFirstLesson = () => {
+    // Navigate directly to the first lesson
+    if (path?.outline?.sections && path.outline.sections.length > 0) {
+      const firstSection = path.outline.sections[0];
+      if (firstSection.lessons && firstSection.lessons.length > 0) {
+        const firstLesson = firstSection.lessons[0];
+        navigation.replace('Lesson', {
+          courseId,
+          lessonId: firstLesson.id,
+          sectionId: firstSection.id,
+          lesson: firstLesson,
+        });
+        return;
+      }
+    }
+    // Fallback to outline if no lessons found
+    navigation.replace('CourseOutline', { courseId });
   };
 
   const handleRetry = async () => {
@@ -159,19 +179,19 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
     navigation.goBack();
   };
 
-  // Calculate total topics and estimated time
+  // Calculate total lessons and estimated time
   const getTotals = () => {
-    if (!path?.outline?.modules) return { topics: 0, minutes: 0 };
-    let topics = 0;
+    if (!path?.outline?.sections) return { lessons: 0, minutes: 0 };
+    let lessons = 0;
     let minutes = 0;
-    path.outline.modules.forEach((module) => {
-      topics += module.topics.length;
-      minutes += module.estimatedMinutes;
+    path.outline.sections.forEach((section) => {
+      lessons += section.lessons.length;
+      minutes += section.estimatedMinutes;
     });
-    return { topics, minutes };
+    return { lessons, minutes };
   };
 
-  const { topics: totalTopics, minutes: totalMinutes } = getTotals();
+  const { lessons: totalLessons, minutes: totalMinutes } = getTotals();
 
   // Render outline preview
   const renderOutlinePreview = () => {
@@ -184,13 +204,13 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{path.outline.modules?.length ?? 0}</Text>
-            <Text style={styles.statLabel}>Modules</Text>
+            <Text style={styles.statValue}>{path.outline.sections?.length ?? 0}</Text>
+            <Text style={styles.statLabel}>Sections</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{totalTopics}</Text>
-            <Text style={styles.statLabel}>Topics</Text>
+            <Text style={styles.statValue}>{totalLessons}</Text>
+            <Text style={styles.statLabel}>Lessons</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
@@ -199,32 +219,32 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
           </View>
         </View>
 
-        <ScrollView style={styles.modulesList} showsVerticalScrollIndicator={false}>
-          {path.outline.modules?.map((module, index) => (
-            <View key={module.id} style={styles.moduleCard}>
-              <View style={styles.moduleHeader}>
-                <View style={styles.moduleNumber}>
-                  <Text style={styles.moduleNumberText}>{index + 1}</Text>
+        <ScrollView style={styles.sectionsList} showsVerticalScrollIndicator={false}>
+          {path.outline.sections?.map((section, index) => (
+            <View key={section.id} style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionNumber}>
+                  <Text style={styles.sectionNumberText}>{index + 1}</Text>
                 </View>
-                <View style={styles.moduleInfo}>
-                  <Text style={styles.moduleTitle}>{module.title}</Text>
-                  <Text style={styles.moduleTopicCount}>
-                    {module.topics.length} topics
+                <View style={styles.sectionInfo}>
+                  <Text style={styles.sectionTitle}>{section.title}</Text>
+                  <Text style={styles.sectionLessonCount}>
+                    {section.lessons.length} lessons
                   </Text>
                 </View>
               </View>
-              <View style={styles.topicsList}>
-                {module.topics.slice(0, 3).map((topic) => (
-                  <View key={topic.id} style={styles.topicItem}>
-                    <View style={styles.topicBullet} />
-                    <Text style={styles.topicTitle} numberOfLines={1}>
-                      {topic.title}
+              <View style={styles.lessonsList}>
+                {section.lessons.slice(0, 3).map((lesson) => (
+                  <View key={lesson.id} style={styles.lessonItem}>
+                    <View style={styles.lessonBullet} />
+                    <Text style={styles.lessonTitle} numberOfLines={1}>
+                      {lesson.title}
                     </Text>
                   </View>
                 ))}
-                {module.topics.length > 3 && (
-                  <Text style={styles.moreTopics}>
-                    +{module.topics.length - 3} more topics
+                {section.lessons.length > 3 && (
+                  <Text style={styles.moreLessons}>
+                    +{section.lessons.length - 3} more lessons
                   </Text>
                 )}
               </View>
@@ -232,8 +252,11 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
           ))}
         </ScrollView>
 
-        <TouchableOpacity style={styles.startButton} onPress={handleStartLearning}>
+        <TouchableOpacity style={styles.startButton} onPress={handleStartFirstLesson}>
           <Text style={styles.startButtonText}>Start Learning</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.outlineButton} onPress={handleViewOutline}>
+          <Text style={styles.outlineButtonText}>View Full Outline</Text>
         </TouchableOpacity>
       </View>
     );
@@ -410,11 +433,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5EA',
     marginVertical: 4,
   },
-  modulesList: {
+  sectionsList: {
     flex: 1,
     marginBottom: 16,
   },
-  moduleCard: {
+  sectionCard: {
     backgroundColor: '#FFF',
     borderRadius: 16,
     padding: 16,
@@ -425,12 +448,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  moduleHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  moduleNumber: {
+  sectionNumber: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -439,45 +462,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  moduleNumberText: {
+  sectionNumberText: {
     color: '#FFF',
     fontWeight: '700',
     fontSize: 14,
   },
-  moduleInfo: {
+  sectionInfo: {
     flex: 1,
   },
-  moduleTitle: {
+  sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1A1A1A',
   },
-  moduleTopicCount: {
+  sectionLessonCount: {
     fontSize: 13,
     color: '#666',
     marginTop: 2,
   },
-  topicsList: {
+  lessonsList: {
     paddingLeft: 44,
   },
-  topicItem: {
+  lessonItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
-  topicBullet: {
+  lessonBullet: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#C5C5C7',
     marginRight: 10,
   },
-  topicTitle: {
+  lessonTitle: {
     fontSize: 14,
     color: '#666',
     flex: 1,
   },
-  moreTopics: {
+  moreLessons: {
     fontSize: 13,
     color: '#007AFF',
     fontStyle: 'italic',
@@ -491,6 +514,20 @@ const styles = StyleSheet.create({
   startButtonText: {
     color: '#FFF',
     fontSize: 18,
+    fontWeight: '600',
+  },
+  outlineButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  outlineButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
     fontWeight: '600',
   },
   // Error state styles
