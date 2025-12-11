@@ -22,6 +22,7 @@ import (
 //   - GET    /api/courses/{id}/sections/{sectionId}/lessons                              -> list section lessons
 //   - GET    /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}                   -> get lesson with blocks
 //   - POST   /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}/generate-blocks   -> generate block skeletons
+//   - PATCH  /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}/progress          -> update lesson progress
 //   - POST   /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}/blocks/{blockId}/generate -> generate block content
 //   - POST   /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}/blocks/{blockId}/complete -> complete a block
 func LessonsHandler(w http.ResponseWriter, r *http.Request, courseID, sectionID string, segments []string) {
@@ -45,15 +46,14 @@ func LessonsHandler(w http.ResponseWriter, r *http.Request, courseID, sectionID 
 		}
 	case 2:
 		// POST /sections/{sectionId}/lessons/{lessonId}/{action}
+		// PATCH /sections/{sectionId}/lessons/{lessonId}/progress
 		lessonID := segments[0]
 		action := segments[1]
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		switch action {
-		case "generate-blocks":
+		switch {
+		case r.Method == http.MethodPost && action == "generate-blocks":
 			generateLessonBlocks(w, r, courseID, sectionID, lessonID)
+		case r.Method == http.MethodPatch && action == "progress":
+			updateLessonProgress(w, r, courseID, sectionID, lessonID)
 		default:
 			http.Error(w, "Not found", http.StatusNotFound)
 		}
@@ -423,6 +423,94 @@ func completeBlock(w http.ResponseWriter, r *http.Request, courseID, sectionID, 
 		"blockResult":    result,
 		"lessonComplete": lessonComplete,
 		"lessonProgress": lesson.Progress,
+	})
+}
+
+// updateLessonProgress handles partial progress updates
+func updateLessonProgress(w http.ResponseWriter, r *http.Request, courseID, sectionID, lessonID string) {
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse request
+	var req struct {
+		CompletedBlocks   []string `json:"completedBlocks,omitempty"`
+		LastBlockID       string   `json:"lastBlockId,omitempty"`
+		CurrentBlockIndex int      `json:"currentBlockIndex,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Get the course
+	course, err := getCourseByID(ctx, fs, courseID, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// Find lesson in the specified section
+	lesson := findLessonInSection(course, sectionID, lessonID)
+	if lesson == nil {
+		http.Error(w, "Lesson not found in section", http.StatusNotFound)
+		return
+	}
+
+	// Initialize progress if needed
+	now := time.Now().UnixMilli()
+	if lesson.Progress == nil {
+		lesson.Progress = models.NewLessonProgress()
+		lesson.Progress.StartedAt = now
+	}
+
+	// Update progress fields
+	if len(req.CompletedBlocks) > 0 {
+		// Merge completed blocks (don't overwrite existing)
+		existingBlocks := make(map[string]bool)
+		for _, br := range lesson.Progress.BlockResults {
+			existingBlocks[br.BlockID] = true
+		}
+		for _, blockID := range req.CompletedBlocks {
+			if !existingBlocks[blockID] {
+				lesson.Progress.BlockResults = append(lesson.Progress.BlockResults, models.BlockResult{
+					BlockID:     blockID,
+					Completed:   true,
+					CompletedAt: now,
+				})
+			}
+		}
+	}
+
+	if req.LastBlockID != "" {
+		lesson.Progress.CurrentBlockIndex = req.CurrentBlockIndex
+	}
+
+	// Update lesson status if needed
+	if lesson.Status == "" || lesson.Status == models.LessonStatusPending {
+		lesson.Status = models.LessonStatusInProgress
+	}
+
+	// Save progress
+	err = saveLessonProgress(ctx, fs, course, lessonID, lesson)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to save progress: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":  true,
+		"progress": lesson.Progress,
 	})
 }
 

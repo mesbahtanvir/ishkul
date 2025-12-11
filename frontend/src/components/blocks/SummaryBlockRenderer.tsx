@@ -43,14 +43,14 @@ export const SummaryBlockRenderer: React.FC<SummaryBlockRendererProps> = ({ cont
         </View>
       )}
 
-      {/* Next Steps (if any) */}
-      {summaryContent.nextSteps && (
+      {/* Next Up (if any) */}
+      {summaryContent.nextUp && (
         <View style={[styles.nextStepsContainer, { backgroundColor: colors.success + '10', borderColor: colors.success }]}>
           <Text style={[styles.nextStepsTitle, { color: colors.success }]}>
             ➡️ Coming Up Next
           </Text>
           <Text style={[styles.nextStepText, { color: colors.text.primary }]}>
-            {summaryContent.nextSteps}
+            {summaryContent.nextUp}
           </Text>
         </View>
       )}

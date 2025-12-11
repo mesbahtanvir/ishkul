@@ -49,21 +49,21 @@ export interface QuestionContent {
 }
 
 export interface TaskContent {
-  instructions: string;
-  steps?: string[];
+  instruction: string;
   hints?: string[];
-  successCriteria?: string;
+  successCriteria?: string[];
+  solution?: string;
 }
 
 export interface FlashcardContent {
   front: string;
   back: string;
-  hints?: string[];
+  hint?: string;
 }
 
 export interface SummaryContent {
   keyPoints: string[];
-  nextSteps?: string;
+  nextUp?: string;
 }
 
 export interface BlockContent {
