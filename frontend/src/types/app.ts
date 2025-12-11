@@ -35,7 +35,7 @@ export interface Question {
 }
 
 export interface TextContent {
-  text: string;
+  markdown: string;
 }
 
 export interface CodeContent {
