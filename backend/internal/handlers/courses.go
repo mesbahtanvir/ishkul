@@ -57,17 +57,15 @@ func SetAppLogger(log *slog.Logger) {
 //   - GET    /api/courses/{id}         -> get course
 //   - PATCH  /api/courses/{id}         -> update course
 //   - DELETE /api/courses/{id}         -> delete course
-//   - POST   /api/courses/{id}/next    -> get/generate next step
-//   - POST   /api/courses/{id}/archive -> archive course
-//   - POST   /api/courses/{id}/memory  -> update memory
-//   - POST   /api/courses/{id}/steps/{stepId}/complete -> complete step
-//   - POST   /api/courses/{id}/steps/{stepId}/view     -> view step
+//   - POST   /api/courses/{id}/archive   -> archive course
+//   - POST   /api/courses/{id}/unarchive -> unarchive course
 //
-// Lesson routes (3-stage generation):
-//   - GET    /api/courses/{id}/lessons/{lessonId}                           -> get lesson
-//   - POST   /api/courses/{id}/lessons/{lessonId}/generate-blocks           -> generate blocks
-//   - POST   /api/courses/{id}/lessons/{lessonId}/blocks/{blockId}/generate -> generate content
-//   - POST   /api/courses/{id}/lessons/{lessonId}/blocks/{blockId}/complete -> complete block
+// Section/Lesson routes (3-stage generation):
+//   - GET    /api/courses/{id}/sections/{sectionId}/lessons                              -> list section lessons
+//   - GET    /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}                   -> get lesson
+//   - POST   /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}/generate-blocks   -> generate blocks
+//   - POST   /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}/blocks/{blockId}/generate -> generate content
+//   - POST   /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}/blocks/{blockId}/complete -> complete block
 func CoursesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
@@ -77,9 +75,13 @@ func CoursesHandler(w http.ResponseWriter, r *http.Request) {
 
 	segments := ParsePathSegments(r.URL.Path, "/api/courses")
 
-	// Route to lessons handler if applicable
-	if len(segments) >= 3 && segments[1] == "lessons" {
-		LessonsHandler(w, r, segments[0], segments[2:])
+	// Route to sections/lessons handler if applicable
+	// Pattern: /courses/{id}/sections/{sectionId}/lessons/...
+	if len(segments) >= 4 && segments[1] == "sections" && segments[3] == "lessons" {
+		courseID := segments[0]
+		sectionID := segments[2]
+		lessonSegments := segments[4:] // [] for listing, [lessonId, ...] for specific lesson
+		LessonsHandler(w, r, courseID, sectionID, lessonSegments)
 		return
 	}
 
@@ -91,8 +93,6 @@ func CoursesHandler(w http.ResponseWriter, r *http.Request) {
 		routeSingleCourse(w, r, segments[0])
 	case 2:
 		routeCourseAction(w, r, segments[0], segments[1])
-	case 4:
-		routeStepAction(w, r, segments)
 	default:
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
@@ -136,40 +136,10 @@ func routeCourseAction(w http.ResponseWriter, r *http.Request, courseID, action 
 	}
 
 	switch action {
-	case "next", "session": // "session" kept for backward compatibility
-		getPathNextStep(w, r, courseID)
-	case "complete": // Legacy endpoint - complete the current step
-		completeCurrentStep(w, r, courseID)
 	case "archive":
 		archiveCourse(w, r, courseID)
 	case "unarchive":
 		unarchiveCourse(w, r, courseID)
-	case "memory":
-		updatePathMemory(w, r, courseID)
-	default:
-		http.Error(w, "Not found", http.StatusNotFound)
-	}
-}
-
-// routeStepAction handles /api/courses/{id}/steps/{stepId}/{action} (step actions).
-func routeStepAction(w http.ResponseWriter, r *http.Request, segments []string) {
-	if segments[1] != "steps" {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	courseID, stepID, action := segments[0], segments[2], segments[3]
-
-	switch action {
-	case "complete":
-		completeStep(w, r, courseID, stepID)
-	case "view":
-		viewStep(w, r, courseID, stepID)
 	default:
 		http.Error(w, "Not found", http.StatusNotFound)
 	}

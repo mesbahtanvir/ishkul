@@ -5,6 +5,9 @@
  * 1. Get lesson metadata
  * 2. Generate block skeletons
  * 3. Generate block content on-demand
+ *
+ * All lesson routes include sectionId in the path for consistency:
+ * /courses/{courseId}/sections/{sectionId}/lessons/...
  */
 
 import {
@@ -36,16 +39,7 @@ export const lessonsApi = {
   // ---------------------------------------------------------------------------
 
   /**
-   * Get a specific lesson with its blocks
-   */
-  async getLesson(courseId: string, lessonId: string): Promise<GetLessonResponse> {
-    return apiClient.get<GetLessonResponse>(
-      `/courses/${courseId}/lessons/${lessonId}`
-    );
-  },
-
-  /**
-   * Get all lessons for a section (for progress display)
+   * Get all lessons for a section
    */
   async getSectionLessons(
     courseId: string,
@@ -53,6 +47,19 @@ export const lessonsApi = {
   ): Promise<SectionLessonsResponse> {
     return apiClient.get<SectionLessonsResponse>(
       `/courses/${courseId}/sections/${sectionId}/lessons`
+    );
+  },
+
+  /**
+   * Get a specific lesson with its blocks
+   */
+  async getLesson(
+    courseId: string,
+    sectionId: string,
+    lessonId: string
+  ): Promise<GetLessonResponse> {
+    return apiClient.get<GetLessonResponse>(
+      `/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}`
     );
   },
 
@@ -66,10 +73,11 @@ export const lessonsApi = {
    */
   async generateBlocks(
     courseId: string,
+    sectionId: string,
     lessonId: string
   ): Promise<GenerateBlocksResponse> {
     return apiClient.post<GenerateBlocksResponse>(
-      `/courses/${courseId}/lessons/${lessonId}/generate-blocks`
+      `/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/generate-blocks`
     );
   },
 
@@ -79,11 +87,12 @@ export const lessonsApi = {
    */
   async generateBlockContent(
     courseId: string,
+    sectionId: string,
     lessonId: string,
     blockId: string
   ): Promise<GenerateBlockContentResponse> {
     return apiClient.post<GenerateBlockContentResponse>(
-      `/courses/${courseId}/lessons/${lessonId}/blocks/${blockId}/generate`
+      `/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/blocks/${blockId}/generate`
     );
   },
 
@@ -96,12 +105,13 @@ export const lessonsApi = {
    */
   async completeBlock(
     courseId: string,
+    sectionId: string,
     lessonId: string,
     blockId: string,
     data?: CompleteBlockRequest
   ): Promise<CompleteBlockResponse> {
     return apiClient.post<CompleteBlockResponse>(
-      `/courses/${courseId}/lessons/${lessonId}/blocks/${blockId}/complete`,
+      `/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/blocks/${blockId}/complete`,
       data || {}
     );
   },
@@ -115,11 +125,12 @@ export const lessonsApi = {
    */
   async updateLessonProgress(
     courseId: string,
+    sectionId: string,
     lessonId: string,
     progress: Partial<LessonProgress>
   ): Promise<void> {
     await apiClient.patch(
-      `/courses/${courseId}/lessons/${lessonId}/progress`,
+      `/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/progress`,
       progress
     );
   },

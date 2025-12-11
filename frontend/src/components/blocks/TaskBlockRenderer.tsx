@@ -41,22 +41,8 @@ export const TaskBlockRenderer: React.FC<TaskBlockRendererProps> = ({
     <View style={styles.container}>
       {/* Task Description */}
       <View style={styles.taskContainer}>
-        <MarkdownContent content={taskContent.instructions || ''} />
+        <MarkdownContent content={taskContent.instruction || ''} />
       </View>
-
-      {/* Steps */}
-      {taskContent.steps && taskContent.steps.length > 0 && (
-        <View style={[styles.hintsContainer, { backgroundColor: colors.primary + '10', borderColor: colors.primary }]}>
-          <Text style={[styles.hintsTitle, { color: colors.primary }]}>
-            📝 Steps
-          </Text>
-          {taskContent.steps.map((step, index) => (
-            <Text key={index} style={[styles.hintText, { color: colors.text.primary }]}>
-              {index + 1}. {step}
-            </Text>
-          ))}
-        </View>
-      )}
 
       {/* Hints */}
       {taskContent.hints && taskContent.hints.length > 0 && (
@@ -98,14 +84,16 @@ export const TaskBlockRenderer: React.FC<TaskBlockRendererProps> = ({
       </View>
 
       {/* Success Criteria */}
-      {taskContent.successCriteria && (
+      {taskContent.successCriteria && taskContent.successCriteria.length > 0 && (
         <View style={[styles.solutionContainer, { backgroundColor: colors.success + '10', borderColor: colors.success }]}>
           <Text style={[styles.solutionTitle, { color: colors.success }]}>
             ✅ Success Criteria
           </Text>
-          <Text style={[styles.hintText, { color: colors.text.primary }]}>
-            {taskContent.successCriteria}
-          </Text>
+          {taskContent.successCriteria.map((criteria, index) => (
+            <Text key={index} style={[styles.hintText, { color: colors.text.primary }]}>
+              • {criteria}
+            </Text>
+          ))}
         </View>
       )}
 

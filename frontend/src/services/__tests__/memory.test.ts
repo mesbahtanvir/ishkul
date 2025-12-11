@@ -3,9 +3,6 @@ import {
   createUserDocument,
   updateUserGoal,
   updateUserHistory,
-  updateNextStep,
-  clearNextStep,
-  updateTopicMemory,
 } from '../memory';
 
 // Mock the userApi
@@ -15,9 +12,9 @@ jest.mock('../api', () => ({
     createUserDocument: jest.fn(),
     updateGoal: jest.fn(),
     addHistory: jest.fn(),
-    setNextStep: jest.fn(),
-    clearNextStep: jest.fn(),
-    updateMemory: jest.fn(),
+  },
+  coursesApi: {
+    createCourse: jest.fn(),
   },
 }));
 
@@ -111,89 +108,6 @@ describe('Memory Service', () => {
         type: 'lesson',
         topic: 'Test',
         score: undefined,
-      });
-    });
-  });
-
-  describe('updateNextStep', () => {
-    it('should call userApi.setNextStep with mapped parameters', async () => {
-      (userApi.setNextStep as jest.Mock).mockResolvedValue(undefined);
-
-      const nextStep = {
-        type: 'lesson' as const,
-        topic: 'Python Variables',
-        title: 'Learn Variables',
-        content: 'Variables are...',
-        question: undefined,
-        expectedAnswer: undefined,
-        task: undefined,
-      };
-
-      await updateNextStep(nextStep);
-
-      expect(userApi.setNextStep).toHaveBeenCalledWith({
-        type: 'lesson',
-        topic: 'Python Variables',
-        title: 'Learn Variables',
-        content: 'Variables are...',
-        question: undefined,
-        answer: undefined,
-        task: undefined,
-      });
-    });
-
-    it('should map expectedAnswer to answer', async () => {
-      (userApi.setNextStep as jest.Mock).mockResolvedValue(undefined);
-
-      const nextStep = {
-        type: 'quiz' as const,
-        topic: 'Python Quiz',
-        question: 'What is 2+2?',
-        expectedAnswer: '4',
-      };
-
-      await updateNextStep(nextStep);
-
-      expect(userApi.setNextStep).toHaveBeenCalledWith(
-        expect.objectContaining({
-          answer: '4',
-        })
-      );
-    });
-  });
-
-  describe('clearNextStep', () => {
-    it('should call userApi.clearNextStep', async () => {
-      (userApi.clearNextStep as jest.Mock).mockResolvedValue(undefined);
-
-      await clearNextStep();
-
-      expect(userApi.clearNextStep).toHaveBeenCalled();
-    });
-  });
-
-  describe('updateTopicMemory', () => {
-    it('should call userApi.updateMemory with correct parameters', async () => {
-      (userApi.updateMemory as jest.Mock).mockResolvedValue(undefined);
-
-      await updateTopicMemory('Python Basics', 0.85, 5);
-
-      expect(userApi.updateMemory).toHaveBeenCalledWith({
-        topic: 'Python Basics',
-        confidence: 0.85,
-        timesTested: 5,
-      });
-    });
-
-    it('should handle zero values', async () => {
-      (userApi.updateMemory as jest.Mock).mockResolvedValue(undefined);
-
-      await updateTopicMemory('New Topic', 0, 0);
-
-      expect(userApi.updateMemory).toHaveBeenCalledWith({
-        topic: 'New Topic',
-        confidence: 0,
-        timesTested: 0,
       });
     });
   });

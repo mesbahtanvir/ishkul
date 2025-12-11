@@ -166,7 +166,6 @@ func main() {
 		}
 	})
 	standardAPI.HandleFunc("/api/me/history", handlers.AddHistory)
-	standardAPI.HandleFunc("/api/me/memory", handlers.UpdateMemory)
 	standardAPI.HandleFunc("/api/me/delete", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodDelete, http.MethodPost:
@@ -199,18 +198,6 @@ func main() {
 	// Expensive operations (LLM calls) - stricter rate limits
 	expensiveAPI := http.NewServeMux()
 	expensiveAPI.HandleFunc("/api/context/update", handlers.UpdateContext)
-	expensiveAPI.HandleFunc("/api/me/next-step", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handlers.GetNextStep(w, r)
-		case http.MethodPut, http.MethodPost:
-			handlers.SetNextStep(w, r)
-		case http.MethodDelete:
-			handlers.ClearNextStep(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
 	// Courses routes
 	expensiveAPI.HandleFunc("/api/courses", handlers.CoursesHandler)
 	expensiveAPI.HandleFunc("/api/courses/", handlers.CoursesHandler)
@@ -222,14 +209,12 @@ func main() {
 	mux.Handle("/api/me", standardProtected)
 	mux.Handle("/api/me/document", standardProtected)
 	mux.Handle("/api/me/history", standardProtected)
-	mux.Handle("/api/me/memory", standardProtected)
 	mux.Handle("/api/me/delete", standardProtected)
 	mux.Handle("/api/subscription/", standardProtected)
 	mux.Handle("/api/context", standardProtected)
 	mux.Handle("/api/context/derived", standardProtected)
 	mux.Handle("/api/context/summary", standardProtected)
 	mux.Handle("/api/context/update", expensiveProtected)
-	mux.Handle("/api/me/next-step", expensiveProtected)
 	mux.Handle("/api/courses", expensiveProtected)
 	mux.Handle("/api/courses/", expensiveProtected)
 

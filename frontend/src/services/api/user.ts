@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { UserDocument, HistoryEntry, NextStep } from '../../types/app';
+import { UserDocument, HistoryEntry } from '../../types/app';
 
 // Backend response types
 interface BackendUser {
@@ -133,47 +133,5 @@ export const userApi = {
     score?: number;
   }): Promise<{ success: boolean; entry: HistoryEntry }> {
     return apiClient.post('/me/history', entry);
-  },
-
-  /**
-   * Get next step
-   */
-  async getNextStep(): Promise<NextStep | null> {
-    const response = await apiClient.get<{ nextStep: NextStep | null }>('/me/next-step');
-    return response.nextStep;
-  },
-
-  /**
-   * Set next step
-   */
-  async setNextStep(nextStep: {
-    type: string;
-    topic: string;
-    title?: string;
-    content?: string;
-    question?: string;
-    options?: string[];
-    answer?: string;
-    task?: string;
-  }): Promise<{ success: boolean; nextStep: NextStep }> {
-    return apiClient.put('/me/next-step', nextStep);
-  },
-
-  /**
-   * Clear next step
-   */
-  async clearNextStep(): Promise<{ success: boolean }> {
-    return apiClient.delete('/me/next-step');
-  },
-
-  /**
-   * Update memory for a topic
-   */
-  async updateMemory(data: {
-    topic: string;
-    confidence: number;
-    timesTested: number;
-  }): Promise<{ success: boolean }> {
-    return apiClient.post('/me/memory', data);
   },
 };

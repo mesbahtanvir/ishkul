@@ -18,6 +18,7 @@ const (
 // Lesson status constants (within outline)
 const (
 	LessonStatusPending    = "pending"
+	LessonStatusLocked     = "locked"
 	LessonStatusInProgress = "in_progress"
 	LessonStatusCompleted  = "completed"
 	LessonStatusSkipped    = "skipped"
