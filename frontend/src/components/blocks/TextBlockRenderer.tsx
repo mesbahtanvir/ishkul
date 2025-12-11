@@ -12,8 +12,8 @@ interface TextBlockRendererProps {
 }
 
 export const TextBlockRenderer: React.FC<TextBlockRendererProps> = ({ content }) => {
-  // BlockContent.text is TextContent which has a text property
-  const textValue = content.text?.text || '';
+  // BlockContent.text is TextContent which has a markdown property
+  const textValue = content.text?.markdown || '';
 
   return (
     <View style={styles.container}>
