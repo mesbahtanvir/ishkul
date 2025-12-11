@@ -8,6 +8,7 @@ interface UseLessonOptions {
   lessonId: string;
   sectionId: string;
   autoGenerate?: boolean; // Auto-generate blocks if pending (default: true)
+  initialLesson?: ReturnType<typeof useLessonStore.getState>['currentLesson']; // Optional pre-populated lesson
 }
 
 interface UseLessonReturn {
@@ -58,6 +59,7 @@ export function useLesson({
   lessonId,
   sectionId,
   autoGenerate = true,
+  initialLesson,
 }: UseLessonOptions): UseLessonReturn {
   const initRef = useRef(false);
 
@@ -71,6 +73,7 @@ export function useLesson({
     completing,
     error,
     localProgress,
+    setCurrentLesson,
     fetchLesson,
     generateBlocks,
     generateBlockContent,
@@ -92,9 +95,16 @@ export function useLesson({
   useEffect(() => {
     if (!initRef.current) {
       initRef.current = true;
+
+      // If initialLesson provided, use it immediately while fetching fresh data
+      if (initialLesson) {
+        setCurrentLesson(initialLesson, courseId, sectionId);
+      }
+
+      // Always fetch fresh lesson data from API
       fetchLesson(courseId, lessonId, sectionId);
     }
-  }, [courseId, lessonId, sectionId, fetchLesson]);
+  }, [courseId, lessonId, sectionId, fetchLesson, initialLesson, setCurrentLesson]);
 
   // Auto-generate blocks if needed
   useEffect(() => {

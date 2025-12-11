@@ -26,7 +26,7 @@ import { LessonPosition } from '../types/app';
 type LessonScreenProps = NativeStackScreenProps<RootStackParamList, 'Lesson'>;
 
 export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route }) => {
-  const { courseId, lessonId, sectionId } = route.params;
+  const { courseId, lessonId, sectionId, lesson: initialLessonFromNav } = route.params;
   const { colors } = useTheme();
   const { responsive } = useResponsive();
 
@@ -47,11 +47,13 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     submitAnswer,
     completeCurrentBlock,
     finishLesson,
+    generateCurrentBlockContent,
   } = useLesson({
     courseId,
     lessonId,
     sectionId,
     autoGenerate: true,
+    initialLesson: initialLessonFromNav,
   });
 
   // Handle lesson completion
@@ -259,6 +261,8 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
               await completeCurrentBlock();
               nextBlock();
             }}
+            onGenerateContent={generateCurrentBlockContent}
+            isGenerating={isGeneratingContent === currentBlock.id}
             isActive
             showHeader
           />

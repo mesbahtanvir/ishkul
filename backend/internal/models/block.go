@@ -1,5 +1,38 @@
 package models
 
+import (
+	"encoding/json"
+)
+
+// FlexStringSlice is a string slice that can unmarshal from either
+// a JSON string or a JSON array of strings. This handles LLM response
+// variations where a field might be returned as either format.
+type FlexStringSlice []string
+
+// UnmarshalJSON implements json.Unmarshaler for FlexStringSlice
+func (f *FlexStringSlice) UnmarshalJSON(data []byte) error {
+	// First try to unmarshal as array
+	var arr []string
+	if err := json.Unmarshal(data, &arr); err == nil {
+		*f = arr
+		return nil
+	}
+
+	// Fall back to string
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return err
+	}
+
+	// Convert single string to slice
+	if str != "" {
+		*f = []string{str}
+	} else {
+		*f = []string{}
+	}
+	return nil
+}
+
 // Block type constants
 const (
 	BlockTypeText      = "text"
@@ -70,14 +103,14 @@ type QuestionContent struct {
 
 // Question represents a quiz/knowledge check question
 type Question struct {
-	ID            string   `json:"id" firestore:"id"`
-	Text          string   `json:"text" firestore:"text"`                                   // The question text
-	Type          string   `json:"type" firestore:"type"`                                   // multiple_choice, true_false, fill_blank, short_answer, code
-	Options       []Option `json:"options,omitempty" firestore:"options,omitempty"`         // For multiple choice / true-false
-	CorrectAnswer string   `json:"correctAnswer" firestore:"correctAnswer"`                 // Correct answer (option ID or text)
-	Explanation   string   `json:"explanation,omitempty" firestore:"explanation,omitempty"` // Why this is correct (shown after)
-	Hints         []string `json:"hints,omitempty" firestore:"hints,omitempty"`             // Progressive hints
-	Points        int      `json:"points,omitempty" firestore:"points,omitempty"`           // Score weight (default 1)
+	ID            string          `json:"id" firestore:"id"`
+	Text          string          `json:"text" firestore:"text"`                                   // The question text
+	Type          string          `json:"type" firestore:"type"`                                   // multiple_choice, true_false, fill_blank, short_answer, code
+	Options       []Option        `json:"options,omitempty" firestore:"options,omitempty"`         // For multiple choice / true-false
+	CorrectAnswer string          `json:"correctAnswer" firestore:"correctAnswer"`                 // Correct answer (option ID or text)
+	Explanation   string          `json:"explanation,omitempty" firestore:"explanation,omitempty"` // Why this is correct (shown after)
+	Hints         FlexStringSlice `json:"hints,omitempty" firestore:"hints,omitempty"`             // Progressive hints
+	Points        int             `json:"points,omitempty" firestore:"points,omitempty"`           // Score weight (default 1)
 }
 
 // Option represents a choice in a multiple choice question
@@ -88,10 +121,10 @@ type Option struct {
 
 // TaskContent represents a hands-on practice task
 type TaskContent struct {
-	Instruction     string   `json:"instruction" firestore:"instruction"`                             // What user needs to do
-	Hints           []string `json:"hints,omitempty" firestore:"hints,omitempty"`                     // Progressive hints
-	SuccessCriteria []string `json:"successCriteria,omitempty" firestore:"successCriteria,omitempty"` // How to verify completion
-	Solution        string   `json:"solution,omitempty" firestore:"solution,omitempty"`               // Example solution (revealed after)
+	Instruction     string          `json:"instruction" firestore:"instruction"`                             // What user needs to do
+	Hints           FlexStringSlice `json:"hints,omitempty" firestore:"hints,omitempty"`                     // Progressive hints
+	SuccessCriteria FlexStringSlice `json:"successCriteria,omitempty" firestore:"successCriteria,omitempty"` // How to verify completion
+	Solution        string          `json:"solution,omitempty" firestore:"solution,omitempty"`               // Example solution (revealed after)
 }
 
 // FlashcardContent represents a flashcard for spaced repetition
@@ -103,8 +136,8 @@ type FlashcardContent struct {
 
 // SummaryContent represents key takeaways for a lesson
 type SummaryContent struct {
-	KeyPoints []string `json:"keyPoints" firestore:"keyPoints"`               // Bullet points of main concepts
-	NextUp    string   `json:"nextUp,omitempty" firestore:"nextUp,omitempty"` // Preview of what's coming next
+	KeyPoints FlexStringSlice `json:"keyPoints" firestore:"keyPoints"`               // Bullet points of main concepts
+	NextUp    string          `json:"nextUp,omitempty" firestore:"nextUp,omitempty"` // Preview of what's coming next
 }
 
 // NewBlock creates a new block skeleton (Stage 2)
