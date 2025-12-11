@@ -50,9 +50,9 @@ interface LessonState {
   clearLesson: () => void;
 
   // Actions - Block Generation
-  generateBlocks: (courseId: string, lessonId: string) => Promise<Block[] | null>;
-  generateBlockContent: (courseId: string, lessonId: string, blockId: string) => Promise<BlockContent | null>;
-  generateAllBlockContent: (courseId: string, lessonId: string) => Promise<void>;
+  generateBlocks: (courseId: string, sectionId: string, lessonId: string) => Promise<Block[] | null>;
+  generateBlockContent: (courseId: string, sectionId: string, lessonId: string, blockId: string) => Promise<BlockContent | null>;
+  generateAllBlockContent: (courseId: string, sectionId: string, lessonId: string) => Promise<void>;
 
   // Actions - Block Navigation
   setCurrentBlockIndex: (index: number) => void;
@@ -63,11 +63,11 @@ interface LessonState {
   // Actions - Block Interaction
   setActiveBlock: (block: Block | null) => void;
   setBlockAnswer: (answer: string | string[]) => void;
-  completeBlock: (courseId: string, lessonId: string, blockId: string, result?: BlockResult) => Promise<void>;
+  completeBlock: (courseId: string, sectionId: string, lessonId: string, blockId: string, result?: BlockResult) => Promise<void>;
 
   // Actions - Progress
   updateLocalProgress: (updates: Partial<LessonProgress>) => void;
-  syncProgress: (courseId: string, lessonId: string) => Promise<void>;
+  syncProgress: (courseId: string, sectionId: string, lessonId: string) => Promise<void>;
 
   // Actions - Loading/Error
   setLoading: (loading: boolean) => void;
@@ -130,7 +130,7 @@ export const useLessonStore = create<LessonState>((set, get) => ({
   fetchLesson: async (courseId, lessonId, sectionId) => {
     set({ lessonLoading: true, error: null });
     try {
-      const response = await lessonsApi.getLesson(courseId, lessonId);
+      const response = await lessonsApi.getLesson(courseId, sectionId, lessonId);
       const lesson = response.lesson;
       set({
         currentLesson: lesson,
@@ -162,10 +162,10 @@ export const useLessonStore = create<LessonState>((set, get) => ({
   },
 
   // Block generation actions
-  generateBlocks: async (courseId, lessonId) => {
+  generateBlocks: async (courseId, sectionId, lessonId) => {
     set({ blocksGenerating: true, error: null });
     try {
-      const response = await lessonsApi.generateBlocks(courseId, lessonId);
+      const response = await lessonsApi.generateBlocks(courseId, sectionId, lessonId);
       const { currentLesson } = get();
       if (currentLesson && currentLesson.id === lessonId) {
         set({
@@ -185,10 +185,10 @@ export const useLessonStore = create<LessonState>((set, get) => ({
     }
   },
 
-  generateBlockContent: async (courseId, lessonId, blockId) => {
+  generateBlockContent: async (courseId, sectionId, lessonId, blockId) => {
     set({ blockContentGenerating: blockId, error: null });
     try {
-      const response = await lessonsApi.generateBlockContent(courseId, lessonId, blockId);
+      const response = await lessonsApi.generateBlockContent(courseId, sectionId, lessonId, blockId);
       const { currentLesson } = get();
       if (currentLesson && currentLesson.id === lessonId && response.content) {
         const updatedBlocks = currentLesson.blocks?.map((b) =>
@@ -220,7 +220,7 @@ export const useLessonStore = create<LessonState>((set, get) => ({
     }
   },
 
-  generateAllBlockContent: async (courseId, lessonId) => {
+  generateAllBlockContent: async (courseId, sectionId, lessonId) => {
     const { currentLesson } = get();
     if (!currentLesson?.blocks) return;
 
@@ -230,7 +230,7 @@ export const useLessonStore = create<LessonState>((set, get) => ({
 
     // Generate content for each pending block sequentially
     for (const block of pendingBlocks) {
-      await get().generateBlockContent(courseId, lessonId, block.id);
+      await get().generateBlockContent(courseId, sectionId, lessonId, block.id);
     }
   },
 
@@ -290,7 +290,7 @@ export const useLessonStore = create<LessonState>((set, get) => ({
     }
   },
 
-  completeBlock: async (courseId, lessonId, blockId, result) => {
+  completeBlock: async (courseId, sectionId, lessonId, blockId, result) => {
     set({ completing: true, error: null });
     try {
       const { activeBlock } = get();
@@ -302,7 +302,7 @@ export const useLessonStore = create<LessonState>((set, get) => ({
         ? { ...result, timeSpent }
         : { timeSpent };
 
-      await lessonsApi.completeBlock(courseId, lessonId, blockId, requestData);
+      await lessonsApi.completeBlock(courseId, sectionId, lessonId, blockId, requestData);
 
       // Update local state
       const { currentLesson, localProgress } = get();
@@ -342,12 +342,12 @@ export const useLessonStore = create<LessonState>((set, get) => ({
     });
   },
 
-  syncProgress: async (courseId, lessonId) => {
+  syncProgress: async (courseId, sectionId, lessonId) => {
     const { localProgress } = get();
     if (!localProgress) return;
 
     try {
-      await lessonsApi.updateLessonProgress(courseId, lessonId, localProgress);
+      await lessonsApi.updateLessonProgress(courseId, sectionId, lessonId, localProgress);
     } catch (error) {
       console.error('Failed to sync progress:', error);
     }

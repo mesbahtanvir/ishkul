@@ -17,31 +17,35 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 )
 
-// LessonsHandler handles /api/courses/{courseId}/lessons routes
+// LessonsHandler handles /api/courses/{courseId}/sections/{sectionId}/lessons routes
 // Routes:
-//   - GET    /api/courses/{id}/lessons/{lessonId}                      -> get lesson with blocks
-//   - POST   /api/courses/{id}/lessons/{lessonId}/generate-blocks      -> generate block skeletons
-//   - POST   /api/courses/{id}/lessons/{lessonId}/blocks/{blockId}/generate -> generate block content
-//   - POST   /api/courses/{id}/lessons/{lessonId}/blocks/{blockId}/complete -> complete a block
-func LessonsHandler(w http.ResponseWriter, r *http.Request, courseID string, segments []string) {
-	// segments: [lessonId] or [lessonId, action] or [lessonId, blocks, blockId, action]
-	if len(segments) == 0 {
-		http.Error(w, "Lesson ID required", http.StatusBadRequest)
-		return
-	}
-
-	lessonID := segments[0]
+//   - GET    /api/courses/{id}/sections/{sectionId}/lessons                              -> list section lessons
+//   - GET    /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}                   -> get lesson with blocks
+//   - POST   /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}/generate-blocks   -> generate block skeletons
+//   - POST   /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}/blocks/{blockId}/generate -> generate block content
+//   - POST   /api/courses/{id}/sections/{sectionId}/lessons/{lessonId}/blocks/{blockId}/complete -> complete a block
+func LessonsHandler(w http.ResponseWriter, r *http.Request, courseID, sectionID string, segments []string) {
+	// segments: [] for list, [lessonId] for get, [lessonId, action] or [lessonId, blocks, blockId, action]
 
 	switch len(segments) {
-	case 1:
-		// GET /lessons/{lessonId}
+	case 0:
+		// GET /sections/{sectionId}/lessons -> list all lessons in section
 		if r.Method == http.MethodGet {
-			getLesson(w, r, courseID, lessonID)
+			listSectionLessons(w, r, courseID, sectionID)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	case 1:
+		// GET /sections/{sectionId}/lessons/{lessonId}
+		lessonID := segments[0]
+		if r.Method == http.MethodGet {
+			getLesson(w, r, courseID, sectionID, lessonID)
 		} else {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	case 2:
-		// POST /lessons/{lessonId}/{action}
+		// POST /sections/{sectionId}/lessons/{lessonId}/{action}
+		lessonID := segments[0]
 		action := segments[1]
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -49,12 +53,13 @@ func LessonsHandler(w http.ResponseWriter, r *http.Request, courseID string, seg
 		}
 		switch action {
 		case "generate-blocks":
-			generateLessonBlocks(w, r, courseID, lessonID)
+			generateLessonBlocks(w, r, courseID, sectionID, lessonID)
 		default:
 			http.Error(w, "Not found", http.StatusNotFound)
 		}
 	case 4:
-		// /lessons/{lessonId}/blocks/{blockId}/{action}
+		// /sections/{sectionId}/lessons/{lessonId}/blocks/{blockId}/{action}
+		lessonID := segments[0]
 		if segments[1] != "blocks" {
 			http.Error(w, "Not found", http.StatusNotFound)
 			return
@@ -67,9 +72,9 @@ func LessonsHandler(w http.ResponseWriter, r *http.Request, courseID string, seg
 		}
 		switch action {
 		case "generate":
-			generateBlockContent(w, r, courseID, lessonID, blockID)
+			generateBlockContent(w, r, courseID, sectionID, lessonID, blockID)
 		case "complete":
-			completeBlock(w, r, courseID, lessonID, blockID)
+			completeBlock(w, r, courseID, sectionID, lessonID, blockID)
 		default:
 			http.Error(w, "Not found", http.StatusNotFound)
 		}
@@ -78,8 +83,8 @@ func LessonsHandler(w http.ResponseWriter, r *http.Request, courseID string, seg
 	}
 }
 
-// getLesson returns a lesson with its blocks
-func getLesson(w http.ResponseWriter, r *http.Request, courseID, lessonID string) {
+// listSectionLessons returns all lessons in a section
+func listSectionLessons(w http.ResponseWriter, r *http.Request, courseID, sectionID string) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
 	if userID == "" {
@@ -100,10 +105,45 @@ func getLesson(w http.ResponseWriter, r *http.Request, courseID, lessonID string
 		return
 	}
 
-	// Find the lesson
-	lesson, sectionID := findLessonInCourse(course, lessonID)
+	// Find the section
+	section := findSectionInCourse(course, sectionID)
+	if section == nil {
+		http.Error(w, "Section not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"lessons": section.Lessons,
+	})
+}
+
+// getLesson returns a lesson with its blocks
+func getLesson(w http.ResponseWriter, r *http.Request, courseID, sectionID, lessonID string) {
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	fs := firebase.GetFirestore()
+	if fs == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	// Get the course
+	course, err := getCourseByID(ctx, fs, courseID, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// Find the lesson in the specified section
+	lesson := findLessonInSection(course, sectionID, lessonID)
 	if lesson == nil {
-		http.Error(w, "Lesson not found", http.StatusNotFound)
+		http.Error(w, "Lesson not found in section", http.StatusNotFound)
 		return
 	}
 
@@ -124,7 +164,7 @@ func getLesson(w http.ResponseWriter, r *http.Request, courseID, lessonID string
 }
 
 // generateLessonBlocks generates block skeletons for a lesson (Stage 2)
-func generateLessonBlocks(w http.ResponseWriter, r *http.Request, courseID, lessonID string) {
+func generateLessonBlocks(w http.ResponseWriter, r *http.Request, courseID, sectionID, lessonID string) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
 	if userID == "" {
@@ -145,10 +185,10 @@ func generateLessonBlocks(w http.ResponseWriter, r *http.Request, courseID, less
 		return
 	}
 
-	// Find the lesson
-	lesson, sectionID := findLessonInCourse(course, lessonID)
+	// Find the lesson in the specified section
+	lesson := findLessonInSection(course, sectionID, lessonID)
 	if lesson == nil {
-		http.Error(w, "Lesson not found", http.StatusNotFound)
+		http.Error(w, "Lesson not found in section", http.StatusNotFound)
 		return
 	}
 
@@ -197,7 +237,7 @@ func generateLessonBlocks(w http.ResponseWriter, r *http.Request, courseID, less
 }
 
 // generateBlockContent generates content for a specific block (Stage 3)
-func generateBlockContent(w http.ResponseWriter, r *http.Request, courseID, lessonID, blockID string) {
+func generateBlockContent(w http.ResponseWriter, r *http.Request, courseID, sectionID, lessonID, blockID string) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
 	if userID == "" {
@@ -218,10 +258,10 @@ func generateBlockContent(w http.ResponseWriter, r *http.Request, courseID, less
 		return
 	}
 
-	// Find the lesson and block
-	lesson, sectionID := findLessonInCourse(course, lessonID)
+	// Find the lesson in the specified section
+	lesson := findLessonInSection(course, sectionID, lessonID)
 	if lesson == nil {
-		http.Error(w, "Lesson not found", http.StatusNotFound)
+		http.Error(w, "Lesson not found in section", http.StatusNotFound)
 		return
 	}
 
@@ -276,7 +316,7 @@ func generateBlockContent(w http.ResponseWriter, r *http.Request, courseID, less
 }
 
 // completeBlock marks a block as completed
-func completeBlock(w http.ResponseWriter, r *http.Request, courseID, lessonID, blockID string) {
+func completeBlock(w http.ResponseWriter, r *http.Request, courseID, sectionID, lessonID, blockID string) {
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
 	if userID == "" {
@@ -312,10 +352,10 @@ func completeBlock(w http.ResponseWriter, r *http.Request, courseID, lessonID, b
 		return
 	}
 
-	// Find lesson and block
-	lesson, _ := findLessonInCourse(course, lessonID)
+	// Find lesson in the specified section
+	lesson := findLessonInSection(course, sectionID, lessonID)
 	if lesson == nil {
-		http.Error(w, "Lesson not found", http.StatusNotFound)
+		http.Error(w, "Lesson not found in section", http.StatusNotFound)
 		return
 	}
 
@@ -406,6 +446,37 @@ func getCourseByID(ctx context.Context, fs *firestore.Client, courseID, userID s
 	return &course, nil
 }
 
+// findSectionInCourse finds a section by ID in the course
+func findSectionInCourse(course *models.Course, sectionID string) *models.Section {
+	if course.Outline == nil {
+		return nil
+	}
+
+	for si := range course.Outline.Sections {
+		if course.Outline.Sections[si].ID == sectionID {
+			return &course.Outline.Sections[si]
+		}
+	}
+	return nil
+}
+
+// findLessonInSection finds a lesson within a specific section
+func findLessonInSection(course *models.Course, sectionID, lessonID string) *models.Lesson {
+	section := findSectionInCourse(course, sectionID)
+	if section == nil {
+		return nil
+	}
+
+	for li := range section.Lessons {
+		if section.Lessons[li].ID == lessonID {
+			return &section.Lessons[li]
+		}
+	}
+	return nil
+}
+
+// findLessonInCourse finds a lesson anywhere in the course (searches all sections)
+// Used for internal operations where section is not specified
 func findLessonInCourse(course *models.Course, lessonID string) (*models.Lesson, string) {
 	if course.Outline == nil {
 		return nil, ""

@@ -114,9 +114,9 @@ export function useLesson({
       currentLesson.blocksStatus === 'pending' &&
       !blocksGenerating
     ) {
-      generateBlocks(courseId, lessonId);
+      generateBlocks(courseId, sectionId, lessonId);
     }
-  }, [autoGenerate, currentLesson, blocksGenerating, courseId, lessonId, generateBlocks]);
+  }, [autoGenerate, currentLesson, blocksGenerating, courseId, sectionId, lessonId, generateBlocks]);
 
   // Get current block
   const currentBlock = getCurrentBlock();
@@ -126,16 +126,16 @@ export function useLesson({
   // Generate blocks if needed
   const generateBlocksIfNeeded = useCallback(async () => {
     if (currentLesson?.blocksStatus === 'pending') {
-      await generateBlocks(courseId, lessonId);
+      await generateBlocks(courseId, sectionId, lessonId);
     }
-  }, [currentLesson, courseId, lessonId, generateBlocks]);
+  }, [currentLesson, courseId, sectionId, lessonId, generateBlocks]);
 
   // Generate content for current block
   const generateCurrentBlockContent = useCallback(async () => {
     if (currentBlock && currentBlock.contentStatus === 'pending') {
-      await generateBlockContent(courseId, lessonId, currentBlock.id);
+      await generateBlockContent(courseId, sectionId, lessonId, currentBlock.id);
     }
-  }, [currentBlock, courseId, lessonId, generateBlockContent]);
+  }, [currentBlock, courseId, sectionId, lessonId, generateBlockContent]);
 
   // Auto-generate content for current block if pending
   useEffect(() => {
@@ -145,9 +145,9 @@ export function useLesson({
       currentBlock.contentStatus === 'pending' &&
       !blockContentGenerating
     ) {
-      generateBlockContent(courseId, lessonId, currentBlock.id);
+      generateBlockContent(courseId, sectionId, lessonId, currentBlock.id);
     }
-  }, [autoGenerate, currentBlock, blockContentGenerating, courseId, lessonId, generateBlockContent]);
+  }, [autoGenerate, currentBlock, blockContentGenerating, courseId, sectionId, lessonId, generateBlockContent]);
 
   // Start interacting with a block
   const startBlock = useCallback(
@@ -169,9 +169,9 @@ export function useLesson({
   const completeCurrentBlock = useCallback(
     async (result?: BlockResult) => {
       if (!currentBlock) return;
-      await completeBlock(courseId, lessonId, currentBlock.id, result);
+      await completeBlock(courseId, sectionId, lessonId, currentBlock.id, result);
     },
-    [currentBlock, courseId, lessonId, completeBlock]
+    [currentBlock, courseId, sectionId, lessonId, completeBlock]
   );
 
   // Navigation
