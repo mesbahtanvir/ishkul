@@ -3,11 +3,10 @@
  *
  * Handles all course-related API operations including:
  * - CRUD operations for courses
- * - Step management (next step, complete, view)
- * - Course memory updates
+ * - Course status management (archive/unarchive)
  */
 
-import { Course, Step, StepCompleteRequest } from '../../types/app';
+import { Course } from '../../types/app';
 import { apiClient } from './client';
 
 // =============================================================================
@@ -37,22 +36,6 @@ interface CoursesListResponse {
 
 interface CourseResponse {
   course: Course;
-}
-
-interface NextStepResponse {
-  step: Step;
-  stepIndex: number;
-}
-
-interface CompleteStepResponse {
-  course: Course;
-  completedStep: Step;
-  nextStepNeeded: boolean;
-}
-
-interface ViewStepResponse {
-  success: boolean;
-  step: Step;
 }
 
 // =============================================================================
@@ -125,76 +108,5 @@ export const coursesApi = {
       `/courses/${courseId}/unarchive`
     );
     return normalizeCourse(response.course)!;
-  },
-
-  // ---------------------------------------------------------------------------
-  // Step Operations
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Get next step for a course.
-   * Returns existing incomplete step or generates a new one.
-   */
-  async getNextStep(courseId: string): Promise<NextStepResponse> {
-    return apiClient.post<NextStepResponse>(`/courses/${courseId}/next`);
-  },
-
-  /**
-   * Complete the current step (legacy endpoint).
-   * Completes the first incomplete step in the course.
-   */
-  async completeCurrentStep(
-    courseId: string,
-    data?: StepCompleteRequest
-  ): Promise<CompleteStepResponse> {
-    const response = await apiClient.post<CompleteStepResponse>(
-      `/courses/${courseId}/complete`,
-      data || {}
-    );
-    return {
-      ...response,
-      course: normalizeCourse(response.course)!,
-    };
-  },
-
-  /**
-   * Complete a specific step by ID
-   */
-  async completeStep(
-    courseId: string,
-    stepId: string,
-    data?: StepCompleteRequest
-  ): Promise<CompleteStepResponse> {
-    const response = await apiClient.post<CompleteStepResponse>(
-      `/courses/${courseId}/steps/${stepId}/complete`,
-      data || {}
-    );
-    return {
-      ...response,
-      course: normalizeCourse(response.course)!,
-    };
-  },
-
-  /**
-   * Record a step view (updates lastReviewed in memory)
-   */
-  async viewStep(courseId: string, stepId: string): Promise<ViewStepResponse> {
-    return apiClient.post<ViewStepResponse>(
-      `/courses/${courseId}/steps/${stepId}/view`
-    );
-  },
-
-  // ---------------------------------------------------------------------------
-  // Memory Operations
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Update memory for a specific topic in a course
-   */
-  async updateCourseMemory(
-    courseId: string,
-    memory: { topic: string; confidence: number; timesTested: number }
-  ): Promise<void> {
-    await apiClient.post(`/courses/${courseId}/memory`, memory);
   },
 };

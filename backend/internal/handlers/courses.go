@@ -57,11 +57,8 @@ func SetAppLogger(log *slog.Logger) {
 //   - GET    /api/courses/{id}         -> get course
 //   - PATCH  /api/courses/{id}         -> update course
 //   - DELETE /api/courses/{id}         -> delete course
-//   - POST   /api/courses/{id}/next    -> get/generate next step
-//   - POST   /api/courses/{id}/archive -> archive course
-//   - POST   /api/courses/{id}/memory  -> update memory
-//   - POST   /api/courses/{id}/steps/{stepId}/complete -> complete step
-//   - POST   /api/courses/{id}/steps/{stepId}/view     -> view step
+//   - POST   /api/courses/{id}/archive   -> archive course
+//   - POST   /api/courses/{id}/unarchive -> unarchive course
 //
 // Lesson routes (3-stage generation):
 //   - GET    /api/courses/{id}/lessons/{lessonId}                           -> get lesson
@@ -91,8 +88,6 @@ func CoursesHandler(w http.ResponseWriter, r *http.Request) {
 		routeSingleCourse(w, r, segments[0])
 	case 2:
 		routeCourseAction(w, r, segments[0], segments[1])
-	case 4:
-		routeStepAction(w, r, segments)
 	default:
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
@@ -136,40 +131,10 @@ func routeCourseAction(w http.ResponseWriter, r *http.Request, courseID, action 
 	}
 
 	switch action {
-	case "next", "session": // "session" kept for backward compatibility
-		getPathNextStep(w, r, courseID)
-	case "complete": // Legacy endpoint - complete the current step
-		completeCurrentStep(w, r, courseID)
 	case "archive":
 		archiveCourse(w, r, courseID)
 	case "unarchive":
 		unarchiveCourse(w, r, courseID)
-	case "memory":
-		updatePathMemory(w, r, courseID)
-	default:
-		http.Error(w, "Not found", http.StatusNotFound)
-	}
-}
-
-// routeStepAction handles /api/courses/{id}/steps/{stepId}/{action} (step actions).
-func routeStepAction(w http.ResponseWriter, r *http.Request, segments []string) {
-	if segments[1] != "steps" {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	courseID, stepID, action := segments[0], segments[2], segments[3]
-
-	switch action {
-	case "complete":
-		completeStep(w, r, courseID, stepID)
-	case "view":
-		viewStep(w, r, courseID, stepID)
 	default:
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
