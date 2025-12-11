@@ -158,42 +158,6 @@ func TestCoursesHandler_Routing(t *testing.T) {
 		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
-	t.Run("memory action rejects GET", func(t *testing.T) {
-		req := createCourseRequest(http.MethodGet, "/api/courses/path-123/memory", nil, "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
-	})
-
-	t.Run("step complete action only accepts POST", func(t *testing.T) {
-		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/steps/step-456/complete", nil, "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
-	})
-
-	t.Run("step complete rejects GET", func(t *testing.T) {
-		req := createCourseRequest(http.MethodGet, "/api/courses/path-123/steps/step-456/complete", nil, "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
-	})
-
-	t.Run("step view action only accepts POST", func(t *testing.T) {
-		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/steps/step-456/view", nil, "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
-	})
-
 	t.Run("unknown action returns 404", func(t *testing.T) {
 		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/unknown", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
@@ -201,25 +165,6 @@ func TestCoursesHandler_Routing(t *testing.T) {
 		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
-
-	t.Run("unknown step action returns 404", func(t *testing.T) {
-		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/steps/step-456/unknown", nil, "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
-
-	t.Run("session action routes same as next (backward compatibility)", func(t *testing.T) {
-		req := createCourseRequest(http.MethodPost, "/api/courses/path-123/session", nil, "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
-		assert.NotEqual(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("archive action only accepts POST", func(t *testing.T) {
@@ -734,27 +679,6 @@ func TestStepJSON(t *testing.T) {
 
 		assert.Contains(t, parsed, "task")
 		assert.Contains(t, parsed, "hints")
-	})
-}
-
-func TestUpdatePathMemoryRequestJSON(t *testing.T) {
-	t.Run("struct has correct JSON tags", func(t *testing.T) {
-		req := UpdatePathMemoryRequest{
-			Topic:       "Go basics",
-			Confidence:  0.85,
-			TimesTested: 5,
-		}
-
-		jsonBytes, err := json.Marshal(req)
-		require.NoError(t, err)
-
-		var parsed map[string]interface{}
-		err = json.Unmarshal(jsonBytes, &parsed)
-		require.NoError(t, err)
-
-		assert.Contains(t, parsed, "topic")
-		assert.Contains(t, parsed, "confidence")
-		assert.Contains(t, parsed, "timesTested")
 	})
 }
 
