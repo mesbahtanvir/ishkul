@@ -150,7 +150,7 @@ func TestPracticeToolParseContent(t *testing.T) {
 		require.NotNil(t, block.Content)
 		require.NotNil(t, block.Content.Task)
 		assert.Contains(t, block.Content.Task.Instruction, "factorial")
-		assert.Equal(t, []string{"Start with the base case", "Use recursion or iteration"}, block.Content.Task.Hints)
+		assert.Equal(t, models.FlexStringSlice{"Start with the base case", "Use recursion or iteration"}, block.Content.Task.Hints)
 	})
 
 	t.Run("parses content without optional hints", func(t *testing.T) {
