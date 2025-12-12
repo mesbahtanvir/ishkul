@@ -9,12 +9,19 @@ import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
 import { MarkdownContent } from '../MarkdownContent';
+import { Button } from '../Button';
 
 interface CodeBlockRendererProps {
   content: BlockContent;
+  onComplete?: () => void;
+  isActive?: boolean;
 }
 
-export const CodeBlockRenderer: React.FC<CodeBlockRendererProps> = ({ content }) => {
+export const CodeBlockRenderer: React.FC<CodeBlockRendererProps> = ({
+  content,
+  onComplete,
+  isActive = false,
+}) => {
   const { colors } = useTheme();
   // Access the code content from BlockContent.code
   const codeContent = content.code;
@@ -47,6 +54,18 @@ export const CodeBlockRenderer: React.FC<CodeBlockRendererProps> = ({ content })
           </Text>
         </ScrollView>
       </View>
+
+      {/* Continue button for active blocks */}
+      {isActive && onComplete && (
+        <View style={styles.buttonContainer}>
+          <Button
+            title="Continue"
+            onPress={onComplete}
+            variant="primary"
+            size="medium"
+          />
+        </View>
+      )}
     </View>
   );
 };
@@ -96,6 +115,9 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontSize: 13,
     lineHeight: 20,
+  },
+  buttonContainer: {
+    marginTop: Spacing.lg,
   },
 });
 
