@@ -79,6 +79,60 @@ When implementing a new feature, consider ALL of the following:
 - [ ] **E2E tests** - Add Playwright/Maestro tests for critical user flows
 - [ ] **Infrastructure changes** - Firebase rules, Cloud Run config, environment variables
 
+## 🧪 MANDATORY: Unit Testing Requirements
+
+**IMPORTANT for Claude**: When creating or modifying screens/components, you MUST create or update corresponding test files. This is non-negotiable.
+
+### Frontend Testing Rules
+
+1. **Every new screen MUST have a test file**
+   - Location: `frontend/src/screens/__tests__/ScreenName.test.tsx`
+   - Must cover: all render states (loading, error, empty, success)
+   - Must cover: state transitions to catch React Rules of Hooks violations
+
+2. **Every new component MUST have a test file**
+   - Location: `frontend/src/components/__tests__/ComponentName.test.tsx`
+   - Must cover: all props combinations, user interactions
+
+3. **State transitions tests are CRITICAL**
+   - Always test re-renders between different states (loading→loaded, error→success)
+   - This catches React hooks order violations that cause production crashes
+
+4. **Test file template for screens**:
+   ```typescript
+   describe('ScreenName', () => {
+     describe('Loading State', () => { /* tests */ });
+     describe('Error State', () => { /* tests */ });
+     describe('Success State', () => { /* tests */ });
+     describe('State Transitions (Rules of Hooks)', () => {
+       it('should handle transition from loading to success', () => { /* test */ });
+       it('should handle transition from loading to error', () => { /* test */ });
+     });
+   });
+   ```
+
+5. **Run tests before committing**:
+   ```bash
+   npm test -- --testPathPattern="YourNewFile.test"
+   ```
+
+### Backend Testing Rules
+
+1. **Every new handler MUST have a test file**
+   - Location: `backend/internal/handlers/handler_name_test.go`
+   - Must cover: success cases, error cases, edge cases
+
+2. **Run tests before committing**:
+   ```bash
+   go test ./...
+   ```
+
+### Why This Matters
+
+Missing tests caused production crash (React error #310) in LessonScreen where hooks
+were called after conditional returns. Tests with state transition coverage would have
+caught this bug before deployment.
+
 ## 📋 After Making Code Changes - CHECKLIST
 
 **Automated Pre-Commit Checks**: Hooks run automatically before each commit to ensure:
@@ -259,11 +313,16 @@ git push origin main
 1. Create `frontend/src/screens/NewScreen.tsx`
 2. Add to navigation in `frontend/src/navigation/AppNavigator.tsx`
 3. Update types in `frontend/src/types/app.ts`
+4. **MANDATORY**: Create test file `frontend/src/screens/__tests__/NewScreen.test.tsx`
+   - Include tests for all states: loading, error, empty, success
+   - Include state transition tests (see Testing Requirements section)
 
 ### Add Backend API Endpoint
 1. Create handler in `backend/internal/handlers/`
 2. Add route in `backend/cmd/server/main.go`
-3. Test locally with `go run cmd/server/main.go`
+3. **MANDATORY**: Create test file `backend/internal/handlers/handler_name_test.go`
+4. Test locally with `go run cmd/server/main.go`
+5. Run `go test ./...` to verify tests pass
 
 ### Add Environment Variable
 1. Add to `backend/.env.example` (template)
@@ -283,5 +342,5 @@ For more, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
-**Last Updated**: 2025-12-06 | **Version**: 2.4.0 | **Status**: Production Ready ✅
-*Updated: Added E2E testing infrastructure (k6, Playwright, Maestro, Newman)*
+**Last Updated**: 2025-12-12 | **Version**: 2.5.0 | **Status**: Production Ready ✅
+*Updated: Added mandatory unit testing requirements for screens/components*
