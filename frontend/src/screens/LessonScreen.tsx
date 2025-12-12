@@ -85,6 +85,43 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     lessonIndex: 0,
   } : undefined;
 
+  // Progress percentage (moved before conditional returns to comply with Rules of Hooks)
+  const progress = totalBlocks > 0 ? (completedBlocksCount / totalBlocks) * 100 : 0;
+
+  // Get completed block IDs from local progress (moved before conditional returns)
+  const { localProgress } = useLessonStore();
+  const completedBlockIds = localProgress?.completedBlocks ?? [];
+
+  // Handle block answer submission (moved before conditional returns)
+  const handleBlockAnswer = useCallback(
+    (_blockId: string, answer: string | string[]) => {
+      submitAnswer(answer);
+    },
+    [submitAnswer]
+  );
+
+  // Handle block completion (moved before conditional returns)
+  const handleBlockComplete = useCallback(
+    async () => {
+      await completeCurrentBlock();
+    },
+    [completeCurrentBlock]
+  );
+
+  // Handle content generation for a specific block (moved before conditional returns)
+  const handleGenerateContent = useCallback(
+    async (blockId: string) => {
+      const { generateBlockContent } = useLessonStore.getState();
+      await generateBlockContent(courseId, sectionId, lessonId, blockId);
+    },
+    [courseId, sectionId, lessonId]
+  );
+
+  // Handle continue/next block (moved before conditional returns)
+  const handleContinue = useCallback(() => {
+    nextBlock();
+  }, [nextBlock]);
+
   // Loading state
   if (isLoading) {
     return (
@@ -183,43 +220,6 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
       </LearningLayout>
     );
   }
-
-  // Progress percentage
-  const progress = totalBlocks > 0 ? (completedBlocksCount / totalBlocks) * 100 : 0;
-
-  // Get completed block IDs from local progress
-  const { localProgress } = useLessonStore();
-  const completedBlockIds = localProgress?.completedBlocks ?? [];
-
-  // Handle block answer submission
-  const handleBlockAnswer = useCallback(
-    (_blockId: string, answer: string | string[]) => {
-      submitAnswer(answer);
-    },
-    [submitAnswer]
-  );
-
-  // Handle block completion
-  const handleBlockComplete = useCallback(
-    async () => {
-      await completeCurrentBlock();
-    },
-    [completeCurrentBlock]
-  );
-
-  // Handle content generation for a specific block
-  const handleGenerateContent = useCallback(
-    async (blockId: string) => {
-      const { generateBlockContent } = useLessonStore.getState();
-      await generateBlockContent(courseId, sectionId, lessonId, blockId);
-    },
-    [courseId, sectionId, lessonId]
-  );
-
-  // Handle continue/next block
-  const handleContinue = useCallback(() => {
-    nextBlock();
-  }, [nextBlock]);
 
   return (
     <LearningLayout
