@@ -17,7 +17,6 @@ import { ProgressBar } from '../components/ProgressBar';
 import { BlockRenderer } from '../components/blocks';
 import { useLesson } from '../hooks/useLesson';
 import { useTheme } from '../hooks/useTheme';
-import { useResponsive } from '../hooks/useResponsive';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types/navigation';
@@ -28,7 +27,6 @@ type LessonScreenProps = NativeStackScreenProps<RootStackParamList, 'Lesson'>;
 export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route }) => {
   const { courseId, lessonId, sectionId, lesson: initialLessonFromNav } = route.params;
   const { colors } = useTheme();
-  const { responsive } = useResponsive();
 
   const {
     lesson,
@@ -181,13 +179,6 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     );
   }
 
-  // Responsive values
-  const titleSize = responsive(
-    Typography.heading.h3.fontSize,
-    Typography.heading.h2.fontSize,
-    Typography.heading.h1.fontSize
-  );
-
   // Progress percentage
   const progress = totalBlocks > 0 ? (completedBlocksCount / totalBlocks) * 100 : 0;
 
@@ -199,59 +190,45 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
       showBackButton={false}
     >
       <View style={styles.content}>
-        {/* Lesson Header */}
-        <Card elevation="sm" padding="md" style={styles.headerCard}>
-          <View style={styles.header}>
-            <Text style={[styles.lessonTitle, { fontSize: titleSize, color: colors.text.primary }]}>
+        {/* Compact Lesson Header */}
+        <View style={[styles.compactHeader, { backgroundColor: colors.background.secondary }]}>
+          {/* Top row: Title + Block counter + Dots */}
+          <View style={styles.headerTopRow}>
+            <Text
+              style={[styles.compactTitle, { color: colors.text.primary }]}
+              numberOfLines={1}
+            >
               {lesson.title}
             </Text>
-            {lesson.description && (
-              <Text style={[styles.lessonDescription, { color: colors.text.secondary }]}>
-                {lesson.description}
+            <View style={styles.headerRight}>
+              <Text style={[styles.blockCounter, { color: colors.text.secondary }]}>
+                {currentBlockIndex + 1}/{totalBlocks}
               </Text>
-            )}
-          </View>
-
-          {/* Progress Bar */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressHeader}>
-              <Text style={[styles.progressLabel, { color: colors.text.secondary }]}>
-                Progress
-              </Text>
-              <Text style={[styles.progressCount, { color: colors.text.secondary }]}>
-                {completedBlocksCount}/{totalBlocks} blocks
-              </Text>
-            </View>
-            <ProgressBar progress={progress} height={6} />
-          </View>
-        </Card>
-
-        {/* Block Navigation */}
-        {totalBlocks > 1 && (
-          <View style={styles.blockNav}>
-            <Text style={[styles.blockNavText, { color: colors.text.secondary }]}>
-              Block {currentBlockIndex + 1} of {totalBlocks}
-            </Text>
-            <View style={styles.blockNavDots}>
-              {lesson.blocks?.map((block, index) => (
-                <View
-                  key={block.id}
-                  style={[
-                    styles.navDot,
-                    {
-                      backgroundColor:
-                        index === currentBlockIndex
-                          ? colors.primary
-                          : index < completedBlocksCount
-                          ? colors.success
-                          : colors.border,
-                    },
-                  ]}
-                />
-              ))}
+              {totalBlocks > 1 && totalBlocks <= 10 && (
+                <View style={styles.compactDots}>
+                  {lesson.blocks?.map((block, index) => (
+                    <View
+                      key={block.id}
+                      style={[
+                        styles.compactDot,
+                        {
+                          backgroundColor:
+                            index === currentBlockIndex
+                              ? colors.primary
+                              : index < completedBlocksCount
+                              ? colors.success
+                              : colors.border,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
           </View>
-        )}
+          {/* Progress bar */}
+          <ProgressBar progress={progress} height={4} />
+        </View>
 
         {/* Current Block */}
         {currentBlock ? (
@@ -424,49 +401,41 @@ const styles = StyleSheet.create({
   errorButton: {
     minWidth: 120,
   },
-  headerCard: {
+  compactHeader: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.borderRadius.md,
     marginBottom: Spacing.sm,
   },
-  header: {
-    marginBottom: Spacing.md,
-  },
-  lessonTitle: {
-    ...Typography.heading.h2,
-    marginBottom: Spacing.xs,
-  },
-  lessonDescription: {
-    ...Typography.body.medium,
-  },
-  progressContainer: {
-    marginTop: Spacing.sm,
-  },
-  progressHeader: {
+  headerTopRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.xs,
   },
-  progressLabel: {
-    ...Typography.label.small,
+  compactTitle: {
+    ...Typography.body.medium,
+    fontWeight: '600',
+    flex: 1,
+    marginRight: Spacing.sm,
   },
-  progressCount: {
-    ...Typography.label.small,
-  },
-  blockNav: {
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  blockNavText: {
-    ...Typography.label.small,
-    marginBottom: Spacing.sm,
-  },
-  blockNavDots: {
+  headerRight: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
-  navDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  blockCounter: {
+    ...Typography.label.small,
+    fontWeight: '600',
+  },
+  compactDots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  compactDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   generatingContentContainer: {
     alignItems: 'center',
