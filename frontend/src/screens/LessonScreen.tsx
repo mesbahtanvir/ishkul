@@ -1,22 +1,30 @@
 /**
  * LessonScreen - Block-based lesson experience
  *
+ * Uses scrollable stacked cards design:
+ * - All blocks visible in scrollable list
+ * - Completed blocks show checkmark, slightly faded
+ * - Active block highlighted with border/shadow
+ * - Upcoming blocks dimmed/locked
+ * - Auto-scroll to active block on navigation
+ *
  * Uses 3-stage generation:
  * 1. Lesson outline (from course generation)
  * 2. Block skeletons (generated when lesson starts)
  * 3. Block content (generated as user progresses)
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LearningLayout } from '../components/LearningLayout';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { ProgressBar } from '../components/ProgressBar';
-import { BlockRenderer } from '../components/blocks';
+import { ScrollableLessonBlocks } from '../components/blocks';
 import { useLesson } from '../hooks/useLesson';
 import { useTheme } from '../hooks/useTheme';
+import { useLessonStore } from '../state/lessonStore';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types/navigation';
@@ -30,7 +38,6 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
 
   const {
     lesson,
-    currentBlock,
     currentBlockIndex,
     totalBlocks,
     isLoading,
@@ -41,12 +48,10 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     isLessonComplete,
     score,
     nextBlock,
-    previousBlock,
     submitAnswer,
     completeCurrentBlock,
     finishLesson,
     generateBlocksIfNeeded,
-    generateCurrentBlockContent,
   } = useLesson({
     courseId,
     lessonId,
@@ -182,6 +187,40 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
   // Progress percentage
   const progress = totalBlocks > 0 ? (completedBlocksCount / totalBlocks) * 100 : 0;
 
+  // Get completed block IDs from local progress
+  const { localProgress } = useLessonStore();
+  const completedBlockIds = localProgress?.completedBlocks ?? [];
+
+  // Handle block answer submission
+  const handleBlockAnswer = useCallback(
+    (_blockId: string, answer: string | string[]) => {
+      submitAnswer(answer);
+    },
+    [submitAnswer]
+  );
+
+  // Handle block completion
+  const handleBlockComplete = useCallback(
+    async () => {
+      await completeCurrentBlock();
+    },
+    [completeCurrentBlock]
+  );
+
+  // Handle content generation for a specific block
+  const handleGenerateContent = useCallback(
+    async (blockId: string) => {
+      const { generateBlockContent } = useLessonStore.getState();
+      await generateBlockContent(courseId, sectionId, lessonId, blockId);
+    },
+    [courseId, sectionId, lessonId]
+  );
+
+  // Handle continue/next block
+  const handleContinue = useCallback(() => {
+    nextBlock();
+  }, [nextBlock]);
+
   return (
     <LearningLayout
       courseId={courseId}
@@ -202,47 +241,25 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
             </Text>
             <View style={styles.headerRight}>
               <Text style={[styles.blockCounter, { color: colors.text.secondary }]}>
-                {currentBlockIndex + 1}/{totalBlocks}
+                {completedBlocksCount}/{totalBlocks} completed
               </Text>
-              {totalBlocks > 1 && totalBlocks <= 10 && (
-                <View style={styles.compactDots}>
-                  {lesson.blocks?.map((block, index) => (
-                    <View
-                      key={block.id}
-                      style={[
-                        styles.compactDot,
-                        {
-                          backgroundColor:
-                            index === currentBlockIndex
-                              ? colors.primary
-                              : index < completedBlocksCount
-                              ? colors.success
-                              : colors.border,
-                        },
-                      ]}
-                    />
-                  ))}
-                </View>
-              )}
             </View>
           </View>
           {/* Progress bar */}
           <ProgressBar progress={progress} height={4} />
         </View>
 
-        {/* Current Block */}
-        {currentBlock ? (
-          <BlockRenderer
-            block={currentBlock}
-            onAnswer={submitAnswer}
-            onComplete={async () => {
-              await completeCurrentBlock();
-              nextBlock();
-            }}
-            onGenerateContent={generateCurrentBlockContent}
-            isGenerating={isGeneratingContent === currentBlock.id}
-            isActive
-            showHeader
+        {/* Scrollable Lesson Blocks */}
+        {lesson?.blocks && lesson.blocks.length > 0 ? (
+          <ScrollableLessonBlocks
+            blocks={lesson.blocks}
+            currentBlockIndex={currentBlockIndex}
+            completedBlockIds={completedBlockIds}
+            onBlockAnswer={handleBlockAnswer}
+            onBlockComplete={handleBlockComplete}
+            onGenerateContent={handleGenerateContent}
+            generatingBlockId={isGeneratingContent}
+            onContinue={handleContinue}
           />
         ) : lesson?.blocksStatus === 'pending' ? (
           // Blocks haven't been generated yet - show prompt to generate
@@ -280,16 +297,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
               />
             </View>
           </Card>
-        ) : isGeneratingContent ? (
-          <Card elevation="md" padding="lg">
-            <View style={styles.generatingContentContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.generatingContentText, { color: colors.text.secondary }]}>
-                Generating content...
-              </Text>
-            </View>
-          </Card>
-        ) : totalBlocks === 0 ? (
+        ) : (
           // No blocks at all - unusual state
           <Card elevation="md" padding="lg">
             <View style={styles.emptyBlockContainer}>
@@ -308,56 +316,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
               />
             </View>
           </Card>
-        ) : null}
-
-        {/* Navigation Buttons */}
-        {(() => {
-          // Question and task blocks have internal completion buttons
-          const hasInternalCompletion = currentBlock?.type === 'question' || currentBlock?.type === 'task';
-          const isLastBlock = currentBlockIndex === totalBlocks - 1;
-          const canNavigate = currentBlock && currentBlock.contentStatus === 'ready';
-
-          return (
-            <View style={styles.navButtons}>
-              {/* Previous button - always show for navigation */}
-              <Button
-                title="← Back"
-                onPress={previousBlock}
-                variant="ghost"
-                size="small"
-                disabled={currentBlockIndex === 0}
-                style={styles.prevButton}
-              />
-
-              {/* Next/Finish button - hide for blocks with internal completion */}
-              {!hasInternalCompletion && (
-                <Button
-                  title={isLastBlock ? 'Finish Lesson' : 'Continue →'}
-                  onPress={() => {
-                    if (isLastBlock) {
-                      completeCurrentBlock();
-                    } else {
-                      nextBlock();
-                    }
-                  }}
-                  disabled={!canNavigate}
-                  size="small"
-                  style={styles.nextButton}
-                />
-              )}
-
-              {/* Show generating indicator when content is loading */}
-              {currentBlock && currentBlock.contentStatus !== 'ready' && (
-                <View style={styles.buttonLoadingIndicator}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={[styles.buttonLoadingText, { color: colors.text.secondary }]}>
-                    Loading...
-                  </Text>
-                </View>
-              )}
-            </View>
-          );
-        })()}
+        )}
       </View>
     </LearningLayout>
   );
@@ -442,46 +401,6 @@ const styles = StyleSheet.create({
   blockCounter: {
     ...Typography.label.small,
     fontWeight: '600',
-  },
-  compactDots: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  compactDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  generatingContentContainer: {
-    alignItems: 'center',
-    padding: Spacing.xl,
-  },
-  generatingContentText: {
-    ...Typography.body.medium,
-    marginTop: Spacing.md,
-  },
-  navButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Spacing.md,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
-  },
-  prevButton: {
-    minWidth: 80,
-  },
-  nextButton: {
-    minWidth: 120,
-  },
-  buttonLoadingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  buttonLoadingText: {
-    ...Typography.label.small,
-    marginLeft: Spacing.xs,
   },
   emptyBlockContainer: {
     alignItems: 'center',
