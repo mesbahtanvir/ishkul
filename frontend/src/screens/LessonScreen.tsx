@@ -47,6 +47,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     submitAnswer,
     completeCurrentBlock,
     finishLesson,
+    generateBlocksIfNeeded,
     generateCurrentBlockContent,
   } = useLesson({
     courseId,
@@ -266,6 +267,42 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
             isActive
             showHeader
           />
+        ) : lesson?.blocksStatus === 'pending' ? (
+          // Blocks haven't been generated yet - show prompt to generate
+          <Card elevation="md" padding="lg">
+            <View style={styles.emptyBlockContainer}>
+              <Text style={styles.emptyBlockIcon}>📦</Text>
+              <Text style={[styles.emptyBlockTitle, { color: colors.text.primary }]}>
+                Preparing Lesson Content
+              </Text>
+              <Text style={[styles.emptyBlockText, { color: colors.text.secondary }]}>
+                Content blocks are being prepared for this lesson.
+              </Text>
+              <Button
+                title="Generate Content"
+                onPress={generateBlocksIfNeeded}
+                style={styles.generateButton}
+              />
+            </View>
+          </Card>
+        ) : lesson?.blocksStatus === 'error' ? (
+          // Block generation failed - show error with retry
+          <Card elevation="md" padding="lg">
+            <View style={styles.emptyBlockContainer}>
+              <Text style={styles.emptyBlockIcon}>⚠️</Text>
+              <Text style={[styles.emptyBlockTitle, { color: colors.danger }]}>
+                Failed to Load Content
+              </Text>
+              <Text style={[styles.emptyBlockText, { color: colors.text.secondary }]}>
+                {error || 'Something went wrong while preparing the lesson.'}
+              </Text>
+              <Button
+                title="Try Again"
+                onPress={generateBlocksIfNeeded}
+                style={styles.generateButton}
+              />
+            </View>
+          </Card>
         ) : isGeneratingContent ? (
           <Card elevation="md" padding="lg">
             <View style={styles.generatingContentContainer}>
@@ -273,6 +310,25 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
               <Text style={[styles.generatingContentText, { color: colors.text.secondary }]}>
                 Generating content...
               </Text>
+            </View>
+          </Card>
+        ) : totalBlocks === 0 ? (
+          // No blocks at all - unusual state
+          <Card elevation="md" padding="lg">
+            <View style={styles.emptyBlockContainer}>
+              <Text style={styles.emptyBlockIcon}>📭</Text>
+              <Text style={[styles.emptyBlockTitle, { color: colors.text.primary }]}>
+                No Content Available
+              </Text>
+              <Text style={[styles.emptyBlockText, { color: colors.text.secondary }]}>
+                This lesson doesn't have any content blocks yet.
+              </Text>
+              <Button
+                title="Go Back"
+                onPress={() => navigation.goBack()}
+                variant="outline"
+                style={styles.generateButton}
+              />
             </View>
           </Card>
         ) : null}
@@ -440,6 +496,27 @@ const styles = StyleSheet.create({
   buttonLoadingText: {
     ...Typography.label.small,
     marginLeft: Spacing.xs,
+  },
+  emptyBlockContainer: {
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  emptyBlockIcon: {
+    fontSize: 48,
+    marginBottom: Spacing.md,
+  },
+  emptyBlockTitle: {
+    ...Typography.heading.h3,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  emptyBlockText: {
+    ...Typography.body.medium,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  generateButton: {
+    minWidth: 160,
   },
 });
 
