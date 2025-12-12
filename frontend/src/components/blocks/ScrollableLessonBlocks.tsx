@@ -8,7 +8,7 @@
  * - Auto-scroll to active block on navigation
  */
 
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -19,6 +19,7 @@ import {
 import { Block } from '../../types/app';
 import { Spacing } from '../../theme/spacing';
 import { LessonBlockCard } from './LessonBlockCard';
+import { UpcomingSummaryCard } from './UpcomingSummaryCard';
 
 export type BlockStatus = 'completed' | 'active' | 'upcoming';
 
@@ -129,6 +130,31 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
     }, 300);
   }, [onBlockComplete, onContinue]);
 
+  /**
+   * Separate blocks into visible (completed + active) and upcoming
+   */
+  const { visibleBlocks, upcomingBlocks } = useMemo(() => {
+    const visible: { block: Block; index: number }[] = [];
+    const upcoming: Block[] = [];
+
+    blocks.forEach((block, index) => {
+      const status = getBlockStatus(
+        index,
+        currentBlockIndex,
+        completedBlockIds,
+        block.id
+      );
+
+      if (status === 'upcoming') {
+        upcoming.push(block);
+      } else {
+        visible.push({ block, index });
+      }
+    });
+
+    return { visibleBlocks: visible, upcomingBlocks: upcoming };
+  }, [blocks, currentBlockIndex, completedBlockIds]);
+
   return (
     <ScrollView
       ref={scrollViewRef}
@@ -141,7 +167,8 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
       scrollEventThrottle={16}
       keyboardShouldPersistTaps="handled"
     >
-      {blocks.map((block, index) => {
+      {/* Render completed and active blocks */}
+      {visibleBlocks.map(({ block, index }, arrayIndex) => {
         const status = getBlockStatus(
           index,
           currentBlockIndex,
@@ -149,6 +176,7 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
           block.id
         );
         const isGenerating = generatingBlockId === block.id;
+        const isLastVisible = arrayIndex === visibleBlocks.length - 1;
 
         return (
           <View
@@ -172,8 +200,8 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
                   : undefined
               }
             />
-            {/* Connector line between blocks */}
-            {index < blocks.length - 1 && (
+            {/* Connector line between blocks (not after last visible if there are upcoming) */}
+            {(!isLastVisible || upcomingBlocks.length > 0) && (
               <View style={styles.connector}>
                 <View
                   style={[
@@ -192,6 +220,14 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
           </View>
         );
       })}
+
+      {/* Render summary card for upcoming blocks */}
+      {upcomingBlocks.length > 0 && (
+        <View style={styles.blockWrapper}>
+          <UpcomingSummaryCard blocks={upcomingBlocks} />
+        </View>
+      )}
+
       {/* Bottom padding for better scroll experience */}
       <View style={styles.bottomPadding} />
     </ScrollView>
