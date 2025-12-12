@@ -17,7 +17,6 @@ import { ProgressBar } from '../components/ProgressBar';
 import { BlockRenderer } from '../components/blocks';
 import { useLesson } from '../hooks/useLesson';
 import { useTheme } from '../hooks/useTheme';
-import { useResponsive } from '../hooks/useResponsive';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types/navigation';
@@ -28,7 +27,6 @@ type LessonScreenProps = NativeStackScreenProps<RootStackParamList, 'Lesson'>;
 export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route }) => {
   const { courseId, lessonId, sectionId, lesson: initialLessonFromNav } = route.params;
   const { colors } = useTheme();
-  const { responsive } = useResponsive();
 
   const {
     lesson,
@@ -47,6 +45,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     submitAnswer,
     completeCurrentBlock,
     finishLesson,
+    generateBlocksIfNeeded,
     generateCurrentBlockContent,
   } = useLesson({
     courseId,
@@ -180,13 +179,6 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     );
   }
 
-  // Responsive values
-  const titleSize = responsive(
-    Typography.heading.h3.fontSize,
-    Typography.heading.h2.fontSize,
-    Typography.heading.h1.fontSize
-  );
-
   // Progress percentage
   const progress = totalBlocks > 0 ? (completedBlocksCount / totalBlocks) * 100 : 0;
 
@@ -198,59 +190,45 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
       showBackButton={false}
     >
       <View style={styles.content}>
-        {/* Lesson Header */}
-        <Card elevation="sm" padding="md" style={styles.headerCard}>
-          <View style={styles.header}>
-            <Text style={[styles.lessonTitle, { fontSize: titleSize, color: colors.text.primary }]}>
+        {/* Compact Lesson Header */}
+        <View style={[styles.compactHeader, { backgroundColor: colors.background.secondary }]}>
+          {/* Top row: Title + Block counter + Dots */}
+          <View style={styles.headerTopRow}>
+            <Text
+              style={[styles.compactTitle, { color: colors.text.primary }]}
+              numberOfLines={1}
+            >
               {lesson.title}
             </Text>
-            {lesson.description && (
-              <Text style={[styles.lessonDescription, { color: colors.text.secondary }]}>
-                {lesson.description}
+            <View style={styles.headerRight}>
+              <Text style={[styles.blockCounter, { color: colors.text.secondary }]}>
+                {currentBlockIndex + 1}/{totalBlocks}
               </Text>
-            )}
-          </View>
-
-          {/* Progress Bar */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressHeader}>
-              <Text style={[styles.progressLabel, { color: colors.text.secondary }]}>
-                Progress
-              </Text>
-              <Text style={[styles.progressCount, { color: colors.text.secondary }]}>
-                {completedBlocksCount}/{totalBlocks} blocks
-              </Text>
-            </View>
-            <ProgressBar progress={progress} height={6} />
-          </View>
-        </Card>
-
-        {/* Block Navigation */}
-        {totalBlocks > 1 && (
-          <View style={styles.blockNav}>
-            <Text style={[styles.blockNavText, { color: colors.text.secondary }]}>
-              Block {currentBlockIndex + 1} of {totalBlocks}
-            </Text>
-            <View style={styles.blockNavDots}>
-              {lesson.blocks?.map((block, index) => (
-                <View
-                  key={block.id}
-                  style={[
-                    styles.navDot,
-                    {
-                      backgroundColor:
-                        index === currentBlockIndex
-                          ? colors.primary
-                          : index < completedBlocksCount
-                          ? colors.success
-                          : colors.border,
-                    },
-                  ]}
-                />
-              ))}
+              {totalBlocks > 1 && totalBlocks <= 10 && (
+                <View style={styles.compactDots}>
+                  {lesson.blocks?.map((block, index) => (
+                    <View
+                      key={block.id}
+                      style={[
+                        styles.compactDot,
+                        {
+                          backgroundColor:
+                            index === currentBlockIndex
+                              ? colors.primary
+                              : index < completedBlocksCount
+                              ? colors.success
+                              : colors.border,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
           </View>
-        )}
+          {/* Progress bar */}
+          <ProgressBar progress={progress} height={4} />
+        </View>
 
         {/* Current Block */}
         {currentBlock ? (
@@ -266,6 +244,42 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
             isActive
             showHeader
           />
+        ) : lesson?.blocksStatus === 'pending' ? (
+          // Blocks haven't been generated yet - show prompt to generate
+          <Card elevation="md" padding="lg">
+            <View style={styles.emptyBlockContainer}>
+              <Text style={styles.emptyBlockIcon}>📦</Text>
+              <Text style={[styles.emptyBlockTitle, { color: colors.text.primary }]}>
+                Preparing Lesson Content
+              </Text>
+              <Text style={[styles.emptyBlockText, { color: colors.text.secondary }]}>
+                Content blocks are being prepared for this lesson.
+              </Text>
+              <Button
+                title="Generate Content"
+                onPress={generateBlocksIfNeeded}
+                style={styles.generateButton}
+              />
+            </View>
+          </Card>
+        ) : lesson?.blocksStatus === 'error' ? (
+          // Block generation failed - show error with retry
+          <Card elevation="md" padding="lg">
+            <View style={styles.emptyBlockContainer}>
+              <Text style={styles.emptyBlockIcon}>⚠️</Text>
+              <Text style={[styles.emptyBlockTitle, { color: colors.danger }]}>
+                Failed to Load Content
+              </Text>
+              <Text style={[styles.emptyBlockText, { color: colors.text.secondary }]}>
+                {error || 'Something went wrong while preparing the lesson.'}
+              </Text>
+              <Button
+                title="Try Again"
+                onPress={generateBlocksIfNeeded}
+                style={styles.generateButton}
+              />
+            </View>
+          </Card>
         ) : isGeneratingContent ? (
           <Card elevation="md" padding="lg">
             <View style={styles.generatingContentContainer}>
@@ -275,41 +289,75 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
               </Text>
             </View>
           </Card>
+        ) : totalBlocks === 0 ? (
+          // No blocks at all - unusual state
+          <Card elevation="md" padding="lg">
+            <View style={styles.emptyBlockContainer}>
+              <Text style={styles.emptyBlockIcon}>📭</Text>
+              <Text style={[styles.emptyBlockTitle, { color: colors.text.primary }]}>
+                No Content Available
+              </Text>
+              <Text style={[styles.emptyBlockText, { color: colors.text.secondary }]}>
+                This lesson doesn't have any content blocks yet.
+              </Text>
+              <Button
+                title="Go Back"
+                onPress={() => navigation.goBack()}
+                variant="outline"
+                style={styles.generateButton}
+              />
+            </View>
+          </Card>
         ) : null}
 
         {/* Navigation Buttons */}
-        <View style={styles.navButtons}>
-          <Button
-            title="Previous"
-            onPress={previousBlock}
-            variant="outline"
-            disabled={currentBlockIndex === 0}
-            style={styles.navButton}
-          />
-          <View style={styles.navButtonRight}>
-            <Button
-              title={currentBlockIndex === totalBlocks - 1 ? 'Finish' : 'Next'}
-              onPress={() => {
-                if (currentBlockIndex === totalBlocks - 1) {
-                  completeCurrentBlock();
-                } else {
-                  nextBlock();
-                }
-              }}
-              disabled={!currentBlock || currentBlock.contentStatus !== 'ready'}
-              style={styles.navButton}
-            />
-            {/* Show generating indicator next to button when content is loading */}
-            {currentBlock && currentBlock.contentStatus !== 'ready' && (
-              <View style={styles.buttonLoadingIndicator}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.buttonLoadingText, { color: colors.text.secondary }]}>
-                  Generating...
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
+        {(() => {
+          // Question and task blocks have internal completion buttons
+          const hasInternalCompletion = currentBlock?.type === 'question' || currentBlock?.type === 'task';
+          const isLastBlock = currentBlockIndex === totalBlocks - 1;
+          const canNavigate = currentBlock && currentBlock.contentStatus === 'ready';
+
+          return (
+            <View style={styles.navButtons}>
+              {/* Previous button - always show for navigation */}
+              <Button
+                title="← Back"
+                onPress={previousBlock}
+                variant="ghost"
+                size="small"
+                disabled={currentBlockIndex === 0}
+                style={styles.prevButton}
+              />
+
+              {/* Next/Finish button - hide for blocks with internal completion */}
+              {!hasInternalCompletion && (
+                <Button
+                  title={isLastBlock ? 'Finish Lesson' : 'Continue →'}
+                  onPress={() => {
+                    if (isLastBlock) {
+                      completeCurrentBlock();
+                    } else {
+                      nextBlock();
+                    }
+                  }}
+                  disabled={!canNavigate}
+                  size="small"
+                  style={styles.nextButton}
+                />
+              )}
+
+              {/* Show generating indicator when content is loading */}
+              {currentBlock && currentBlock.contentStatus !== 'ready' && (
+                <View style={styles.buttonLoadingIndicator}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={[styles.buttonLoadingText, { color: colors.text.secondary }]}>
+                    Loading...
+                  </Text>
+                </View>
+              )}
+            </View>
+          );
+        })()}
       </View>
     </LearningLayout>
   );
@@ -368,49 +416,41 @@ const styles = StyleSheet.create({
   errorButton: {
     minWidth: 120,
   },
-  headerCard: {
+  compactHeader: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.borderRadius.md,
     marginBottom: Spacing.sm,
   },
-  header: {
-    marginBottom: Spacing.md,
-  },
-  lessonTitle: {
-    ...Typography.heading.h2,
-    marginBottom: Spacing.xs,
-  },
-  lessonDescription: {
-    ...Typography.body.medium,
-  },
-  progressContainer: {
-    marginTop: Spacing.sm,
-  },
-  progressHeader: {
+  headerTopRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.xs,
   },
-  progressLabel: {
-    ...Typography.label.small,
+  compactTitle: {
+    ...Typography.body.medium,
+    fontWeight: '600',
+    flex: 1,
+    marginRight: Spacing.sm,
   },
-  progressCount: {
-    ...Typography.label.small,
-  },
-  blockNav: {
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  blockNavText: {
-    ...Typography.label.small,
-    marginBottom: Spacing.sm,
-  },
-  blockNavDots: {
+  headerRight: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
-  navDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  blockCounter: {
+    ...Typography.label.small,
+    fontWeight: '600',
+  },
+  compactDots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  compactDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   generatingContentContainer: {
     alignItems: 'center',
@@ -422,24 +462,47 @@ const styles = StyleSheet.create({
   },
   navButtons: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.md,
-  },
-  navButton: {
-    flex: 1,
-  },
-  navButtonRight: {
-    flex: 1,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  prevButton: {
+    minWidth: 80,
+  },
+  nextButton: {
+    minWidth: 120,
   },
   buttonLoadingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.xs,
   },
   buttonLoadingText: {
     ...Typography.label.small,
     marginLeft: Spacing.xs,
+  },
+  emptyBlockContainer: {
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  emptyBlockIcon: {
+    fontSize: 48,
+    marginBottom: Spacing.md,
+  },
+  emptyBlockTitle: {
+    ...Typography.heading.h3,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  emptyBlockText: {
+    ...Typography.body.medium,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  generateButton: {
+    minWidth: 160,
   },
 });
 
