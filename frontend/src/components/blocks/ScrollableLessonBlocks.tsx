@@ -200,19 +200,13 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
                   : undefined
               }
             />
-            {/* Connector line between blocks (not after last visible if there are upcoming) */}
+            {/* Modern connector between blocks */}
             {(!isLastVisible || upcomingBlocks.length > 0) && (
               <View style={styles.connector}>
                 <View
                   style={[
                     styles.connectorLine,
                     status === 'completed' && styles.connectorLineCompleted,
-                  ]}
-                />
-                <View
-                  style={[
-                    styles.connectorDot,
-                    status === 'completed' && styles.connectorDotCompleted,
                   ]}
                 />
               </View>
@@ -247,26 +241,17 @@ const styles = StyleSheet.create({
   },
   connector: {
     alignItems: 'center',
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    marginLeft: 2, // Align with left indicator bar
   },
   connectorLine: {
     width: 2,
-    height: 16,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    height: 24,
+    backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius: 1,
   },
   connectorLineCompleted: {
-    backgroundColor: 'rgba(16, 185, 129, 0.3)', // success color with opacity
-  },
-  connectorDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    marginTop: 4,
-  },
-  connectorDotCompleted: {
-    backgroundColor: 'rgba(16, 185, 129, 0.5)',
+    backgroundColor: 'rgba(16, 185, 129, 0.4)',
   },
   bottomPadding: {
     height: 100, // Extra space at bottom for comfortable scrolling

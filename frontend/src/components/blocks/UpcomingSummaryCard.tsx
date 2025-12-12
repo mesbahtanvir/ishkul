@@ -1,8 +1,7 @@
 /**
- * UpcomingSummaryCard - Shows a compact summary of upcoming blocks
+ * UpcomingSummaryCard - Modern compact summary of upcoming blocks
  *
- * Instead of showing each locked block individually, this displays
- * a single card summarizing what's coming next in the lesson.
+ * Shows a clean, minimal preview of what's coming next in the lesson.
  */
 
 import React from 'react';
@@ -83,40 +82,45 @@ export const UpcomingSummaryCard: React.FC<UpcomingSummaryCardProps> = ({
 
   return (
     <Card
-      elevation="sm"
+      elevation="none"
       padding="md"
-      style={{ ...styles.card, borderColor: colors.border }}
+      style={{
+        ...styles.card,
+        backgroundColor: colors.background.secondary,
+        borderColor: colors.border,
+      }}
     >
+      {/* Header row */}
       <View style={styles.header}>
-        <Text style={[styles.headerIcon]}>📋</Text>
-        <Text style={[styles.headerTitle, { color: colors.text.secondary }]}>
-          Coming Up
-        </Text>
-        <View style={[styles.countBadge, { backgroundColor: colors.text.tertiary + '20' }]}>
+        <View style={styles.headerLeft}>
+          <View style={[styles.iconCircle, { backgroundColor: colors.text.tertiary + '15' }]}>
+            <Text style={styles.headerIcon}>→</Text>
+          </View>
+          <Text style={[styles.headerTitle, { color: colors.text.secondary }]}>
+            Up Next
+          </Text>
+        </View>
+        <View style={[styles.countPill, { backgroundColor: colors.background.tertiary }]}>
           <Text style={[styles.countText, { color: colors.text.tertiary }]}>
-            {blocks.length} {blocks.length === 1 ? 'block' : 'blocks'}
+            {blocks.length} more
           </Text>
         </View>
       </View>
 
-      <View style={styles.typeList}>
+      {/* Type chips row */}
+      <View style={styles.chipRow}>
         {typeEntries.map(([type, count]) => (
           <View
             key={type}
-            style={[styles.typeItem, { backgroundColor: colors.background.secondary }]}
+            style={[styles.chip, { backgroundColor: colors.background.tertiary }]}
           >
-            <Text style={styles.typeIcon}>{getBlockIcon(type)}</Text>
-            <Text style={[styles.typeLabel, { color: colors.text.secondary }]}>
-              {count} {getBlockLabel(type)}
-              {count > 1 ? 's' : ''}
+            <Text style={styles.chipIcon}>{getBlockIcon(type)}</Text>
+            <Text style={[styles.chipLabel, { color: colors.text.secondary }]}>
+              {count}× {getBlockLabel(type)}
             </Text>
           </View>
         ))}
       </View>
-
-      <Text style={[styles.hint, { color: colors.text.tertiary }]}>
-        Complete the current block to continue
-      </Text>
     </Card>
   );
 };
@@ -124,38 +128,50 @@ export const UpcomingSummaryCard: React.FC<UpcomingSummaryCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    opacity: 0.7,
+    borderStyle: 'dashed',
+    borderRadius: Spacing.borderRadius.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: Spacing.sm,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  iconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerIcon: {
-    fontSize: 18,
-    marginRight: Spacing.xs,
+    fontSize: 14,
+    fontWeight: '600',
   },
   headerTitle: {
     ...Typography.body.medium,
     fontWeight: '600',
-    flex: 1,
   },
-  countBadge: {
+  countPill: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: Spacing.xs / 2,
     borderRadius: Spacing.borderRadius.full,
   },
   countText: {
     ...Typography.label.small,
     fontWeight: '500',
   },
-  typeList: {
+  chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
-    marginBottom: Spacing.sm,
   },
-  typeItem: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
@@ -163,16 +179,12 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.borderRadius.md,
     gap: 4,
   },
-  typeIcon: {
-    fontSize: 14,
+  chipIcon: {
+    fontSize: 12,
   },
-  typeLabel: {
+  chipLabel: {
     ...Typography.label.small,
-  },
-  hint: {
-    ...Typography.body.small,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    fontWeight: '500',
   },
 });
 

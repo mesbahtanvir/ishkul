@@ -29,10 +29,10 @@ export const TextBlockRenderer: React.FC<TextBlockRendererProps> = ({
       {isActive && onComplete && (
         <View style={styles.buttonContainer}>
           <Button
-            title="Continue"
+            title="Continue →"
             onPress={onComplete}
             variant="primary"
-            size="medium"
+            size="large"
           />
         </View>
       )}
@@ -45,7 +45,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   buttonContainer: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.06)',
   },
 });
 
