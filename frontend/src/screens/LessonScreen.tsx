@@ -311,38 +311,53 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
         ) : null}
 
         {/* Navigation Buttons */}
-        <View style={styles.navButtons}>
-          <Button
-            title="Previous"
-            onPress={previousBlock}
-            variant="outline"
-            disabled={currentBlockIndex === 0}
-            style={styles.navButton}
-          />
-          <View style={styles.navButtonRight}>
-            <Button
-              title={currentBlockIndex === totalBlocks - 1 ? 'Finish' : 'Next'}
-              onPress={() => {
-                if (currentBlockIndex === totalBlocks - 1) {
-                  completeCurrentBlock();
-                } else {
-                  nextBlock();
-                }
-              }}
-              disabled={!currentBlock || currentBlock.contentStatus !== 'ready'}
-              style={styles.navButton}
-            />
-            {/* Show generating indicator next to button when content is loading */}
-            {currentBlock && currentBlock.contentStatus !== 'ready' && (
-              <View style={styles.buttonLoadingIndicator}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.buttonLoadingText, { color: colors.text.secondary }]}>
-                  Generating...
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
+        {(() => {
+          // Question and task blocks have internal completion buttons
+          const hasInternalCompletion = currentBlock?.type === 'question' || currentBlock?.type === 'task';
+          const isLastBlock = currentBlockIndex === totalBlocks - 1;
+          const canNavigate = currentBlock && currentBlock.contentStatus === 'ready';
+
+          return (
+            <View style={styles.navButtons}>
+              {/* Previous button - always show for navigation */}
+              <Button
+                title="← Back"
+                onPress={previousBlock}
+                variant="ghost"
+                size="small"
+                disabled={currentBlockIndex === 0}
+                style={styles.prevButton}
+              />
+
+              {/* Next/Finish button - hide for blocks with internal completion */}
+              {!hasInternalCompletion && (
+                <Button
+                  title={isLastBlock ? 'Finish Lesson' : 'Continue →'}
+                  onPress={() => {
+                    if (isLastBlock) {
+                      completeCurrentBlock();
+                    } else {
+                      nextBlock();
+                    }
+                  }}
+                  disabled={!canNavigate}
+                  size="small"
+                  style={styles.nextButton}
+                />
+              )}
+
+              {/* Show generating indicator when content is loading */}
+              {currentBlock && currentBlock.contentStatus !== 'ready' && (
+                <View style={styles.buttonLoadingIndicator}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={[styles.buttonLoadingText, { color: colors.text.secondary }]}>
+                    Loading...
+                  </Text>
+                </View>
+              )}
+            </View>
+          );
+        })()}
       </View>
     </LearningLayout>
   );
@@ -447,20 +462,22 @@ const styles = StyleSheet.create({
   },
   navButtons: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.md,
-  },
-  navButton: {
-    flex: 1,
-  },
-  navButtonRight: {
-    flex: 1,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  prevButton: {
+    minWidth: 80,
+  },
+  nextButton: {
+    minWidth: 120,
   },
   buttonLoadingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.xs,
   },
   buttonLoadingText: {
     ...Typography.label.small,

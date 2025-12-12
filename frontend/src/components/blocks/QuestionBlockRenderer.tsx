@@ -220,10 +220,10 @@ export const QuestionBlockRenderer: React.FC<QuestionBlockRendererProps> = ({
       {renderFeedback()}
 
       <Button
-        title={isSubmitted ? 'Continue' : 'Check Answer'}
+        title={isSubmitted ? 'Next →' : 'Check Answer'}
         onPress={handleSubmit}
         disabled={!canSubmit()}
-        variant={isSubmitted ? 'primary' : 'outline'}
+        variant="primary"
         style={styles.submitButton}
       />
     </View>
