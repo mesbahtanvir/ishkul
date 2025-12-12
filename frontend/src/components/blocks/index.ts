@@ -11,3 +11,8 @@ export { QuestionBlockRenderer } from './QuestionBlockRenderer';
 export { TaskBlockRenderer } from './TaskBlockRenderer';
 export { FlashcardBlockRenderer } from './FlashcardBlockRenderer';
 export { SummaryBlockRenderer } from './SummaryBlockRenderer';
+
+// Scrollable lesson view components
+export { ScrollableLessonBlocks } from './ScrollableLessonBlocks';
+export type { BlockStatus } from './ScrollableLessonBlocks';
+export { LessonBlockCard } from './LessonBlockCard';
