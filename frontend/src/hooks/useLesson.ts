@@ -61,7 +61,8 @@ export function useLesson({
   autoGenerate = true,
   initialLesson,
 }: UseLessonOptions): UseLessonReturn {
-  const initRef = useRef(false);
+  // Track previous lessonId to detect navigation between lessons
+  const prevLessonIdRef = useRef<string | null>(null);
 
   // Lesson store
   const {
@@ -75,6 +76,7 @@ export function useLesson({
     localProgress,
     setCurrentLesson,
     fetchLesson,
+    clearLesson,
     generateBlocks,
     generateBlockContent,
     nextBlock: storeNextBlock,
@@ -91,10 +93,17 @@ export function useLesson({
   // Courses store for navigation
   const { getNextLesson, updateLessonStatus, setCoursePosition } = useCoursesStore();
 
-  // Initialize lesson on mount
+  // Initialize lesson on mount OR when lessonId changes (navigation between lessons)
   useEffect(() => {
-    if (!initRef.current) {
-      initRef.current = true;
+    const isNewLesson = prevLessonIdRef.current !== lessonId;
+
+    if (isNewLesson) {
+      // Clear stale state from previous lesson before loading new one
+      if (prevLessonIdRef.current !== null) {
+        clearLesson();
+      }
+
+      prevLessonIdRef.current = lessonId;
 
       // If initialLesson provided, use it immediately while fetching fresh data
       if (initialLesson) {
@@ -104,7 +113,7 @@ export function useLesson({
       // Always fetch fresh lesson data from API
       fetchLesson(courseId, lessonId, sectionId);
     }
-  }, [courseId, lessonId, sectionId, fetchLesson, initialLesson, setCurrentLesson]);
+  }, [courseId, lessonId, sectionId, fetchLesson, clearLesson, initialLesson, setCurrentLesson]);
 
   // Auto-generate blocks if needed
   useEffect(() => {
