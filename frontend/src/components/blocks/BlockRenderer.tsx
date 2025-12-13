@@ -213,9 +213,21 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
 
     switch (block.type) {
       case 'text':
-        return <TextBlockRenderer content={content} />;
+        return (
+          <TextBlockRenderer
+            content={content}
+            onComplete={onComplete}
+            isActive={isActive}
+          />
+        );
       case 'code':
-        return <CodeBlockRenderer content={content} />;
+        return (
+          <CodeBlockRenderer
+            content={content}
+            onComplete={onComplete}
+            isActive={isActive}
+          />
+        );
       case 'question':
         return (
           <QuestionBlockRenderer
@@ -241,7 +253,13 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
           />
         );
       case 'summary':
-        return <SummaryBlockRenderer content={content} />;
+        return (
+          <SummaryBlockRenderer
+            content={content}
+            onComplete={onComplete}
+            isActive={isActive}
+          />
+        );
       default:
         return (
           <Text style={[styles.unknownType, { color: colors.text.secondary }]}>

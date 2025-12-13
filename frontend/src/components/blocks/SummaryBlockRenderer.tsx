@@ -8,12 +8,19 @@ import { BlockContent } from '../../types/app';
 import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { Button } from '../Button';
 
 interface SummaryBlockRendererProps {
   content: BlockContent;
+  onComplete?: () => void;
+  isActive?: boolean;
 }
 
-export const SummaryBlockRenderer: React.FC<SummaryBlockRendererProps> = ({ content }) => {
+export const SummaryBlockRenderer: React.FC<SummaryBlockRendererProps> = ({
+  content,
+  onComplete,
+  isActive = false,
+}) => {
   const { colors } = useTheme();
   // Access the summary content from BlockContent.summary
   const summaryContent = content.summary;
@@ -52,6 +59,18 @@ export const SummaryBlockRenderer: React.FC<SummaryBlockRendererProps> = ({ cont
           <Text style={[styles.nextStepText, { color: colors.text.primary }]}>
             {summaryContent.nextUp}
           </Text>
+        </View>
+      )}
+
+      {/* Continue button for active blocks */}
+      {isActive && onComplete && (
+        <View style={styles.buttonContainer}>
+          <Button
+            title="Continue →"
+            onPress={onComplete}
+            variant="primary"
+            size="large"
+          />
         </View>
       )}
     </View>
@@ -112,6 +131,12 @@ const styles = StyleSheet.create({
   nextStepText: {
     ...Typography.body.medium,
     flex: 1,
+  },
+  buttonContainer: {
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.06)',
   },
 });
 

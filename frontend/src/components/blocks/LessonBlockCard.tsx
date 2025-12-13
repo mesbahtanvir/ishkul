@@ -1,10 +1,10 @@
 /**
- * LessonBlockCard - Block wrapper with status-based styling
+ * LessonBlockCard - Modern block wrapper with status-based styling
  *
  * Renders a block with visual states:
- * - completed: checkmark badge, reduced opacity, green accent
- * - active: highlighted border, full opacity, primary accent
- * - upcoming: dimmed, locked indicator
+ * - completed: subtle success indicator, clean checkmark
+ * - active: gradient accent, prominent shadow
+ * - upcoming: dimmed, minimal preview
  */
 
 import React from 'react';
@@ -26,37 +26,6 @@ interface LessonBlockCardProps {
   onGenerateContent?: () => void;
 }
 
-/**
- * Get status badge configuration
- */
-const getStatusBadge = (
-  status: BlockStatus,
-  colors: ReturnType<typeof useTheme>['colors']
-): { icon: string; label: string; color: string } | null => {
-  switch (status) {
-    case 'completed':
-      return {
-        icon: '✓',
-        label: 'Done',
-        color: colors.success,
-      };
-    case 'active':
-      return {
-        icon: '●',
-        label: 'Active',
-        color: colors.primary,
-      };
-    case 'upcoming':
-      return {
-        icon: '○',
-        label: 'Upcoming',
-        color: colors.text.tertiary,
-      };
-    default:
-      return null;
-  }
-};
-
 export const LessonBlockCard: React.FC<LessonBlockCardProps> = ({
   block,
   status,
@@ -66,7 +35,6 @@ export const LessonBlockCard: React.FC<LessonBlockCardProps> = ({
   onGenerateContent,
 }) => {
   const { colors } = useTheme();
-  const statusBadge = getStatusBadge(status, colors);
 
   // Determine if block content should be interactive
   const isInteractive = status === 'active';
@@ -82,9 +50,8 @@ export const LessonBlockCard: React.FC<LessonBlockCardProps> = ({
       case 'completed':
         return {
           ...baseStyle,
-          borderColor: colors.success,
+          borderColor: colors.success + '40',
           borderWidth: 1,
-          opacity: 0.85,
         };
       case 'active':
         return {
@@ -93,14 +60,14 @@ export const LessonBlockCard: React.FC<LessonBlockCardProps> = ({
           borderWidth: 2,
           ...Platform.select({
             web: {
-              boxShadow: `0 4px 12px ${colors.primary}25`,
+              boxShadow: `0 8px 32px ${colors.primary}20, 0 2px 8px rgba(0,0,0,0.08)`,
             },
             default: {
               shadowColor: colors.primary,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 12,
-              elevation: 8,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.2,
+              shadowRadius: 24,
+              elevation: 12,
             },
           }),
         };
@@ -116,38 +83,15 @@ export const LessonBlockCard: React.FC<LessonBlockCardProps> = ({
     }
   };
 
-  // For upcoming blocks, show a locked preview
+  // For upcoming blocks, show a locked preview (shouldn't happen with new summary card)
   if (isLocked && block.contentStatus === 'ready') {
     return (
-      <Card
-        elevation="sm"
-        padding="md"
-        style={getCardStyle()}
-      >
-        {/* Status badge */}
-        <View style={styles.statusHeader}>
-          {statusBadge && (
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: `${statusBadge.color}15` },
-              ]}
-            >
-              <Text style={[styles.statusIcon, { color: statusBadge.color }]}>
-                {statusBadge.icon}
-              </Text>
-              <Text style={[styles.statusLabel, { color: statusBadge.color }]}>
-                {statusBadge.label}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Locked preview */}
+      <Card elevation="sm" padding="md" style={getCardStyle()}>
         <View style={styles.lockedContent}>
           <Text style={styles.lockedIcon}>🔒</Text>
           <Text style={[styles.lockedTitle, { color: colors.text.secondary }]}>
-            {block.title || `${block.type.charAt(0).toUpperCase() + block.type.slice(1)} Block`}
+            {block.title ||
+              `${block.type.charAt(0).toUpperCase() + block.type.slice(1)} Block`}
           </Text>
           <Text style={[styles.lockedHint, { color: colors.text.tertiary }]}>
             Complete previous blocks to unlock
@@ -158,119 +102,155 @@ export const LessonBlockCard: React.FC<LessonBlockCardProps> = ({
   }
 
   return (
-    <Card
-      elevation={status === 'active' ? 'lg' : 'md'}
-      padding="lg"
-      style={getCardStyle()}
-    >
-      {/* Status badge in corner */}
-      <View style={styles.statusHeader}>
-        {statusBadge && (
-          <View
-            style={[
-              styles.statusBadge,
-              { backgroundColor: `${statusBadge.color}15` },
-            ]}
-          >
-            <Text style={[styles.statusIcon, { color: statusBadge.color }]}>
-              {statusBadge.icon}
-            </Text>
-            <Text style={[styles.statusLabel, { color: statusBadge.color }]}>
-              {statusBadge.label}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Block content */}
-      <View style={status === 'completed' ? styles.completedContent : undefined}>
-        <BlockRenderer
-          block={block}
-          onAnswer={isInteractive ? onAnswer : undefined}
-          onComplete={isInteractive ? onComplete : undefined}
-          onGenerateContent={onGenerateContent}
-          isActive={isInteractive}
-          showHeader={true}
-          isGenerating={isGenerating}
+    <View style={styles.cardContainer}>
+      {/* Active indicator bar */}
+      {status === 'active' && (
+        <View
+          style={[styles.activeIndicator, { backgroundColor: colors.primary }]}
         />
-      </View>
-
-      {/* Completed overlay indicator */}
-      {status === 'completed' && (
-        <View style={styles.completedOverlay}>
-          <View
-            style={[
-              styles.completedCheck,
-              { backgroundColor: colors.success },
-            ]}
-          >
-            <Text style={styles.completedCheckIcon}>✓</Text>
-          </View>
-        </View>
       )}
-    </Card>
+
+      {/* Completed indicator bar */}
+      {status === 'completed' && (
+        <View
+          style={[
+            styles.completedIndicator,
+            { backgroundColor: colors.success },
+          ]}
+        />
+      )}
+
+      <Card
+        elevation={status === 'active' ? 'lg' : 'sm'}
+        padding="lg"
+        style={getCardStyle()}
+      >
+        {/* Status header */}
+        <View style={styles.statusHeader}>
+          {status === 'completed' && (
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: colors.success + '15' },
+              ]}
+            >
+              <View
+                style={[
+                  styles.checkCircle,
+                  { backgroundColor: colors.success },
+                ]}
+              >
+                <Text style={styles.checkIcon}>✓</Text>
+              </View>
+              <Text style={[styles.statusText, { color: colors.success }]}>
+                Completed
+              </Text>
+            </View>
+          )}
+          {status === 'active' && (
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: colors.primary + '15' },
+              ]}
+            >
+              <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />
+              <Text style={[styles.statusText, { color: colors.primary }]}>
+                In Progress
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Block content */}
+        <View style={status === 'completed' ? styles.completedContent : undefined}>
+          <BlockRenderer
+            block={block}
+            onAnswer={isInteractive ? onAnswer : undefined}
+            onComplete={isInteractive ? onComplete : undefined}
+            onGenerateContent={onGenerateContent}
+            isActive={isInteractive}
+            showHeader={true}
+            isGenerating={isGenerating}
+          />
+        </View>
+      </Card>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  cardContainer: {
+    position: 'relative',
+  },
   card: {
     position: 'relative',
     overflow: 'hidden',
+    borderRadius: Spacing.borderRadius.xl,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    left: 0,
+    top: 16,
+    bottom: 16,
+    width: 4,
+    borderRadius: 2,
+    zIndex: 10,
+  },
+  completedIndicator: {
+    position: 'absolute',
+    left: 0,
+    top: 16,
+    bottom: 16,
+    width: 4,
+    borderRadius: 2,
+    zIndex: 10,
+    opacity: 0.5,
   },
   statusHeader: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    zIndex: 10,
+    marginBottom: Spacing.md,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm + 4,
+    paddingVertical: Spacing.xs + 2,
     borderRadius: Spacing.borderRadius.full,
-    gap: 4,
+    gap: Spacing.xs,
   },
-  statusIcon: {
-    fontSize: 10,
+  checkCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkIcon: {
+    color: 'white',
+    fontSize: 11,
     fontWeight: '700',
   },
-  statusLabel: {
+  activeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusText: {
     ...Typography.label.small,
     fontWeight: '600',
   },
   completedContent: {
-    // Slight desaturation for completed blocks
-  },
-  completedOverlay: {
-    position: 'absolute',
-    top: -20,
-    left: -20,
-    zIndex: 5,
-  },
-  completedCheck: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    transform: [{ rotate: '-45deg' }],
-  },
-  completedCheckIcon: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '700',
-    transform: [{ rotate: '45deg' }, { translateX: 8 }, { translateY: 8 }],
+    opacity: 0.85,
   },
   lockedContent: {
     alignItems: 'center',
-    paddingVertical: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingVertical: Spacing.xl,
   },
   lockedIcon: {
     fontSize: 32,
     marginBottom: Spacing.sm,
-    opacity: 0.5,
+    opacity: 0.4,
   },
   lockedTitle: {
     ...Typography.body.medium,
