@@ -64,14 +64,14 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
   useEffect(() => {
     if (isLessonComplete && lesson) {
       // Navigate to completion screen
-      finishLesson().then((nextPosition) => {
+      // Note: nextLesson is computed from store in LessonCompleteScreen (objects can't serialize to URLs)
+      finishLesson().then(() => {
         navigation.replace('LessonComplete', {
           courseId,
           lessonId,
           sectionId,
           score,
           timeSpent: 0, // TODO: Calculate from progress
-          nextLesson: nextPosition ?? undefined,
         });
       });
     }

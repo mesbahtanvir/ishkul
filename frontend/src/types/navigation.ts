@@ -1,4 +1,4 @@
-import { Lesson, Block, LessonPosition } from './app';
+import { Lesson, Block } from './app';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -49,12 +49,12 @@ export type RootStackParamList = {
     courseId: string;
   };
   // Lesson complete summary screen
+  // Note: nextLesson is computed from store, not passed as param (objects can't serialize to URLs)
   LessonComplete: {
     courseId: string;
     lessonId: string;
     sectionId: string;
     score: number;
     timeSpent: number;
-    nextLesson?: LessonPosition;
   };
 };
