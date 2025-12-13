@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { BlockContent, FlashcardContent } from '../../types/app';
+import { BlockContent } from '../../types/app';
 import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
@@ -20,7 +20,7 @@ export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
   onComplete,
 }) => {
   const { colors } = useTheme();
-  const flashcardContent = content as FlashcardContent;
+  const flashcardContent = content.flashcard;
 
   const [isFlipped, setIsFlipped] = useState(false);
   const [confidence, setConfidence] = useState<'easy' | 'medium' | 'hard' | null>(null);
@@ -47,6 +47,19 @@ export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
         return colors.danger;
     }
   };
+
+  // Handle missing flashcard content
+  if (!flashcardContent) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.card, { backgroundColor: colors.background.secondary, borderColor: colors.border }]}>
+          <Text style={[styles.cardText, { color: colors.text.secondary }]}>
+            No flashcard content available
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
