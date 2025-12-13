@@ -471,13 +471,13 @@ describe('LessonScreen', () => {
 
       await waitFor(() => {
         expect(mockFinishLesson).toHaveBeenCalled();
+        // Note: nextLesson is computed from store in LessonCompleteScreen, not passed as param
         expect(mockReplace).toHaveBeenCalledWith('LessonComplete', {
           courseId: 'course-123',
           lessonId: 'lesson-456',
           sectionId: 'section-1',
           score: 85,
           timeSpent: 0,
-          nextLesson: { sectionId: 's2', lessonId: 'l1' },
         });
       });
     });

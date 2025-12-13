@@ -1,12 +1,16 @@
 /**
- * LessonCompleteScreen - Compact summary screen after completing a lesson
+ * LessonCompleteScreen - Minimal celebration screen after completing a lesson
+ *
+ * Design principles:
+ * - Quick celebration, not a blocker
+ * - Essential info only (score, next action)
+ * - Course outline visible in sidebar for context
  */
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LearningLayout } from '../components/LearningLayout';
-import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useTheme } from '../hooks/useTheme';
 import { useCoursesStore } from '../state/coursesStore';
@@ -50,19 +54,27 @@ export const LessonCompleteScreen: React.FC<LessonCompleteScreenProps> = ({
   navigation,
   route,
 }) => {
-  const { courseId, lessonId, sectionId, score, timeSpent, nextLesson } = route.params;
+  const { courseId, lessonId, sectionId, score, timeSpent } = route.params;
   const { colors } = useTheme();
 
-  // Get next lesson details from store
+  // Get next lesson from store (not from URL params - objects can't serialize to URLs)
+  const getNextLesson = useCoursesStore((state) => state.getNextLesson);
   const course = useCoursesStore((state) => state.courses.find((c) => c.id === courseId));
-  const nextLessonDetails = React.useMemo(() => {
+
+  // Compute next lesson position
+  const nextLesson = useMemo(() => {
+    return getNextLesson(courseId, sectionId, lessonId);
+  }, [getNextLesson, courseId, sectionId, lessonId]);
+
+  // Get next lesson title for display
+  const nextLessonTitle = useMemo(() => {
     if (!nextLesson || !course?.outline?.sections) return null;
     const section = course.outline.sections.find((s) => s.id === nextLesson.sectionId);
     const lesson = section?.lessons?.find((l) => l.id === nextLesson.lessonId);
-    return lesson ? { title: lesson.title, sectionTitle: section?.title } : null;
+    return lesson?.title ?? null;
   }, [nextLesson, course]);
 
-  // Build current position for sidebar highlighting
+  // Build current position for sidebar highlighting (show completed lesson)
   const currentPosition: LessonPosition | undefined = sectionId && lessonId ? {
     sectionId,
     lessonId,
@@ -78,12 +90,9 @@ export const LessonCompleteScreen: React.FC<LessonCompleteScreenProps> = ({
         sectionId: nextLesson.sectionId,
       });
     } else {
+      // Course complete - go to course overview
       navigation.navigate('Course', { courseId });
     }
-  };
-
-  const handleBackToCourse = () => {
-    navigation.navigate('Course', { courseId });
   };
 
   const celebrationEmoji = getCelebrationEmoji(score);
@@ -98,100 +107,55 @@ export const LessonCompleteScreen: React.FC<LessonCompleteScreenProps> = ({
       showBackButton={false}
     >
       <View style={styles.content}>
-        {/* Compact Header */}
-        <View style={styles.header}>
+        {/* Celebration Header - Centered, minimal */}
+        <View style={styles.celebrationContainer}>
           <Text style={styles.emoji}>{celebrationEmoji}</Text>
-          <View style={styles.headerText}>
-            <Text style={[styles.title, { color: colors.text.primary }]}>
-              Lesson Complete!
-            </Text>
-            <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-              {message}
-            </Text>
-          </View>
-        </View>
+          <Text style={[styles.title, { color: colors.text.primary }]}>
+            {message}
+          </Text>
 
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={[styles.statPill, { backgroundColor: scoreColor + '15' }]}>
-            <Text style={[styles.statValue, { color: scoreColor }]}>{score}%</Text>
-            <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Score</Text>
+          {/* Score Badge */}
+          <View style={[styles.scoreBadge, { backgroundColor: scoreColor + '15' }]}>
+            <Text style={[styles.scoreValue, { color: scoreColor }]}>{score}%</Text>
           </View>
+
+          {/* Time spent (if available) */}
           {timeSpent > 0 && (
-            <View style={[styles.statPill, { backgroundColor: colors.primary + '15' }]}>
-              <Text style={[styles.statValue, { color: colors.primary }]}>{formatTime(timeSpent)}</Text>
-              <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Time</Text>
-            </View>
+            <Text style={[styles.timeText, { color: colors.text.tertiary }]}>
+              Completed in {formatTime(timeSpent)}
+            </Text>
           )}
         </View>
 
-        {/* Score Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${score}%`, backgroundColor: scoreColor },
-              ]}
-            />
-          </View>
-        </View>
-
-        {/* Next Action Card */}
-        <Card elevation="md" padding="md" style={styles.actionCard}>
+        {/* Action Section */}
+        <View style={styles.actionSection}>
           {nextLesson ? (
             <>
-              <Text style={[styles.upNextLabel, { color: colors.text.secondary }]}>
-                UP NEXT
-              </Text>
-              {nextLessonDetails ? (
-                <View style={styles.nextLessonInfo}>
-                  <Text style={[styles.nextLessonTitle, { color: colors.text.primary }]} numberOfLines={1}>
-                    {nextLessonDetails.title}
-                  </Text>
-                  {nextLessonDetails.sectionTitle && (
-                    <Text style={[styles.nextSectionTitle, { color: colors.text.secondary }]} numberOfLines={1}>
-                      in {nextLessonDetails.sectionTitle}
-                    </Text>
-                  )}
-                </View>
-              ) : (
-                <Text style={[styles.nextLessonTitle, { color: colors.text.primary }]}>
-                  Continue to next lesson
+              {nextLessonTitle && (
+                <Text style={[styles.upNextText, { color: colors.text.secondary }]}>
+                  Next: {nextLessonTitle}
                 </Text>
               )}
               <Button
-                title="Continue Learning →"
+                title="Continue →"
                 onPress={handleContinue}
                 style={styles.continueButton}
               />
             </>
           ) : (
             <>
-              <Text style={styles.completeEmoji}>🏆</Text>
-              <Text style={[styles.completeTitle, { color: colors.success }]}>
-                Section Complete!
-              </Text>
-              <Text style={[styles.completeText, { color: colors.text.secondary }]}>
-                You've finished all lessons in this section.
+              <Text style={[styles.courseCompleteText, { color: colors.success }]}>
+                🏆 Course Complete!
               </Text>
               <Button
-                title="Back to Course"
-                onPress={handleBackToCourse}
+                title="View Course"
+                onPress={handleContinue}
+                variant="outline"
                 style={styles.continueButton}
               />
             </>
           )}
-        </Card>
-
-        {/* Secondary Action */}
-        {nextLesson && (
-          <TouchableOpacity onPress={handleBackToCourse} style={styles.secondaryAction}>
-            <Text style={[styles.secondaryText, { color: colors.text.secondary }]}>
-              ← Back to Course Outline
-            </Text>
-          </TouchableOpacity>
-        )}
+        </View>
       </View>
     </LearningLayout>
   );
@@ -200,103 +164,56 @@ export const LessonCompleteScreen: React.FC<LessonCompleteScreenProps> = ({
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    paddingVertical: Spacing.md,
-  },
-  header: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.md,
+  },
+  celebrationContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
   },
   emoji: {
-    fontSize: 48,
-    marginRight: Spacing.md,
-  },
-  headerText: {
-    flex: 1,
+    fontSize: 64,
+    marginBottom: Spacing.md,
   },
   title: {
     ...Typography.heading.h2,
-    marginBottom: 2,
-  },
-  subtitle: {
-    ...Typography.body.medium,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
+    textAlign: 'center',
     marginBottom: Spacing.md,
   },
-  statPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
+  scoreBadge: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
     borderRadius: Spacing.borderRadius.full,
-    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
-  statValue: {
-    ...Typography.body.medium,
+  scoreValue: {
+    ...Typography.heading.h3,
     fontWeight: '700',
   },
-  statLabel: {
-    ...Typography.label.small,
-  },
-  progressContainer: {
-    marginBottom: Spacing.lg,
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  actionCard: {
-    marginBottom: Spacing.md,
-  },
-  upNextLabel: {
-    ...Typography.label.small,
-    fontWeight: '600',
-    letterSpacing: 1,
-    marginBottom: Spacing.xs,
-  },
-  nextLessonInfo: {
-    marginBottom: Spacing.md,
-  },
-  nextLessonTitle: {
-    ...Typography.body.large,
-    fontWeight: '600',
-  },
-  nextSectionTitle: {
+  timeText: {
     ...Typography.body.small,
-    marginTop: 2,
+    marginTop: Spacing.xs,
+  },
+  actionSection: {
+    width: '100%',
+    maxWidth: 280,
+    alignItems: 'center',
+  },
+  upNextText: {
+    ...Typography.body.medium,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
   },
   continueButton: {
-    marginTop: Spacing.sm,
+    width: '100%',
   },
-  completeEmoji: {
-    fontSize: 40,
+  courseCompleteText: {
+    ...Typography.body.large,
+    fontWeight: '600',
     textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
-  completeTitle: {
-    ...Typography.heading.h3,
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  completeText: {
-    ...Typography.body.medium,
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
-  secondaryAction: {
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-  },
-  secondaryText: {
-    ...Typography.body.medium,
+    marginBottom: Spacing.md,
   },
 });
 
