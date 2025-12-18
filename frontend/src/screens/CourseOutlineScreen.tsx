@@ -223,7 +223,6 @@ export const CourseOutlineScreen: React.FC<CourseOutlineScreenProps> = ({
       courseId,
       lessonId: lesson.id,
       sectionId,
-      lesson,
     });
   };
 
@@ -238,7 +237,6 @@ export const CourseOutlineScreen: React.FC<CourseOutlineScreenProps> = ({
             courseId,
             lessonId: lesson.id,
             sectionId: section.id,
-            lesson,
           });
           return;
         }
