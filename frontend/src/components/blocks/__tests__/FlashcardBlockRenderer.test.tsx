@@ -5,7 +5,7 @@
  * - Correct access to content.flashcard (not direct cast)
  * - Proper rendering of front/back content
  * - Flip interaction works correctly
- * - Confidence selection flow works
+ * - Continue button flow works
  * - Null/missing content handling
  * - State transitions (Rules of Hooks compliance)
  */
@@ -151,18 +151,18 @@ describe('FlashcardBlockRenderer', () => {
       expect(getByText('Tap to reveal answer')).toBeTruthy();
     });
 
-    it('should NOT show confidence buttons initially', () => {
+    it('should NOT show Continue button initially', () => {
       const { queryByText } = render(
         <FlashcardBlockRenderer content={validContent} />
       );
 
-      expect(queryByText('How well did you know this?')).toBeNull();
+      expect(queryByText('Continue')).toBeNull();
     });
   });
 
   describe('Flip Interaction', () => {
     it('should flip to show answer when tapped', () => {
-      const { getByText, queryByText } = render(
+      const { getByText } = render(
         <FlashcardBlockRenderer content={validContent} />
       );
 
@@ -177,7 +177,7 @@ describe('FlashcardBlockRenderer', () => {
       expect(getByText('Answer')).toBeTruthy();
     });
 
-    it('should show confidence buttons after flip', () => {
+    it('should show Continue button after flip', () => {
       const { getByText } = render(
         <FlashcardBlockRenderer content={validContent} />
       );
@@ -185,11 +185,8 @@ describe('FlashcardBlockRenderer', () => {
       // Flip the card
       fireEvent.press(getByText('What is React?'));
 
-      // Confidence section should appear
-      expect(getByText('How well did you know this?')).toBeTruthy();
-      expect(getByText('Hard')).toBeTruthy();
-      expect(getByText('Medium')).toBeTruthy();
-      expect(getByText('Easy')).toBeTruthy();
+      // Continue button should appear
+      expect(getByText('Continue')).toBeTruthy();
     });
 
     it('should flip back to question when tapped again', () => {
@@ -223,79 +220,6 @@ describe('FlashcardBlockRenderer', () => {
     });
   });
 
-  describe('Confidence Selection', () => {
-    it('should show result message when Hard is selected', () => {
-      const { getByText } = render(
-        <FlashcardBlockRenderer content={validContent} />
-      );
-
-      // Flip the card
-      fireEvent.press(getByText('What is React?'));
-
-      // Select Hard
-      fireEvent.press(getByText('Hard'));
-
-      // Should show encouragement message (includes emoji)
-      expect(getByText(/Don't worry, you'll get it next time!/)).toBeTruthy();
-    });
-
-    it('should show result message when Medium is selected', () => {
-      const { getByText } = render(
-        <FlashcardBlockRenderer content={validContent} />
-      );
-
-      // Flip the card
-      fireEvent.press(getByText('What is React?'));
-
-      // Select Medium
-      fireEvent.press(getByText('Medium'));
-
-      // Should show encouragement message (includes emoji)
-      expect(getByText(/Good effort! Keep practicing./)).toBeTruthy();
-    });
-
-    it('should show result message when Easy is selected', () => {
-      const { getByText } = render(
-        <FlashcardBlockRenderer content={validContent} />
-      );
-
-      // Flip the card
-      fireEvent.press(getByText('What is React?'));
-
-      // Select Easy
-      fireEvent.press(getByText('Easy'));
-
-      // Should show success message (includes emoji)
-      expect(getByText(/Great! You knew this well./)).toBeTruthy();
-    });
-
-    it('should hide confidence buttons after selection', () => {
-      const { getByText, queryByText } = render(
-        <FlashcardBlockRenderer content={validContent} />
-      );
-
-      // Flip and select confidence
-      fireEvent.press(getByText('What is React?'));
-      fireEvent.press(getByText('Easy'));
-
-      // Confidence buttons should be hidden
-      expect(queryByText('How well did you know this?')).toBeNull();
-    });
-
-    it('should show Continue button after confidence selection', () => {
-      const { getByText } = render(
-        <FlashcardBlockRenderer content={validContent} />
-      );
-
-      // Flip and select confidence
-      fireEvent.press(getByText('What is React?'));
-      fireEvent.press(getByText('Easy'));
-
-      // Continue button should appear
-      expect(getByText('Continue')).toBeTruthy();
-    });
-  });
-
   describe('onComplete Callback', () => {
     it('should call onComplete when Continue is pressed', () => {
       const onCompleteMock = jest.fn();
@@ -304,9 +228,8 @@ describe('FlashcardBlockRenderer', () => {
         <FlashcardBlockRenderer content={validContent} onComplete={onCompleteMock} />
       );
 
-      // Complete the flow
+      // Flip the card and press Continue
       fireEvent.press(getByText('What is React?'));
-      fireEvent.press(getByText('Easy'));
       fireEvent.press(getByTestId('continue-button'));
 
       expect(onCompleteMock).toHaveBeenCalledTimes(1);
@@ -317,11 +240,10 @@ describe('FlashcardBlockRenderer', () => {
         <FlashcardBlockRenderer content={validContent} />
       );
 
-      // Complete the flow without onComplete prop
+      // Flip the card
       fireEvent.press(getByText('What is React?'));
-      fireEvent.press(getByText('Easy'));
 
-      // Should not throw when pressing Continue
+      // Should not throw when pressing Continue without onComplete prop
       expect(() => {
         fireEvent.press(getByTestId('continue-button'));
       }).not.toThrow();
@@ -347,7 +269,7 @@ describe('FlashcardBlockRenderer', () => {
       expect(getByText('A JavaScript library for building user interfaces')).toBeTruthy();
     });
 
-    it('should handle transition from initial to flipped to confidence selected', () => {
+    it('should handle transition from initial to flipped to complete', () => {
       const onCompleteMock = jest.fn();
 
       const { getByText, getByTestId } = render(
@@ -361,8 +283,7 @@ describe('FlashcardBlockRenderer', () => {
       fireEvent.press(getByText('What is React?'));
       expect(getByText('Answer')).toBeTruthy();
 
-      // Transition to confidence selected
-      fireEvent.press(getByText('Easy'));
+      // Continue button should be visible
       expect(getByText('Continue')).toBeTruthy();
 
       // Complete
@@ -418,18 +339,178 @@ describe('FlashcardBlockRenderer', () => {
     });
   });
 
-  describe('Accessibility', () => {
-    it('should render all confidence options', () => {
-      const { getByText } = render(
+  describe('Answer Visibility (Back Side)', () => {
+    it('should show back content text when flipped', () => {
+      const { getByText, queryByText } = render(
         <FlashcardBlockRenderer content={validContent} />
       );
 
+      // Initially, back content should NOT be visible
+      expect(queryByText('A JavaScript library for building user interfaces')).toBeNull();
+
+      // Flip the card
       fireEvent.press(getByText('What is React?'));
 
-      // All three confidence levels should be available
-      expect(getByText('Hard')).toBeTruthy();
-      expect(getByText('Medium')).toBeTruthy();
-      expect(getByText('Easy')).toBeTruthy();
+      // Back content should now be visible
+      expect(getByText('A JavaScript library for building user interfaces')).toBeTruthy();
+    });
+
+    it('should hide front content when showing back', () => {
+      const { getByText, queryByText } = render(
+        <FlashcardBlockRenderer content={validContent} />
+      );
+
+      // Flip the card
+      fireEvent.press(getByText('What is React?'));
+
+      // Front content should NOT be visible when flipped
+      expect(queryByText('What is React?')).toBeNull();
+      // Back content should be visible
+      expect(getByText('A JavaScript library for building user interfaces')).toBeTruthy();
+    });
+
+    it('should show Answer label when flipped', () => {
+      const { getByText, queryByText } = render(
+        <FlashcardBlockRenderer content={validContent} />
+      );
+
+      // Initially shows Question label
+      expect(getByText('Question')).toBeTruthy();
+      expect(queryByText('Answer')).toBeNull();
+
+      // Flip the card
+      fireEvent.press(getByText('What is React?'));
+
+      // Should show Answer label, not Question
+      expect(getByText('Answer')).toBeTruthy();
+      expect(queryByText('Question')).toBeNull();
+    });
+
+    it('should display long answer text correctly', () => {
+      const longAnswerContent: BlockContent = {
+        flashcard: {
+          front: 'What is machine learning?',
+          back: 'Machine learning is a subset of artificial intelligence that enables systems to learn and improve from experience without being explicitly programmed. It focuses on developing algorithms that can access data and use it to learn for themselves.',
+        },
+      };
+
+      const { getByText } = render(
+        <FlashcardBlockRenderer content={longAnswerContent} />
+      );
+
+      // Flip the card
+      fireEvent.press(getByText('What is machine learning?'));
+
+      // Long answer should be fully visible
+      expect(getByText(/Machine learning is a subset of artificial intelligence/)).toBeTruthy();
+    });
+
+    it('should display answer with special characters correctly', () => {
+      const specialCharsContent: BlockContent = {
+        flashcard: {
+          front: 'What is the formula for water?',
+          back: 'H₂O (two hydrogen atoms + one oxygen atom)',
+        },
+      };
+
+      const { getByText } = render(
+        <FlashcardBlockRenderer content={specialCharsContent} />
+      );
+
+      // Flip the card
+      fireEvent.press(getByText('What is the formula for water?'));
+
+      // Answer with special characters should be visible
+      expect(getByText(/H₂O/)).toBeTruthy();
+    });
+
+    it('should display answer with code snippets correctly', () => {
+      const codeContent: BlockContent = {
+        flashcard: {
+          front: 'How do you declare a variable in JavaScript?',
+          back: 'const myVar = "value"; or let myVar = "value";',
+        },
+      };
+
+      const { getByText } = render(
+        <FlashcardBlockRenderer content={codeContent} />
+      );
+
+      // Flip the card
+      fireEvent.press(getByText('How do you declare a variable in JavaScript?'));
+
+      // Code snippet in answer should be visible
+      expect(getByText(/const myVar/)).toBeTruthy();
+    });
+
+    it('should correctly toggle between front and back multiple times', () => {
+      const { getByText, queryByText } = render(
+        <FlashcardBlockRenderer content={validContent} />
+      );
+
+      // Initial state - front visible
+      expect(getByText('What is React?')).toBeTruthy();
+      expect(queryByText('A JavaScript library for building user interfaces')).toBeNull();
+
+      // Flip 1 - back visible
+      fireEvent.press(getByText('What is React?'));
+      expect(queryByText('What is React?')).toBeNull();
+      expect(getByText('A JavaScript library for building user interfaces')).toBeTruthy();
+
+      // Flip 2 - front visible again
+      fireEvent.press(getByText('A JavaScript library for building user interfaces'));
+      expect(getByText('What is React?')).toBeTruthy();
+      expect(queryByText('A JavaScript library for building user interfaces')).toBeNull();
+
+      // Flip 3 - back visible again
+      fireEvent.press(getByText('What is React?'));
+      expect(queryByText('What is React?')).toBeNull();
+      expect(getByText('A JavaScript library for building user interfaces')).toBeTruthy();
+    });
+
+    it('should show back content for different flashcard content types', () => {
+      // Test with TypeScript content
+      const { getByText: getByText1 } = render(
+        <FlashcardBlockRenderer content={contentWithHint} />
+      );
+      fireEvent.press(getByText1('What is TypeScript?'));
+      expect(getByText1('A typed superset of JavaScript')).toBeTruthy();
+    });
+
+    it('should not show undefined or null for back content', () => {
+      const { getByText, queryByText } = render(
+        <FlashcardBlockRenderer content={validContent} />
+      );
+
+      // Flip the card
+      fireEvent.press(getByText('What is React?'));
+
+      // Should never show undefined or null
+      expect(queryByText('undefined')).toBeNull();
+      expect(queryByText('null')).toBeNull();
+      expect(queryByText('')).toBeNull();
+    });
+
+    it('should show back content even when front and back are similar', () => {
+      const similarContent: BlockContent = {
+        flashcard: {
+          front: 'React',
+          back: 'React is a library',
+        },
+      };
+
+      const { getByText, queryByText } = render(
+        <FlashcardBlockRenderer content={similarContent} />
+      );
+
+      // Initially shows front
+      expect(getByText('React')).toBeTruthy();
+
+      // Flip - should show back (which contains "React" but is different text)
+      fireEvent.press(getByText('React'));
+      expect(getByText('React is a library')).toBeTruthy();
+      // The standalone "React" should no longer be visible
+      expect(queryByText(/^React$/)).toBeNull();
     });
   });
 });

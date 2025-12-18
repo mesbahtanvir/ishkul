@@ -1,16 +1,15 @@
 /**
  * Flashcard Tool Renderer
  *
- * Interactive flip card with spaced repetition confidence buttons.
+ * Interactive flip card for quick recall practice.
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Animated,
 } from 'react-native';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -18,7 +17,7 @@ import { Spacing } from '../../theme/spacing';
 import { Typography } from '../../theme/typography';
 import { useTheme } from '../../hooks/useTheme';
 import { ToolRendererProps } from '../types';
-import { FlashcardData, ConfidenceLevel, confidenceScores } from './types';
+import { FlashcardData } from './types';
 
 export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
   data,
@@ -26,43 +25,17 @@ export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const flipAnimation = useRef(new Animated.Value(0)).current;
   const { colors } = useTheme();
 
   const handleFlip = () => {
-    Animated.spring(flipAnimation, {
-      toValue: isFlipped ? 0 : 1,
-      friction: 8,
-      tension: 10,
-      useNativeDriver: true,
-    }).start();
     setIsFlipped(!isFlipped);
   };
 
-  const handleConfidence = (level: ConfidenceLevel) => {
+  const handleComplete = () => {
     context.onComplete({
-      score: confidenceScores[level],
-      metadata: { confidence: level },
+      score: 100,
+      metadata: { completed: true },
     });
-  };
-
-  // Interpolate rotation for flip effect
-  const frontInterpolate = flipAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
-  });
-
-  const backInterpolate = flipAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['180deg', '360deg'],
-  });
-
-  const frontAnimatedStyle = {
-    transform: [{ rotateY: frontInterpolate }],
-  };
-
-  const backAnimatedStyle = {
-    transform: [{ rotateY: backInterpolate }],
   };
 
   return (
@@ -71,44 +44,27 @@ export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
       <TouchableOpacity
         onPress={handleFlip}
         activeOpacity={0.9}
-        style={styles.cardContainer}
+        style={[
+          styles.card,
+          {
+            backgroundColor: isFlipped
+              ? colors.primary + '15'
+              : colors.card.default,
+            borderColor: isFlipped ? colors.primary : colors.border,
+          },
+        ]}
       >
-        {/* Front of card */}
-        <Animated.View
-          style={[
-            styles.card,
-            styles.cardFront,
-            frontAnimatedStyle,
-            { backgroundColor: colors.card.default },
-          ]}
-        >
+        <View style={styles.cardContent}>
           <Text style={[styles.cardLabel, { color: colors.text.secondary }]}>
-            Question
+            {isFlipped ? 'Answer' : 'Question'}
           </Text>
           <Text style={[styles.cardText, { color: colors.text.primary }]}>
-            {data.front}
+            {isFlipped ? data.back : data.front}
           </Text>
           <Text style={[styles.tapHint, { color: colors.text.secondary }]}>
-            Tap to flip
+            Tap to {isFlipped ? 'see question' : 'reveal answer'}
           </Text>
-        </Animated.View>
-
-        {/* Back of card */}
-        <Animated.View
-          style={[
-            styles.card,
-            styles.cardBack,
-            backAnimatedStyle,
-            { backgroundColor: colors.primary + '15' },
-          ]}
-        >
-          <Text style={[styles.cardLabel, { color: colors.text.secondary }]}>
-            Answer
-          </Text>
-          <Text style={[styles.cardText, { color: colors.text.primary }]}>
-            {data.back}
-          </Text>
-        </Animated.View>
+        </View>
       </TouchableOpacity>
 
       {/* Hint button (before flip) */}
@@ -117,12 +73,12 @@ export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
           {showHint ? (
             <Card elevation="sm" padding="md" style={{ backgroundColor: colors.warning + '20' }}>
               <Text style={[styles.hintText, { color: colors.text.primary }]}>
-                💡 {data.hint}
+                {data.hint}
               </Text>
             </Card>
           ) : (
             <Button
-              title="💡 Show Hint"
+              title="Show Hint"
               variant="secondary"
               onPress={() => setShowHint(true)}
             />
@@ -130,50 +86,13 @@ export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
         </View>
       )}
 
-      {/* Confidence buttons (after flip) */}
+      {/* Continue button (after flip) */}
       {isFlipped && (
-        <View style={styles.confidenceContainer}>
-          <Text style={[styles.confidenceLabel, { color: colors.text.secondary }]}>
-            How well did you know this?
-          </Text>
-          <View style={styles.confidenceButtons}>
-            <TouchableOpacity
-              style={[styles.confidenceButton, { backgroundColor: colors.danger + '20' }]}
-              onPress={() => handleConfidence('again')}
-              disabled={context.isCompleting}
-            >
-              <Text style={styles.confidenceEmoji}>😕</Text>
-              <Text style={[styles.confidenceText, { color: colors.text.primary }]}>Again</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.confidenceButton, { backgroundColor: colors.warning + '20' }]}
-              onPress={() => handleConfidence('hard')}
-              disabled={context.isCompleting}
-            >
-              <Text style={styles.confidenceEmoji}>🤔</Text>
-              <Text style={[styles.confidenceText, { color: colors.text.primary }]}>Hard</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.confidenceButton, { backgroundColor: colors.primary + '20' }]}
-              onPress={() => handleConfidence('good')}
-              disabled={context.isCompleting}
-            >
-              <Text style={styles.confidenceEmoji}>🙂</Text>
-              <Text style={[styles.confidenceText, { color: colors.text.primary }]}>Good</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.confidenceButton, { backgroundColor: colors.success + '20' }]}
-              onPress={() => handleConfidence('easy')}
-              disabled={context.isCompleting}
-            >
-              <Text style={styles.confidenceEmoji}>😊</Text>
-              <Text style={[styles.confidenceText, { color: colors.text.primary }]}>Easy</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <Button
+          title="Continue"
+          onPress={handleComplete}
+          disabled={context.isCompleting}
+        />
       )}
     </View>
   );
@@ -181,80 +100,39 @@ export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    gap: Spacing.lg,
-  },
-  cardContainer: {
-    height: 250,
+    gap: Spacing.md,
   },
   card: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
+    minHeight: 180,
     borderRadius: Spacing.borderRadius.lg,
+    borderWidth: 2,
     padding: Spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    backfaceVisibility: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
   },
-  cardFront: {},
-  cardBack: {},
+  cardContent: {
+    alignItems: 'center',
+  },
   cardLabel: {
     ...Typography.label.small,
-    position: 'absolute',
-    top: Spacing.md,
-    left: Spacing.md,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    marginBottom: Spacing.xs,
   },
   cardText: {
     ...Typography.heading.h3,
     textAlign: 'center',
     lineHeight: 32,
+    marginBottom: Spacing.sm,
   },
   tapHint: {
     ...Typography.body.small,
-    position: 'absolute',
-    bottom: Spacing.md,
+    fontStyle: 'italic',
   },
-  hintContainer: {
-    marginTop: Spacing.sm,
-  },
+  hintContainer: {},
   hintText: {
     ...Typography.body.small,
     textAlign: 'center',
-  },
-  confidenceContainer: {
-    marginTop: Spacing.md,
-  },
-  confidenceLabel: {
-    ...Typography.body.small,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
-  },
-  confidenceButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  confidenceButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Spacing.borderRadius.md,
-    alignItems: 'center',
-  },
-  confidenceEmoji: {
-    fontSize: 24,
-    marginBottom: Spacing.xs,
-  },
-  confidenceText: {
-    ...Typography.label.small,
-    fontWeight: '600',
   },
 });
 

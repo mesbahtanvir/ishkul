@@ -23,29 +23,13 @@ export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
   const flashcardContent = content.flashcard;
 
   const [isFlipped, setIsFlipped] = useState(false);
-  const [confidence, setConfidence] = useState<'easy' | 'medium' | 'hard' | null>(null);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
 
-  const handleConfidence = (level: 'easy' | 'medium' | 'hard') => {
-    setConfidence(level);
-  };
-
   const handleContinue = () => {
     onComplete?.();
-  };
-
-  const getConfidenceColor = (level: 'easy' | 'medium' | 'hard') => {
-    switch (level) {
-      case 'easy':
-        return colors.success;
-      case 'medium':
-        return colors.warning;
-      case 'hard':
-        return colors.danger;
-    }
   };
 
   // Handle missing flashcard content
@@ -90,55 +74,11 @@ export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
         </View>
       </TouchableOpacity>
 
-      {/* Confidence Rating */}
-      {isFlipped && !confidence && (
-        <View style={styles.confidenceContainer}>
-          <Text style={[styles.confidenceLabel, { color: colors.text.secondary }]}>
-            How well did you know this?
-          </Text>
-          <View style={styles.confidenceButtons}>
-            <TouchableOpacity
-              style={[styles.confidenceButton, { backgroundColor: colors.danger + '20', borderColor: colors.danger }]}
-              onPress={() => handleConfidence('hard')}
-            >
-              <Text style={[styles.confidenceEmoji]}>😓</Text>
-              <Text style={[styles.confidenceText, { color: colors.danger }]}>Hard</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.confidenceButton, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}
-              onPress={() => handleConfidence('medium')}
-            >
-              <Text style={[styles.confidenceEmoji]}>🤔</Text>
-              <Text style={[styles.confidenceText, { color: colors.warning }]}>Medium</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.confidenceButton, { backgroundColor: colors.success + '20', borderColor: colors.success }]}
-              onPress={() => handleConfidence('easy')}
-            >
-              <Text style={[styles.confidenceEmoji]}>😊</Text>
-              <Text style={[styles.confidenceText, { color: colors.success }]}>Easy</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* Result */}
-      {confidence && (
-        <View style={[styles.resultContainer, { backgroundColor: getConfidenceColor(confidence) + '10', borderColor: getConfidenceColor(confidence) }]}>
-          <Text style={[styles.resultText, { color: getConfidenceColor(confidence) }]}>
-            {confidence === 'easy' && '🎉 Great! You knew this well.'}
-            {confidence === 'medium' && '👍 Good effort! Keep practicing.'}
-            {confidence === 'hard' && "💪 Don't worry, you'll get it next time!"}
-          </Text>
-        </View>
-      )}
-
       {/* Continue Button */}
-      {confidence && (
+      {isFlipped && (
         <Button
           title="Continue"
           onPress={handleContinue}
-          style={styles.continueButton}
         />
       )}
     </View>
@@ -147,16 +87,15 @@ export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    gap: Spacing.md,
   },
   card: {
-    minHeight: 200,
+    minHeight: 180,
     borderRadius: Spacing.borderRadius.lg,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.xl,
-    marginBottom: Spacing.md,
+    padding: Spacing.lg,
   },
   cardContent: {
     alignItems: 'center',
@@ -165,58 +104,16 @@ const styles = StyleSheet.create({
     ...Typography.label.small,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   cardText: {
     ...Typography.heading.h3,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   tapHint: {
     ...Typography.body.small,
     fontStyle: 'italic',
-  },
-  confidenceContainer: {
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  confidenceLabel: {
-    ...Typography.body.medium,
-    marginBottom: Spacing.md,
-  },
-  confidenceButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  confidenceButton: {
-    flex: 1,
-    padding: Spacing.md,
-    borderRadius: Spacing.borderRadius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  confidenceEmoji: {
-    fontSize: 24,
-    marginBottom: Spacing.xs,
-  },
-  confidenceText: {
-    ...Typography.label.small,
-    fontWeight: '600',
-  },
-  resultContainer: {
-    padding: Spacing.md,
-    borderRadius: Spacing.borderRadius.md,
-    borderWidth: 1,
-    marginBottom: Spacing.md,
-    alignItems: 'center',
-  },
-  resultText: {
-    ...Typography.body.medium,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  continueButton: {
-    marginTop: Spacing.sm,
   },
 });
 

@@ -192,8 +192,8 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
 
     return (
       <View style={styles.header}>
-        <Text style={styles.headerIcon}>{getBlockIcon(block.type)}</Text>
         <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+          <Text style={styles.badgeIcon}>{getBlockIcon(block.type)}</Text>
           <Text style={[styles.badgeText, { color: colors.white }]}>
             {getBlockLabel(block.type)}
           </Text>
@@ -282,28 +282,32 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
 const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  headerIcon: {
-    fontSize: 32,
     marginBottom: Spacing.sm,
   },
   badge: {
-    paddingHorizontal: Spacing.sm + 4,
-    paddingVertical: Spacing.xs,
-    borderRadius: Spacing.borderRadius.md,
-    marginBottom: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: Spacing.borderRadius.full,
+  },
+  badgeIcon: {
+    fontSize: 12,
   },
   badgeText: {
-    ...Typography.label.medium,
+    ...Typography.label.small,
     fontWeight: '600',
+    fontSize: 11,
   },
   title: {
-    ...Typography.heading.h3,
+    ...Typography.body.medium,
+    fontWeight: '600',
     textAlign: 'center',
+    marginTop: Spacing.xs,
   },
   contentWithHeader: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   loadingContainer: {
     alignItems: 'center',
