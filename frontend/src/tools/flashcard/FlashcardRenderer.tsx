@@ -92,7 +92,6 @@ export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
           title="Continue"
           onPress={handleComplete}
           disabled={context.isCompleting}
-          style={styles.continueButton}
         />
       )}
     </View>
@@ -101,21 +100,15 @@ export const FlashcardRenderer: React.FC<ToolRendererProps<FlashcardData>> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   card: {
-    minHeight: 250,
+    minHeight: 180,
     borderRadius: Spacing.borderRadius.lg,
     borderWidth: 2,
     padding: Spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
   },
   cardContent: {
     alignItems: 'center',
@@ -124,27 +117,22 @@ const styles = StyleSheet.create({
     ...Typography.label.small,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   cardText: {
     ...Typography.heading.h3,
     textAlign: 'center',
     lineHeight: 32,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   tapHint: {
     ...Typography.body.small,
     fontStyle: 'italic',
   },
-  hintContainer: {
-    marginTop: Spacing.sm,
-  },
+  hintContainer: {},
   hintText: {
     ...Typography.body.small,
     textAlign: 'center',
-  },
-  continueButton: {
-    marginTop: Spacing.md,
   },
 });
 

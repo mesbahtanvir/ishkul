@@ -192,11 +192,13 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
 
     return (
       <View style={styles.header}>
-        <Text style={styles.headerIcon}>{getBlockIcon(block.type)}</Text>
-        <View style={[styles.badge, { backgroundColor: badgeColor }]}>
-          <Text style={[styles.badgeText, { color: colors.white }]}>
-            {getBlockLabel(block.type)}
-          </Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerIcon}>{getBlockIcon(block.type)}</Text>
+          <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+            <Text style={[styles.badgeText, { color: colors.white }]}>
+              {getBlockLabel(block.type)}
+            </Text>
+          </View>
         </View>
         {block.title && (
           <Text style={[styles.title, { color: colors.text.primary }]}>
@@ -282,28 +284,33 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
 const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
   headerIcon: {
-    fontSize: 32,
-    marginBottom: Spacing.sm,
+    fontSize: 16,
   },
   badge: {
-    paddingHorizontal: Spacing.sm + 4,
-    paddingVertical: Spacing.xs,
-    borderRadius: Spacing.borderRadius.md,
-    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Spacing.borderRadius.sm,
   },
   badgeText: {
-    ...Typography.label.medium,
+    ...Typography.label.small,
     fontWeight: '600',
   },
   title: {
-    ...Typography.heading.h3,
+    ...Typography.body.medium,
+    fontWeight: '600',
     textAlign: 'center',
+    marginTop: Spacing.xs,
   },
   contentWithHeader: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   loadingContainer: {
     alignItems: 'center',

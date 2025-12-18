@@ -79,7 +79,6 @@ export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
         <Button
           title="Continue"
           onPress={handleContinue}
-          style={styles.continueButton}
         />
       )}
     </View>
@@ -88,16 +87,15 @@ export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    gap: Spacing.md,
   },
   card: {
-    minHeight: 200,
+    minHeight: 180,
     borderRadius: Spacing.borderRadius.lg,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.xl,
-    marginBottom: Spacing.md,
+    padding: Spacing.lg,
   },
   cardContent: {
     alignItems: 'center',
@@ -106,19 +104,16 @@ const styles = StyleSheet.create({
     ...Typography.label.small,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   cardText: {
     ...Typography.heading.h3,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   tapHint: {
     ...Typography.body.small,
     fontStyle: 'italic',
-  },
-  continueButton: {
-    marginTop: Spacing.sm,
   },
 });
 
