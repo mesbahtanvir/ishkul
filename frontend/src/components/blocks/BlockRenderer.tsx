@@ -192,13 +192,11 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
 
     return (
       <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.headerIcon}>{getBlockIcon(block.type)}</Text>
-          <View style={[styles.badge, { backgroundColor: badgeColor }]}>
-            <Text style={[styles.badgeText, { color: colors.white }]}>
-              {getBlockLabel(block.type)}
-            </Text>
-          </View>
+        <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+          <Text style={styles.badgeIcon}>{getBlockIcon(block.type)}</Text>
+          <Text style={[styles.badgeText, { color: colors.white }]}>
+            {getBlockLabel(block.type)}
+          </Text>
         </View>
         {block.title && (
           <Text style={[styles.title, { color: colors.text.primary }]}>
@@ -286,22 +284,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.sm,
   },
-  headerRow: {
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  headerIcon: {
-    fontSize: 16,
-  },
-  badge: {
+    gap: 4,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Spacing.borderRadius.sm,
+    paddingVertical: 3,
+    borderRadius: Spacing.borderRadius.full,
+  },
+  badgeIcon: {
+    fontSize: 12,
   },
   badgeText: {
     ...Typography.label.small,
     fontWeight: '600',
+    fontSize: 11,
   },
   title: {
     ...Typography.body.medium,
