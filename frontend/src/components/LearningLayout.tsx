@@ -24,6 +24,7 @@ import { CourseOutlineDrawer } from './CourseOutlineDrawer';
 import { useTheme } from '../hooks/useTheme';
 import { useResponsive } from '../hooks/useResponsive';
 import { useCoursesStore } from '../state/coursesStore';
+import { useUIPreferencesStore } from '../state/uiPreferencesStore';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import {
@@ -304,8 +305,14 @@ const LearningSidebar: React.FC<LearningSidebarProps> = ({
           { backgroundColor: colors.background.secondary, borderRightColor: colors.border },
         ]}
       >
-        <TouchableOpacity style={styles.collapseToggle} onPress={onToggleCollapse} activeOpacity={0.7}>
-          <Text style={[styles.collapseIcon, { color: colors.primary }]}>»</Text>
+        <TouchableOpacity
+          style={[styles.expandToggleButton, { backgroundColor: colors.primary + '15' }]}
+          onPress={onToggleCollapse}
+          activeOpacity={0.7}
+          accessibilityLabel="Expand sidebar"
+          accessibilityHint="Press to show the course outline"
+        >
+          <Text style={[styles.toggleButtonIcon, { color: colors.primary }]}>{'>'}</Text>
         </TouchableOpacity>
         <View style={styles.collapsedProgress}>
           <Text style={[styles.collapsedProgressText, { color: colors.primary }]}>
@@ -333,8 +340,14 @@ const LearningSidebar: React.FC<LearningSidebarProps> = ({
             {completedLessons} of {totalLessons} lessons completed
           </Text>
         </View>
-        <TouchableOpacity style={styles.collapseButton} onPress={onToggleCollapse} activeOpacity={0.7}>
-          <Text style={[styles.collapseIcon, { color: colors.primary }]}>«</Text>
+        <TouchableOpacity
+          style={[styles.collapseToggleButton, { backgroundColor: colors.primary + '15' }]}
+          onPress={onToggleCollapse}
+          activeOpacity={0.7}
+          accessibilityLabel="Collapse sidebar"
+          accessibilityHint="Press to hide the course outline. Shortcut: Ctrl+B"
+        >
+          <Text style={[styles.toggleButtonIcon, { color: colors.primary }]}>{'<'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -474,9 +487,25 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
   const { isMobile } = useResponsive();
   const navigation = useSafeNavigation();
   const { activeCourse } = useCoursesStore();
+  const { sidebarCollapsed, toggleSidebar } = useUIPreferencesStore();
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+
+  // Keyboard shortcut for toggling sidebar (Ctrl/Cmd + B)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Ctrl+B (Windows/Linux) or Cmd+B (Mac)
+      if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+        event.preventDefault();
+        toggleSidebar();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleSidebar]);
 
   // Get course data
   const course = activeCourse?.id === courseId ? activeCourse : null;
@@ -569,7 +598,7 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
             course={course}
             currentPosition={currentPosition}
             collapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onToggleCollapse={toggleSidebar}
             onLessonPress={handleLessonPress}
           />
         )}
@@ -613,6 +642,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
+  },
+  expandToggleButton: {
+    width: 32,
+    height: 32,
+    borderRadius: Spacing.borderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  collapseToggleButton: {
+    width: 32,
+    height: 32,
+    borderRadius: Spacing.borderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: Spacing.sm,
+  },
+  toggleButtonIcon: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   collapsedProgress: {
     transform: [{ rotate: '-90deg' }],
