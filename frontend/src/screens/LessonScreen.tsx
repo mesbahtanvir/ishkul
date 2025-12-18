@@ -46,7 +46,6 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     error,
     completedBlocksCount,
     isLessonComplete,
-    score,
     nextBlock,
     submitAnswer,
     completeCurrentBlock,
@@ -60,22 +59,24 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     initialLesson: initialLessonFromNav,
   });
 
-  // Handle lesson completion
+  // Handle lesson completion - navigate directly to next lesson (skip completion screen)
   useEffect(() => {
     if (isLessonComplete && lesson) {
-      // Navigate to completion screen
-      // Note: nextLesson is computed from store in LessonCompleteScreen (objects can't serialize to URLs)
-      finishLesson().then(() => {
-        navigation.replace('LessonComplete', {
-          courseId,
-          lessonId,
-          sectionId,
-          score,
-          timeSpent: 0, // TODO: Calculate from progress
-        });
+      finishLesson().then((nextPosition) => {
+        if (nextPosition) {
+          // Navigate directly to next lesson for frictionless flow
+          navigation.replace('Lesson', {
+            courseId,
+            lessonId: nextPosition.lessonId,
+            sectionId: nextPosition.sectionId,
+          });
+        } else {
+          // Course complete - go to course overview
+          navigation.navigate('Course', { courseId });
+        }
       });
     }
-  }, [isLessonComplete, lesson, courseId, lessonId, sectionId, score, finishLesson, navigation]);
+  }, [isLessonComplete, lesson, courseId, finishLesson, navigation]);
 
   // Build current position for sidebar highlighting
   const currentPosition: LessonPosition | undefined = sectionId && lessonId ? {

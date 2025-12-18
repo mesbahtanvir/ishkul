@@ -152,10 +152,11 @@ jest.mock('../../components/blocks', () => ({
 // Mock navigation
 const mockGoBack = jest.fn();
 const mockReplace = jest.fn();
+const mockNavigate = jest.fn();
 const mockNavigation = {
   goBack: mockGoBack,
   replace: mockReplace,
-  navigate: jest.fn(),
+  navigate: mockNavigate,
 } as unknown as NavigationProp;
 
 const createMockRoute = (overrides?: Partial<ScreenRouteProp['params']>): ScreenRouteProp =>
@@ -456,14 +457,14 @@ describe('LessonScreen', () => {
   });
 
   describe('Lesson Completion', () => {
-    it('should navigate to LessonComplete when lesson is complete', async () => {
+    it('should navigate directly to next lesson when lesson is complete', async () => {
       const lesson = createMockLesson();
-      const mockFinishLesson = jest.fn().mockResolvedValue({ sectionId: 's2', lessonId: 'l1' });
+      const nextPosition = { sectionId: 's2', lessonId: 'l1', sectionIndex: 1, lessonIndex: 0 };
+      const mockFinishLesson = jest.fn().mockResolvedValue(nextPosition);
       mockUseLessonReturn = {
         ...defaultUseLessonReturn,
         lesson,
         isLessonComplete: true,
-        score: 85,
         finishLesson: mockFinishLesson,
       };
 
@@ -471,13 +472,32 @@ describe('LessonScreen', () => {
 
       await waitFor(() => {
         expect(mockFinishLesson).toHaveBeenCalled();
-        // Note: nextLesson is computed from store in LessonCompleteScreen, not passed as param
-        expect(mockReplace).toHaveBeenCalledWith('LessonComplete', {
+        // Should navigate directly to next lesson for frictionless flow
+        expect(mockReplace).toHaveBeenCalledWith('Lesson', {
           courseId: 'course-123',
-          lessonId: 'lesson-456',
-          sectionId: 'section-1',
-          score: 85,
-          timeSpent: 0,
+          lessonId: 'l1',
+          sectionId: 's2',
+        });
+      });
+    });
+
+    it('should navigate to Course when all lessons are complete', async () => {
+      const lesson = createMockLesson();
+      const mockFinishLesson = jest.fn().mockResolvedValue(null); // No next lesson
+      mockUseLessonReturn = {
+        ...defaultUseLessonReturn,
+        lesson,
+        isLessonComplete: true,
+        finishLesson: mockFinishLesson,
+      };
+
+      render(<LessonScreen navigation={mockNavigation} route={createMockRoute()} />);
+
+      await waitFor(() => {
+        expect(mockFinishLesson).toHaveBeenCalled();
+        // Should navigate to Course overview when no more lessons
+        expect(mockNavigate).toHaveBeenCalledWith('Course', {
+          courseId: 'course-123',
         });
       });
     });

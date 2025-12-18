@@ -384,7 +384,8 @@ export const useLessonStore = create<LessonState>((set, get) => ({
 
   isLessonComplete: () => {
     const { currentLesson, localProgress } = get();
-    if (!currentLesson?.blocks) return false;
+    // Require at least 1 block to be considered complete (fixes 0 >= 0 bug)
+    if (!currentLesson?.blocks || currentLesson.blocks.length === 0) return false;
     const totalBlocks = currentLesson.blocks.length;
     const completedBlocks = localProgress?.completedBlocks?.length ?? 0;
     return completedBlocks >= totalBlocks;
