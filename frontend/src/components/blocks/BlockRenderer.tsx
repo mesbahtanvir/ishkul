@@ -76,28 +76,6 @@ const getBlockLabel = (type: BlockType): string => {
 };
 
 /**
- * Get badge color for block type
- */
-const getBlockBadgeColor = (type: BlockType, colors: ReturnType<typeof useTheme>['colors']): string => {
-  switch (type) {
-    case 'text':
-      return colors.badge?.lesson || colors.primary;
-    case 'code':
-      return colors.badge?.practice || '#6366f1';
-    case 'question':
-      return colors.badge?.quiz || '#f59e0b';
-    case 'task':
-      return colors.badge?.practice || '#10b981';
-    case 'flashcard':
-      return colors.badge?.flashcard || '#8b5cf6';
-    case 'summary':
-      return colors.badge?.lesson || colors.primary;
-    default:
-      return colors.primary;
-  }
-};
-
-/**
  * BlockRenderer - Main component that delegates to type-specific renderers
  */
 export const BlockRenderer: React.FC<BlockRendererProps> = ({
@@ -184,25 +162,19 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
     );
   }
 
-  // Render block header
+  // Render block header - compact inline layout
   const renderHeader = () => {
     if (!showHeader) return null;
 
-    const badgeColor = getBlockBadgeColor(block.type, colors);
-
     return (
       <View style={styles.header}>
-        <View style={[styles.badge, { backgroundColor: badgeColor }]}>
-          <Text style={styles.badgeIcon}>{getBlockIcon(block.type)}</Text>
-          <Text style={[styles.badgeText, { color: colors.white }]}>
-            {getBlockLabel(block.type)}
-          </Text>
-        </View>
-        {block.title && (
-          <Text style={[styles.title, { color: colors.text.primary }]}>
-            {block.title}
-          </Text>
-        )}
+        <Text style={styles.headerIcon}>{getBlockIcon(block.type)}</Text>
+        <Text
+          style={[styles.headerTitle, { color: colors.text.primary }]}
+          numberOfLines={1}
+        >
+          {block.title || getBlockLabel(block.type)}
+        </Text>
       </View>
     );
   };
@@ -281,30 +253,18 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: Spacing.borderRadius.full,
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
   },
-  badgeIcon: {
-    fontSize: 12,
+  headerIcon: {
+    fontSize: 18,
   },
-  badgeText: {
-    ...Typography.label.small,
-    fontWeight: '600',
-    fontSize: 11,
-  },
-  title: {
+  headerTitle: {
     ...Typography.body.medium,
     fontWeight: '600',
-    textAlign: 'center',
-    marginTop: Spacing.xs,
+    flex: 1,
   },
   contentWithHeader: {
     marginTop: Spacing.xs,
