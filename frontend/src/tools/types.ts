@@ -5,10 +5,10 @@
  * Each tool self-describes its capabilities, schema, and renderer.
  */
 
-import { Step } from '../types/app';
+import { Block } from '../types/app';
 
 /**
- * Result returned when a user completes a step
+ * Result returned when a user completes a block
  */
 export interface CompletionResult {
   /** Score from 0-100 for scored tools (quiz, practice) */
@@ -23,11 +23,15 @@ export interface CompletionResult {
  * Context available to tool renderers
  */
 export interface ToolContext {
-  /** The full step data */
-  step: Step;
+  /** The full block data */
+  block: Block;
   /** Learning path ID */
   courseId: string;
-  /** Called when user completes the step */
+  /** Section ID */
+  sectionId: string;
+  /** Lesson ID */
+  lessonId: string;
+  /** Called when user completes the block */
   onComplete: (result: CompletionResult) => Promise<void>;
   /** Loading state during completion */
   isCompleting: boolean;
@@ -37,9 +41,9 @@ export interface ToolContext {
  * Props passed to every tool renderer component
  */
 export interface ToolRendererProps<TData = unknown> {
-  /** Tool-specific data extracted from step */
+  /** Tool-specific data extracted from block */
   data: TData;
-  /** Context with step info and callbacks */
+  /** Context with block info and callbacks */
   context: ToolContext;
 }
 
@@ -109,9 +113,9 @@ export interface LearningTool<TData = unknown> {
   Renderer: React.ComponentType<ToolRendererProps<TData>>;
 
   /**
-   * Extract tool-specific data from a Step object
+   * Extract tool-specific data from a Block object
    */
-  extractData: (step: Step) => TData;
+  extractData: (block: Block) => TData;
 
   /**
    * Validate that data matches expected shape

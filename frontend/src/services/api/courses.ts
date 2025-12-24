@@ -10,23 +10,6 @@ import { Course } from '../../types/app';
 import { apiClient } from './client';
 
 // =============================================================================
-// Course Normalization
-// =============================================================================
-
-/**
- * Normalize a course to ensure steps is always an array.
- * Handles legacy data that may have null/undefined steps.
- */
-const normalizeCourse = (course: Course | null): Course | null => {
-  if (!course) return null;
-  return {
-    ...course,
-    steps: Array.isArray(course.steps) ? course.steps : [],
-    memory: course.memory || { topics: {} },
-  };
-};
-
-// =============================================================================
 // Response Types
 // =============================================================================
 
@@ -52,8 +35,7 @@ export const coursesApi = {
    */
   async getCourses(): Promise<Course[]> {
     const response = await apiClient.get<CoursesListResponse>('/courses');
-    const courses = response.courses || [];
-    return courses.map((c) => normalizeCourse(c)!);
+    return response.courses || [];
   },
 
   /**
@@ -61,7 +43,7 @@ export const coursesApi = {
    */
   async getCourse(courseId: string): Promise<Course | null> {
     const response = await apiClient.get<CourseResponse>(`/courses/${courseId}`);
-    return normalizeCourse(response.course);
+    return response.course || null;
   },
 
   /**
@@ -69,7 +51,7 @@ export const coursesApi = {
    */
   async createCourse(course: Partial<Course>): Promise<Course> {
     const response = await apiClient.post<CourseResponse>('/courses', course);
-    return normalizeCourse(response.course)!;
+    return response.course;
   },
 
   /**
@@ -97,7 +79,7 @@ export const coursesApi = {
     const response = await apiClient.post<CourseResponse>(
       `/courses/${courseId}/archive`
     );
-    return normalizeCourse(response.course)!;
+    return response.course;
   },
 
   /**
@@ -107,6 +89,6 @@ export const coursesApi = {
     const response = await apiClient.post<CourseResponse>(
       `/courses/${courseId}/unarchive`
     );
-    return normalizeCourse(response.course)!;
+    return response.course;
   },
 };

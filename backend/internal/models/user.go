@@ -33,11 +33,6 @@ type User struct {
 // Note: Learning data (courses, progress) is stored in separate Course documents
 type UserDocument struct {
 	User
-
-	// Legacy fields for backward compatibility (deprecated)
-	// TODO: Remove after migration to new Course-based model is complete
-	NextStep *NextStep      `json:"nextStep,omitempty" firestore:"nextStep,omitempty"` // Deprecated: Use CurrentPosition in Course
-	History  []HistoryEntry `json:"history,omitempty" firestore:"history,omitempty"`   // Deprecated: Use LessonProgress in Course
 }
 
 // EncryptPII encrypts sensitive user fields before storing in database

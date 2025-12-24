@@ -10,32 +10,17 @@ import {
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
-import { CourseOutline, OutlineModule, OutlineTopic, OutlinePosition } from '../types/app';
+import { CourseOutline, Section, Lesson, LessonPosition } from '../types/app';
 
 const SIDEBAR_WIDTH = 320;
 
 interface CourseOutlineSidebarProps {
   outline: CourseOutline | null;
-  currentPosition?: OutlinePosition | null;
-  onTopicPress?: (moduleIndex: number, topicIndex: number, topic: OutlineTopic) => void;
+  currentPosition?: LessonPosition | null;
+  onLessonPress?: (sectionIndex: number, lessonIndex: number, lesson: Lesson) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
-
-// Tool ID to icon mapping
-const getToolIcon = (toolId: string): string => {
-  const icons: Record<string, string> = {
-    lesson: '📖',
-    quiz: '❓',
-    practice: '💪',
-    flashcard: '🎴',
-    'inline-code-execution': '💻',
-    pronunciation: '🎤',
-    review: '🔄',
-    summary: '📝',
-  };
-  return icons[toolId] || '📚';
-};
 
 // Status to style mapping
 const getStatusStyle = (status: string, colors: ReturnType<typeof useTheme>['colors']) => {
@@ -44,34 +29,34 @@ const getStatusStyle = (status: string, colors: ReturnType<typeof useTheme>['col
       return { bg: colors.success + '20', text: colors.success, icon: '✓' };
     case 'in_progress':
       return { bg: colors.primary + '20', text: colors.primary, icon: '→' };
-    case 'needs_review':
-      return { bg: colors.warning + '20', text: colors.warning, icon: '!' };
     case 'skipped':
       return { bg: colors.ios.gray + '20', text: colors.ios.gray, icon: '–' };
+    case 'locked':
+      return { bg: colors.ios.gray + '10', text: colors.ios.gray, icon: '🔒' };
     default:
       return { bg: 'transparent', text: colors.text.secondary, icon: '' };
   }
 };
 
-interface ModuleCardProps {
-  module: OutlineModule;
-  moduleIndex: number;
-  isCurrentModule: boolean;
-  currentTopicIndex: number | null;
-  onTopicPress?: (topicIndex: number, topic: OutlineTopic) => void;
+interface SectionCardProps {
+  section: Section;
+  sectionIndex: number;
+  isCurrentSection: boolean;
+  currentLessonIndex: number | null;
+  onLessonPress?: (lessonIndex: number, lesson: Lesson) => void;
   colors: ReturnType<typeof useTheme>['colors'];
 }
 
-const ModuleCard: React.FC<ModuleCardProps> = ({
-  module,
-  moduleIndex,
-  isCurrentModule,
-  currentTopicIndex,
-  onTopicPress,
+const SectionCard: React.FC<SectionCardProps> = ({
+  section,
+  sectionIndex,
+  isCurrentSection,
+  currentLessonIndex,
+  onLessonPress,
   colors,
 }) => {
-  const [expanded, setExpanded] = useState(isCurrentModule);
-  const rotateAnim = useRef(new Animated.Value(isCurrentModule ? 1 : 0)).current;
+  const [expanded, setExpanded] = useState(isCurrentSection);
+  const rotateAnim = useRef(new Animated.Value(isCurrentSection ? 1 : 0)).current;
 
   useEffect(() => {
     Animated.timing(rotateAnim, {
@@ -81,8 +66,8 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
     }).start();
   }, [expanded, rotateAnim]);
 
-  const completedTopics = module.topics.filter((t) => t.status === 'completed').length;
-  const progress = module.topics.length > 0 ? (completedTopics / module.topics.length) * 100 : 0;
+  const completedLessons = section.lessons.filter((l) => l.status === 'completed').length;
+  const progress = section.lessons.length > 0 ? (completedLessons / section.lessons.length) * 100 : 0;
 
   const rotation = rotateAnim.interpolate({
     inputRange: [0, 1],
@@ -91,53 +76,53 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
 
   return (
     <View style={[
-      styles.moduleCard,
+      styles.sectionCard,
       { borderColor: colors.border },
-      isCurrentModule && {
-        borderColor: colors.primary + '4D', // 30% opacity
-        backgroundColor: colors.primary + '08', // 3% opacity
+      isCurrentSection && {
+        borderColor: colors.primary + '4D',
+        backgroundColor: colors.primary + '08',
       },
     ]}>
       <TouchableOpacity
-        style={styles.moduleHeader}
+        style={styles.sectionHeader}
         onPress={() => setExpanded(!expanded)}
         activeOpacity={0.7}
       >
-        <View style={styles.moduleHeaderLeft}>
+        <View style={styles.sectionHeaderLeft}>
           <View
             style={[
-              styles.moduleNumber,
+              styles.sectionNumber,
               {
                 backgroundColor:
-                  module.status === 'completed'
+                  section.status === 'completed'
                     ? colors.success
-                    : isCurrentModule
+                    : isCurrentSection
                       ? colors.primary
                       : colors.ios.gray,
               },
             ]}
           >
-            {module.status === 'completed' ? (
-              <Text style={[styles.moduleNumberText, { color: colors.white }]}>✓</Text>
+            {section.status === 'completed' ? (
+              <Text style={[styles.sectionNumberText, { color: colors.white }]}>✓</Text>
             ) : (
-              <Text style={[styles.moduleNumberText, { color: colors.white }]}>{moduleIndex + 1}</Text>
+              <Text style={[styles.sectionNumberText, { color: colors.white }]}>{sectionIndex + 1}</Text>
             )}
           </View>
-          <View style={styles.moduleInfo}>
+          <View style={styles.sectionInfo}>
             <Text
-              style={[styles.moduleTitle, { color: colors.text.primary }]}
+              style={[styles.sectionTitle, { color: colors.text.primary }]}
               numberOfLines={2}
             >
-              {module.title}
+              {section.title}
             </Text>
-            <View style={styles.moduleStats}>
-              <Text style={[styles.moduleStatsText, { color: colors.text.secondary }]}>
-                {completedTopics}/{module.topics.length} topics
+            <View style={styles.sectionStats}>
+              <Text style={[styles.sectionStatsText, { color: colors.text.secondary }]}>
+                {completedLessons}/{section.lessons.length} lessons
               </Text>
-              {module.estimatedMinutes > 0 && (
-                <Text style={[styles.moduleStatsText, { color: colors.text.secondary }]}>
+              {section.estimatedMinutes > 0 && (
+                <Text style={[styles.sectionStatsText, { color: colors.text.secondary }]}>
                   {' '}
-                  • {module.estimatedMinutes} min
+                  • {section.estimatedMinutes} min
                 </Text>
               )}
             </View>
@@ -148,7 +133,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
                   styles.progressFill,
                   {
                     width: `${progress}%`,
-                    backgroundColor: module.status === 'completed' ? colors.success : colors.primary,
+                    backgroundColor: section.status === 'completed' ? colors.success : colors.primary,
                   },
                 ]}
               />
@@ -166,69 +151,70 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
       </TouchableOpacity>
 
       {expanded && (
-        <View style={[styles.topicsList, { borderTopColor: colors.divider }]}>
-          {module.topics.map((topic, topicIndex) => {
-            const isCurrentTopic =
-              isCurrentModule && currentTopicIndex === topicIndex;
-            const statusStyle = getStatusStyle(topic.status, colors);
+        <View style={[styles.lessonsList, { borderTopColor: colors.divider }]}>
+          {section.lessons.map((lesson, lessonIndex) => {
+            const isCurrentLesson = isCurrentSection && currentLessonIndex === lessonIndex;
+            const statusStyle = getStatusStyle(lesson.status, colors);
 
             return (
               <TouchableOpacity
-                key={topic.id}
+                key={lesson.id}
                 style={[
-                  styles.topicItem,
+                  styles.lessonItem,
                   { borderBottomColor: colors.divider },
-                  isCurrentTopic && {
+                  isCurrentLesson && {
                     backgroundColor: colors.primary + '10',
                     borderLeftColor: colors.primary,
                     borderLeftWidth: 3,
                   },
                 ]}
-                onPress={() => onTopicPress?.(topicIndex, topic)}
+                onPress={() => onLessonPress?.(lessonIndex, lesson)}
                 activeOpacity={0.7}
+                disabled={lesson.status === 'locked'}
               >
                 <View
                   style={[
-                    styles.topicIcon,
+                    styles.lessonIcon,
                     { backgroundColor: statusStyle.bg },
                   ]}
                 >
-                  {topic.status === 'completed' ? (
-                    <Text style={[styles.topicIconText, { color: statusStyle.text }]}>
+                  {lesson.status === 'completed' ? (
+                    <Text style={[styles.lessonIconText, { color: statusStyle.text }]}>
                       ✓
                     </Text>
+                  ) : lesson.status === 'locked' ? (
+                    <Text style={styles.lessonIconText}>🔒</Text>
                   ) : (
-                    <Text style={styles.topicIconText}>{getToolIcon(topic.toolId)}</Text>
+                    <Text style={styles.lessonIconText}>📖</Text>
                   )}
                 </View>
-                <View style={styles.topicContent}>
+                <View style={styles.lessonContent}>
                   <Text
                     style={[
-                      styles.topicTitle,
+                      styles.lessonTitle,
                       {
                         color:
-                          topic.status === 'completed'
+                          lesson.status === 'completed'
                             ? colors.text.secondary
+                            : lesson.status === 'locked'
+                            ? colors.text.tertiary
                             : colors.text.primary,
                       },
-                      topic.status === 'completed' && styles.completedTopicTitle,
+                      lesson.status === 'completed' && styles.completedLessonTitle,
                     ]}
                     numberOfLines={2}
                   >
-                    {topic.title}
+                    {lesson.title}
                   </Text>
-                  <View style={styles.topicMeta}>
-                    <Text style={[styles.topicType, { color: colors.text.tertiary }]}>
-                      {topic.toolId}
-                    </Text>
-                    {topic.estimatedMinutes > 0 && (
-                      <Text style={[styles.topicDuration, { color: colors.text.tertiary }]}>
-                        {topic.estimatedMinutes} min
+                  <View style={styles.lessonMeta}>
+                    {lesson.estimatedMinutes > 0 && (
+                      <Text style={[styles.lessonDuration, { color: colors.text.tertiary }]}>
+                        {lesson.estimatedMinutes} min
                       </Text>
                     )}
                   </View>
                 </View>
-                {isCurrentTopic && (
+                {isCurrentLesson && (
                   <View style={[styles.currentBadge, { backgroundColor: colors.primary }]}>
                     <Text style={[styles.currentBadgeText, { color: colors.white }]}>NOW</Text>
                   </View>
@@ -245,20 +231,20 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
 export const CourseOutlineSidebar: React.FC<CourseOutlineSidebarProps> = ({
   outline,
   currentPosition,
-  onTopicPress,
+  onLessonPress,
   collapsed = false,
   onToggleCollapse,
 }) => {
   const { colors } = useTheme();
 
-  if (!outline || !outline.modules) return null;
+  if (!outline || !outline.sections) return null;
 
-  const totalTopics = outline.modules.reduce((sum, m) => sum + m.topics.length, 0);
-  const completedTopics = outline.modules.reduce(
-    (sum, m) => sum + m.topics.filter((t) => t.status === 'completed').length,
+  const totalLessons = outline.sections.reduce((sum, s) => sum + s.lessons.length, 0);
+  const completedLessons = outline.sections.reduce(
+    (sum, s) => sum + s.lessons.filter((l) => l.status === 'completed').length,
     0
   );
-  const progressPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+  const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   // Collapsed view - just show a thin bar with toggle
   if (collapsed) {
@@ -289,7 +275,7 @@ export const CourseOutlineSidebar: React.FC<CourseOutlineSidebarProps> = ({
             Course Outline
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.text.secondary }]}>
-            {completedTopics} of {totalTopics} topics completed
+            {completedLessons} of {totalLessons} lessons completed
           </Text>
         </View>
         {onToggleCollapse && (
@@ -327,18 +313,18 @@ export const CourseOutlineSidebar: React.FC<CourseOutlineSidebarProps> = ({
         <View style={styles.overallStats}>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: colors.text.primary }]}>
-              {outline.modules.length}
+              {outline.sections.length}
             </Text>
             <Text style={[styles.statLabel, { color: colors.text.secondary }]}>
-              Modules
+              Sections
             </Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: colors.text.primary }]}>
-              {totalTopics}
+              {totalLessons}
             </Text>
             <Text style={[styles.statLabel, { color: colors.text.secondary }]}>
-              Topics
+              Lessons
             </Text>
           </View>
           <View style={styles.statItem}>
@@ -352,21 +338,21 @@ export const CourseOutlineSidebar: React.FC<CourseOutlineSidebarProps> = ({
         </View>
       </View>
 
-      {/* Modules list */}
-      <ScrollView style={styles.modulesList} showsVerticalScrollIndicator={false}>
-        {outline.modules.map((module, moduleIndex) => (
-          <ModuleCard
-            key={module.id}
-            module={module}
-            moduleIndex={moduleIndex}
-            isCurrentModule={currentPosition?.moduleIndex === moduleIndex}
-            currentTopicIndex={
-              currentPosition?.moduleIndex === moduleIndex
-                ? currentPosition.topicIndex
+      {/* Sections list */}
+      <ScrollView style={styles.sectionsList} showsVerticalScrollIndicator={false}>
+        {outline.sections.map((section, sectionIndex) => (
+          <SectionCard
+            key={section.id}
+            section={section}
+            sectionIndex={sectionIndex}
+            isCurrentSection={currentPosition?.sectionIndex === sectionIndex}
+            currentLessonIndex={
+              currentPosition?.sectionIndex === sectionIndex
+                ? currentPosition.lessonIndex
                 : null
             }
-            onTopicPress={(topicIndex, topic) =>
-              onTopicPress?.(moduleIndex, topicIndex, topic)
+            onLessonPress={(lessonIndex, lesson) =>
+              onLessonPress?.(sectionIndex, lessonIndex, lesson)
             }
             colors={colors}
           />
@@ -481,32 +467,29 @@ const styles = StyleSheet.create({
   statLabel: {
     ...Typography.label.small,
   },
-  modulesList: {
+  sectionsList: {
     flex: 1,
     paddingHorizontal: Spacing.sm,
     paddingTop: Spacing.md,
   },
-  moduleCard: {
+  sectionCard: {
     marginBottom: Spacing.sm,
     borderRadius: Spacing.borderRadius.md,
     backgroundColor: 'transparent',
     borderWidth: 1,
     overflow: 'hidden',
   },
-  currentModuleCard: {
-    // Colors applied inline with theme
-  },
-  moduleHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
   },
-  moduleHeaderLeft: {
+  sectionHeaderLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
-  moduleNumber: {
+  sectionNumber: {
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -515,23 +498,23 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
     marginTop: 2,
   },
-  moduleNumberText: {
+  sectionNumberText: {
     fontWeight: '700',
     fontSize: 11,
   },
-  moduleInfo: {
+  sectionInfo: {
     flex: 1,
   },
-  moduleTitle: {
+  sectionTitle: {
     ...Typography.body.small,
     fontWeight: '600',
     marginBottom: 2,
   },
-  moduleStats: {
+  sectionStats: {
     flexDirection: 'row',
     marginBottom: 4,
   },
-  moduleStatsText: {
+  sectionStatsText: {
     ...Typography.label.small,
     fontSize: 11,
   },
@@ -548,17 +531,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginLeft: Spacing.xs,
   },
-  topicsList: {
+  lessonsList: {
     borderTopWidth: 1,
   },
-  topicItem: {
+  lessonItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderBottomWidth: 1,
   },
-  topicIcon: {
+  lessonIcon: {
     width: 28,
     height: 28,
     borderRadius: 6,
@@ -566,32 +549,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: Spacing.xs,
   },
-  topicIconText: {
+  lessonIconText: {
     fontSize: 14,
   },
-  topicContent: {
+  lessonContent: {
     flex: 1,
   },
-  topicTitle: {
+  lessonTitle: {
     ...Typography.label.medium,
     fontWeight: '500',
     marginBottom: 1,
   },
-  completedTopicTitle: {
+  completedLessonTitle: {
     textDecorationLine: 'line-through',
   },
-  topicMeta: {
+  lessonMeta: {
     flexDirection: 'row',
   },
-  topicType: {
+  lessonDuration: {
     ...Typography.label.small,
     fontSize: 10,
-    textTransform: 'capitalize',
-  },
-  topicDuration: {
-    ...Typography.label.small,
-    fontSize: 10,
-    marginLeft: Spacing.xs,
   },
   currentBadge: {
     paddingHorizontal: 4,

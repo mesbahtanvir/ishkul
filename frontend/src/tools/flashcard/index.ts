@@ -24,13 +24,16 @@ export const FlashcardTool: LearningTool<FlashcardData> = {
 
   Renderer: FlashcardRenderer,
 
-  extractData: (step) => ({
-    front: step.question || '',
-    back: step.expectedAnswer || step.content || '',
-    hint: step.hints?.[0],
-    topic: step.topic,
-    title: step.title,
-  }),
+  extractData: (block) => {
+    const flashcard = block.content?.flashcard;
+    return {
+      front: flashcard?.front || '',
+      back: flashcard?.back || '',
+      hint: flashcard?.hint,
+      topic: block.purpose,
+      title: block.title,
+    };
+  },
 
   validate: isFlashcardData,
 };

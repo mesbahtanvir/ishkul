@@ -1,15 +1,7 @@
 // Type definitions for the learning app
 
-export type StepType = 'lesson' | 'quiz' | 'practice' | 'review' | 'summary' | 'flashcard';
-
-// Maximum character length for step content
-export const MAX_STEP_CONTENT_LENGTH = 2000;
-
-// Number of steps before memory compaction triggers
-export const COMPACTION_INTERVAL = 10;
-
 // ============================================
-// Block Types (New 3-Stage Generation)
+// Block Types (3-Stage Generation)
 // ============================================
 
 export type BlockType = 'text' | 'code' | 'question' | 'task' | 'flashcard' | 'summary';
@@ -173,75 +165,6 @@ export interface LessonPosition {
   lessonIndex: number;
 }
 
-// ============================================
-// Legacy Types (kept for backward compatibility)
-// ============================================
-
-export interface TopicMemory {
-  confidence: number;
-  lastReviewed: string;
-  timesTested: number;
-}
-
-export interface Compaction {
-  summary: string;
-  strengths: string[];
-  weaknesses: string[];
-  recommendations: string[];
-  lastStepIndex: number;
-  compactedAt: number;
-}
-
-export interface Memory {
-  topics: {
-    [topic: string]: TopicMemory;
-  };
-  compaction?: Compaction;
-}
-
-// Step represents a single step in the course (legacy - kept for backward compatibility)
-export interface Step {
-  id: string;
-  index: number;
-  type: StepType;
-  topic: string;
-  title: string;
-  content?: string; // For lessons (max 2k chars)
-  question?: string; // For quizzes
-  options?: string[]; // For multiple choice quizzes
-  expectedAnswer?: string; // Correct answer for quizzes
-  task?: string; // For practice
-  hints?: string[]; // For practice
-  completed: boolean;
-  completedAt?: number;
-  userAnswer?: string; // User's answer for quizzes
-  score?: number; // Score for quizzes (0-100)
-  createdAt: number;
-}
-
-// Request to complete a step
-export interface StepCompleteRequest {
-  userAnswer?: string;
-  score?: number;
-}
-
-// Legacy types kept for backward compatibility
-export interface HistoryEntry {
-  type: StepType;
-  topic: string;
-  score?: number;
-  timestamp: number;
-}
-
-export interface NextStep {
-  type: StepType;
-  topic: string;
-  title?: string;
-  content?: string;
-  question?: string;
-  expectedAnswer?: string;
-  task?: string;
-}
 
 // Course status constants (must match backend)
 export type CourseStatus = 'active' | 'completed' | 'archived' | 'deleted';
@@ -269,7 +192,7 @@ export interface OutlineMetadata {
   tags: string[];
 }
 
-// New Course Outline structure (uses Section/Lesson)
+// Course Outline structure (uses Section/Lesson)
 export interface CourseOutline {
   title: string;
   description: string;
@@ -280,8 +203,6 @@ export interface CourseOutline {
   prerequisites: string[];
   learningOutcomes: string[];
   sections: Section[];
-  // Legacy compatibility: modules is an alias for sections with legacy structure
-  modules?: OutlineModule[];
   metadata?: OutlineMetadata;
   generatedAt: number;
 }
@@ -290,22 +211,16 @@ export interface CourseOutline {
 export interface Course {
   id: string;
   userId: string;
-  title: string; // Renamed from 'goal'
+  title: string;
   emoji: string;
   status?: CourseStatus;
   outlineStatus?: OutlineStatus;
   progress: number; // 0-100
   lessonsCompleted: number;
   totalLessons: number;
-  // New structure
   outline?: CourseOutline;
   currentPosition?: LessonPosition;
   courseProgress?: CourseProgress;
-  // Legacy fields (kept for backward compatibility)
-  goal?: string; // Deprecated: use title instead
-  steps?: Step[];
-  memory?: Memory;
-  outlinePosition?: OutlinePosition;
   // Timestamps
   createdAt: number;
   updatedAt: number;
@@ -314,63 +229,13 @@ export interface Course {
   archivedAt?: number;
 }
 
-// Legacy outline types (kept for backward compatibility)
-export interface TopicPerformance {
-  score: number;
-  timeSpent: number;
-  completedAt: number;
-}
-
-export interface OutlineTopic {
-  id: string;
-  title: string;
-  toolId: string;
-  estimatedMinutes: number;
-  description: string;
-  prerequisites: string[];
-  status: 'pending' | 'completed' | 'skipped' | 'needs_review';
-  stepId?: string;
-  performance?: TopicPerformance;
-}
-
-export interface OutlineModule {
-  id: string;
-  title: string;
-  description: string;
-  estimatedMinutes: number;
-  learningOutcomes: string[];
-  topics: OutlineTopic[];
-  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
-}
-
-export interface OutlinePosition {
-  moduleIndex: number;
-  topicIndex: number;
-  moduleId: string;
-  topicId: string;
-}
-
 export interface UserDocument {
   uid: string;
   email?: string;
   displayName?: string;
   courses: Course[];
-  goal?: string;
-  memory?: Memory;
-  history?: HistoryEntry[];
-  nextStep?: NextStep;
   createdAt: number;
   updatedAt: number;
-}
-
-export interface LLMRequest {
-  goal: string;
-  memory: Memory;
-  history: HistoryEntry[];
-}
-
-export interface LLMResponse {
-  nextStep: NextStep;
 }
 
 export interface User {
@@ -390,8 +255,9 @@ export interface UsageLimit {
 }
 
 export interface UsageLimits {
-  dailySteps: UsageLimit;
-  activeCourses: UsageLimit;
+  dailyTokens: UsageLimit;
+  weeklyTokens: UsageLimit;
+  activePaths: UsageLimit;
 }
 
 export interface SubscriptionStatus {
@@ -400,9 +266,11 @@ export interface SubscriptionStatus {
   paidUntil: string | null;
   limits: UsageLimits;
   canUpgrade: boolean;
-  canGenerateSteps: boolean;
-  canCreateCourse: boolean;
+  canGenerate: boolean;
+  canCreatePath: boolean;
+  limitReached?: string; // 'daily' | 'weekly' | 'system'
   dailyLimitResetAt: string | null;
+  weeklyLimitResetAt: string | null;
 }
 
 export interface CheckoutSessionResponse {
@@ -431,12 +299,13 @@ export interface PaymentSheetParams {
 // Limit error response from API
 export interface LimitErrorResponse {
   error: string;
-  code: 'COURSE_LIMIT_REACHED' | 'DAILY_STEP_LIMIT_REACHED';
+  code: 'COURSE_LIMIT_REACHED' | 'TOKEN_LIMIT_REACHED';
   canUpgrade: boolean;
   currentTier: TierType;
   limits: UsageLimits;
+  limitReached?: string; // 'daily' | 'weekly'
   dailyLimitResetAt?: string;
-  existingSteps?: Step[];
+  weeklyLimitResetAt?: string;
 }
 
 // ============================================
@@ -568,7 +437,7 @@ export interface CourseCreateRequest {
   category?: string;
 }
 
-// Helper function to get course title (handles legacy 'goal' field)
+// Helper function to get course title
 export function getCourseTitle(course: Course): string {
-  return course.title || course.goal || 'Untitled Course';
+  return course.title || 'Untitled Course';
 }

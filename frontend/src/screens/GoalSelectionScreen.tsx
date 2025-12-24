@@ -14,8 +14,7 @@ import { useScreenTracking, useOnboardingTracking, useAnalytics } from '../servi
 import { useUserStore } from '../state/userStore';
 import { useCoursesStore, getEmojiForGoal } from '../state/coursesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
-import { createUserDocument, getUserDocument, addCourse as createCourseApi } from '../services/memory';
-import { coursesApi, ApiError, ErrorCodes } from '../services/api';
+import { userApi, coursesApi, ApiError, ErrorCodes } from '../services/api';
 
 type GoalSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoalSelection'>;
 type GoalSelectionScreenRouteProp = RouteProp<RootStackParamList, 'GoalSelection'>;
@@ -70,11 +69,11 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
       if (isCreatingNewCourse && userDocument) {
         // Creating a new learning path for existing user
         const newPathData = {
-          goal: trimmedGoal,
+          title: trimmedGoal,
           emoji: getEmojiForGoal(trimmedGoal),
         };
 
-        const createdPath = await createCourseApi(newPathData);
+        const createdPath = await coursesApi.createCourse(newPathData);
         addCourse(createdPath);
 
         // Track learning path created
@@ -87,15 +86,17 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
         // Navigate to CourseGenerating to show outline generation progress
         navigation.navigate('CourseGenerating', { courseId: createdPath.id });
       } else {
-        // First-time user - create user document with first learning path
+        // First-time user - create user document then create first learning path
+        await userApi.createUserDocument();
+
         const firstPathData = {
-          goal: trimmedGoal,
+          title: trimmedGoal,
           emoji: getEmojiForGoal(trimmedGoal),
         };
 
-        await createUserDocument(trimmedGoal, firstPathData);
+        await coursesApi.createCourse(firstPathData);
 
-        const userDoc = await getUserDocument();
+        const userDoc = await userApi.getUserDocument();
         setUserDocument(userDoc);
 
         // Track onboarding complete for first-time users

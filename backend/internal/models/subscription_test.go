@@ -21,52 +21,60 @@ func TestSubscriptionStatusConstants(t *testing.T) {
 }
 
 // =============================================================================
-// DailyUsage Tests
+// TokenUsage Tests
 // =============================================================================
 
-func TestDailyUsage(t *testing.T) {
+func TestTokenUsage(t *testing.T) {
 	t.Run("struct fields are correctly initialized", func(t *testing.T) {
-		usage := DailyUsage{
-			Date:       "2024-01-15",
-			StepsUsed:  25,
-			LastUpdate: time.Now(),
+		usage := TokenUsage{
+			Period:       "2024-01-15",
+			InputTokens:  1000,
+			OutputTokens: 500,
+			TotalTokens:  1500,
+			LastUpdate:   time.Now(),
 		}
 
-		assert.Equal(t, "2024-01-15", usage.Date)
-		assert.Equal(t, 25, usage.StepsUsed)
+		assert.Equal(t, "2024-01-15", usage.Period)
+		assert.Equal(t, int64(1000), usage.InputTokens)
+		assert.Equal(t, int64(500), usage.OutputTokens)
+		assert.Equal(t, int64(1500), usage.TotalTokens)
 		assert.False(t, usage.LastUpdate.IsZero())
 	})
 
 	t.Run("zero values", func(t *testing.T) {
-		usage := DailyUsage{}
+		usage := TokenUsage{}
 
-		assert.Equal(t, "", usage.Date)
-		assert.Equal(t, 0, usage.StepsUsed)
+		assert.Equal(t, "", usage.Period)
+		assert.Equal(t, int64(0), usage.InputTokens)
+		assert.Equal(t, int64(0), usage.OutputTokens)
+		assert.Equal(t, int64(0), usage.TotalTokens)
 		assert.True(t, usage.LastUpdate.IsZero())
 	})
 }
 
 // =============================================================================
-// NewDailyUsage Tests
+// NewTokenUsage Tests
 // =============================================================================
 
-func TestNewDailyUsage(t *testing.T) {
-	t.Run("creates usage with today's date", func(t *testing.T) {
-		usage := NewDailyUsage()
+func TestNewTokenUsage(t *testing.T) {
+	t.Run("creates usage with specified period", func(t *testing.T) {
+		period := GetTodayPeriod()
+		usage := NewTokenUsage(period)
 
-		expectedDate := time.Now().UTC().Format("2006-01-02")
-		assert.Equal(t, expectedDate, usage.Date)
+		assert.Equal(t, period, usage.Period)
 	})
 
-	t.Run("initializes with zero steps", func(t *testing.T) {
-		usage := NewDailyUsage()
+	t.Run("initializes with zero tokens", func(t *testing.T) {
+		usage := NewTokenUsage("2024-01-15")
 
-		assert.Equal(t, 0, usage.StepsUsed)
+		assert.Equal(t, int64(0), usage.InputTokens)
+		assert.Equal(t, int64(0), usage.OutputTokens)
+		assert.Equal(t, int64(0), usage.TotalTokens)
 	})
 
 	t.Run("sets LastUpdate to current time", func(t *testing.T) {
 		before := time.Now().UTC().Add(-time.Second)
-		usage := NewDailyUsage()
+		usage := NewTokenUsage("2024-01-15")
 		after := time.Now().UTC().Add(time.Second)
 
 		assert.True(t, usage.LastUpdate.After(before))
@@ -75,15 +83,15 @@ func TestNewDailyUsage(t *testing.T) {
 }
 
 // =============================================================================
-// GetTodayDateString Tests
+// GetTodayPeriod Tests
 // =============================================================================
 
-func TestGetTodayDateString(t *testing.T) {
+func TestGetTodayPeriod(t *testing.T) {
 	t.Run("returns today's date in correct format", func(t *testing.T) {
-		dateStr := GetTodayDateString()
+		period := GetTodayPeriod()
 
 		// Verify format by parsing
-		parsed, err := time.Parse("2006-01-02", dateStr)
+		parsed, err := time.Parse("2006-01-02", period)
 		assert.NoError(t, err)
 		assert.Equal(t, time.Now().UTC().Year(), parsed.Year())
 		assert.Equal(t, time.Now().UTC().Month(), parsed.Month())
@@ -91,20 +99,20 @@ func TestGetTodayDateString(t *testing.T) {
 	})
 
 	t.Run("uses UTC timezone", func(t *testing.T) {
-		dateStr := GetTodayDateString()
+		period := GetTodayPeriod()
 		expected := time.Now().UTC().Format("2006-01-02")
 
-		assert.Equal(t, expected, dateStr)
+		assert.Equal(t, expected, period)
 	})
 }
 
 // =============================================================================
-// GetDailyLimitResetTime Tests
+// GetDailyResetTime Tests
 // =============================================================================
 
-func TestGetDailyLimitResetTime(t *testing.T) {
+func TestGetDailyResetTime(t *testing.T) {
 	t.Run("returns next midnight UTC", func(t *testing.T) {
-		resetTime := GetDailyLimitResetTime()
+		resetTime := GetDailyResetTime()
 
 		// Should be midnight (00:00:00)
 		assert.Equal(t, 0, resetTime.Hour())
@@ -114,13 +122,13 @@ func TestGetDailyLimitResetTime(t *testing.T) {
 	})
 
 	t.Run("returns time in UTC", func(t *testing.T) {
-		resetTime := GetDailyLimitResetTime()
+		resetTime := GetDailyResetTime()
 
 		assert.Equal(t, time.UTC, resetTime.Location())
 	})
 
 	t.Run("returns tomorrow's date", func(t *testing.T) {
-		resetTime := GetDailyLimitResetTime()
+		resetTime := GetDailyResetTime()
 		tomorrow := time.Now().UTC().AddDate(0, 0, 1)
 
 		assert.Equal(t, tomorrow.Year(), resetTime.Year())
@@ -129,9 +137,43 @@ func TestGetDailyLimitResetTime(t *testing.T) {
 	})
 
 	t.Run("is always in the future", func(t *testing.T) {
-		resetTime := GetDailyLimitResetTime()
+		resetTime := GetDailyResetTime()
 
 		assert.True(t, resetTime.After(time.Now()))
+	})
+}
+
+// =============================================================================
+// GetWeeklyResetTime Tests
+// =============================================================================
+
+func TestGetWeeklyResetTime(t *testing.T) {
+	t.Run("returns next Monday midnight UTC", func(t *testing.T) {
+		resetTime := GetWeeklyResetTime()
+
+		// Should be midnight (00:00:00)
+		assert.Equal(t, 0, resetTime.Hour())
+		assert.Equal(t, 0, resetTime.Minute())
+		assert.Equal(t, 0, resetTime.Second())
+		assert.Equal(t, 0, resetTime.Nanosecond())
+	})
+
+	t.Run("returns time in UTC", func(t *testing.T) {
+		resetTime := GetWeeklyResetTime()
+
+		assert.Equal(t, time.UTC, resetTime.Location())
+	})
+
+	t.Run("is always in the future", func(t *testing.T) {
+		resetTime := GetWeeklyResetTime()
+
+		assert.True(t, resetTime.After(time.Now()))
+	})
+
+	t.Run("is on a Monday", func(t *testing.T) {
+		resetTime := GetWeeklyResetTime()
+
+		assert.Equal(t, time.Monday, resetTime.Weekday())
 	})
 }
 
@@ -142,9 +184,13 @@ func TestGetDailyLimitResetTime(t *testing.T) {
 func TestUsageLimits(t *testing.T) {
 	t.Run("struct fields are correctly set", func(t *testing.T) {
 		limits := UsageLimits{
-			DailySteps: UsageLimit{
-				Used:  50,
-				Limit: 100,
+			DailyTokens: UsageLimit{
+				Used:  50000,
+				Limit: 100000,
+			},
+			WeeklyTokens: UsageLimit{
+				Used:  200000,
+				Limit: 1000000,
 			},
 			ActivePaths: UsageLimit{
 				Used:  1,
@@ -152,10 +198,12 @@ func TestUsageLimits(t *testing.T) {
 			},
 		}
 
-		assert.Equal(t, 50, limits.DailySteps.Used)
-		assert.Equal(t, 100, limits.DailySteps.Limit)
-		assert.Equal(t, 1, limits.ActivePaths.Used)
-		assert.Equal(t, 2, limits.ActivePaths.Limit)
+		assert.Equal(t, int64(50000), limits.DailyTokens.Used)
+		assert.Equal(t, int64(100000), limits.DailyTokens.Limit)
+		assert.Equal(t, int64(200000), limits.WeeklyTokens.Used)
+		assert.Equal(t, int64(1000000), limits.WeeklyTokens.Limit)
+		assert.Equal(t, int64(1), limits.ActivePaths.Used)
+		assert.Equal(t, int64(2), limits.ActivePaths.Limit)
 	})
 }
 
@@ -167,17 +215,17 @@ func TestUsageLimit(t *testing.T) {
 	t.Run("handles zero usage", func(t *testing.T) {
 		limit := UsageLimit{
 			Used:  0,
-			Limit: 100,
+			Limit: 100000,
 		}
 
-		assert.Equal(t, 0, limit.Used)
-		assert.Equal(t, 100, limit.Limit)
+		assert.Equal(t, int64(0), limit.Used)
+		assert.Equal(t, int64(100000), limit.Limit)
 	})
 
 	t.Run("handles at-limit usage", func(t *testing.T) {
 		limit := UsageLimit{
-			Used:  100,
-			Limit: 100,
+			Used:  100000,
+			Limit: 100000,
 		}
 
 		assert.Equal(t, limit.Used, limit.Limit)
@@ -186,8 +234,8 @@ func TestUsageLimit(t *testing.T) {
 	t.Run("handles over-limit usage", func(t *testing.T) {
 		// This could happen in edge cases
 		limit := UsageLimit{
-			Used:  105,
-			Limit: 100,
+			Used:  105000,
+			Limit: 100000,
 		}
 
 		assert.Greater(t, limit.Used, limit.Limit)
@@ -201,26 +249,29 @@ func TestUsageLimit(t *testing.T) {
 func TestSubscriptionStatus(t *testing.T) {
 	t.Run("all fields can be set", func(t *testing.T) {
 		paidUntil := time.Now().Add(30 * 24 * time.Hour)
-		resetAt := time.Now().Add(24 * time.Hour)
+		dailyResetAt := time.Now().Add(24 * time.Hour)
+		weeklyResetAt := time.Now().Add(7 * 24 * time.Hour)
 
 		status := SubscriptionStatus{
 			Tier:   TierPro,
 			Status: SubscriptionStatusActive,
 			Limits: UsageLimits{
-				DailySteps:  UsageLimit{Used: 25, Limit: 1000},
-				ActivePaths: UsageLimit{Used: 2, Limit: 5},
+				DailyTokens:  UsageLimit{Used: 25000, Limit: 500000},
+				WeeklyTokens: UsageLimit{Used: 100000, Limit: 5000000},
+				ActivePaths:  UsageLimit{Used: 2, Limit: 5},
 			},
-			PaidUntil:         &paidUntil,
-			CanUpgrade:        false,
-			CanGenerateSteps:  true,
-			CanCreatePath:     true,
-			DailyLimitResetAt: &resetAt,
+			PaidUntil:          &paidUntil,
+			CanUpgrade:         false,
+			CanGenerate:        true,
+			CanCreatePath:      true,
+			DailyLimitResetAt:  &dailyResetAt,
+			WeeklyLimitResetAt: &weeklyResetAt,
 		}
 
 		assert.Equal(t, TierPro, status.Tier)
 		assert.Equal(t, SubscriptionStatusActive, status.Status)
-		assert.Equal(t, 25, status.Limits.DailySteps.Used)
-		assert.True(t, status.CanGenerateSteps)
+		assert.Equal(t, int64(25000), status.Limits.DailyTokens.Used)
+		assert.True(t, status.CanGenerate)
 		assert.True(t, status.CanCreatePath)
 		assert.False(t, status.CanUpgrade)
 	})
@@ -229,17 +280,18 @@ func TestSubscriptionStatus(t *testing.T) {
 		status := SubscriptionStatus{
 			Tier: TierFree,
 			Limits: UsageLimits{
-				DailySteps:  UsageLimit{Used: 99, Limit: 100},
-				ActivePaths: UsageLimit{Used: 2, Limit: 2},
+				DailyTokens:  UsageLimit{Used: 99000, Limit: 100000},
+				WeeklyTokens: UsageLimit{Used: 500000, Limit: 1000000},
+				ActivePaths:  UsageLimit{Used: 2, Limit: 2},
 			},
-			CanUpgrade:       true,
-			CanGenerateSteps: true,
-			CanCreatePath:    false, // At limit
+			CanUpgrade:    true,
+			CanGenerate:   true,
+			CanCreatePath: false, // At limit
 		}
 
 		assert.Equal(t, TierFree, status.Tier)
 		assert.True(t, status.CanUpgrade)
-		assert.True(t, status.CanGenerateSteps)
+		assert.True(t, status.CanGenerate)
 		assert.False(t, status.CanCreatePath)
 	})
 
@@ -248,14 +300,35 @@ func TestSubscriptionStatus(t *testing.T) {
 		status := SubscriptionStatus{
 			Tier: TierFree,
 			Limits: UsageLimits{
-				DailySteps: UsageLimit{Used: 100, Limit: 100},
+				DailyTokens:  UsageLimit{Used: 100000, Limit: 100000},
+				WeeklyTokens: UsageLimit{Used: 500000, Limit: 1000000},
 			},
-			CanGenerateSteps:  false, // At limit
+			CanGenerate:       false, // At limit
+			LimitReached:      "daily",
 			DailyLimitResetAt: &resetAt,
 		}
 
-		assert.False(t, status.CanGenerateSteps)
+		assert.False(t, status.CanGenerate)
+		assert.Equal(t, "daily", status.LimitReached)
 		assert.NotNil(t, status.DailyLimitResetAt)
+	})
+
+	t.Run("handles at weekly limit", func(t *testing.T) {
+		resetAt := time.Now().Add(5 * 24 * time.Hour)
+		status := SubscriptionStatus{
+			Tier: TierFree,
+			Limits: UsageLimits{
+				DailyTokens:  UsageLimit{Used: 50000, Limit: 100000},
+				WeeklyTokens: UsageLimit{Used: 1000000, Limit: 1000000},
+			},
+			CanGenerate:        false, // At limit
+			LimitReached:       "weekly",
+			WeeklyLimitResetAt: &resetAt,
+		}
+
+		assert.False(t, status.CanGenerate)
+		assert.Equal(t, "weekly", status.LimitReached)
+		assert.NotNil(t, status.WeeklyLimitResetAt)
 	})
 }
 
@@ -355,22 +428,23 @@ func TestVerifyCheckoutResponse(t *testing.T) {
 
 func TestSubscriptionScenarios(t *testing.T) {
 	t.Run("free user approaching limit", func(t *testing.T) {
-		resetAt := GetDailyLimitResetTime()
+		resetAt := GetDailyResetTime()
 		status := SubscriptionStatus{
 			Tier:   TierFree,
 			Status: "", // Free users don't have subscription status
 			Limits: UsageLimits{
-				DailySteps:  UsageLimit{Used: 95, Limit: FreeDailyStepLimit},
-				ActivePaths: UsageLimit{Used: 1, Limit: FreeMaxActiveCourses},
+				DailyTokens:  UsageLimit{Used: 95000, Limit: FreeDailyTokenLimit},
+				WeeklyTokens: UsageLimit{Used: 500000, Limit: FreeWeeklyTokenLimit},
+				ActivePaths:  UsageLimit{Used: 1, Limit: int64(FreeMaxActiveCourses)},
 			},
 			CanUpgrade:        true,
-			CanGenerateSteps:  true, // Still under limit
+			CanGenerate:       true, // Still under limit
 			CanCreatePath:     true, // Still under limit
 			DailyLimitResetAt: &resetAt,
 		}
 
-		assert.Equal(t, 5, status.Limits.DailySteps.Limit-status.Limits.DailySteps.Used)
-		assert.True(t, status.CanGenerateSteps)
+		assert.Equal(t, int64(5000), status.Limits.DailyTokens.Limit-status.Limits.DailyTokens.Used)
+		assert.True(t, status.CanGenerate)
 		assert.True(t, status.CanUpgrade)
 	})
 
@@ -381,15 +455,16 @@ func TestSubscriptionScenarios(t *testing.T) {
 			Status:    SubscriptionStatusActive,
 			PaidUntil: &paidUntil,
 			Limits: UsageLimits{
-				DailySteps:  UsageLimit{Used: 150, Limit: ProDailyStepLimit},
-				ActivePaths: UsageLimit{Used: 3, Limit: ProMaxActiveCourses},
+				DailyTokens:  UsageLimit{Used: 150000, Limit: ProDailyTokenLimit},
+				WeeklyTokens: UsageLimit{Used: 1000000, Limit: ProWeeklyTokenLimit},
+				ActivePaths:  UsageLimit{Used: 3, Limit: int64(ProMaxActiveCourses)},
 			},
-			CanUpgrade:       false, // Already pro
-			CanGenerateSteps: true,
-			CanCreatePath:    true,
+			CanUpgrade:    false, // Already pro
+			CanGenerate:   true,
+			CanCreatePath: true,
 		}
 
-		assert.Equal(t, 850, status.Limits.DailySteps.Limit-status.Limits.DailySteps.Used)
+		assert.Equal(t, int64(350000), status.Limits.DailyTokens.Limit-status.Limits.DailyTokens.Used)
 		assert.False(t, status.CanUpgrade)
 		assert.True(t, status.PaidUntil.After(time.Now()))
 	})
@@ -401,12 +476,13 @@ func TestSubscriptionScenarios(t *testing.T) {
 			Status:    SubscriptionStatusCanceled,
 			PaidUntil: &paidUntil,
 			Limits: UsageLimits{
-				DailySteps:  UsageLimit{Used: 0, Limit: ProDailyStepLimit},
-				ActivePaths: UsageLimit{Used: 4, Limit: ProMaxActiveCourses},
+				DailyTokens:  UsageLimit{Used: 0, Limit: ProDailyTokenLimit},
+				WeeklyTokens: UsageLimit{Used: 0, Limit: ProWeeklyTokenLimit},
+				ActivePaths:  UsageLimit{Used: 4, Limit: int64(ProMaxActiveCourses)},
 			},
-			CanUpgrade:       true, // Can re-subscribe
-			CanGenerateSteps: true,
-			CanCreatePath:    true,
+			CanUpgrade:    true, // Can re-subscribe
+			CanGenerate:   true,
+			CanCreatePath: true,
 		}
 
 		assert.Equal(t, SubscriptionStatusCanceled, status.Status)
@@ -416,14 +492,14 @@ func TestSubscriptionScenarios(t *testing.T) {
 
 	t.Run("past due subscription", func(t *testing.T) {
 		status := SubscriptionStatus{
-			Tier:             TierPro,
-			Status:           SubscriptionStatusPastDue,
-			CanUpgrade:       false,
-			CanGenerateSteps: false, // Blocked until payment
-			CanCreatePath:    false,
+			Tier:          TierPro,
+			Status:        SubscriptionStatusPastDue,
+			CanUpgrade:    false,
+			CanGenerate:   false, // Blocked until payment
+			CanCreatePath: false,
 		}
 
 		assert.Equal(t, SubscriptionStatusPastDue, status.Status)
-		assert.False(t, status.CanGenerateSteps)
+		assert.False(t, status.CanGenerate)
 	})
 }

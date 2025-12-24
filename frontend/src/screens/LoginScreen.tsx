@@ -12,7 +12,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUserStore } from '../state/userStore';
 import { signInWithGoogleIdToken, signInWithEmail, registerWithEmail, useGoogleAuth } from '../services/auth';
-import { getUserDocument } from '../services/memory';
+import { userApi } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -95,7 +95,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       // Track Google login
       await trackLogin({ method: 'google' });
 
-      const userDoc = await getUserDocument();
+      const userDoc = await userApi.getUserDocument();
       setUserDocument(userDoc);
 
       navigation.replace('Main');
@@ -213,7 +213,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       }
 
       setUser(user);
-      const userDoc = await getUserDocument();
+      const userDoc = await userApi.getUserDocument();
       setUserDocument(userDoc);
 
       navigation.replace('Main');

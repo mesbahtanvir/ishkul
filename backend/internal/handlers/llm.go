@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/mesbahtanvir/ishkul/backend/internal/services"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/cache"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/deepseek"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
@@ -110,19 +109,8 @@ func InitializeLLM(promptsDir string) error {
 		slog.Duration("cleanup_interval", CacheCleanupInterval),
 	)
 
-	// Initialize pre-generation service with the router
-	primaryProvider, primaryType := llmRouter.GetPrimaryProvider()
-	pregenerateService = services.NewPregenerateService(
-		blockCache,
-		primaryProvider,
-		primaryType,
-		promptLoader,
-		promptRenderer,
-		appLogger,
-	)
-	logInfo("pregenerate_service_initialized",
-		slog.String("primary_provider", string(primaryType)),
-	)
+	// Note: Pre-generation service removed - replaced by queue system
+	logInfo("llm_initialization_complete")
 
 	// Log initialization summary
 	log.Printf("LLM initialized: strategy=%s, healthy=%d, total=%d",

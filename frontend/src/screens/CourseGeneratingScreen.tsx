@@ -291,7 +291,7 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
         />
       </View>
 
-      <Text style={styles.goalText}>{path?.goal}</Text>
+      <Text style={styles.goalText}>{path?.title}</Text>
     </View>
   );
 

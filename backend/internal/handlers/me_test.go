@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
-	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -235,103 +234,4 @@ func TestCreateUserDocumentRequest(t *testing.T) {
 	})
 }
 
-func TestAddHistory(t *testing.T) {
-	t.Run("rejects non-POST methods", func(t *testing.T) {
-		methods := []string{http.MethodGet, http.MethodPut, http.MethodDelete}
-
-		for _, method := range methods {
-			t.Run(method, func(t *testing.T) {
-				req := createAuthenticatedRequest(method, "/api/me/history", nil, "user123", "test@example.com")
-				rr := httptest.NewRecorder()
-
-				AddHistory(rr, req)
-
-				assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
-			})
-		}
-	})
-
-	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/api/me/history", nil)
-		rr := httptest.NewRecorder()
-
-		AddHistory(rr, req)
-
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	})
-
-	t.Run("rejects invalid JSON body", func(t *testing.T) {
-		req := createAuthenticatedRequest(http.MethodPost, "/api/me/history", bytes.NewBufferString("invalid"), "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		AddHistory(rr, req)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("rejects missing type field", func(t *testing.T) {
-		body := `{"topic": "Python"}`
-		req := createAuthenticatedRequest(http.MethodPost, "/api/me/history", bytes.NewBufferString(body), "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		AddHistory(rr, req)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Type and topic are required")
-	})
-
-	t.Run("rejects missing topic field", func(t *testing.T) {
-		body := `{"type": "lesson"}`
-		req := createAuthenticatedRequest(http.MethodPost, "/api/me/history", bytes.NewBufferString(body), "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		AddHistory(rr, req)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Type and topic are required")
-	})
-}
-
-func TestAddHistoryRequest(t *testing.T) {
-	t.Run("struct has correct JSON tags", func(t *testing.T) {
-		req := AddHistoryRequest{
-			Type:  "lesson",
-			Topic: "Python",
-			Score: 0.85,
-		}
-
-		jsonBytes, err := json.Marshal(req)
-		require.NoError(t, err)
-
-		var parsed map[string]interface{}
-		err = json.Unmarshal(jsonBytes, &parsed)
-		require.NoError(t, err)
-
-		assert.Contains(t, parsed, "type")
-		assert.Contains(t, parsed, "topic")
-		assert.Contains(t, parsed, "score")
-	})
-}
-
-func TestModelsNextStep(t *testing.T) {
-	t.Run("NextStep struct has correct JSON tags", func(t *testing.T) {
-		step := models.NextStep{
-			Type:    "lesson",
-			Topic:   "Python",
-			Title:   "Introduction",
-			Content: "Content here",
-		}
-
-		jsonBytes, err := json.Marshal(step)
-		require.NoError(t, err)
-
-		var parsed map[string]interface{}
-		err = json.Unmarshal(jsonBytes, &parsed)
-		require.NoError(t, err)
-
-		assert.Contains(t, parsed, "type")
-		assert.Contains(t, parsed, "topic")
-		assert.Contains(t, parsed, "title")
-		assert.Contains(t, parsed, "content")
-	})
-}
+// Note: AddHistory, AddHistoryRequest, and NextStep tests removed - legacy features replaced by block-based model

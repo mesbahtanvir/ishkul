@@ -24,19 +24,10 @@ export function usesNewStructure(course: Course | null): boolean {
 }
 
 /**
- * Check if a course uses the legacy step-based structure
+ * Check if a course has a valid outline structure
  */
-export function usesLegacyStructure(course: Course | null): boolean {
-  if (!course) return false;
-
-  // Legacy structure: has steps array
-  const hasLegacyStructure =
-    course.steps && Array.isArray(course.steps) && course.steps.length > 0;
-
-  // If it has new structure, prefer that over legacy
-  if (usesNewStructure(course)) return false;
-
-  return !!hasLegacyStructure;
+export function hasOutline(course: Course | null): boolean {
+  return usesNewStructure(course);
 }
 
 /**

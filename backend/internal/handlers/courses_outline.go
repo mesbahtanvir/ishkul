@@ -15,6 +15,22 @@ import (
 // Outline Generation
 // =============================================================================
 
+// GenerateCourseOutline generates a course outline using the LLM.
+// Returns the outline and the number of tokens used.
+// This is the exported version for use by the queue processor.
+func GenerateCourseOutline(ctx context.Context, goal, userTier string) (*models.CourseOutline, int64, error) {
+	outline, err := generateCourseOutline(ctx, goal)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// TODO: Track actual token usage from LLM response
+	// For now, estimate based on outline size
+	estimatedTokens := int64(1000) // Base cost for outline generation
+
+	return outline, estimatedTokens, nil
+}
+
 // generateCourseOutline generates a course outline using the LLM.
 func generateCourseOutline(ctx context.Context, goal string) (*models.CourseOutline, error) {
 	if openaiClient == nil || promptLoader == nil {
@@ -152,15 +168,9 @@ func countOutlineLessons(outline *models.CourseOutline) int {
 	}
 
 	count := 0
-	// New format: count lessons from sections
+	// Count lessons from sections
 	for _, s := range outline.Sections {
 		count += len(s.Lessons)
-	}
-	// Fallback: if no sections, try legacy modules
-	if count == 0 {
-		for _, m := range outline.Modules {
-			count += len(m.Topics)
-		}
 	}
 	return count
 }

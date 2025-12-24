@@ -165,7 +165,7 @@ func main() {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
-	standardAPI.HandleFunc("/api/me/history", handlers.AddHistory)
+	// Note: /api/me/history endpoint removed - history is now tracked via LessonProgress in courses
 	standardAPI.HandleFunc("/api/me/delete", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodDelete, http.MethodPost:

@@ -1,483 +1,465 @@
-import { act } from '@testing-library/react-native';
-import {
-  useCoursesStore,
-  getCurrentStep,
-  getCompletedSteps,
-  getEmojiForGoal,
-  generateCourseId,
-} from '../coursesStore';
-import { Course, Step } from '../../types/app';
+/**
+ * Tests for coursesStore
+ *
+ * Tests the course management store with the new section/lesson model
+ */
 
-// Helper to create mock learning path
-const createMockPath = (overrides: Partial<Course> = {}): Course => ({
-  id: `path_${Date.now()}`,
-  userId: 'test-user-id',
-  title: 'Learn TypeScript',
-  goal: 'Learn TypeScript',
-  emoji: '💙',
+import { act } from '@testing-library/react-native';
+import { useCoursesStore } from '../coursesStore';
+import { Course, CourseOutline, LessonStatus } from '../../types/app';
+
+// Helper to create a mock course
+const createMockCourse = (overrides: Partial<Course> = {}): Course => ({
+  id: `course-${Math.random().toString(36).substr(2, 9)}`,
+  userId: 'user-123',
+  title: 'Test Course',
+  emoji: '📚',
   status: 'active',
-  outlineStatus: 'ready',
   progress: 0,
   lessonsCompleted: 0,
-  totalLessons: 10,
-  steps: [],
-  memory: { topics: {} },
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
+  totalLessons: 5,
   lastAccessedAt: Date.now(),
+  createdAt: Date.now() - 86400000,
+  updatedAt: Date.now(),
   ...overrides,
 });
 
-// Helper to create mock step
-const createMockStep = (overrides: Partial<Step> = {}): Step => ({
-  id: `step_${Date.now()}`,
-  index: 0,
-  type: 'lesson',
-  topic: 'Introduction',
-  title: 'Getting Started',
-  content: 'Welcome to the course',
-  completed: false,
-  createdAt: Date.now(),
-  ...overrides,
+// Helper to create a mock outline with sections and lessons
+const createMockOutline = (): CourseOutline => ({
+  title: 'Test Outline',
+  description: 'Test description',
+  emoji: '📚',
+  estimatedMinutes: 60,
+  difficulty: 'beginner',
+  category: 'test',
+  prerequisites: [],
+  learningOutcomes: ['Learn something'],
+  generatedAt: Date.now(),
+  sections: [
+    {
+      id: 'section-1',
+      title: 'Introduction',
+      description: 'Getting started',
+      estimatedMinutes: 30,
+      learningOutcomes: ['Learn basics'],
+      status: 'in_progress',
+      lessons: [
+        {
+          id: 'lesson-1-1',
+          title: 'Welcome',
+          description: 'Welcome to the course',
+          estimatedMinutes: 15,
+          status: 'completed' as LessonStatus,
+          blocksStatus: 'ready',
+        },
+        {
+          id: 'lesson-1-2',
+          title: 'Overview',
+          description: 'Course overview',
+          estimatedMinutes: 15,
+          status: 'in_progress' as LessonStatus,
+          blocksStatus: 'ready',
+        },
+      ],
+    },
+    {
+      id: 'section-2',
+      title: 'Basics',
+      description: 'Core concepts',
+      estimatedMinutes: 30,
+      learningOutcomes: ['Learn more'],
+      status: 'pending',
+      lessons: [
+        {
+          id: 'lesson-2-1',
+          title: 'First Steps',
+          description: 'Your first steps',
+          estimatedMinutes: 30,
+          status: 'pending' as LessonStatus,
+          blocksStatus: 'pending',
+        },
+      ],
+    },
+  ],
 });
 
 describe('coursesStore', () => {
   beforeEach(() => {
-    // Reset store to initial state
+    // Reset store before each test
     act(() => {
-      useCoursesStore.setState({
-        courses: [],
-        activeCourse: null,
-        loading: false,
-        error: null,
-        coursesCache: new Map(),
-        listCache: null,
-      });
+      useCoursesStore.getState().clearCourses();
     });
   });
 
-  describe('initial state', () => {
-    it('should have empty courses array', () => {
-      const state = useCoursesStore.getState();
-      expect(state.courses).toEqual([]);
+  describe('basic course operations', () => {
+    it('should start with empty courses', () => {
+      const { courses } = useCoursesStore.getState();
+      expect(courses).toEqual([]);
     });
 
-    it('should have null activeCourse', () => {
-      const state = useCoursesStore.getState();
-      expect(state.activeCourse).toBeNull();
-    });
-
-    it('should not be loading', () => {
-      const state = useCoursesStore.getState();
-      expect(state.loading).toBe(false);
-    });
-
-    it('should have no error', () => {
-      const state = useCoursesStore.getState();
-      expect(state.error).toBeNull();
-    });
-  });
-
-  describe('setCourses', () => {
     it('should set courses and sort by lastAccessedAt', () => {
-      const older = createMockPath({ id: 'older', lastAccessedAt: 1000 });
-      const newer = createMockPath({ id: 'newer', lastAccessedAt: 2000 });
+      const oldCourse = createMockCourse({ id: 'old', lastAccessedAt: 1000 });
+      const newCourse = createMockCourse({ id: 'new', lastAccessedAt: 2000 });
 
       act(() => {
-        useCoursesStore.getState().setCourses([older, newer]);
+        useCoursesStore.getState().setCourses([oldCourse, newCourse]);
       });
 
       const { courses } = useCoursesStore.getState();
       expect(courses).toHaveLength(2);
-      expect(courses[0].id).toBe('newer'); // Most recent first
-      expect(courses[1].id).toBe('older');
+      expect(courses[0].id).toBe('new'); // Most recent first
+      expect(courses[1].id).toBe('old');
     });
 
-    it('should update list cache', () => {
-      act(() => {
-        useCoursesStore.getState().setCourses([createMockPath()]);
-      });
-
-      const { listCache } = useCoursesStore.getState();
-      expect(listCache).not.toBeNull();
-      expect(listCache?.timestamp).toBeDefined();
-    });
-  });
-
-  describe('setActiveCourse', () => {
-    it('should set active path', () => {
-      const path = createMockPath();
+    it('should add a course to the beginning', () => {
+      const existingCourse = createMockCourse({ id: 'existing' });
+      const newCourse = createMockCourse({ id: 'new' });
 
       act(() => {
-        useCoursesStore.getState().setActiveCourse(path);
-      });
-
-      expect(useCoursesStore.getState().activeCourse).toEqual(path);
-    });
-
-    it('should clear active path when set to null', () => {
-      const path = createMockPath();
-
-      act(() => {
-        useCoursesStore.getState().setActiveCourse(path);
-        useCoursesStore.getState().setActiveCourse(null);
-      });
-
-      expect(useCoursesStore.getState().activeCourse).toBeNull();
-    });
-  });
-
-  describe('addCourse', () => {
-    it('should add path to beginning of list', () => {
-      const existing = createMockPath({ id: 'existing' });
-      const newPath = createMockPath({ id: 'new' });
-
-      act(() => {
-        useCoursesStore.getState().setCourses([existing]);
-        useCoursesStore.getState().addCourse(newPath);
+        useCoursesStore.getState().setCourses([existingCourse]);
+        useCoursesStore.getState().addCourse(newCourse);
       });
 
       const { courses } = useCoursesStore.getState();
       expect(courses).toHaveLength(2);
       expect(courses[0].id).toBe('new');
     });
-  });
 
-  describe('updateCourse', () => {
-    it('should update path in list', () => {
-      const path = createMockPath({ id: 'path-1', goal: 'Original' });
+    it('should update a course', () => {
+      const course = createMockCourse({ id: 'test', title: 'Original' });
 
       act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().updateCourse('path-1', { goal: 'Updated' });
+        useCoursesStore.getState().setCourses([course]);
+        useCoursesStore.getState().updateCourse('test', { title: 'Updated' });
       });
 
       const { courses } = useCoursesStore.getState();
-      expect(courses[0].goal).toBe('Updated');
+      expect(courses[0].title).toBe('Updated');
     });
 
-    it('should update activeCourse if it matches', () => {
-      const path = createMockPath({ id: 'path-1', goal: 'Original' });
+    it('should delete a course', () => {
+      const course1 = createMockCourse({ id: 'keep' });
+      const course2 = createMockCourse({ id: 'delete' });
 
       act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().setActiveCourse(path);
-        useCoursesStore.getState().updateCourse('path-1', { goal: 'Updated' });
-      });
-
-      expect(useCoursesStore.getState().activeCourse?.goal).toBe('Updated');
-    });
-
-    it('should not update activeCourse if it does not match', () => {
-      const path1 = createMockPath({ id: 'path-1', goal: 'Path 1' });
-      const path2 = createMockPath({ id: 'path-2', goal: 'Path 2' });
-
-      act(() => {
-        useCoursesStore.getState().setCourses([path1, path2]);
-        useCoursesStore.getState().setActiveCourse(path1);
-        useCoursesStore.getState().updateCourse('path-2', { goal: 'Updated' });
-      });
-
-      expect(useCoursesStore.getState().activeCourse?.goal).toBe('Path 1');
-    });
-  });
-
-  describe('deleteCourse', () => {
-    it('should remove path from list', () => {
-      const path = createMockPath({ id: 'path-1' });
-
-      act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().deleteCourse('path-1');
-      });
-
-      expect(useCoursesStore.getState().courses).toHaveLength(0);
-    });
-
-    it('should clear activeCourse if it was deleted', () => {
-      const path = createMockPath({ id: 'path-1' });
-
-      act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().setActiveCourse(path);
-        useCoursesStore.getState().deleteCourse('path-1');
-      });
-
-      expect(useCoursesStore.getState().activeCourse).toBeNull();
-    });
-  });
-
-  describe('addStep', () => {
-    it('should add step to path', () => {
-      const path = createMockPath({ id: 'path-1', steps: [] });
-      const step = createMockStep();
-
-      act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().addStep('path-1', step);
+        useCoursesStore.getState().setCourses([course1, course2]);
+        useCoursesStore.getState().deleteCourse('delete');
       });
 
       const { courses } = useCoursesStore.getState();
-      expect(courses[0].steps).toHaveLength(1);
-      expect(courses[0].steps![0].id).toBe(step.id);
+      expect(courses).toHaveLength(1);
+      expect(courses[0].id).toBe('keep');
     });
 
-    it('should update activeCourse steps if it matches', () => {
-      const path = createMockPath({ id: 'path-1', steps: [] });
-      const step = createMockStep();
+    it('should set active course', () => {
+      const course = createMockCourse();
 
       act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().setActiveCourse(path);
-        useCoursesStore.getState().addStep('path-1', step);
+        useCoursesStore.getState().setActiveCourse(course);
       });
 
-      expect(useCoursesStore.getState().activeCourse?.steps).toHaveLength(1);
+      const { activeCourse } = useCoursesStore.getState();
+      expect(activeCourse).toEqual(course);
     });
   });
 
-  describe('updateStep', () => {
-    it('should update step in path', () => {
-      const step = createMockStep({ id: 'step-1', completed: false });
-      const path = createMockPath({ id: 'path-1', steps: [step] });
+  describe('archive/restore operations', () => {
+    it('should archive a course', () => {
+      const course = createMockCourse({ id: 'test', status: 'active' });
 
       act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().updateStep('path-1', 'step-1', { completed: true });
+        useCoursesStore.getState().setCourses([course]);
+        useCoursesStore.getState().archiveCourse('test');
       });
 
       const { courses } = useCoursesStore.getState();
-      expect(courses[0].steps![0].completed).toBe(true);
+      expect(courses[0].status).toBe('archived');
+      expect(courses[0].archivedAt).toBeDefined();
+    });
+
+    it('should restore an archived course to active', () => {
+      const course = createMockCourse({
+        id: 'test',
+        status: 'archived',
+        progress: 50,
+      });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+        useCoursesStore.getState().restoreCourse('test');
+      });
+
+      const { courses } = useCoursesStore.getState();
+      expect(courses[0].status).toBe('active');
+      expect(courses[0].archivedAt).toBeUndefined();
+    });
+
+    it('should restore a completed course to completed status', () => {
+      const course = createMockCourse({
+        id: 'test',
+        status: 'archived',
+        progress: 100,
+      });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+        useCoursesStore.getState().restoreCourse('test');
+      });
+
+      const { courses } = useCoursesStore.getState();
+      expect(courses[0].status).toBe('completed');
     });
   });
 
-  describe('loading state', () => {
+  describe('outline and lesson operations', () => {
+    it('should set course outline', () => {
+      const course = createMockCourse({ id: 'test' });
+      const outline = createMockOutline();
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+        useCoursesStore.getState().setCourseOutline('test', outline);
+      });
+
+      const { courses } = useCoursesStore.getState();
+      expect(courses[0].outline).toEqual(outline);
+    });
+
+    it('should update a lesson within a section', () => {
+      const course = createMockCourse({ id: 'test', outline: createMockOutline() });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+        useCoursesStore.getState().updateLesson('test', 'section-1', 'lesson-1-1', {
+          title: 'Updated Title',
+        });
+      });
+
+      const { courses } = useCoursesStore.getState();
+      const lesson = courses[0].outline?.sections[0].lessons[0];
+      expect(lesson?.title).toBe('Updated Title');
+    });
+
+    it('should update lesson status', () => {
+      const course = createMockCourse({ id: 'test', outline: createMockOutline() });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+        useCoursesStore.getState().updateLessonStatus('test', 'section-1', 'lesson-1-2', 'completed');
+      });
+
+      const { courses } = useCoursesStore.getState();
+      const lesson = courses[0].outline?.sections[0].lessons[1];
+      expect(lesson?.status).toBe('completed');
+    });
+
+    it('should set course position', () => {
+      const course = createMockCourse({ id: 'test' });
+      const position = {
+        sectionId: 'section-1',
+        lessonId: 'lesson-1-1',
+        sectionIndex: 0,
+        lessonIndex: 0,
+      };
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+        useCoursesStore.getState().setCoursePosition('test', position);
+      });
+
+      const { courses } = useCoursesStore.getState();
+      expect(courses[0].currentPosition).toEqual(position);
+    });
+  });
+
+  describe('selectors', () => {
+    it('should get lesson from course', () => {
+      const course = createMockCourse({ id: 'test', outline: createMockOutline() });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+      });
+
+      const lesson = useCoursesStore.getState().getLessonFromCourse('test', 'section-1', 'lesson-1-1');
+      expect(lesson).toBeDefined();
+      expect(lesson?.title).toBe('Welcome');
+    });
+
+    it('should return null for non-existent lesson', () => {
+      const course = createMockCourse({ id: 'test', outline: createMockOutline() });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+      });
+
+      const lesson = useCoursesStore.getState().getLessonFromCourse('test', 'section-1', 'non-existent');
+      expect(lesson).toBeNull();
+    });
+
+    it('should get section lessons', () => {
+      const course = createMockCourse({ id: 'test', outline: createMockOutline() });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+      });
+
+      const lessons = useCoursesStore.getState().getSectionLessons('test', 'section-1');
+      expect(lessons).toHaveLength(2);
+    });
+
+    it('should get next lesson in same section', () => {
+      const course = createMockCourse({ id: 'test', outline: createMockOutline() });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+      });
+
+      const nextPosition = useCoursesStore.getState().getNextLesson('test', 'section-1', 'lesson-1-1');
+      expect(nextPosition).toEqual({
+        sectionId: 'section-1',
+        lessonId: 'lesson-1-2',
+        sectionIndex: 0,
+        lessonIndex: 1,
+      });
+    });
+
+    it('should get first lesson in next section when at section end', () => {
+      const course = createMockCourse({ id: 'test', outline: createMockOutline() });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+      });
+
+      const nextPosition = useCoursesStore.getState().getNextLesson('test', 'section-1', 'lesson-1-2');
+      expect(nextPosition).toEqual({
+        sectionId: 'section-2',
+        lessonId: 'lesson-2-1',
+        sectionIndex: 1,
+        lessonIndex: 0,
+      });
+    });
+
+    it('should return null when at course end', () => {
+      const course = createMockCourse({ id: 'test', outline: createMockOutline() });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+      });
+
+      const nextPosition = useCoursesStore.getState().getNextLesson('test', 'section-2', 'lesson-2-1');
+      expect(nextPosition).toBeNull();
+    });
+
+    it('should get courses by status', () => {
+      const active = createMockCourse({ id: 'active', status: 'active' });
+      const archived = createMockCourse({ id: 'archived', status: 'archived' });
+      const completed = createMockCourse({ id: 'completed', status: 'completed' });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([active, archived, completed]);
+      });
+
+      const activeCourses = useCoursesStore.getState().getCoursesByStatus('active');
+      expect(activeCourses).toHaveLength(1);
+      expect(activeCourses[0].id).toBe('active');
+
+      const archivedCourses = useCoursesStore.getState().getCoursesByStatus('archived');
+      expect(archivedCourses).toHaveLength(1);
+      expect(archivedCourses[0].id).toBe('archived');
+    });
+  });
+
+  describe('cache operations', () => {
+    it('should set list cache when setting courses', () => {
+      const course = createMockCourse();
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+      });
+
+      const { listCache } = useCoursesStore.getState();
+      expect(listCache).toBeDefined();
+      expect(listCache?.timestamp).toBeGreaterThan(0);
+    });
+
+    it('should validate cache correctly', () => {
+      const validCache = { timestamp: Date.now(), ttl: 300000 };
+      const expiredCache = { timestamp: Date.now() - 600000, ttl: 300000 };
+
+      const isValid = useCoursesStore.getState().isCacheValid(validCache);
+      expect(isValid).toBe(true);
+
+      const isExpired = useCoursesStore.getState().isCacheValid(expiredCache);
+      expect(isExpired).toBe(false);
+
+      const isNull = useCoursesStore.getState().isCacheValid(null);
+      expect(isNull).toBe(false);
+    });
+
+    it('should get cached course', () => {
+      const course = createMockCourse({ id: 'test' });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+      });
+
+      const cached = useCoursesStore.getState().getCachedCourse('test');
+      expect(cached).toEqual(course);
+    });
+
+    it('should invalidate course cache', () => {
+      const course = createMockCourse({ id: 'test' });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+        useCoursesStore.getState().invalidateCourseCache('test');
+      });
+
+      const { coursesCache } = useCoursesStore.getState();
+      expect(coursesCache.has('test')).toBe(false);
+    });
+
+    it('should clear all cache', () => {
+      const course = createMockCourse({ id: 'test' });
+
+      act(() => {
+        useCoursesStore.getState().setCourses([course]);
+        useCoursesStore.getState().clearAllCache();
+      });
+
+      const { coursesCache, listCache } = useCoursesStore.getState();
+      expect(coursesCache.size).toBe(0);
+      expect(listCache).toBeNull();
+    });
+  });
+
+  describe('loading and error states', () => {
     it('should set loading state', () => {
       act(() => {
         useCoursesStore.getState().setLoading(true);
       });
 
       expect(useCoursesStore.getState().loading).toBe(true);
-    });
-  });
 
-  describe('error state', () => {
-    it('should set error message', () => {
       act(() => {
-        useCoursesStore.getState().setError('Something went wrong');
+        useCoursesStore.getState().setLoading(false);
       });
 
-      expect(useCoursesStore.getState().error).toBe('Something went wrong');
+      expect(useCoursesStore.getState().loading).toBe(false);
     });
 
-    it('should clear error', () => {
+    it('should set error state', () => {
       act(() => {
-        useCoursesStore.getState().setError('Error');
+        useCoursesStore.getState().setError('Test error');
+      });
+
+      expect(useCoursesStore.getState().error).toBe('Test error');
+
+      act(() => {
         useCoursesStore.getState().setError(null);
       });
 
       expect(useCoursesStore.getState().error).toBeNull();
-    });
-  });
-
-  describe('clearCourses', () => {
-    it('should clear all courses and reset state', () => {
-      const path = createMockPath();
-
-      act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().setActiveCourse(path);
-        useCoursesStore.getState().setError('Error');
-        useCoursesStore.getState().clearCourses();
-      });
-
-      const state = useCoursesStore.getState();
-      expect(state.courses).toHaveLength(0);
-      expect(state.activeCourse).toBeNull();
-      expect(state.error).toBeNull();
-    });
-  });
-
-  describe('cache helpers', () => {
-    it('should validate cache correctly', () => {
-      const { isCacheValid } = useCoursesStore.getState();
-
-      expect(isCacheValid(null)).toBe(false);
-      expect(isCacheValid({ timestamp: Date.now(), ttl: 5 * 60 * 1000 })).toBe(true);
-      expect(isCacheValid({ timestamp: Date.now() - 10 * 60 * 1000, ttl: 5 * 60 * 1000 })).toBe(false);
-    });
-
-    it('should get cached path', () => {
-      const path = createMockPath({ id: 'path-1' });
-
-      act(() => {
-        useCoursesStore.getState().setCourses([path]);
-      });
-
-      const cached = useCoursesStore.getState().getCachedCourse('path-1');
-      expect(cached?.id).toBe('path-1');
-    });
-
-    it('should return null for non-existent cached path', () => {
-      const cached = useCoursesStore.getState().getCachedCourse('non-existent');
-      expect(cached).toBeNull();
-    });
-
-    it('should invalidate path cache', () => {
-      const path = createMockPath({ id: 'path-1' });
-
-      act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().invalidateCourseCache('path-1');
-      });
-
-      const { coursesCache } = useCoursesStore.getState();
-      expect(coursesCache.has('path-1')).toBe(false);
-    });
-
-    it('should invalidate list cache', () => {
-      const path = createMockPath();
-
-      act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().invalidateListCache();
-      });
-
-      expect(useCoursesStore.getState().listCache).toBeNull();
-    });
-
-    it('should clear all cache', () => {
-      const path = createMockPath({ id: 'path-1' });
-
-      act(() => {
-        useCoursesStore.getState().setCourses([path]);
-        useCoursesStore.getState().clearAllCache();
-      });
-
-      const state = useCoursesStore.getState();
-      expect(state.coursesCache.size).toBe(0);
-      expect(state.listCache).toBeNull();
-    });
-  });
-});
-
-describe('helper functions', () => {
-  describe('getCurrentStep', () => {
-    it('should return first incomplete step', () => {
-      const steps: Step[] = [
-        createMockStep({ id: '1', completed: true }),
-        createMockStep({ id: '2', completed: false }),
-        createMockStep({ id: '3', completed: false }),
-      ];
-
-      const current = getCurrentStep(steps);
-      expect(current?.id).toBe('2');
-    });
-
-    it('should return null when all steps completed', () => {
-      const steps: Step[] = [
-        createMockStep({ completed: true }),
-        createMockStep({ completed: true }),
-      ];
-
-      expect(getCurrentStep(steps)).toBeNull();
-    });
-
-    it('should return null for empty steps', () => {
-      expect(getCurrentStep([])).toBeNull();
-    });
-  });
-
-  describe('getCompletedSteps', () => {
-    it('should return only completed steps', () => {
-      const steps: Step[] = [
-        createMockStep({ id: '1', completed: true }),
-        createMockStep({ id: '2', completed: false }),
-        createMockStep({ id: '3', completed: true }),
-      ];
-
-      const completed = getCompletedSteps(steps);
-      expect(completed).toHaveLength(2);
-      expect(completed.map((s) => s.id)).toEqual(['1', '3']);
-    });
-
-    it('should return empty array when no completed steps', () => {
-      const steps: Step[] = [
-        createMockStep({ completed: false }),
-      ];
-
-      expect(getCompletedSteps(steps)).toHaveLength(0);
-    });
-  });
-
-  describe('getEmojiForGoal', () => {
-    it('should return Python emoji for Python goals', () => {
-      expect(getEmojiForGoal('Learn Python')).toBe('🐍');
-      expect(getEmojiForGoal('python programming')).toBe('🐍');
-    });
-
-    it('should return JavaScript emoji for JS goals', () => {
-      expect(getEmojiForGoal('Learn JavaScript')).toBe('💛');
-      expect(getEmojiForGoal('js basics')).toBe('💛');
-    });
-
-    it('should return TypeScript emoji for TS goals', () => {
-      expect(getEmojiForGoal('Learn TypeScript')).toBe('💙');
-      expect(getEmojiForGoal('ts advanced')).toBe('💙');
-    });
-
-    it('should return Go emoji for Go goals', () => {
-      expect(getEmojiForGoal('Learn Go')).toBe('🐹');
-      expect(getEmojiForGoal('golang basics')).toBe('🐹');
-    });
-
-    it('should return Java emoji (not JavaScript)', () => {
-      expect(getEmojiForGoal('Learn Java')).toBe('☕');
-    });
-
-    it('should return web emoji for web development', () => {
-      expect(getEmojiForGoal('Web Development')).toBe('🌐');
-      expect(getEmojiForGoal('HTML CSS')).toBe('🌐');
-    });
-
-    it('should return React emoji for React', () => {
-      expect(getEmojiForGoal('Learn React')).toBe('⚛️');
-    });
-
-    it('should return AI emoji for machine learning', () => {
-      expect(getEmojiForGoal('Machine Learning')).toBe('🤖');
-      expect(getEmojiForGoal('ML basics')).toBe('🤖');
-    });
-
-    it('should return default emoji for unknown goals', () => {
-      expect(getEmojiForGoal('Something random')).toBe('📚');
-    });
-
-    it('should handle language learning goals', () => {
-      expect(getEmojiForGoal('Learn Spanish')).toBe('🇪🇸');
-      expect(getEmojiForGoal('French lessons')).toBe('🇫🇷');
-      expect(getEmojiForGoal('Japanese language')).toBe('🇯🇵');
-    });
-
-    it('should handle skill-based goals', () => {
-      expect(getEmojiForGoal('Learn to cook')).toBe('🍳');
-      expect(getEmojiForGoal('Music lessons')).toBe('🎵');
-      expect(getEmojiForGoal('Drawing basics')).toBe('🎨');
-    });
-  });
-
-  describe('generateCourseId', () => {
-    it('should generate unique IDs', () => {
-      const ids = new Set<string>();
-      for (let i = 0; i < 100; i++) {
-        ids.add(generateCourseId());
-      }
-      expect(ids.size).toBe(100); // All unique
-    });
-
-    it('should start with course_ prefix', () => {
-      const id = generateCourseId();
-      expect(id.startsWith('course_')).toBe(true);
     });
   });
 });
