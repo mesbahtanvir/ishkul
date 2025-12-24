@@ -13,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/mesbahtanvir/ishkul/backend/internal/handlers"
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
+	"github.com/mesbahtanvir/ishkul/backend/internal/queue"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/crypto"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
@@ -100,6 +101,22 @@ func main() {
 	} else {
 		logger.Info(appLogger, ctx, "llm_initialized")
 	}
+
+	// Initialize queue processor for background content generation
+	var queueProcessor *queue.Processor
+	taskManager := queue.NewTaskManager(appLogger)
+	generatorFuncs := &queue.GeneratorFuncs{
+		CheckCanGenerate:       handlers.CheckCanGenerate,
+		IncrementTokenUsage:    handlers.IncrementTokenUsage,
+		GenerateCourseOutline:  handlers.GenerateCourseOutline,
+		GenerateBlockSkeletons: handlers.GenerateBlockSkeletons,
+		GenerateBlockContent:   handlers.GenerateBlockContent,
+		UpdateLessonBlocks:     handlers.UpdateLessonBlocks,
+		UpdateBlockContent:     handlers.UpdateBlockContent,
+	}
+	queueProcessor = queue.NewProcessor(taskManager, generatorFuncs, queue.DefaultProcessorConfig(), appLogger)
+	queueProcessor.Start()
+	logger.Info(appLogger, ctx, "queue_processor_started")
 
 	// Initialize Stripe
 	if err := handlers.InitializeStripe(); err != nil {
@@ -258,6 +275,13 @@ func main() {
 	<-quit
 
 	logger.Info(appLogger, ctx, "server_shutdown_signal_received")
+
+	// Stop queue processor first
+	if queueProcessor != nil {
+		logger.Info(appLogger, ctx, "stopping_queue_processor")
+		queueProcessor.Stop()
+		logger.Info(appLogger, ctx, "queue_processor_stopped")
+	}
 
 	// Graceful shutdown with timeout
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

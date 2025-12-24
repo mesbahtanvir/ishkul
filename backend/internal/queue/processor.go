@@ -26,6 +26,20 @@ type GeneratorFuncs struct {
 	// GenerateCourseOutline generates a course outline.
 	// Returns: outline, tokensUsed, error
 	GenerateCourseOutline func(ctx context.Context, goal, userTier string) (*models.CourseOutline, int64, error)
+
+	// GenerateBlockSkeletons generates block skeletons for a lesson.
+	// Returns: blocks, tokensUsed, error
+	GenerateBlockSkeletons func(ctx context.Context, course *models.Course, sectionID, lessonID, userTier string) ([]models.Block, int64, error)
+
+	// GenerateBlockContent generates content for a specific block.
+	// Returns: content, tokensUsed, error
+	GenerateBlockContent func(ctx context.Context, course *models.Course, sectionID, lessonID, blockID, userTier string) (*models.BlockContent, int64, error)
+
+	// UpdateLessonBlocks updates the blocks for a lesson in Firestore.
+	UpdateLessonBlocks func(ctx context.Context, courseID, sectionID, lessonID string, blocks []models.Block, blocksStatus string) error
+
+	// UpdateBlockContent updates the content for a block in Firestore.
+	UpdateBlockContent func(ctx context.Context, courseID, sectionID, lessonID, blockID string, content *models.BlockContent, contentStatus string) error
 }
 
 // ProcessorConfig contains configuration for the queue processor
@@ -270,11 +284,51 @@ func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.G
 		return &tokenLimitError{limitType: limitReached}
 	}
 
-	// This would generate block skeletons for a lesson
-	// Implementation depends on the specific generation logic
-	p.logInfo(ctx, "block_skeleton_generation_stub",
+	// Get course from Firestore
+	fs := p.taskManager.fs
+	if fs == nil {
+		return fmt.Errorf("firestore not available")
+	}
+
+	courseDoc, err := fs.Collection("courses").Doc(task.CourseID).Get(ctx)
+	if err != nil {
+		return fmt.Errorf("get course: %w", err)
+	}
+
+	var course models.Course
+	if err := courseDoc.DataTo(&course); err != nil {
+		return fmt.Errorf("parse course: %w", err)
+	}
+
+	if p.generators.GenerateBlockSkeletons == nil {
+		return fmt.Errorf("block skeleton generator not configured")
+	}
+
+	// Generate block skeletons
+	blocks, tokensUsed, err := p.generators.GenerateBlockSkeletons(ctx, &course, task.SectionID, task.LessonID, task.UserTier)
+	if err != nil {
+		return fmt.Errorf("generate block skeletons: %w", err)
+	}
+
+	// Record token usage
+	if tokensUsed > 0 && p.generators.IncrementTokenUsage != nil {
+		_, _, _ = p.generators.IncrementTokenUsage(ctx, task.UserID, task.UserTier, tokensUsed, 0)
+	}
+
+	// Save blocks to the lesson
+	if p.generators.UpdateLessonBlocks == nil {
+		return fmt.Errorf("update lesson blocks function not configured")
+	}
+
+	if err := p.generators.UpdateLessonBlocks(ctx, task.CourseID, task.SectionID, task.LessonID, blocks, models.ContentStatusReady); err != nil {
+		return fmt.Errorf("update lesson blocks: %w", err)
+	}
+
+	p.logInfo(ctx, "block_skeletons_generated",
 		slog.String("course_id", task.CourseID),
 		slog.String("lesson_id", task.LessonID),
+		slog.Int("block_count", len(blocks)),
+		slog.Int64("tokens_used", tokensUsed),
 	)
 
 	return nil
@@ -295,11 +349,50 @@ func (p *Processor) processBlockContentTask(ctx context.Context, task *models.Ge
 		return &tokenLimitError{limitType: limitReached}
 	}
 
-	// This would generate content for a specific block
-	// Implementation depends on the specific generation logic
-	p.logInfo(ctx, "block_content_generation_stub",
+	// Get course from Firestore
+	fs := p.taskManager.fs
+	if fs == nil {
+		return fmt.Errorf("firestore not available")
+	}
+
+	courseDoc, err := fs.Collection("courses").Doc(task.CourseID).Get(ctx)
+	if err != nil {
+		return fmt.Errorf("get course: %w", err)
+	}
+
+	var course models.Course
+	if err := courseDoc.DataTo(&course); err != nil {
+		return fmt.Errorf("parse course: %w", err)
+	}
+
+	if p.generators.GenerateBlockContent == nil {
+		return fmt.Errorf("block content generator not configured")
+	}
+
+	// Generate block content
+	content, tokensUsed, err := p.generators.GenerateBlockContent(ctx, &course, task.SectionID, task.LessonID, task.BlockID, task.UserTier)
+	if err != nil {
+		return fmt.Errorf("generate block content: %w", err)
+	}
+
+	// Record token usage
+	if tokensUsed > 0 && p.generators.IncrementTokenUsage != nil {
+		_, _, _ = p.generators.IncrementTokenUsage(ctx, task.UserID, task.UserTier, tokensUsed, 0)
+	}
+
+	// Save content to the block
+	if p.generators.UpdateBlockContent == nil {
+		return fmt.Errorf("update block content function not configured")
+	}
+
+	if err := p.generators.UpdateBlockContent(ctx, task.CourseID, task.SectionID, task.LessonID, task.BlockID, content, models.ContentStatusReady); err != nil {
+		return fmt.Errorf("update block content: %w", err)
+	}
+
+	p.logInfo(ctx, "block_content_generated",
 		slog.String("course_id", task.CourseID),
 		slog.String("block_id", task.BlockID),
+		slog.Int64("tokens_used", tokensUsed),
 	)
 
 	return nil
