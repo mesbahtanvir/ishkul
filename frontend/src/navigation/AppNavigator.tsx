@@ -20,10 +20,9 @@ import { RootStackParamList } from '../types/navigation';
 import { LoginScreen } from '../screens/LoginScreen';
 import { GoalSelectionScreen } from '../screens/GoalSelectionScreen';
 import { HomeScreen } from '../screens/HomeScreen';
-import { CourseGeneratingScreen } from '../screens/CourseGeneratingScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { ContextScreen } from '../screens/ContextScreen';
-// Unified course experience (SPA-like)
+// Unified course experience (SPA-like) - handles generating, overview, and lesson states
 import { CourseViewScreen } from '../screens/CourseViewScreen';
 
 // Legacy route wrappers - redirect to CourseView
@@ -46,6 +45,14 @@ const LessonRedirect: React.FC<NativeStackScreenProps<RootStackParamList, 'Lesso
       sectionId: route.params.sectionId,
     });
   }, [navigation, route.params]);
+  return null;
+};
+
+// Wrapper for legacy CourseGenerating route - redirects to CourseView (handles generating state internally)
+const CourseGeneratingRedirect: React.FC<NativeStackScreenProps<RootStackParamList, 'CourseGenerating'>> = ({ navigation, route }) => {
+  React.useEffect(() => {
+    navigation.replace('CourseView', { courseId: route.params.courseId });
+  }, [navigation, route.params.courseId]);
   return null;
 };
 
@@ -142,11 +149,11 @@ const LearnStack = () => {
     >
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
-      {/* Course generation screen - shows progress while outline is being generated */}
-      <Stack.Screen name="CourseGenerating" component={CourseGeneratingScreen} />
       {/* Unified course view - SPA-like experience for course and lessons */}
+      {/* Handles generating, overview, and lesson states internally */}
       <Stack.Screen name="CourseView" component={CourseViewScreen} />
       {/* Legacy routes - redirect to CourseView for backward compatibility */}
+      <Stack.Screen name="CourseGenerating" component={CourseGeneratingRedirect} />
       <Stack.Screen name="CourseOutline" component={CourseOutlineRedirect} />
       <Stack.Screen name="Lesson" component={LessonRedirect} />
     </Stack.Navigator>

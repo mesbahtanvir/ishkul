@@ -83,8 +83,8 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
           is_first_path: false,
         });
 
-        // Navigate to CourseGenerating to show outline generation progress
-        navigation.navigate('CourseGenerating', { courseId: createdPath.id });
+        // Navigate directly to CourseView (handles generating state internally)
+        navigation.navigate('CourseView', { courseId: createdPath.id });
       } else {
         // First-time user - create user document then create first learning path
         await userApi.createUserDocument();
@@ -115,11 +115,11 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
             is_first_path: true,
           });
 
-          // Navigate to Main first, then to CourseGenerating
+          // Navigate to Main first, then to CourseView
           navigation.replace('Main');
-          // Use setTimeout to ensure Main is mounted before navigating to CourseGenerating
+          // Use setTimeout to ensure Main is mounted before navigating
           setTimeout(() => {
-            navigation.navigate('CourseGenerating', { courseId: createdPath.id });
+            navigation.navigate('CourseView', { courseId: createdPath.id });
           }, 100);
         } else {
           // Fallback: just navigate to Main

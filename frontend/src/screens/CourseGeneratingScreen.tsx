@@ -149,13 +149,36 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
     };
   }, [pollPath]);
 
+  // Auto-navigate to first lesson when course is ready (frictionless flow)
+  useEffect(() => {
+    if (path?.outlineStatus === OutlineStatuses.READY) {
+      // Small delay for smooth transition
+      const timer = setTimeout(() => {
+        if (path?.outline?.sections && path.outline.sections.length > 0) {
+          const firstSection = path.outline.sections[0];
+          if (firstSection.lessons && firstSection.lessons.length > 0) {
+            const firstLesson = firstSection.lessons[0];
+            navigation.replace('CourseView', {
+              courseId,
+              lessonId: firstLesson.id,
+              sectionId: firstSection.id,
+            });
+            return;
+          }
+        }
+        // Fallback to overview if no lessons found
+        navigation.replace('CourseView', { courseId });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [path?.outlineStatus, path?.outline?.sections, courseId, navigation]);
+
+  // Fallback handlers in case auto-navigation doesn't trigger
   const handleViewOutline = () => {
-    // Navigate to unified CourseView (shows overview)
     navigation.replace('CourseView', { courseId });
   };
 
   const handleStartFirstLesson = () => {
-    // Navigate to CourseView with first lesson pre-selected
     if (path?.outline?.sections && path.outline.sections.length > 0) {
       const firstSection = path.outline.sections[0];
       if (firstSection.lessons && firstSection.lessons.length > 0) {
@@ -168,7 +191,6 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
         return;
       }
     }
-    // Fallback to overview if no lessons found
     navigation.replace('CourseView', { courseId });
   };
 

@@ -59,6 +59,13 @@ interface LearningLayoutProps {
    * Used by CourseViewScreen for internal state management.
    */
   onLessonSelect?: (lesson: Lesson, sectionId: string) => void;
+  /**
+   * Whether the course is in generating state (outline being created).
+   * When true, shows a blurred skeleton sidebar instead of the actual outline.
+   */
+  isGenerating?: boolean;
+  /** Course title for generating state display */
+  courseTitle?: string;
 }
 
 /**
@@ -236,6 +243,103 @@ const SectionCard: React.FC<SectionCardProps> = ({
           })}
         </View>
       )}
+    </View>
+  );
+};
+
+/**
+ * Generating Sidebar - Blurred skeleton shown while course is being generated
+ */
+interface GeneratingSidebarProps {
+  courseTitle?: string;
+}
+
+const GeneratingSidebar: React.FC<GeneratingSidebarProps> = ({ courseTitle }) => {
+  const { colors } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.sidebar,
+        styles.generatingSidebar,
+        { backgroundColor: colors.background.secondary, borderRightColor: colors.border },
+      ]}
+    >
+      {/* Header skeleton */}
+      <View style={[styles.sidebarHeader, { borderBottomColor: colors.border }]}>
+        <View style={styles.sidebarHeaderContent}>
+          <View style={[styles.skeletonLine, styles.skeletonTitle, { backgroundColor: colors.border }]} />
+          <View style={[styles.skeletonLine, styles.skeletonSubtitle, { backgroundColor: colors.border }]} />
+        </View>
+      </View>
+
+      {/* Course progress skeleton */}
+      <View style={[styles.courseProgress, { backgroundColor: colors.background.primary }]}>
+        <View style={styles.courseProgressHeader}>
+          <Text style={[styles.courseProgressTitle, { color: colors.text.secondary }]} numberOfLines={1}>
+            {courseTitle || 'Creating course...'}
+          </Text>
+        </View>
+        <View style={[styles.skeletonProgressBar, { backgroundColor: colors.border }]} />
+      </View>
+
+      {/* Skeleton sections */}
+      <View style={styles.sectionsList}>
+        {[1, 2, 3].map((i) => (
+          <View
+            key={i}
+            style={[
+              styles.sectionCard,
+              styles.skeletonSection,
+              { borderColor: colors.border, opacity: 0.6 - i * 0.15 },
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <View
+                  style={[
+                    styles.sectionNumber,
+                    styles.skeletonCircle,
+                    { backgroundColor: colors.border },
+                  ]}
+                />
+                <View style={styles.sectionInfo}>
+                  <View style={[styles.skeletonLine, styles.skeletonSectionTitle, { backgroundColor: colors.border }]} />
+                  <View style={[styles.skeletonLine, styles.skeletonSectionStats, { backgroundColor: colors.border }]} />
+                  <View style={[styles.skeletonProgressBar, { backgroundColor: colors.border }]} />
+                </View>
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Blur overlay */}
+      <View style={styles.blurOverlay} />
+    </View>
+  );
+};
+
+/**
+ * Generating Mobile Progress Bar - Skeleton shown while generating
+ */
+const GeneratingMobileProgressBar: React.FC<{ courseTitle?: string }> = ({ courseTitle }) => {
+  const { colors } = useTheme();
+
+  return (
+    <View
+      style={[styles.mobileProgressBar, styles.generatingMobileBar, { backgroundColor: colors.background.secondary }]}
+    >
+      <View style={styles.mobileProgressContent}>
+        <View style={styles.mobileProgressInfo}>
+          <View style={styles.mobileProgressTextRow}>
+            <Text style={[styles.mobileProgressLabel, { color: colors.text.secondary }]}>
+              {courseTitle || 'Generating...'}
+            </Text>
+          </View>
+          <View style={[styles.skeletonProgressBar, { backgroundColor: colors.border }]} />
+        </View>
+      </View>
     </View>
   );
 };
@@ -489,6 +593,8 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
   title,
   scrollable = true,
   onLessonSelect,
+  isGenerating = false,
+  courseTitle,
 }) => {
   const { colors } = useTheme();
   const { isMobile } = useResponsive();
@@ -575,13 +681,17 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
           </View>
         )}
 
-        {/* Mobile progress bar */}
-        {course && hasOutline && (
-          <MobileProgressBar
-            course={course}
-            currentPosition={currentPosition}
-            onPress={() => setDrawerVisible(true)}
-          />
+        {/* Mobile progress bar - show skeleton when generating */}
+        {isGenerating ? (
+          <GeneratingMobileProgressBar courseTitle={courseTitle} />
+        ) : (
+          course && hasOutline && (
+            <MobileProgressBar
+              course={course}
+              currentPosition={currentPosition}
+              onPress={() => setDrawerVisible(true)}
+            />
+          )
         )}
 
         {/* Main content */}
@@ -608,15 +718,19 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
   return (
     <Container>
       <View style={styles.webLayout}>
-        {/* Sidebar */}
-        {course && (
-          <LearningSidebar
-            course={course}
-            currentPosition={currentPosition}
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={toggleSidebar}
-            onLessonPress={handleLessonPress}
-          />
+        {/* Sidebar - show skeleton when generating, real sidebar otherwise */}
+        {isGenerating ? (
+          <GeneratingSidebar courseTitle={courseTitle} />
+        ) : (
+          course && (
+            <LearningSidebar
+              course={course}
+              currentPosition={currentPosition}
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={toggleSidebar}
+              onLessonPress={handleLessonPress}
+            />
+          )
         )}
 
         {/* Main content */}
@@ -918,6 +1032,58 @@ const styles = StyleSheet.create({
   },
   mobileTapIcon: {
     fontSize: 18,
+  },
+
+  // Generating/Skeleton styles
+  generatingSidebar: {
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  generatingMobileBar: {
+    opacity: 0.8,
+  },
+  blurOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  skeletonLine: {
+    borderRadius: 4,
+    height: 12,
+  },
+  skeletonTitle: {
+    width: '70%',
+    height: 16,
+    marginBottom: 6,
+  },
+  skeletonSubtitle: {
+    width: '50%',
+    height: 12,
+  },
+  skeletonProgressBar: {
+    height: 6,
+    borderRadius: 3,
+    marginTop: 4,
+  },
+  skeletonSection: {
+    paddingBottom: Spacing.sm,
+  },
+  skeletonCircle: {
+    width: 24,
+    height: 24,
+  },
+  skeletonSectionTitle: {
+    width: '80%',
+    height: 14,
+    marginBottom: 4,
+  },
+  skeletonSectionStats: {
+    width: '60%',
+    height: 10,
+    marginBottom: 4,
   },
 });
 

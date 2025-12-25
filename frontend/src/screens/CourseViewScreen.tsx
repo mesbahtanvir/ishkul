@@ -33,8 +33,19 @@ import {
   Section,
   LessonPosition,
   LessonStatus,
+  OutlineStatuses,
   getCourseTitle,
 } from '../types/app';
+
+// Progress messages for generating state (rotate every 3s)
+const GENERATING_MESSAGES = [
+  'Analyzing your learning goal...',
+  'Designing personalized curriculum...',
+  'Structuring course modules...',
+  'Creating topic breakdowns...',
+  'Optimizing learning sequence...',
+  'Almost ready...',
+];
 
 type CourseViewScreenProps = NativeStackScreenProps<RootStackParamList, 'CourseView'>;
 
@@ -71,6 +82,46 @@ const getLessonStatusColor = (
     default:
       return colors.text.primary;
   }
+};
+
+/**
+ * Generating Content - shown while course outline is being generated
+ */
+interface GeneratingContentProps {
+  courseTitle?: string;
+}
+
+const GeneratingContent: React.FC<GeneratingContentProps> = ({ courseTitle }) => {
+  const { colors } = useTheme();
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  // Rotate messages every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % GENERATING_MESSAGES.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <View style={styles.generatingContainer}>
+      <View style={styles.generatingContent}>
+        <Text style={[styles.generatingMessage, { color: colors.text.primary }]}>
+          {GENERATING_MESSAGES[messageIndex]}
+        </Text>
+        <View style={styles.generatingDots}>
+          <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+          <View style={[styles.dot, styles.dotDelay1, { backgroundColor: colors.primary }]} />
+          <View style={[styles.dot, styles.dotDelay2, { backgroundColor: colors.primary }]} />
+        </View>
+        {courseTitle && (
+          <Text style={[styles.generatingCourseTitle, { color: colors.text.secondary }]}>
+            {courseTitle}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
 };
 
 /**
@@ -486,6 +537,9 @@ const LessonContent: React.FC<LessonContentProps> = ({
   );
 };
 
+// Polling interval for generating state (2 seconds)
+const POLLING_INTERVAL = 2000;
+
 /**
  * Main CourseViewScreen component
  */
@@ -508,9 +562,18 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load course if not already loaded
+  // Detect if course is in generating state
+  const isGenerating =
+    activeCourse?.id === courseId &&
+    activeCourse.outlineStatus !== OutlineStatuses.READY &&
+    activeCourse.outlineStatus !== OutlineStatuses.FAILED;
+
+  // Load course and poll if generating
   useEffect(() => {
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
     const loadCourse = async () => {
+      // Skip initial loading if we already have this course loaded
       if (activeCourse?.id === courseId && activeCourse.outline) {
         return;
       }
@@ -530,8 +593,74 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
       }
     };
 
+    const pollCourse = async () => {
+      try {
+        const course = await coursesApi.getCourse(courseId);
+        if (course) {
+          setActiveCourse(course);
+          // Stop polling when ready or failed
+          if (
+            course.outlineStatus === OutlineStatuses.READY ||
+            course.outlineStatus === OutlineStatuses.FAILED
+          ) {
+            if (pollTimer) {
+              clearInterval(pollTimer);
+              pollTimer = null;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error polling course:', err);
+      }
+    };
+
     loadCourse();
-  }, [courseId, activeCourse, setActiveCourse]);
+
+    // Set up polling if course is generating
+    if (
+      activeCourse?.id === courseId &&
+      activeCourse.outlineStatus !== OutlineStatuses.READY &&
+      activeCourse.outlineStatus !== OutlineStatuses.FAILED
+    ) {
+      pollTimer = setInterval(pollCourse, POLLING_INTERVAL);
+    }
+
+    return () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+      }
+    };
+  }, [courseId, activeCourse?.id, activeCourse?.outlineStatus, setActiveCourse]);
+
+  // Auto-start first lesson for courses with 0% progress (frictionless flow)
+  // Only triggers when coming from Home without a specific lesson selected
+  useEffect(() => {
+    // Skip if already showing a lesson or if lesson was specified in route
+    if (activeLesson || initialLessonId) return;
+    // Skip if course not loaded yet
+    if (!activeCourse?.outline?.sections) return;
+
+    // Check if course has 0% progress (no completed lessons)
+    const allLessons = activeCourse.outline.sections.flatMap((s) => s.lessons);
+    const hasProgress = allLessons.some((l) => l.status === 'completed' || l.status === 'in_progress');
+
+    // Auto-start first lesson only for brand new courses
+    if (!hasProgress) {
+      const firstSection = activeCourse.outline.sections[0];
+      if (firstSection?.lessons?.length > 0) {
+        const firstLesson = firstSection.lessons[0];
+        // Small delay for smooth transition
+        const timer = setTimeout(() => {
+          setActiveLesson({
+            lessonId: firstLesson.id,
+            sectionId: firstSection.id,
+            lesson: firstLesson,
+          });
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [activeCourse, activeLesson, initialLessonId]);
 
   // Handle lesson selection from overview or sidebar
   const handleLessonSelect = useCallback((lesson: Lesson, sectionId: string) => {
@@ -620,7 +749,25 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
     );
   }
 
-  // No course or outline
+  // Get course title for generating state
+  const courseTitle = activeCourse ? getCourseTitle(activeCourse) : undefined;
+
+  // Generating state - show blurred sidebar with motivational content
+  if (isGenerating) {
+    return (
+      <LearningLayout
+        courseId={courseId}
+        currentPosition={currentPosition}
+        title={courseTitle || 'Creating Your Course'}
+        isGenerating={true}
+        courseTitle={courseTitle}
+      >
+        <GeneratingContent courseTitle={courseTitle} />
+      </LearningLayout>
+    );
+  }
+
+  // No course or outline (after generation complete or error)
   if (!activeCourse?.outline?.sections) {
     return (
       <LearningLayout courseId={courseId} currentPosition={currentPosition} title="Not Found">
@@ -689,7 +836,45 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
 
-  // Generating
+  // Generating - full screen state
+  generatingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  generatingContent: {
+    alignItems: 'center',
+    maxWidth: 400,
+  },
+  generatingMessage: {
+    ...Typography.heading.h2,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  generatingDots: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xl,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    opacity: 0.6,
+  },
+  dotDelay1: {
+    opacity: 0.4,
+  },
+  dotDelay2: {
+    opacity: 0.2,
+  },
+  generatingCourseTitle: {
+    ...Typography.body.medium,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  // Generating - lesson level
   generatingEmoji: {
     fontSize: 64,
     marginBottom: Spacing.md,
