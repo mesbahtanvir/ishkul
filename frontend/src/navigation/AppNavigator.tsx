@@ -20,13 +20,11 @@ import { RootStackParamList } from '../types/navigation';
 import { LoginScreen } from '../screens/LoginScreen';
 import { GoalSelectionScreen } from '../screens/GoalSelectionScreen';
 import { HomeScreen } from '../screens/HomeScreen';
-import { CourseScreen } from '../screens/CourseScreen';
 import { CourseGeneratingScreen } from '../screens/CourseGeneratingScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { ContextScreen } from '../screens/ContextScreen';
 // Lesson-based screens (3-stage generation)
 import { LessonScreen } from '../screens/LessonScreen';
-import { LessonCompleteScreen } from '../screens/LessonCompleteScreen';
 import { CourseOutlineScreen } from '../screens/CourseOutlineScreen';
 
 // Initialize tool registry
@@ -62,10 +60,13 @@ const linking: LinkingOptions<RootStackParamList> = {
               Home: 'home',
               GoalSelection: 'goal-selection',
               CourseGenerating: 'course-generating',
-              Course: 'course',
-              CourseOutline: 'course-outline',
+              // Note: 'course' URLs are handled via CourseOutline for backward compatibility
+              CourseOutline: {
+                path: 'course-outline',
+                // Also handle legacy 'course' URLs
+                alias: ['course'],
+              },
               Lesson: 'lesson',
-              LessonComplete: 'lesson-complete',
             },
           },
           Progress: 'progress',
@@ -113,14 +114,10 @@ const LearnStack = () => {
       <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
       {/* Course generation screen - shows progress while outline is being generated */}
       <Stack.Screen name="CourseGenerating" component={CourseGeneratingScreen} />
-      {/* Main course view - redirects to CourseOutline */}
-      <Stack.Screen name="Course" component={CourseScreen} />
       {/* Course outline view - sections and lessons */}
       <Stack.Screen name="CourseOutline" component={CourseOutlineScreen} />
       {/* Lesson content with blocks */}
       <Stack.Screen name="Lesson" component={LessonScreen} />
-      {/* Lesson completion summary */}
-      <Stack.Screen name="LessonComplete" component={LessonCompleteScreen} />
     </Stack.Navigator>
   );
 };
