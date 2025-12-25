@@ -146,8 +146,8 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Goal == "" {
-		SendError(w, http.StatusBadRequest, "MISSING_GOAL", "Goal is required")
+	if req.Title == "" {
+		SendError(w, http.StatusBadRequest, "MISSING_TITLE", "Title is required")
 		return
 	}
 
@@ -173,7 +173,7 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate course outline in background
-	go generateCourseOutlineAsync(course.ID, req.Goal, rc.UserID)
+	go generateCourseOutlineAsync(course.ID, req.Title, rc.UserID)
 
 	SendCreated(w, map[string]interface{}{
 		"course": course,
@@ -222,20 +222,16 @@ func buildNewCourse(userID string, req models.CourseCreate) models.Course {
 	return models.Course{
 		ID:               courseID,
 		UserID:           userID,
-		Goal:             req.Goal,
+		Title:            req.Title,
 		Emoji:            req.Emoji,
 		Status:           models.CourseStatusActive,
 		OutlineStatus:    models.OutlineStatusGenerating,
 		Progress:         0,
 		LessonsCompleted: 0,
 		TotalLessons:     0,
-		Steps:            []models.Step{},
-		Memory: &models.Memory{
-			Topics: make(map[string]models.TopicMemory),
-		},
-		CreatedAt:      now,
-		UpdatedAt:      now,
-		LastAccessedAt: now,
+		CreatedAt:        now,
+		UpdatedAt:        now,
+		LastAccessedAt:   now,
 	}
 }
 
@@ -333,30 +329,13 @@ func initializeLessonPosition(outline *models.CourseOutline) *models.LessonPosit
 }
 
 // triggerPostOutlinePregeneration triggers pregeneration after outline is ready.
-func triggerPostOutlinePregeneration(ctx context.Context, fs *firestore.Client, courseID, userID, goal string, outline *models.CourseOutline, currentPosition *models.LessonPosition) {
-	if pregenerateService == nil {
-		return
-	}
-
-	pathWithOutline := models.Course{
-		ID:              courseID,
-		UserID:          userID,
-		Goal:            goal,
-		Steps:           []models.Step{},
-		Outline:         outline,
-		CurrentPosition: currentPosition,
-		Memory: &models.Memory{
-			Topics: make(map[string]models.TopicMemory),
-		},
-	}
-
-	pregenerateTier := getUserTierForPregeneration(ctx, fs, userID)
-	pregenerateService.TriggerPregeneration(&pathWithOutline, pregenerateTier)
-
+// Note: Pregeneration service removed - will be replaced by queue system
+func triggerPostOutlinePregeneration(ctx context.Context, fs *firestore.Client, courseID, userID, title string, outline *models.CourseOutline, currentPosition *models.LessonPosition) {
+	// TODO: Queue system will handle auto-generation of blocks
 	if appLogger != nil {
-		logger.Info(appLogger, ctx, "pregeneration_triggered_after_outline",
+		logger.Info(appLogger, ctx, "outline_ready_for_generation",
 			slog.String("path_id", courseID),
-			slog.String("user_tier", pregenerateTier),
+			slog.String("title", title),
 		)
 	}
 }
@@ -426,8 +405,8 @@ func buildCourseUpdates(req models.CourseUpdate) []firestore.Update {
 		{Path: "lastAccessedAt", Value: now},
 	}
 
-	if req.Goal != nil {
-		updates = append(updates, firestore.Update{Path: "goal", Value: *req.Goal})
+	if req.Title != nil {
+		updates = append(updates, firestore.Update{Path: "title", Value: *req.Title})
 	}
 	if req.Emoji != nil {
 		updates = append(updates, firestore.Update{Path: "emoji", Value: *req.Emoji})
@@ -562,12 +541,8 @@ func unarchiveCourse(w http.ResponseWriter, r *http.Request, courseID string) {
 		return
 	}
 
-	// Trigger pregeneration for the unarchived path
+	// Course restored - queue system will handle any needed regeneration
 	course.Status = models.CourseStatusActive
-	if pregenerateService != nil {
-		pregenerateTier := getUserTierForPregeneration(rc.Ctx, rc.FS, rc.UserID)
-		pregenerateService.TriggerPregeneration(course, pregenerateTier)
-	}
 
 	SendSuccess(w, map[string]interface{}{
 		"success": true,

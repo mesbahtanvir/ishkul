@@ -19,15 +19,17 @@ interface SubscriptionState {
   paidUntil: Date | null;
   limits: UsageLimits | null;
   canUpgrade: boolean;
-  canGenerateSteps: boolean;
-  canCreateCourse: boolean;
+  canGenerate: boolean;
+  canCreatePath: boolean;
   dailyLimitResetAt: Date | null;
+  weeklyLimitResetAt: Date | null;
+  limitReached: string | null;
 
   // UI state
   loading: boolean;
   error: string | null;
   showUpgradeModal: boolean;
-  upgradeModalReason: 'path_limit' | 'step_limit' | 'general' | null;
+  upgradeModalReason: 'path_limit' | 'token_limit' | 'general' | null;
 
   // Checkout tracking
   checkoutInProgress: boolean;
@@ -38,14 +40,15 @@ interface SubscriptionState {
   startNativeCheckout: () => Promise<{ success: boolean; error?: string }>;
   verifyCheckout: (sessionId: string) => Promise<{ success: boolean; tier: TierType; error?: string }>;
   openPortal: (returnUrl?: string) => Promise<string | null>;
-  showUpgradePrompt: (reason: 'path_limit' | 'step_limit' | 'general') => void;
+  showUpgradePrompt: (reason: 'path_limit' | 'token_limit' | 'general') => void;
   hideUpgradePrompt: () => void;
   reset: () => void;
 }
 
 const defaultLimits: UsageLimits = {
-  dailySteps: { used: 0, limit: 100 },
-  activeCourses: { used: 0, limit: 2 },
+  dailyTokens: { used: 0, limit: 100000 },
+  weeklyTokens: { used: 0, limit: 1000000 },
+  activePaths: { used: 0, limit: 2 },
 };
 
 export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
@@ -55,9 +58,11 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   paidUntil: null,
   limits: defaultLimits,
   canUpgrade: true,
-  canGenerateSteps: true,
-  canCreateCourse: true,
+  canGenerate: true,
+  canCreatePath: true,
   dailyLimitResetAt: null,
+  weeklyLimitResetAt: null,
+  limitReached: null,
   loading: false,
   error: null,
   showUpgradeModal: false,
@@ -74,9 +79,11 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         paidUntil: response.paidUntil ? new Date(response.paidUntil) : null,
         limits: response.limits,
         canUpgrade: response.canUpgrade,
-        canGenerateSteps: response.canGenerateSteps,
-        canCreateCourse: response.canCreateCourse,
+        canGenerate: response.canGenerate,
+        canCreatePath: response.canCreatePath,
         dailyLimitResetAt: response.dailyLimitResetAt ? new Date(response.dailyLimitResetAt) : null,
+        weeklyLimitResetAt: response.weeklyLimitResetAt ? new Date(response.weeklyLimitResetAt) : null,
+        limitReached: response.limitReached ?? null,
         loading: false,
       });
     } catch (error) {
@@ -228,9 +235,11 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       paidUntil: null,
       limits: defaultLimits,
       canUpgrade: true,
-      canGenerateSteps: true,
-      canCreateCourse: true,
+      canGenerate: true,
+      canCreatePath: true,
       dailyLimitResetAt: null,
+      weeklyLimitResetAt: null,
+      limitReached: null,
       loading: false,
       error: null,
       showUpgradeModal: false,
@@ -289,7 +298,7 @@ setupVisibilityListener();
 export const useIsPro = () => useSubscriptionStore((state) => state.tier === 'pro');
 
 // Helper to get usage percentage
-export const useUsagePercentage = (type: 'dailySteps' | 'activeCourses') => {
+export const useUsagePercentage = (type: 'dailyTokens' | 'weeklyTokens' | 'activePaths') => {
   return useSubscriptionStore((state) => {
     if (!state.limits) return 0;
     const limit = state.limits[type];

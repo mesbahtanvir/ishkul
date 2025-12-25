@@ -263,26 +263,32 @@ func TestPortalSessionResponse(t *testing.T) {
 func TestSubscriptionStatus(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
 		paidUntil := time.Now().Add(30 * 24 * time.Hour)
-		resetAt := time.Now().Add(24 * time.Hour)
+		dailyResetAt := time.Now().Add(24 * time.Hour)
+		weeklyResetAt := time.Now().Add(7 * 24 * time.Hour)
 
 		status := models.SubscriptionStatus{
 			Tier:   models.TierPro,
 			Status: models.SubscriptionStatusActive,
 			Limits: models.UsageLimits{
-				DailySteps: models.UsageLimit{
-					Used:  50,
-					Limit: 1000,
+				DailyTokens: models.UsageLimit{
+					Used:  50000,
+					Limit: 500000,
+				},
+				WeeklyTokens: models.UsageLimit{
+					Used:  200000,
+					Limit: 5000000,
 				},
 				ActivePaths: models.UsageLimit{
 					Used:  3,
 					Limit: 5,
 				},
 			},
-			PaidUntil:         &paidUntil,
-			CanUpgrade:        false,
-			CanGenerateSteps:  true,
-			CanCreatePath:     true,
-			DailyLimitResetAt: &resetAt,
+			PaidUntil:          &paidUntil,
+			CanUpgrade:         false,
+			CanGenerate:        true,
+			CanCreatePath:      true,
+			DailyLimitResetAt:  &dailyResetAt,
+			WeeklyLimitResetAt: &weeklyResetAt,
 		}
 
 		jsonBytes, err := json.Marshal(status)
@@ -297,18 +303,20 @@ func TestSubscriptionStatus(t *testing.T) {
 		assert.Contains(t, parsed, "limits")
 		assert.Contains(t, parsed, "paidUntil")
 		assert.Contains(t, parsed, "canUpgrade")
-		assert.Contains(t, parsed, "canGenerateSteps")
+		assert.Contains(t, parsed, "canGenerate")
 		assert.Contains(t, parsed, "canCreatePath")
 		assert.Contains(t, parsed, "dailyLimitResetAt")
+		assert.Contains(t, parsed, "weeklyLimitResetAt")
 
 		// Verify nested limits structure
 		limits := parsed["limits"].(map[string]interface{})
-		assert.Contains(t, limits, "dailySteps")
+		assert.Contains(t, limits, "dailyTokens")
+		assert.Contains(t, limits, "weeklyTokens")
 		assert.Contains(t, limits, "activePaths")
 
-		dailySteps := limits["dailySteps"].(map[string]interface{})
-		assert.Equal(t, float64(50), dailySteps["used"])
-		assert.Equal(t, float64(1000), dailySteps["limit"])
+		dailyTokens := limits["dailyTokens"].(map[string]interface{})
+		assert.Equal(t, float64(50000), dailyTokens["used"])
+		assert.Equal(t, float64(500000), dailyTokens["limit"])
 
 		activePaths := limits["activePaths"].(map[string]interface{})
 		assert.Equal(t, float64(3), activePaths["used"])
@@ -320,8 +328,9 @@ func TestSubscriptionStatus(t *testing.T) {
 			Tier:   models.TierFree,
 			Status: "",
 			Limits: models.UsageLimits{
-				DailySteps:  models.UsageLimit{Used: 0, Limit: 100},
-				ActivePaths: models.UsageLimit{Used: 0, Limit: 2},
+				DailyTokens:  models.UsageLimit{Used: 0, Limit: 100000},
+				WeeklyTokens: models.UsageLimit{Used: 0, Limit: 1000000},
+				ActivePaths:  models.UsageLimit{Used: 0, Limit: 2},
 			},
 			PaidUntil:  nil,
 			CanUpgrade: true,
@@ -339,25 +348,33 @@ func TestSubscriptionStatus(t *testing.T) {
 	})
 }
 
-func TestDailyUsage(t *testing.T) {
+func TestTokenUsage(t *testing.T) {
 	t.Run("struct has correct firestore tags", func(t *testing.T) {
-		usage := models.DailyUsage{
-			Date:       "2025-12-02",
-			StepsUsed:  75,
-			LastUpdate: time.Now(),
+		usage := models.TokenUsage{
+			Period:       "2025-12-02",
+			InputTokens:  5000,
+			OutputTokens: 2500,
+			TotalTokens:  7500,
+			LastUpdate:   time.Now(),
 		}
 
-		assert.Equal(t, "2025-12-02", usage.Date)
-		assert.Equal(t, 75, usage.StepsUsed)
+		assert.Equal(t, "2025-12-02", usage.Period)
+		assert.Equal(t, int64(5000), usage.InputTokens)
+		assert.Equal(t, int64(2500), usage.OutputTokens)
+		assert.Equal(t, int64(7500), usage.TotalTokens)
 	})
 }
 
 func TestUsageLimits(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
 		limits := models.UsageLimits{
-			DailySteps: models.UsageLimit{
-				Used:  100,
-				Limit: 1000,
+			DailyTokens: models.UsageLimit{
+				Used:  100000,
+				Limit: 500000,
+			},
+			WeeklyTokens: models.UsageLimit{
+				Used:  500000,
+				Limit: 5000000,
 			},
 			ActivePaths: models.UsageLimit{
 				Used:  2,
@@ -372,7 +389,8 @@ func TestUsageLimits(t *testing.T) {
 		err = json.Unmarshal(jsonBytes, &parsed)
 		require.NoError(t, err)
 
-		assert.Contains(t, parsed, "dailySteps")
+		assert.Contains(t, parsed, "dailyTokens")
+		assert.Contains(t, parsed, "weeklyTokens")
 		assert.Contains(t, parsed, "activePaths")
 	})
 }

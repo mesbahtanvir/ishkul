@@ -24,13 +24,17 @@ export const QuizTool: LearningTool<QuizData> = {
 
   Renderer: QuizRenderer,
 
-  extractData: (step) => ({
-    question: step.question || '',
-    expectedAnswer: step.expectedAnswer || '',
-    options: step.options,
-    topic: step.topic,
-    title: step.title,
-  }),
+  extractData: (block) => {
+    const question = block.content?.question?.question;
+    return {
+      question: question?.text || '',
+      expectedAnswer: question?.correctAnswer || '',
+      options: question?.options?.map((opt) => opt.text),
+      explanation: question?.explanation,
+      topic: block.purpose,
+      title: block.title,
+    };
+  },
 
   validate: isQuizData,
 };

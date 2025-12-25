@@ -311,7 +311,7 @@ func TestCreateCourse(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "Invalid request body")
 	})
 
-	t.Run("rejects missing goal", func(t *testing.T) {
+	t.Run("rejects missing title", func(t *testing.T) {
 		body := `{}`
 		req := createCourseRequest(http.MethodPost, "/api/courses", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
@@ -319,18 +319,18 @@ func TestCreateCourse(t *testing.T) {
 		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Goal is required")
+		assert.Contains(t, rr.Body.String(), "Title is required")
 	})
 
-	t.Run("rejects empty goal", func(t *testing.T) {
-		body := `{"goal": ""}`
+	t.Run("rejects empty title", func(t *testing.T) {
+		body := `{"title": ""}`
 		req := createCourseRequest(http.MethodPost, "/api/courses", bytes.NewBufferString(body), "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
 		CoursesHandler(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Goal is required")
+		assert.Contains(t, rr.Body.String(), "Title is required")
 	})
 }
 
@@ -464,7 +464,7 @@ func TestUnarchiveCourse(t *testing.T) {
 func TestCourseCreateJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
 		req := models.CourseCreate{
-			Goal:  "Learn Go",
+			Title: "Learn Go",
 			Emoji: "🎯",
 		}
 
@@ -475,21 +475,21 @@ func TestCourseCreateJSON(t *testing.T) {
 		err = json.Unmarshal(jsonBytes, &parsed)
 		require.NoError(t, err)
 
-		assert.Contains(t, parsed, "goal")
+		assert.Contains(t, parsed, "title")
 		assert.Contains(t, parsed, "emoji")
 	})
 }
 
 func TestCourseUpdateJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
-		goal := "Updated Goal"
+		title := "Updated Title"
 		emoji := "🚀"
 		progress := 50
 		lessonsCompleted := 5
 		totalLessons := 10
 
 		req := models.CourseUpdate{
-			Goal:             &goal,
+			Title:            &title,
 			Emoji:            &emoji,
 			Progress:         &progress,
 			LessonsCompleted: &lessonsCompleted,
@@ -503,7 +503,7 @@ func TestCourseUpdateJSON(t *testing.T) {
 		err = json.Unmarshal(jsonBytes, &parsed)
 		require.NoError(t, err)
 
-		assert.Contains(t, parsed, "goal")
+		assert.Contains(t, parsed, "title")
 		assert.Contains(t, parsed, "emoji")
 		assert.Contains(t, parsed, "progress")
 		assert.Contains(t, parsed, "lessonsCompleted")
@@ -512,7 +512,7 @@ func TestCourseUpdateJSON(t *testing.T) {
 
 	t.Run("omits nil fields", func(t *testing.T) {
 		req := models.CourseUpdate{
-			Goal: nil,
+			Title: nil,
 		}
 
 		jsonBytes, err := json.Marshal(req)
@@ -522,15 +522,16 @@ func TestCourseUpdateJSON(t *testing.T) {
 		err = json.Unmarshal(jsonBytes, &parsed)
 		require.NoError(t, err)
 
-		assert.NotContains(t, parsed, "goal")
+		assert.NotContains(t, parsed, "title")
 	})
 }
 
-func TestStepCompleteJSON(t *testing.T) {
+func TestBlockCompleteRequestJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
-		req := models.StepComplete{
+		req := models.BlockCompleteRequest{
 			UserAnswer: "The answer is 42",
 			Score:      85.5,
+			TimeSpent:  120,
 		}
 
 		jsonBytes, err := json.Marshal(req)
@@ -542,10 +543,11 @@ func TestStepCompleteJSON(t *testing.T) {
 
 		assert.Contains(t, parsed, "userAnswer")
 		assert.Contains(t, parsed, "score")
+		assert.Contains(t, parsed, "timeSpent")
 	})
 
 	t.Run("omits empty fields", func(t *testing.T) {
-		req := models.StepComplete{}
+		req := models.BlockCompleteRequest{}
 
 		jsonBytes, err := json.Marshal(req)
 		require.NoError(t, err)
@@ -554,9 +556,10 @@ func TestStepCompleteJSON(t *testing.T) {
 		err = json.Unmarshal(jsonBytes, &parsed)
 		require.NoError(t, err)
 
-		// Empty string and zero score should be omitted due to omitempty
+		// Empty string and zero values should be omitted due to omitempty
 		assert.NotContains(t, parsed, "userAnswer")
 		assert.NotContains(t, parsed, "score")
+		assert.NotContains(t, parsed, "timeSpent")
 	})
 }
 
@@ -599,21 +602,18 @@ func TestCourseJSON(t *testing.T) {
 	})
 }
 
-func TestStepJSON(t *testing.T) {
+func TestBlockJSON(t *testing.T) {
 	t.Run("struct has correct JSON tags", func(t *testing.T) {
-		step := models.Step{
-			ID:          "step-123",
-			Index:       0,
-			Type:        "lesson",
-			Topic:       "Go basics",
-			Title:       "Introduction to Go",
-			Content:     "Go is a programming language...",
-			Completed:   true,
-			CompletedAt: 1234567890,
-			CreatedAt:   1234567890,
+		block := models.Block{
+			ID:            "block-123",
+			Type:          "text",
+			Title:         "Introduction to Go",
+			Purpose:       "Learn the basics of Go",
+			Order:         0,
+			ContentStatus: "ready",
 		}
 
-		jsonBytes, err := json.Marshal(step)
+		jsonBytes, err := json.Marshal(block)
 		require.NoError(t, err)
 
 		var parsed map[string]interface{}
@@ -621,64 +621,34 @@ func TestStepJSON(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, parsed, "id")
-		assert.Contains(t, parsed, "index")
 		assert.Contains(t, parsed, "type")
-		assert.Contains(t, parsed, "topic")
 		assert.Contains(t, parsed, "title")
+		assert.Contains(t, parsed, "purpose")
+		assert.Contains(t, parsed, "order")
+		assert.Contains(t, parsed, "contentStatus")
+	})
+
+	t.Run("block with content has correct JSON tags", func(t *testing.T) {
+		block := models.Block{
+			ID:            "block-123",
+			Type:          "text",
+			Title:         "Introduction",
+			ContentStatus: "ready",
+			Content: &models.BlockContent{
+				Text: &models.TextContent{
+					Markdown: "# Hello World",
+				},
+			},
+		}
+
+		jsonBytes, err := json.Marshal(block)
+		require.NoError(t, err)
+
+		var parsed map[string]interface{}
+		err = json.Unmarshal(jsonBytes, &parsed)
+		require.NoError(t, err)
+
 		assert.Contains(t, parsed, "content")
-		assert.Contains(t, parsed, "completed")
-		assert.Contains(t, parsed, "completedAt")
-		assert.Contains(t, parsed, "createdAt")
-	})
-
-	t.Run("quiz step has correct JSON tags", func(t *testing.T) {
-		step := models.Step{
-			ID:             "step-123",
-			Index:          1,
-			Type:           "quiz",
-			Topic:          "Go basics",
-			Title:          "Quiz: Variables",
-			Question:       "What keyword declares a variable?",
-			Options:        []string{"var", "let", "const", "dim"},
-			ExpectedAnswer: "var",
-			Completed:      false,
-			CreatedAt:      1234567890,
-		}
-
-		jsonBytes, err := json.Marshal(step)
-		require.NoError(t, err)
-
-		var parsed map[string]interface{}
-		err = json.Unmarshal(jsonBytes, &parsed)
-		require.NoError(t, err)
-
-		assert.Contains(t, parsed, "question")
-		assert.Contains(t, parsed, "options")
-		assert.Contains(t, parsed, "expectedAnswer")
-	})
-
-	t.Run("practice step has correct JSON tags", func(t *testing.T) {
-		step := models.Step{
-			ID:        "step-123",
-			Index:     2,
-			Type:      "practice",
-			Topic:     "Go basics",
-			Title:     "Practice: Hello World",
-			Task:      "Write a program that prints Hello World",
-			Hints:     []string{"Use fmt.Println", "Import the fmt package"},
-			Completed: false,
-			CreatedAt: 1234567890,
-		}
-
-		jsonBytes, err := json.Marshal(step)
-		require.NoError(t, err)
-
-		var parsed map[string]interface{}
-		err = json.Unmarshal(jsonBytes, &parsed)
-		require.NoError(t, err)
-
-		assert.Contains(t, parsed, "task")
-		assert.Contains(t, parsed, "hints")
 	})
 }
 
@@ -686,42 +656,42 @@ func TestStepJSON(t *testing.T) {
 // Helper Function Tests
 // =============================================================================
 
-func TestGetCurrentStep(t *testing.T) {
-	t.Run("returns nil for empty steps", func(t *testing.T) {
-		steps := []models.Step{}
-		result := GetCurrentStep(steps)
+func TestCourseGetCurrentLesson(t *testing.T) {
+	t.Run("returns nil for course without outline", func(t *testing.T) {
+		course := &models.Course{}
+		result := course.GetCurrentLesson()
 		assert.Nil(t, result)
 	})
 
-	t.Run("returns nil when all steps completed", func(t *testing.T) {
-		steps := []models.Step{
-			{ID: "1", Completed: true},
-			{ID: "2", Completed: true},
-			{ID: "3", Completed: true},
+	t.Run("returns nil when current position is nil", func(t *testing.T) {
+		course := &models.Course{
+			Outline: &models.CourseOutline{
+				Sections: []models.Section{
+					{ID: "s1", Lessons: []models.Lesson{{ID: "l1"}}},
+				},
+			},
 		}
-		result := GetCurrentStep(steps)
+		result := course.GetCurrentLesson()
 		assert.Nil(t, result)
 	})
 
-	t.Run("returns first incomplete step", func(t *testing.T) {
-		steps := []models.Step{
-			{ID: "1", Completed: true},
-			{ID: "2", Completed: false},
-			{ID: "3", Completed: false},
+	t.Run("returns lesson at current position", func(t *testing.T) {
+		course := &models.Course{
+			Outline: &models.CourseOutline{
+				Sections: []models.Section{
+					{ID: "s1", Lessons: []models.Lesson{{ID: "l1", Title: "Lesson 1"}}},
+					{ID: "s2", Lessons: []models.Lesson{{ID: "l2", Title: "Lesson 2"}}},
+				},
+			},
+			CurrentPosition: &models.LessonPosition{
+				SectionIndex: 1,
+				LessonIndex:  0,
+			},
 		}
-		result := GetCurrentStep(steps)
+		result := course.GetCurrentLesson()
 		require.NotNil(t, result)
-		assert.Equal(t, "2", result.ID)
-	})
-
-	t.Run("returns first step when none completed", func(t *testing.T) {
-		steps := []models.Step{
-			{ID: "1", Completed: false},
-			{ID: "2", Completed: false},
-		}
-		result := GetCurrentStep(steps)
-		require.NotNil(t, result)
-		assert.Equal(t, "1", result.ID)
+		assert.Equal(t, "l2", result.ID)
+		assert.Equal(t, "Lesson 2", result.Title)
 	})
 }
 
@@ -761,35 +731,9 @@ func TestCountOutlineLessons(t *testing.T) {
 		assert.Equal(t, 5, result)
 	})
 
-	t.Run("falls back to legacy modules format when sections empty", func(t *testing.T) {
-		outline := &models.CourseOutline{
-			Sections: []models.Section{}, // Empty sections
-			Modules: []models.OutlineModule{
-				{
-					ID:    "m1",
-					Title: "Module 1",
-					Topics: []models.OutlineTopic{
-						{ID: "m1-t1", Title: "Topic 1"},
-						{ID: "m1-t2", Title: "Topic 2"},
-					},
-				},
-				{
-					ID:    "m2",
-					Title: "Module 2",
-					Topics: []models.OutlineTopic{
-						{ID: "m2-t1", Title: "Topic 1"},
-					},
-				},
-			},
-		}
-		result := countOutlineLessons(outline)
-		assert.Equal(t, 3, result)
-	})
-
-	t.Run("returns 0 for empty outline", func(t *testing.T) {
+	t.Run("returns 0 for empty sections", func(t *testing.T) {
 		outline := &models.CourseOutline{
 			Sections: []models.Section{},
-			Modules:  []models.OutlineModule{},
 		}
 		result := countOutlineLessons(outline)
 		assert.Equal(t, 0, result)

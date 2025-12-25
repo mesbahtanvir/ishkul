@@ -313,7 +313,7 @@ export const HomeScreen: React.FC = () => {
       <ConfirmDialog
         visible={showDeleteDialog}
         title="Delete Course"
-        message={pathToDelete ? `Are you sure you want to delete "${pathToDelete.goal}"? This action cannot be undone.` : ''}
+        message={pathToDelete ? `Are you sure you want to delete "${pathToDelete.title}"? This action cannot be undone.` : ''}
         confirmText="Delete"
         cancelText="Cancel"
         onConfirm={confirmDelete}
@@ -326,7 +326,7 @@ export const HomeScreen: React.FC = () => {
       <ConfirmDialog
         visible={showArchiveDialog}
         title="Archive Course"
-        message={pathToArchive ? `Archive "${pathToArchive.goal}"? You can restore it anytime from the Archived tab.` : ''}
+        message={pathToArchive ? `Archive "${pathToArchive.title}"? You can restore it anytime from the Archived tab.` : ''}
         confirmText="Archive"
         cancelText="Cancel"
         onConfirm={confirmArchive}

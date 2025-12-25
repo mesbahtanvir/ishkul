@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { UserDocument, HistoryEntry } from '../../types/app';
+import { UserDocument } from '../../types/app';
 
 // Backend response types
 interface BackendUser {
@@ -7,37 +7,12 @@ interface BackendUser {
   email: string;
   displayName: string;
   photoUrl?: string;
-  goal?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 interface BackendUserDocument extends BackendUser {
-  memory?: {
-    topics: {
-      [topic: string]: {
-        confidence: number;
-        lastReviewed: string;
-        timesTested: number;
-      };
-    };
-  };
-  history?: Array<{
-    type: string;
-    topic: string;
-    score?: number;
-    timestamp: number;
-  }>;
-  nextStep?: {
-    type: string;
-    topic: string;
-    title?: string;
-    content?: string;
-    question?: string;
-    options?: string[];
-    answer?: string;
-    task?: string;
-  };
+  courses?: unknown[];
 }
 
 // Transform backend response to frontend UserDocument
@@ -46,24 +21,7 @@ function transformUserDocument(backend: BackendUserDocument): UserDocument {
     uid: backend.id,
     email: backend.email,
     displayName: backend.displayName,
-    goal: backend.goal || '',
-    memory: backend.memory || { topics: {} },
-    history: (backend.history || []).map(h => ({
-      type: h.type as 'lesson' | 'quiz' | 'practice',
-      topic: h.topic,
-      score: h.score,
-      timestamp: h.timestamp,
-    })),
-    nextStep: backend.nextStep ? {
-      type: backend.nextStep.type as 'lesson' | 'quiz' | 'practice',
-      topic: backend.nextStep.topic,
-      title: backend.nextStep.title,
-      content: backend.nextStep.content,
-      question: backend.nextStep.question,
-      expectedAnswer: backend.nextStep.answer,
-      task: backend.nextStep.task,
-    } : undefined,
-    courses: [], // Will be populated from backend when available
+    courses: [], // Courses are fetched separately via courses API
     createdAt: new Date(backend.createdAt).getTime(),
     updatedAt: new Date(backend.updatedAt).getTime(),
   };
@@ -81,8 +39,6 @@ export const userApi = {
    * Update current user's profile
    */
   async updateProfile(data: {
-    goal?: string;
-    level?: string;
     displayName?: string;
   }): Promise<BackendUser> {
     return apiClient.put<BackendUser>('/me', data);
@@ -104,34 +60,10 @@ export const userApi = {
   },
 
   /**
-   * Create/initialize user document with goal
+   * Create/initialize user document
    */
-  async createUserDocument(
-    goal: string
-  ): Promise<UserDocument> {
-    const response = await apiClient.post<BackendUserDocument>('/me/document', {
-      goal,
-    });
+  async createUserDocument(): Promise<UserDocument> {
+    const response = await apiClient.post<BackendUserDocument>('/me/document', {});
     return transformUserDocument(response);
-  },
-
-  /**
-   * Update user's goal
-   */
-  async updateGoal(
-    goal: string
-  ): Promise<BackendUser> {
-    return apiClient.put<BackendUser>('/me', { goal });
-  },
-
-  /**
-   * Add a history entry
-   */
-  async addHistory(entry: {
-    type: string;
-    topic: string;
-    score?: number;
-  }): Promise<{ success: boolean; entry: HistoryEntry }> {
-    return apiClient.post('/me/history', entry);
   },
 };

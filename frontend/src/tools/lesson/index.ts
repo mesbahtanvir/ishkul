@@ -24,11 +24,14 @@ export const LessonTool: LearningTool<LessonData> = {
 
   Renderer: LessonRenderer,
 
-  extractData: (step) => ({
-    content: step.content || '',
-    topic: step.topic,
-    title: step.title,
-  }),
+  extractData: (block) => {
+    const text = block.content?.text;
+    return {
+      content: text?.markdown || '',
+      topic: block.purpose,
+      title: block.title,
+    };
+  },
 
   validate: isLessonData,
 };

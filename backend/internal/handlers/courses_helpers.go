@@ -127,38 +127,19 @@ func SendErrorResponse(w http.ResponseWriter, statusCode int, code, message stri
 // =============================================================================
 
 // NormalizeCourse ensures the course has valid defaults for nil slices/maps.
-// This handles legacy data that may have nil steps or memory.
 func NormalizeCourse(course *models.Course) {
 	if course == nil {
 		return
 	}
 
-	// Ensure Steps is never nil (Go serializes nil slices as null in JSON)
-	if course.Steps == nil {
-		course.Steps = []models.Step{}
-	}
-
-	// Ensure Memory is never nil
-	if course.Memory == nil {
-		course.Memory = &models.Memory{
-			Topics: make(map[string]models.TopicMemory),
+	// Ensure Outline sections have valid defaults
+	if course.Outline != nil {
+		for i := range course.Outline.Sections {
+			if course.Outline.Sections[i].Lessons == nil {
+				course.Outline.Sections[i].Lessons = []models.Lesson{}
+			}
 		}
 	}
-
-	// Ensure Topics map is never nil
-	if course.Memory.Topics == nil {
-		course.Memory.Topics = make(map[string]models.TopicMemory)
-	}
-}
-
-// GetCurrentStep finds the current (incomplete) step or returns nil if all complete.
-func GetCurrentStep(steps []models.Step) *models.Step {
-	for i := range steps {
-		if !steps[i].Completed {
-			return &steps[i]
-		}
-	}
-	return nil
 }
 
 // GetCourseByID fetches a course and verifies ownership.

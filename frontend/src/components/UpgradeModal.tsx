@@ -60,21 +60,21 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ onDismiss, onUpgrade
       case 'path_limit':
         return {
           title: 'Track Limit Reached',
-          message: `You've reached the free limit of ${limits?.activeCourses.limit || 2} active tracks. Upgrade to Pro for up to 5 active tracks.`,
+          message: `You've reached the free limit of ${limits?.activePaths?.limit || 2} active tracks. Upgrade to Pro for up to 5 active tracks.`,
           features: [
             '5 active tracks',
-            '1,000 steps per day',
-            'GPT-5 Pro AI model',
+            '500K tokens per day',
+            'Priority AI generation',
           ],
         };
-      case 'step_limit':
+      case 'token_limit':
         return {
-          title: 'Daily Step Limit Reached',
-          message: `You've used all ${limits?.dailySteps.limit || 100} steps for today. Upgrade to Pro for up to 1,000 steps per day.`,
+          title: 'Token Limit Reached',
+          message: `You've reached your token limit. Upgrade to Pro for 500K daily tokens and 5M weekly tokens.`,
           features: [
-            '1,000 steps per day',
-            'Priority generation',
-            'GPT-5 Pro AI model',
+            '500K tokens per day',
+            '5M tokens per week',
+            'Priority AI generation',
           ],
         };
       default:
@@ -83,9 +83,9 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ onDismiss, onUpgrade
           message: 'Unlock the full power of Ishkul with a Pro subscription.',
           features: [
             '5 active tracks',
-            '1,000 steps per day',
-            'GPT-5 Pro AI model',
-            'Priority generation',
+            '500K tokens per day',
+            '5M tokens per week',
+            'Priority AI generation',
           ],
         };
     }

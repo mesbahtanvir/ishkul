@@ -110,7 +110,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               ]}
               numberOfLines={2}
             >
-              {path.goal}
+              {path.title}
             </Text>
             {statusBadge && (
               <View style={[styles.statusBadge, { backgroundColor: statusBadge.color }]}>

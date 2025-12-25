@@ -8,11 +8,11 @@ import {
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
-import { CourseOutline, OutlinePosition } from '../types/app';
+import { CourseOutline, LessonPosition } from '../types/app';
 
 interface CourseProgressBarProps {
   outline: CourseOutline | null;
-  currentPosition?: OutlinePosition | null;
+  currentPosition?: LessonPosition | null;
   onPress: () => void;
 }
 
@@ -23,21 +23,21 @@ export const CourseProgressBar: React.FC<CourseProgressBarProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  if (!outline || !outline.modules) return null;
+  if (!outline || !outline.sections) return null;
 
-  const totalTopics = outline.modules.reduce((sum, m) => sum + m.topics.length, 0);
-  const completedTopics = outline.modules.reduce(
-    (sum, m) => sum + m.topics.filter((t) => t.status === 'completed').length,
+  const totalLessons = outline.sections.reduce((sum, s) => sum + s.lessons.length, 0);
+  const completedLessons = outline.sections.reduce(
+    (sum, s) => sum + s.lessons.filter((l) => l.status === 'completed').length,
     0
   );
-  const progressPercent = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
+  const progressPercent = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
-  // Get current module and topic info
-  const currentModule = currentPosition
-    ? outline.modules[currentPosition.moduleIndex]
+  // Get current section and lesson info
+  const currentSection = currentPosition
+    ? outline.sections[currentPosition.sectionIndex]
     : null;
-  const currentTopic = currentModule && currentPosition
-    ? currentModule.topics[currentPosition.topicIndex]
+  const currentLesson = currentSection && currentPosition
+    ? currentSection.lessons[currentPosition.lessonIndex]
     : null;
 
   return (
@@ -51,17 +51,17 @@ export const CourseProgressBar: React.FC<CourseProgressBarProps> = ({
         <View style={styles.progressInfo}>
           <View style={styles.progressTextRow}>
             <Text style={[styles.progressLabel, { color: colors.text.secondary }]}>
-              {currentTopic ? (
+              {currentLesson ? (
                 <>
                   <Text style={[styles.currentLabel, { color: colors.primary }]}>
                     Now:{' '}
                   </Text>
                   <Text numberOfLines={1} style={{ color: colors.text.primary }}>
-                    {currentTopic.title}
+                    {currentLesson.title}
                   </Text>
                 </>
               ) : (
-                `${completedTopics} of ${totalTopics} topics`
+                `${completedLessons} of ${totalLessons} lessons`
               )}
             </Text>
             <Text style={[styles.progressPercent, { color: colors.primary }]}>
@@ -80,20 +80,20 @@ export const CourseProgressBar: React.FC<CourseProgressBarProps> = ({
                 },
               ]}
             />
-            {/* Module markers */}
-            {outline.modules?.map((module, idx) => {
-              const moduleStartPosition = outline.modules!
+            {/* Section markers */}
+            {outline.sections?.map((section, idx) => {
+              const sectionStartPosition = outline.sections!
                 .slice(0, idx)
-                .reduce((sum, m) => sum + m.topics.length, 0);
-              const markerPosition = (moduleStartPosition / totalTopics) * 100;
+                .reduce((sum, s) => sum + s.lessons.length, 0);
+              const markerPosition = totalLessons > 0 ? (sectionStartPosition / totalLessons) * 100 : 0;
 
               if (idx === 0) return null; // Don't show marker at start
 
               return (
                 <View
-                  key={module.id}
+                  key={section.id}
                   style={[
-                    styles.moduleMarker,
+                    styles.sectionMarker,
                     {
                       left: `${markerPosition}%`,
                       backgroundColor: colors.background.primary,
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
   },
-  moduleMarker: {
+  sectionMarker: {
     position: 'absolute',
     top: 0,
     bottom: 0,

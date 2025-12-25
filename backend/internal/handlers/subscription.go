@@ -161,14 +161,14 @@ func GetSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
 	// Get current tier
 	tier := user.GetCurrentTier()
 
-	// Get daily usage
-	dailyUsage, err := getDailyUsage(ctx, fs, userID)
+	// Get token usage (daily and weekly)
+	dailyUsage, err := getTokenUsage(ctx, fs, userID, models.GetTodayPeriod())
 	if err != nil {
-		// If no usage doc exists, default to 0
-		dailyUsage = &models.DailyUsage{
-			Date:      models.GetTodayDateString(),
-			StepsUsed: 0,
-		}
+		dailyUsage = models.NewTokenUsage(models.GetTodayPeriod())
+	}
+	weeklyUsage, err := getTokenUsage(ctx, fs, userID, models.GetCurrentWeekPeriod())
+	if err != nil {
+		weeklyUsage = models.NewTokenUsage(models.GetCurrentWeekPeriod())
 	}
 
 	// Count active learning paths
@@ -178,25 +178,40 @@ func GetSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build limits
-	dailyLimit := models.GetDailyStepLimit(tier)
+	dailyTokenLimit := models.GetDailyTokenLimit(tier)
+	weeklyTokenLimit := models.GetWeeklyTokenLimit(tier)
 	pathLimit := models.GetMaxActiveCourses(tier)
+
+	// Determine if any limit is reached
+	canGenerate := dailyUsage.TotalTokens < dailyTokenLimit && weeklyUsage.TotalTokens < weeklyTokenLimit
+	limitReached := ""
+	if dailyUsage.TotalTokens >= dailyTokenLimit {
+		limitReached = "daily"
+	} else if weeklyUsage.TotalTokens >= weeklyTokenLimit {
+		limitReached = "weekly"
+	}
 
 	status := models.SubscriptionStatus{
 		Tier:   tier,
 		Status: user.SubscriptionStatus,
 		Limits: models.UsageLimits{
-			DailySteps: models.UsageLimit{
-				Used:  dailyUsage.StepsUsed,
-				Limit: dailyLimit,
+			DailyTokens: models.UsageLimit{
+				Used:  dailyUsage.TotalTokens,
+				Limit: dailyTokenLimit,
+			},
+			WeeklyTokens: models.UsageLimit{
+				Used:  weeklyUsage.TotalTokens,
+				Limit: weeklyTokenLimit,
 			},
 			ActivePaths: models.UsageLimit{
-				Used:  activePathCount,
-				Limit: pathLimit,
+				Used:  int64(activePathCount),
+				Limit: int64(pathLimit),
 			},
 		},
-		CanUpgrade:       tier == models.TierFree,
-		CanGenerateSteps: dailyUsage.StepsUsed < dailyLimit,
-		CanCreatePath:    activePathCount < pathLimit,
+		CanUpgrade:    tier == models.TierFree,
+		CanGenerate:   canGenerate,
+		CanCreatePath: activePathCount < pathLimit,
+		LimitReached:  limitReached,
 	}
 
 	// Set paid until if applicable
@@ -204,9 +219,11 @@ func GetSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
 		status.PaidUntil = user.PaidUntil
 	}
 
-	// Set daily limit reset time
-	resetTime := models.GetDailyLimitResetTime()
-	status.DailyLimitResetAt = &resetTime
+	// Set limit reset times
+	dailyResetTime := models.GetDailyResetTime()
+	weeklyResetTime := models.GetWeeklyResetTime()
+	status.DailyLimitResetAt = &dailyResetTime
+	status.WeeklyLimitResetAt = &weeklyResetTime
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(status); err != nil {
@@ -1257,15 +1274,14 @@ func findUserByStripeCustomer(ctx context.Context, fs *firestore.Client, custome
 	return doc.Ref.ID
 }
 
-// getDailyUsage retrieves the daily usage for a user
-func getDailyUsage(ctx context.Context, fs *firestore.Client, userID string) (*models.DailyUsage, error) {
-	today := models.GetTodayDateString()
-	doc, err := Collection(fs, "users").Doc(userID).Collection("usage").Doc(today).Get(ctx)
+// getTokenUsage retrieves token usage for a user for a specific period
+func getTokenUsage(ctx context.Context, fs *firestore.Client, userID, period string) (*models.TokenUsage, error) {
+	doc, err := Collection(fs, "users").Doc(userID).Collection("tokenUsage").Doc(period).Get(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var usage models.DailyUsage
+	var usage models.TokenUsage
 	if err := doc.DataTo(&usage); err != nil {
 		return nil, err
 	}
@@ -1273,70 +1289,113 @@ func getDailyUsage(ctx context.Context, fs *firestore.Client, userID string) (*m
 	return &usage, nil
 }
 
-// IncrementDailyUsage increments the daily step count for a user
-// Returns the new usage count and whether the user can continue generating steps
-func IncrementDailyUsage(ctx context.Context, userID string, tier string) (int, bool, error) {
+// IncrementTokenUsage increments the token usage for a user for both daily and weekly periods
+// Returns the new total tokens used (daily) and whether the user can continue generating
+func IncrementTokenUsage(ctx context.Context, userID string, tier string, inputTokens, outputTokens int64) (int64, bool, error) {
 	fs := firebase.GetFirestore()
 	if fs == nil {
 		return 0, false, fmt.Errorf("database not available")
 	}
 
-	today := models.GetTodayDateString()
-	usageRef := Collection(fs, "users").Doc(userID).Collection("usage").Doc(today)
+	dailyPeriod := models.GetTodayPeriod()
+	weeklyPeriod := models.GetCurrentWeekPeriod()
+	now := time.Now().UTC()
 
-	// Use transaction to safely increment
-	var newCount int
+	var dailyTotal int64
+
+	// Use transaction to safely increment both daily and weekly usage
 	err := fs.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
-		doc, err := tx.Get(usageRef)
+		usageCol := Collection(fs, "users").Doc(userID).Collection("tokenUsage")
+		dailyRef := usageCol.Doc(dailyPeriod)
+		weeklyRef := usageCol.Doc(weeklyPeriod)
+
+		// Get or create daily usage
+		dailyDoc, err := tx.Get(dailyRef)
+		var dailyUsage models.TokenUsage
 		if err != nil {
 			// Document doesn't exist, create it
-			newCount = 1
-			return tx.Set(usageRef, models.DailyUsage{
-				Date:       today,
-				StepsUsed:  1,
-				LastUpdate: time.Now().UTC(),
-			})
+			dailyUsage = *models.NewTokenUsage(dailyPeriod)
+		} else {
+			if err := dailyDoc.DataTo(&dailyUsage); err != nil {
+				return err
+			}
 		}
 
-		var usage models.DailyUsage
-		if err := doc.DataTo(&usage); err != nil {
+		// Get or create weekly usage
+		weeklyDoc, err := tx.Get(weeklyRef)
+		var weeklyUsage models.TokenUsage
+		if err != nil {
+			weeklyUsage = *models.NewTokenUsage(weeklyPeriod)
+		} else {
+			if err := weeklyDoc.DataTo(&weeklyUsage); err != nil {
+				return err
+			}
+		}
+
+		// Increment both
+		dailyUsage.InputTokens += inputTokens
+		dailyUsage.OutputTokens += outputTokens
+		dailyUsage.TotalTokens += inputTokens + outputTokens
+		dailyUsage.LastUpdate = now
+
+		weeklyUsage.InputTokens += inputTokens
+		weeklyUsage.OutputTokens += outputTokens
+		weeklyUsage.TotalTokens += inputTokens + outputTokens
+		weeklyUsage.LastUpdate = now
+
+		dailyTotal = dailyUsage.TotalTokens
+
+		// Write both
+		if err := tx.Set(dailyRef, dailyUsage); err != nil {
 			return err
 		}
-
-		newCount = usage.StepsUsed + 1
-		return tx.Update(usageRef, []firestore.Update{
-			{Path: "stepsUsed", Value: newCount},
-			{Path: "lastUpdate", Value: time.Now().UTC()},
-		})
+		return tx.Set(weeklyRef, weeklyUsage)
 	})
 
 	if err != nil {
 		return 0, false, err
 	}
 
-	limit := models.GetDailyStepLimit(tier)
-	canContinue := newCount < limit
+	dailyLimit := models.GetDailyTokenLimit(tier)
+	canContinue := dailyTotal < dailyLimit
 
-	return newCount, canContinue, nil
+	return dailyTotal, canContinue, nil
 }
 
-// CheckCanGenerateStep checks if a user can generate a new step based on their daily limit
-func CheckCanGenerateStep(ctx context.Context, userID string, tier string) (bool, int, int, error) {
+// CheckCanGenerate checks if a user can generate content based on their daily and weekly token limits
+// Returns: canGenerate, dailyTokensUsed, dailyLimit, weeklyTokensUsed, weeklyLimit, limitReached ("daily", "weekly", or ""), error
+func CheckCanGenerate(ctx context.Context, userID string, tier string) (bool, int64, int64, int64, int64, string, error) {
 	fs := firebase.GetFirestore()
 	if fs == nil {
-		return false, 0, 0, fmt.Errorf("database not available")
+		return false, 0, 0, 0, 0, "", fmt.Errorf("database not available")
 	}
 
-	usage, err := getDailyUsage(ctx, fs, userID)
+	// Get daily usage
+	dailyUsage, err := getTokenUsage(ctx, fs, userID, models.GetTodayPeriod())
 	if err != nil {
-		// No usage doc = 0 steps used today
-		usage = &models.DailyUsage{StepsUsed: 0}
+		dailyUsage = models.NewTokenUsage(models.GetTodayPeriod())
 	}
 
-	limit := models.GetDailyStepLimit(tier)
-	canGenerate := usage.StepsUsed < limit
+	// Get weekly usage
+	weeklyUsage, err := getTokenUsage(ctx, fs, userID, models.GetCurrentWeekPeriod())
+	if err != nil {
+		weeklyUsage = models.NewTokenUsage(models.GetCurrentWeekPeriod())
+	}
 
-	return canGenerate, usage.StepsUsed, limit, nil
+	dailyLimit := models.GetDailyTokenLimit(tier)
+	weeklyLimit := models.GetWeeklyTokenLimit(tier)
+
+	// Check which limit is reached (if any)
+	limitReached := ""
+	if dailyUsage.TotalTokens >= dailyLimit {
+		limitReached = "daily"
+	} else if weeklyUsage.TotalTokens >= weeklyLimit {
+		limitReached = "weekly"
+	}
+
+	canGenerate := limitReached == ""
+
+	return canGenerate, dailyUsage.TotalTokens, dailyLimit, weeklyUsage.TotalTokens, weeklyLimit, limitReached, nil
 }
 
 // GetUserTierAndLimits is a helper to get user tier and check limits in one call
@@ -1359,10 +1418,16 @@ func GetUserTierAndLimits(ctx context.Context, userID string) (string, *models.U
 
 	tier := user.GetCurrentTier()
 
-	// Get daily usage
-	usage, err := getDailyUsage(ctx, fs, userID)
+	// Get daily token usage
+	dailyUsage, err := getTokenUsage(ctx, fs, userID, models.GetTodayPeriod())
 	if err != nil {
-		usage = &models.DailyUsage{StepsUsed: 0}
+		dailyUsage = models.NewTokenUsage(models.GetTodayPeriod())
+	}
+
+	// Get weekly token usage
+	weeklyUsage, err := getTokenUsage(ctx, fs, userID, models.GetCurrentWeekPeriod())
+	if err != nil {
+		weeklyUsage = models.NewTokenUsage(models.GetCurrentWeekPeriod())
 	}
 
 	// Count active paths
@@ -1372,13 +1437,17 @@ func GetUserTierAndLimits(ctx context.Context, userID string) (string, *models.U
 	}
 
 	limits := &models.UsageLimits{
-		DailySteps: models.UsageLimit{
-			Used:  usage.StepsUsed,
-			Limit: models.GetDailyStepLimit(tier),
+		DailyTokens: models.UsageLimit{
+			Used:  dailyUsage.TotalTokens,
+			Limit: models.GetDailyTokenLimit(tier),
+		},
+		WeeklyTokens: models.UsageLimit{
+			Used:  weeklyUsage.TotalTokens,
+			Limit: models.GetWeeklyTokenLimit(tier),
 		},
 		ActivePaths: models.UsageLimit{
-			Used:  activeCount,
-			Limit: models.GetMaxActiveCourses(tier),
+			Used:  int64(activeCount),
+			Limit: int64(models.GetMaxActiveCourses(tier)),
 		},
 	}
 

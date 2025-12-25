@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Container } from '../components/Container';
-import { useUserStore } from '../state/userStore';
+import { useCoursesStore } from '../state/coursesStore';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
@@ -10,46 +10,31 @@ import { useScreenTracking } from '../services/analytics';
 
 export const ProgressScreen: React.FC = () => {
   useScreenTracking('Progress', 'ProgressScreen');
-  const { userDocument } = useUserStore();
+  const { courses } = useCoursesStore();
   const { responsive, isSmallPhone, isTablet } = useResponsive();
   const { colors } = useTheme();
 
   const stats = useMemo(() => {
-    if (!userDocument) {
-      return {
-        lessonsCompleted: 0,
-        quizzesCompleted: 0,
-        practiceCompleted: 0,
-        topicsMastered: 0,
-        totalActivities: 0,
-        averageQuizScore: 0,
-      };
-    }
+    const activeCourses = courses.filter((c) => c.status === 'active' || !c.status);
+    const completedCourses = courses.filter((c) => c.status === 'completed');
+    const archivedCourses = courses.filter((c) => c.status === 'archived');
 
-    const history = userDocument.history || [];
-    const memory = userDocument.memory || { topics: {} };
+    const totalLessonsCompleted = courses.reduce((sum, c) => sum + c.lessonsCompleted, 0);
+    const totalLessons = courses.reduce((sum, c) => sum + c.totalLessons, 0);
 
-    const lessons = history.filter((h) => h.type === 'lesson').length;
-    const quizzes = history.filter((h) => h.type === 'quiz').length;
-    const practice = history.filter((h) => h.type === 'practice').length;
-    const topics = Object.keys(memory.topics).length;
-
-    const quizScores = history
-      .filter((h) => h.type === 'quiz' && h.score !== undefined)
-      .map((h) => h.score || 0);
-    const avgScore = quizScores.length > 0
-      ? Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length)
+    const averageProgress = activeCourses.length > 0
+      ? Math.round(activeCourses.reduce((sum, c) => sum + c.progress, 0) / activeCourses.length)
       : 0;
 
     return {
-      lessonsCompleted: lessons,
-      quizzesCompleted: quizzes,
-      practiceCompleted: practice,
-      topicsMastered: topics,
-      totalActivities: lessons + quizzes + practice,
-      averageQuizScore: avgScore,
+      activeCourses: activeCourses.length,
+      completedCourses: completedCourses.length,
+      archivedCourses: archivedCourses.length,
+      totalLessonsCompleted,
+      totalLessons,
+      averageProgress,
     };
-  }, [userDocument]);
+  }, [courses]);
 
   // Responsive values
   const titleSize = responsive(
@@ -61,12 +46,15 @@ export const ProgressScreen: React.FC = () => {
   const cardPadding = responsive(Spacing.md, Spacing.lg, Spacing.lg, Spacing.xl);
   const emptyEmojiSize = responsive(56, 64, 72, 80);
 
-  if (!userDocument) {
+  if (courses.length === 0) {
     return (
       <Container>
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyEmoji, { fontSize: emptyEmojiSize }]}>📊</Text>
-          <Text style={[styles.emptyText, { color: colors.ios.gray }]}>No progress data yet</Text>
+          <Text style={[styles.emptyText, { color: colors.ios.gray }]}>No courses yet</Text>
+          <Text style={[styles.emptySubtext, { color: colors.text.secondary }]}>
+            Start a learning path to track your progress
+          </Text>
         </View>
       </Container>
     );
@@ -80,61 +68,54 @@ export const ProgressScreen: React.FC = () => {
           <Text style={[styles.subtitle, { color: colors.ios.gray }]}>Keep up the great work!</Text>
         </View>
 
-        <View style={[styles.goalCard, { padding: cardPadding, backgroundColor: colors.card.default }]}>
-          <Text style={[styles.goalLabel, { color: colors.ios.gray }]}>Learning Goal</Text>
-          <Text style={[styles.goalText, { color: colors.text.primary }]}>{userDocument.goal}</Text>
-        </View>
-
         <View style={[styles.statsGrid, isTablet && styles.statsGridTablet]}>
           <View style={[styles.statCard, { backgroundColor: colors.card.stats.blue, padding: cardPadding }]}>
-            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.lessonsCompleted}</Text>
-            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Lessons Completed</Text>
-          </View>
-
-          <View style={[styles.statCard, { backgroundColor: colors.card.stats.orange, padding: cardPadding }]}>
-            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.quizzesCompleted}</Text>
-            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Quizzes Completed</Text>
-          </View>
-
-          <View style={[styles.statCard, { backgroundColor: colors.card.stats.purple, padding: cardPadding }]}>
-            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.practiceCompleted}</Text>
-            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Practice Tasks</Text>
+            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.activeCourses}</Text>
+            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Active Courses</Text>
           </View>
 
           <View style={[styles.statCard, { backgroundColor: colors.card.stats.green, padding: cardPadding }]}>
-            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.topicsMastered}</Text>
-            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Topics Explored</Text>
+            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.completedCourses}</Text>
+            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Completed</Text>
+          </View>
+
+          <View style={[styles.statCard, { backgroundColor: colors.card.stats.orange, padding: cardPadding }]}>
+            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.totalLessonsCompleted}</Text>
+            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Lessons Completed</Text>
+          </View>
+
+          <View style={[styles.statCard, { backgroundColor: colors.card.stats.purple, padding: cardPadding }]}>
+            <Text style={[styles.statValue, { fontSize: statValueSize, color: colors.text.primary }]}>{stats.averageProgress}%</Text>
+            <Text style={[styles.statLabel, { color: colors.text.primary }]}>Average Progress</Text>
           </View>
         </View>
 
         <View style={[styles.summaryCard, { padding: cardPadding, backgroundColor: colors.card.default }]}>
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>Total Activities</Text>
-            <Text style={[styles.summaryValue, { color: colors.ios.blue }]}>{stats.totalActivities}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>Total Lessons</Text>
+            <Text style={[styles.summaryValue, { color: colors.ios.blue }]}>{stats.totalLessons}</Text>
           </View>
-          {stats.quizzesCompleted > 0 && (
+          {stats.archivedCourses > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>Average Quiz Score</Text>
-              <Text style={[styles.summaryValue, { color: colors.ios.blue }]}>{stats.averageQuizScore}%</Text>
+              <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>Archived Courses</Text>
+              <Text style={[styles.summaryValue, { color: colors.ios.gray }]}>{stats.archivedCourses}</Text>
             </View>
           )}
         </View>
 
-        {(userDocument.history?.length ?? 0) > 0 && (
+        {/* Recent courses */}
+        {courses.length > 0 && (
           <View style={styles.recentActivity}>
-            <Text style={[styles.recentTitle, { color: colors.text.primary }]}>Recent Activity</Text>
-            {(userDocument.history || []).slice(-5).reverse().map((item, index) => (
-              <View key={index} style={[styles.activityItem, { backgroundColor: colors.card.default }]}>
+            <Text style={[styles.recentTitle, { color: colors.text.primary }]}>Your Courses</Text>
+            {courses.slice(0, 5).map((course) => (
+              <View key={course.id} style={[styles.activityItem, { backgroundColor: colors.card.default }]}>
                 <View style={[styles.activityIcon, { backgroundColor: colors.white }]}>
-                  <Text style={styles.activityEmoji}>
-                    {item.type === 'lesson' ? '📖' : item.type === 'quiz' ? '❓' : '💪'}
-                  </Text>
+                  <Text style={styles.activityEmoji}>{course.emoji || '📚'}</Text>
                 </View>
                 <View style={styles.activityInfo}>
-                  <Text style={[styles.activityTopic, { color: colors.text.primary }]}>{item.topic}</Text>
+                  <Text style={[styles.activityTopic, { color: colors.text.primary }]}>{course.title}</Text>
                   <Text style={[styles.activityType, { color: colors.ios.gray }]}>
-                    {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                    {item.score !== undefined && ` • ${item.score}%`}
+                    {course.lessonsCompleted}/{course.totalLessons} lessons • {Math.round(course.progress)}%
                   </Text>
                 </View>
               </View>
@@ -159,33 +140,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...Typography.body.medium,
-  },
-  goalCard: {
-    borderRadius: Spacing.borderRadius.lg,
-    marginBottom: Spacing.lg,
-  },
-  goalLabel: {
-    ...Typography.label.medium,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: Spacing.sm,
-  },
-  goalText: {
-    ...Typography.heading.h2,
-    fontWeight: '600',
-    marginBottom: Spacing.sm,
-  },
-  levelBadge: {
-    paddingHorizontal: Spacing.sm + 4,
-    paddingVertical: Spacing.xs + 2,
-    borderRadius: Spacing.borderRadius.md,
-    alignSelf: 'flex-start',
-  },
-  levelText: {
-    ...Typography.label.medium,
-    fontWeight: '600',
-    textTransform: 'capitalize',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -276,5 +230,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...Typography.body.medium,
+    marginBottom: Spacing.xs,
+  },
+  emptySubtext: {
+    ...Typography.body.small,
+    textAlign: 'center',
   },
 });

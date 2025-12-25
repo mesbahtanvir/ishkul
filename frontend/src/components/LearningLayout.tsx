@@ -577,9 +577,9 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
             visible={drawerVisible}
             onClose={() => setDrawerVisible(false)}
             outline={course.outline || null}
-            currentPosition={course.outlinePosition}
-            onTopicPress={() => {
-              // Legacy topic press - close drawer
+            currentPosition={course.currentPosition}
+            onLessonPress={() => {
+              // Close drawer when lesson is pressed
               setDrawerVisible(false);
             }}
           />

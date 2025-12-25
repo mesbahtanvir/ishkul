@@ -13,6 +13,17 @@ import { RootStackParamList } from '../types/navigation';
 
 type SubscriptionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Subscription'>;
 
+// Format token count for display (e.g., 100000 -> "100K")
+const formatTokenCount = (count: number): string => {
+  if (count >= 1000000) {
+    return `${(count / 1000000).toFixed(count % 1000000 === 0 ? 0 : 1)}M`;
+  }
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(count % 1000 === 0 ? 0 : 1)}K`;
+  }
+  return count.toString();
+};
+
 interface SubscriptionScreenProps {
   navigation: SubscriptionScreenNavigationProp;
 }
@@ -109,7 +120,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
 
           <View style={styles.featureList}>
             <FeatureItem text="2 active tracks" colors={colors} />
-            <FeatureItem text="100 steps per day" colors={colors} />
+            <FeatureItem text="100K tokens per day" colors={colors} />
             <FeatureItem text="GPT-4o-mini AI model" colors={colors} />
             <FeatureItem text="Lesson and Quiz content" colors={colors} />
           </View>
@@ -142,9 +153,9 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
 
           <View style={styles.featureList}>
             <FeatureItem text="5 active tracks" colors={colors} highlight />
-            <FeatureItem text="1,000 steps per day" colors={colors} highlight />
-            <FeatureItem text="GPT-5 Pro AI model" colors={colors} highlight />
-            <FeatureItem text="All content types" colors={colors} />
+            <FeatureItem text="500K tokens per day" colors={colors} highlight />
+            <FeatureItem text="5M tokens per week" colors={colors} highlight />
+            <FeatureItem text="GPT-4o AI model" colors={colors} highlight />
             <FeatureItem text="Priority generation" colors={colors} />
             <FeatureItem text="Advanced insights" colors={colors} />
           </View>
@@ -170,14 +181,14 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
         {/* Usage Stats */}
         {limits && (
           <View style={[styles.usageCard, { backgroundColor: colors.card.default }]}>
-            <Text style={[styles.usageTitle, { color: colors.text.primary }]}>Today's Usage</Text>
+            <Text style={[styles.usageTitle, { color: colors.text.primary }]}>Usage</Text>
 
             <View style={styles.usageRow}>
               <Text style={[styles.usageLabel, { color: colors.text.secondary }]}>
-                Steps Generated
+                Daily Tokens
               </Text>
               <Text style={[styles.usageValue, { color: colors.text.primary }]}>
-                {limits.dailySteps.used} / {limits.dailySteps.limit}
+                {formatTokenCount(limits.dailyTokens.used)} / {formatTokenCount(limits.dailyTokens.limit)}
               </Text>
             </View>
 
@@ -187,7 +198,28 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
                   styles.progressFill,
                   {
                     backgroundColor: colors.primary,
-                    width: `${Math.min(100, (limits.dailySteps.used / limits.dailySteps.limit) * 100)}%`,
+                    width: `${Math.min(100, (limits.dailyTokens.used / limits.dailyTokens.limit) * 100)}%`,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={[styles.usageRow, { marginTop: Spacing.md }]}>
+              <Text style={[styles.usageLabel, { color: colors.text.secondary }]}>
+                Weekly Tokens
+              </Text>
+              <Text style={[styles.usageValue, { color: colors.text.primary }]}>
+                {formatTokenCount(limits.weeklyTokens.used)} / {formatTokenCount(limits.weeklyTokens.limit)}
+              </Text>
+            </View>
+
+            <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    backgroundColor: colors.primary,
+                    width: `${Math.min(100, (limits.weeklyTokens.used / limits.weeklyTokens.limit) * 100)}%`,
                   },
                 ]}
               />
@@ -198,7 +230,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
                 Active Paths
               </Text>
               <Text style={[styles.usageValue, { color: colors.text.primary }]}>
-                {limits.activeCourses.used} / {limits.activeCourses.limit}
+                {limits.activePaths.used} / {limits.activePaths.limit}
               </Text>
             </View>
 
@@ -208,7 +240,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigati
                   styles.progressFill,
                   {
                     backgroundColor: colors.primary,
-                    width: `${Math.min(100, (limits.activeCourses.used / limits.activeCourses.limit) * 100)}%`,
+                    width: `${Math.min(100, (limits.activePaths.used / limits.activePaths.limit) * 100)}%`,
                   },
                 ]}
               />

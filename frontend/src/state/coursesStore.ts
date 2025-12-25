@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import {
   Course,
-  Step,
   CourseStatus,
   Section,
   Lesson,
@@ -31,14 +30,12 @@ interface CoursesState {
   deleteCourse: (courseId: string) => void;
   archiveCourse: (courseId: string) => void;
   restoreCourse: (courseId: string) => void;
-  addStep: (courseId: string, step: Step) => void;
-  updateStep: (courseId: string, stepId: string, updates: Partial<Step>) => void;
-  // New course structure actions
+  // Course structure actions (sections/lessons)
   setCourseOutline: (courseId: string, outline: CourseOutline) => void;
   updateLesson: (courseId: string, sectionId: string, lessonId: string, updates: Partial<Lesson>) => void;
   updateLessonStatus: (courseId: string, sectionId: string, lessonId: string, status: LessonStatus) => void;
   setCoursePosition: (courseId: string, position: LessonPosition) => void;
-  // New selectors
+  // Selectors
   getLessonFromCourse: (courseId: string, sectionId: string, lessonId: string) => Lesson | null;
   getSectionLessons: (courseId: string, sectionId: string) => Lesson[];
   getNextLesson: (courseId: string, currentSectionId: string, currentLessonId: string) => LessonPosition | null;
@@ -54,16 +51,6 @@ interface CoursesState {
   // Selectors
   getCoursesByStatus: (status: CourseStatus) => Course[];
 }
-
-// Helper to find current (incomplete) step
-export const getCurrentStep = (steps: Step[]): Step | null => {
-  return steps.find((s) => !s.completed) || null;
-};
-
-// Helper to get completed steps
-export const getCompletedSteps = (steps: Step[]): Step[] => {
-  return steps.filter((s) => s.completed);
-};
 
 // Cache configuration (5 minutes TTL)
 const CACHE_TTL = 5 * 60 * 1000;
@@ -173,45 +160,7 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
     });
   },
 
-  addStep: (courseId, step) => {
-    const { courses, activeCourse } = get();
-    const updatedCourses = courses.map((c) => {
-      if (c.id === courseId) {
-        return { ...c, steps: [...(c.steps ?? []), step] };
-      }
-      return c;
-    });
-    set({
-      courses: updatedCourses,
-      activeCourse:
-        activeCourse?.id === courseId
-          ? { ...activeCourse, steps: [...(activeCourse.steps ?? []), step] }
-          : activeCourse,
-    });
-  },
-
-  updateStep: (courseId, stepId, updates) => {
-    const { courses, activeCourse } = get();
-    const updateSteps = (steps: Step[]) =>
-      steps.map((s) => (s.id === stepId ? { ...s, ...updates } : s));
-
-    const updatedCourses = courses.map((c) => {
-      if (c.id === courseId) {
-        return { ...c, steps: updateSteps(c.steps ?? []) };
-      }
-      return c;
-    });
-
-    set({
-      courses: updatedCourses,
-      activeCourse:
-        activeCourse?.id === courseId
-          ? { ...activeCourse, steps: updateSteps(activeCourse.steps ?? []) }
-          : activeCourse,
-    });
-  },
-
-  // New course structure actions
+  // Course structure actions (sections/lessons)
   setCourseOutline: (courseId, outline) => {
     const { courses, activeCourse, coursesCache } = get();
     const updatedCourses = courses.map((c) =>

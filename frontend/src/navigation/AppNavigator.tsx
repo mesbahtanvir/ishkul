@@ -10,8 +10,7 @@ import { useUserStore } from '../state/userStore';
 import { useCoursesStore } from '../state/coursesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { checkAuthState, initializeAuth } from '../services/auth';
-import { getUserDocument } from '../services/memory';
-import { coursesApi } from '../services/api';
+import { userApi, coursesApi } from '../services/api';
 import { tokenStorage } from '../services/api/tokenStorage';
 
 // Types
@@ -296,7 +295,7 @@ export const AppNavigator: React.FC = () => {
           try {
             // Fetch user document and learning courses in parallel
             const [userDoc, courses] = await Promise.all([
-              getUserDocument(),
+              userApi.getUserDocument(),
               coursesApi.getCourses(),
             ]);
             setUserDocument(userDoc);

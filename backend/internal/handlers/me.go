@@ -248,71 +248,7 @@ func CreateMeDocument(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// AddHistoryRequest represents a request to add a history entry
-type AddHistoryRequest struct {
-	Type  string  `json:"type"`
-	Topic string  `json:"topic"`
-	Score float64 `json:"score,omitempty"`
-}
-
-// AddHistory adds a history entry to the user's document
-func AddHistory(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	ctx := r.Context()
-	userID := middleware.GetUserID(ctx)
-	if userID == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	var req AddHistoryRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if req.Type == "" || req.Topic == "" {
-		http.Error(w, "Type and topic are required", http.StatusBadRequest)
-		return
-	}
-
-	fs := firebase.GetFirestore()
-	if fs == nil {
-		http.Error(w, "Database not available", http.StatusInternalServerError)
-		return
-	}
-
-	entry := models.HistoryEntry{
-		Type:      req.Type,
-		Topic:     req.Topic,
-		Score:     req.Score,
-		Timestamp: time.Now().UnixMilli(),
-	}
-
-	docRef := Collection(fs, "users").Doc(userID)
-	_, err := docRef.Update(ctx, []firestore.Update{
-		{Path: "history", Value: firestore.ArrayUnion(entry)},
-		{Path: "updatedAt", Value: time.Now()},
-	})
-
-	if err != nil {
-		http.Error(w, "Error adding history entry", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"entry":   entry,
-	}); err != nil {
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
-		return
-	}
-}
+// Note: AddHistory legacy endpoint removed - history is now tracked via LessonProgress in courses
 
 // DeleteAccountRequest represents a delete account request
 type DeleteAccountRequest struct {

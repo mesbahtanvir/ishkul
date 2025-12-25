@@ -347,14 +347,24 @@ func calculateDerivedContext(ctx context.Context, fs *firestore.Client, userID s
 			completedCount++
 		}
 
-		// Collect topics and quiz scores from steps
-		for _, step := range path.Steps {
-			if step.Topic != "" {
-				topicsMap[step.Topic] = true
-			}
-			if step.Type == "quiz" && step.Score > 0 {
-				totalQuizScore += float64(step.Score)
-				quizCount++
+		// Collect topics and quiz scores from lesson blocks
+		if path.Outline != nil {
+			for _, section := range path.Outline.Sections {
+				for _, lesson := range section.Lessons {
+					// Add lesson title as a topic
+					if lesson.Title != "" {
+						topicsMap[lesson.Title] = true
+					}
+					// Check lesson progress for quiz scores
+					if lesson.Progress != nil {
+						for _, result := range lesson.Progress.BlockResults {
+							if result.BlockType == "question" && result.Score > 0 {
+								totalQuizScore += result.Score
+								quizCount++
+							}
+						}
+					}
+				}
 			}
 		}
 	}

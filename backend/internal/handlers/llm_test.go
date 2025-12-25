@@ -58,7 +58,6 @@ func TestInitializeLLM(t *testing.T) {
 		originalLoader := promptLoader
 		originalRenderer := promptRenderer
 		originalCache := blockCache
-		originalPregenerateService := pregenerateService
 
 		// Reset after test
 		defer func() {
@@ -67,7 +66,6 @@ func TestInitializeLLM(t *testing.T) {
 			promptLoader = originalLoader
 			promptRenderer = originalRenderer
 			blockCache = originalCache
-			pregenerateService = originalPregenerateService
 		}()
 
 		// Reset globals
@@ -76,7 +74,6 @@ func TestInitializeLLM(t *testing.T) {
 		promptLoader = nil
 		promptRenderer = nil
 		blockCache = nil
-		pregenerateService = nil
 
 		// InitializeLLM should fail without any API keys
 		err := InitializeLLM("nonexistent-prompts-dir")

@@ -14,7 +14,6 @@ import (
 	"net/http"
 
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
-	"github.com/mesbahtanvir/ishkul/backend/internal/services"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/cache"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 )
@@ -31,10 +30,9 @@ const MaxCoursesPerUser = 5
 // Global State
 // =============================================================================
 
-// Global cache and pre-generation service
+// Global cache for block pre-generation
 var (
-	blockCache         *cache.BlockCache
-	pregenerateService *services.PregenerateService
+	blockCache *cache.BlockCache
 )
 
 // Global logger instance - initialized in llm.go

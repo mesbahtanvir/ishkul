@@ -1,18 +1,62 @@
 import { create } from 'zustand';
-import { NextStep } from '../types/app';
+import { LessonPosition, Block } from '../types/app';
 
+/**
+ * Learning state for the current active lesson session.
+ * Tracks the user's position within a lesson and block progress.
+ */
 interface LearningState {
-  currentStep: NextStep | null;
+  // Current lesson being studied
+  currentPosition: LessonPosition | null;
+  // Current block within the lesson
+  currentBlockIndex: number;
+  // All blocks for the current lesson
+  blocks: Block[];
+  // Loading state for lesson content
   loading: boolean;
-  setCurrentStep: (step: NextStep | null) => void;
+
+  // Actions
+  setCurrentPosition: (position: LessonPosition | null) => void;
+  setCurrentBlockIndex: (index: number) => void;
+  setBlocks: (blocks: Block[]) => void;
+  nextBlock: () => void;
+  previousBlock: () => void;
   setLoading: (loading: boolean) => void;
-  clearCurrentStep: () => void;
+  clearLesson: () => void;
 }
 
-export const useLearningStore = create<LearningState>((set) => ({
-  currentStep: null,
+export const useLearningStore = create<LearningState>((set, get) => ({
+  currentPosition: null,
+  currentBlockIndex: 0,
+  blocks: [],
   loading: false,
-  setCurrentStep: (step) => set({ currentStep: step }),
+
+  setCurrentPosition: (position) => set({ currentPosition: position }),
+
+  setCurrentBlockIndex: (index) => set({ currentBlockIndex: index }),
+
+  setBlocks: (blocks) => set({ blocks, currentBlockIndex: 0 }),
+
+  nextBlock: () => {
+    const { currentBlockIndex, blocks } = get();
+    if (currentBlockIndex < blocks.length - 1) {
+      set({ currentBlockIndex: currentBlockIndex + 1 });
+    }
+  },
+
+  previousBlock: () => {
+    const { currentBlockIndex } = get();
+    if (currentBlockIndex > 0) {
+      set({ currentBlockIndex: currentBlockIndex - 1 });
+    }
+  },
+
   setLoading: (loading) => set({ loading }),
-  clearCurrentStep: () => set({ currentStep: null }),
+
+  clearLesson: () =>
+    set({
+      currentPosition: null,
+      currentBlockIndex: 0,
+      blocks: [],
+    }),
 }));

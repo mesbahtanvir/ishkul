@@ -24,12 +24,15 @@ export const PracticeTool: LearningTool<PracticeData> = {
 
   Renderer: PracticeRenderer,
 
-  extractData: (step) => ({
-    task: step.task || '',
-    hints: step.hints,
-    topic: step.topic,
-    title: step.title,
-  }),
+  extractData: (block) => {
+    const task = block.content?.task;
+    return {
+      task: task?.instruction || '',
+      hints: task?.hints,
+      topic: block.purpose,
+      title: block.title,
+    };
+  },
 
   validate: isPracticeData,
 };
