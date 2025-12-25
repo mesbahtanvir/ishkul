@@ -1,9 +1,8 @@
-import { Lesson, Block } from './app';
+import { Lesson } from './app';
 
 export type RootStackParamList = {
   Login: undefined;
   GoalSelection: { isCreatingNewCourse?: boolean };
-  LevelSelection: { goal: string; isCreatingNewCourse?: boolean };
   Main: undefined;
   Learn: undefined;
   Home: undefined;
@@ -17,33 +16,30 @@ export type RootStackParamList = {
   SubscriptionSuccess: { session_id?: string } | undefined;
   ManageSubscription: undefined;
   // ============================================
-  // Course & Lesson Screens (3-Stage Generation)
+  // Unified Course View (SPA-like experience)
   // ============================================
-  // Course outline view - shows sections and lessons
+  // Single screen that shows both course overview and lessons
+  // - Overview mode: shows sections and lessons (like CourseOutline)
+  // - Lesson mode: shows lesson blocks (like LessonScreen)
+  // No page transitions - content swaps within the same screen
+  CourseView: {
+    courseId: string;
+    // Optional: start directly on a specific lesson
+    lessonId?: string;
+    sectionId?: string;
+  };
+  // ============================================
+  // Legacy screens (kept for backward compatibility)
+  // ============================================
+  // Course outline view - redirects to CourseView
   CourseOutline: {
     courseId: string;
   };
-  // Lesson content view - shows blocks and handles progression
+  // Lesson content view - redirects to CourseView with lessonId
   Lesson: {
     courseId: string;
     lessonId: string;
     sectionId: string;
-    // Optional: pre-populated lesson data to avoid re-fetch
     lesson?: Lesson;
-  };
-  // Generating lesson blocks screen - shows progress while blocks are generated
-  LessonGenerating: {
-    courseId: string;
-    lessonId: string;
-    sectionId: string;
-    lessonTitle: string;
-  };
-  // Block content view - for full-screen block display (optional)
-  BlockView: {
-    courseId: string;
-    lessonId: string;
-    block: Block;
-    blockIndex: number;
-    totalBlocks: number;
   };
 };

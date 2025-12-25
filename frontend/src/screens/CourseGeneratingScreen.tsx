@@ -149,28 +149,49 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
     };
   }, [pollPath]);
 
+  // Auto-navigate to first lesson when course is ready (frictionless flow)
+  useEffect(() => {
+    if (path?.outlineStatus === OutlineStatuses.READY) {
+      // Small delay for smooth transition
+      const timer = setTimeout(() => {
+        if (path?.outline?.sections && path.outline.sections.length > 0) {
+          const firstSection = path.outline.sections[0];
+          if (firstSection.lessons && firstSection.lessons.length > 0) {
+            const firstLesson = firstSection.lessons[0];
+            navigation.replace('CourseView', {
+              courseId,
+              lessonId: firstLesson.id,
+              sectionId: firstSection.id,
+            });
+            return;
+          }
+        }
+        // Fallback to overview if no lessons found
+        navigation.replace('CourseView', { courseId });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [path?.outlineStatus, path?.outline?.sections, courseId, navigation]);
+
+  // Fallback handlers in case auto-navigation doesn't trigger
   const handleViewOutline = () => {
-    // Navigate directly to outline (skip CourseScreen redirect)
-    navigation.replace('CourseOutline', { courseId });
+    navigation.replace('CourseView', { courseId });
   };
 
   const handleStartFirstLesson = () => {
-    // Navigate directly to the first lesson
     if (path?.outline?.sections && path.outline.sections.length > 0) {
       const firstSection = path.outline.sections[0];
       if (firstSection.lessons && firstSection.lessons.length > 0) {
         const firstLesson = firstSection.lessons[0];
-        navigation.replace('Lesson', {
+        navigation.replace('CourseView', {
           courseId,
           lessonId: firstLesson.id,
           sectionId: firstSection.id,
-          lesson: firstLesson,
         });
         return;
       }
     }
-    // Fallback to outline if no lessons found
-    navigation.replace('CourseOutline', { courseId });
+    navigation.replace('CourseView', { courseId });
   };
 
   const handleRetry = async () => {
