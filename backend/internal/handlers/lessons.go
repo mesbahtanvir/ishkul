@@ -149,10 +149,28 @@ func getLesson(w http.ResponseWriter, r *http.Request, courseID, sectionID, less
 
 	// Auto-generate blocks if needed
 	if lesson.BlocksStatus == "" || lesson.BlocksStatus == models.ContentStatusPending {
-		// Trigger async generation
-		go generateBlocksAsync(courseID, sectionID, lessonID, course, userID)
+		// Queue a task for block generation via the task queue
+		tm := GetTaskManager()
+		if tm != nil {
+			userTier := getUserTierForPregeneration(ctx, fs, userID)
+			_, err := tm.CreateBlockSkeletonTask(ctx, courseID, sectionID, lessonID, userID, userTier)
+			if err != nil {
+				// Log error but continue - fall back to async generation
+				if appLogger != nil {
+					logger.Warn(appLogger, ctx, "failed_to_queue_block_skeleton_task",
+						slog.String("error", err.Error()),
+					)
+				}
+				// Fall back to direct async generation
+				go generateBlocksAsync(courseID, sectionID, lessonID, course, userID)
+			}
+		} else {
+			// No task manager, use direct async generation
+			go generateBlocksAsync(courseID, sectionID, lessonID, course, userID)
+		}
 
-		// Return with generating status
+		// Mark as generating and update Firestore
+		updateLessonBlocksStatus(ctx, fs, course, lessonID, models.ContentStatusGenerating, "")
 		lesson.BlocksStatus = models.ContentStatusGenerating
 	}
 
@@ -293,7 +311,30 @@ func generateBlockContent(w http.ResponseWriter, r *http.Request, courseID, sect
 	// Mark as generating
 	updateBlockContentStatus(ctx, fs, course, lessonID, blockID, models.ContentStatusGenerating, "")
 
-	// Generate content
+	// Try to queue the task for background processing
+	tm := GetTaskManager()
+	if tm != nil {
+		userTier := getUserTierForPregeneration(ctx, fs, userID)
+		_, err := tm.CreateBlockContentTask(ctx, courseID, sectionID, lessonID, blockID, userID, userTier, models.PriorityHigh)
+		if err != nil {
+			// Log error but fall back to synchronous generation
+			if appLogger != nil {
+				logger.Warn(appLogger, ctx, "failed_to_queue_block_content_task",
+					slog.String("error", err.Error()),
+				)
+			}
+		} else {
+			// Task queued successfully - return generating status
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"status":  "generating",
+				"message": "Content generation queued",
+			})
+			return
+		}
+	}
+
+	// Fall back to synchronous generation if queue is not available
 	content, err := generateContentForBlock(ctx, course, sectionID, lesson, block)
 	if err != nil {
 		updateBlockContentStatus(ctx, fs, course, lessonID, blockID, models.ContentStatusError, err.Error())

@@ -105,6 +105,10 @@ func main() {
 	// Initialize queue processor for background content generation
 	var queueProcessor *queue.Processor
 	taskManager := queue.NewTaskManager(appLogger)
+
+	// Share the TaskManager with handlers so they can queue tasks
+	handlers.SetTaskManager(taskManager)
+
 	generatorFuncs := &queue.GeneratorFuncs{
 		CheckCanGenerate:       handlers.CheckCanGenerate,
 		IncrementTokenUsage:    handlers.IncrementTokenUsage,
