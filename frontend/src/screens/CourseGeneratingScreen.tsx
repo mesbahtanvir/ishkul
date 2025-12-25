@@ -150,27 +150,26 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
   }, [pollPath]);
 
   const handleViewOutline = () => {
-    // Navigate directly to outline (skip CourseScreen redirect)
-    navigation.replace('CourseOutline', { courseId });
+    // Navigate to unified CourseView (shows overview)
+    navigation.replace('CourseView', { courseId });
   };
 
   const handleStartFirstLesson = () => {
-    // Navigate directly to the first lesson
+    // Navigate to CourseView with first lesson pre-selected
     if (path?.outline?.sections && path.outline.sections.length > 0) {
       const firstSection = path.outline.sections[0];
       if (firstSection.lessons && firstSection.lessons.length > 0) {
         const firstLesson = firstSection.lessons[0];
-        navigation.replace('Lesson', {
+        navigation.replace('CourseView', {
           courseId,
           lessonId: firstLesson.id,
           sectionId: firstSection.id,
-          lesson: firstLesson,
         });
         return;
       }
     }
-    // Fallback to outline if no lessons found
-    navigation.replace('CourseOutline', { courseId });
+    // Fallback to overview if no lessons found
+    navigation.replace('CourseView', { courseId });
   };
 
   const handleRetry = async () => {

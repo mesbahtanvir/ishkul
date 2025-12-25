@@ -147,7 +147,7 @@ export const HomeScreen: React.FC = () => {
 
   const handlePathPress = (path: Course) => {
     setActiveCourse(path);
-    navigation.navigate('CourseOutline', { courseId: path.id });
+    navigation.navigate('CourseView', { courseId: path.id });
   };
 
   const handleDeletePath = (path: Course) => {

@@ -23,9 +23,31 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { CourseGeneratingScreen } from '../screens/CourseGeneratingScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { ContextScreen } from '../screens/ContextScreen';
-// Lesson-based screens (3-stage generation)
-import { LessonScreen } from '../screens/LessonScreen';
-import { CourseOutlineScreen } from '../screens/CourseOutlineScreen';
+// Unified course experience (SPA-like)
+import { CourseViewScreen } from '../screens/CourseViewScreen';
+
+// Legacy route wrappers - redirect to CourseView
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+
+// Wrapper for legacy CourseOutline route - redirects to CourseView
+const CourseOutlineRedirect: React.FC<NativeStackScreenProps<RootStackParamList, 'CourseOutline'>> = ({ navigation, route }) => {
+  React.useEffect(() => {
+    navigation.replace('CourseView', { courseId: route.params.courseId });
+  }, [navigation, route.params.courseId]);
+  return null;
+};
+
+// Wrapper for legacy Lesson route - redirects to CourseView with lessonId
+const LessonRedirect: React.FC<NativeStackScreenProps<RootStackParamList, 'Lesson'>> = ({ navigation, route }) => {
+  React.useEffect(() => {
+    navigation.replace('CourseView', {
+      courseId: route.params.courseId,
+      lessonId: route.params.lessonId,
+      sectionId: route.params.sectionId,
+    });
+  }, [navigation, route.params]);
+  return null;
+};
 
 // Initialize tool registry
 import '../tools';
@@ -60,11 +82,19 @@ const linking: LinkingOptions<RootStackParamList> = {
               Home: 'home',
               GoalSelection: 'goal-selection',
               CourseGenerating: 'course-generating',
-              // Note: 'course' URLs are handled via CourseOutline for backward compatibility
+              // Unified course view - handles both course overview and lessons
+              CourseView: {
+                path: 'course/:courseId',
+                parse: {
+                  courseId: (courseId: string) => courseId,
+                  lessonId: (lessonId: string) => lessonId,
+                  sectionId: (sectionId: string) => sectionId,
+                },
+              },
+              // Legacy routes - redirect to CourseView
               CourseOutline: {
                 path: 'course-outline',
-                // Also handle legacy 'course' URLs
-                alias: ['course'],
+                alias: ['course-outline'],
               },
               Lesson: 'lesson',
             },
@@ -114,10 +144,11 @@ const LearnStack = () => {
       <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
       {/* Course generation screen - shows progress while outline is being generated */}
       <Stack.Screen name="CourseGenerating" component={CourseGeneratingScreen} />
-      {/* Course outline view - sections and lessons */}
-      <Stack.Screen name="CourseOutline" component={CourseOutlineScreen} />
-      {/* Lesson content with blocks */}
-      <Stack.Screen name="Lesson" component={LessonScreen} />
+      {/* Unified course view - SPA-like experience for course and lessons */}
+      <Stack.Screen name="CourseView" component={CourseViewScreen} />
+      {/* Legacy routes - redirect to CourseView for backward compatibility */}
+      <Stack.Screen name="CourseOutline" component={CourseOutlineRedirect} />
+      <Stack.Screen name="Lesson" component={LessonRedirect} />
     </Stack.Navigator>
   );
 };

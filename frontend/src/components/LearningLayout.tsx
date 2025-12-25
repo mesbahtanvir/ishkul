@@ -53,6 +53,12 @@ interface LearningLayoutProps {
   title?: string;
   /** Whether content is scrollable */
   scrollable?: boolean;
+  /**
+   * Callback for lesson selection from sidebar (SPA-like navigation).
+   * When provided, clicking a lesson in sidebar calls this instead of navigating.
+   * Used by CourseViewScreen for internal state management.
+   */
+  onLessonSelect?: (lesson: Lesson, sectionId: string) => void;
 }
 
 /**
@@ -482,6 +488,7 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
   showBackButton = true,
   title,
   scrollable = true,
+  onLessonSelect,
 }) => {
   const { colors } = useTheme();
   const { isMobile } = useResponsive();
@@ -515,15 +522,24 @@ export const LearningLayout: React.FC<LearningLayoutProps> = ({
   const showSidebar = !isMobile && hasOutline && Platform.OS === 'web' && navigation;
 
   const handleLessonPress = (lesson: Lesson, sectionId: string) => {
-    if (lesson.status === 'locked' || !navigation) return;
+    if (lesson.status === 'locked') return;
 
     setDrawerVisible(false);
-    navigation.navigate('Lesson', {
-      courseId,
-      lessonId: lesson.id,
-      sectionId,
-      lesson,
-    });
+
+    // Use callback for SPA-like navigation if provided (CourseViewScreen)
+    if (onLessonSelect) {
+      onLessonSelect(lesson, sectionId);
+      return;
+    }
+
+    // Fallback to regular navigation (legacy LessonScreen usage)
+    if (navigation) {
+      navigation.navigate('CourseView', {
+        courseId,
+        lessonId: lesson.id,
+        sectionId,
+      });
+    }
   };
 
   const handleBack = () => {
