@@ -262,6 +262,19 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
             generatingBlockId={isGeneratingContent}
             onContinue={handleContinue}
           />
+        ) : lesson?.blocksStatus === 'generating' || isGeneratingBlocks ? (
+          // Blocks are being generated via the queue
+          <Card elevation="md" padding="lg">
+            <View style={styles.emptyBlockContainer}>
+              <ActivityIndicator size="large" color={colors.primary} style={styles.generatingLoader} />
+              <Text style={[styles.emptyBlockTitle, { color: colors.text.primary }]}>
+                Generating Content
+              </Text>
+              <Text style={[styles.emptyBlockText, { color: colors.text.secondary }]}>
+                Creating personalized lesson blocks for you...
+              </Text>
+            </View>
+          </Card>
         ) : lesson?.blocksStatus === 'pending' ? (
           // Blocks haven't been generated yet - show prompt to generate
           <Card elevation="md" padding="lg">
