@@ -2,6 +2,8 @@ package queue
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"os"
@@ -25,7 +27,10 @@ type TaskManager struct {
 func NewTaskManager(logger *slog.Logger) *TaskManager {
 	instanceID := os.Getenv("K_REVISION")
 	if instanceID == "" {
-		instanceID = fmt.Sprintf("local-%d", time.Now().UnixNano())
+		// Generate a unique local instance ID using timestamp + random bytes
+		randomBytes := make([]byte, 4)
+		rand.Read(randomBytes)
+		instanceID = fmt.Sprintf("local-%d-%s", time.Now().UnixNano(), hex.EncodeToString(randomBytes))
 	}
 
 	return &TaskManager{

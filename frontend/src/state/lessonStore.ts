@@ -47,6 +47,7 @@ interface LessonState {
   // Actions - Lesson
   setCurrentLesson: (lesson: Lesson | null, courseId?: string, sectionId?: string) => void;
   fetchLesson: (courseId: string, lessonId: string, sectionId: string) => Promise<Lesson | null>;
+  refreshLesson: (courseId: string, lessonId: string, sectionId: string) => Promise<Lesson | null>;
   clearLesson: () => void;
 
   // Actions - Block Generation
@@ -149,6 +150,55 @@ export const useLessonStore = create<LessonState>((set, get) => ({
     }
   },
 
+  // Refresh lesson data without resetting navigation state (for polling)
+  refreshLesson: async (courseId, lessonId, sectionId) => {
+    try {
+      const response = await lessonsApi.getLesson(courseId, sectionId, lessonId);
+      const lesson = response.lesson;
+      const { currentLesson, currentBlockIndex, blockContentGenerating } = get();
+
+      // Only update if this is still the current lesson
+      if (currentLesson?.id !== lessonId) {
+        return null;
+      }
+
+      // Check if any previously-generating blocks are now ready
+      const previousGeneratingBlockId = blockContentGenerating;
+      let newBlockContentGenerating = blockContentGenerating;
+
+      if (previousGeneratingBlockId && lesson.blocks) {
+        const block = lesson.blocks.find((b) => b.id === previousGeneratingBlockId);
+        if (block && block.contentStatus === 'ready') {
+          // Content is now ready - clear the generating flag
+          newBlockContentGenerating = null;
+        }
+      }
+
+      // Merge: update lesson data but preserve navigation state
+      set({
+        currentLesson: lesson,
+        currentCourseId: courseId,
+        currentSectionId: sectionId,
+        // Preserve current block index unless it's out of bounds
+        currentBlockIndex: lesson.blocks
+          ? Math.min(currentBlockIndex, lesson.blocks.length - 1)
+          : 0,
+        blockContentGenerating: newBlockContentGenerating,
+        // Clear blocksGenerating if blocks are now ready
+        blocksGenerating:
+          lesson.blocksStatus === 'generating' ? get().blocksGenerating : false,
+        // Preserve local progress (don't overwrite with server progress during active session)
+        // localProgress: lesson.progress ?? null,
+      });
+
+      return lesson;
+    } catch (error) {
+      // Don't set error state during refresh - it's background polling
+      console.error('Failed to refresh lesson:', error);
+      return null;
+    }
+  },
+
   clearLesson: () => {
     set({
       currentLesson: null,
@@ -167,7 +217,9 @@ export const useLessonStore = create<LessonState>((set, get) => ({
     try {
       const response = await lessonsApi.generateBlocks(courseId, sectionId, lessonId);
       const { currentLesson } = get();
-      if (currentLesson && currentLesson.id === lessonId) {
+
+      // Check if blocks were returned immediately (sync generation)
+      if (currentLesson && currentLesson.id === lessonId && response.blocks) {
         set({
           currentLesson: {
             ...currentLesson,
@@ -176,7 +228,44 @@ export const useLessonStore = create<LessonState>((set, get) => ({
           },
           blocksGenerating: false,
         });
+        return response.blocks;
       }
+
+      // Check if task is generating (async generation via queue or already in progress)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const responseAny = response as any;
+      if (responseAny.status === 'generating') {
+        // Blocks are being generated async - mark as generating
+        // The polling effect in useLesson will handle fetching updates
+        if (currentLesson && currentLesson.id === lessonId) {
+          set({
+            currentLesson: {
+              ...currentLesson,
+              blocksStatus: 'generating',
+            },
+            // Keep blocksGenerating true to trigger polling
+          });
+        }
+        return null;
+      }
+
+      // Content already ready (was cached or previously generated)
+      if (responseAny.status === 'ready' && responseAny.blocks) {
+        if (currentLesson && currentLesson.id === lessonId) {
+          set({
+            currentLesson: {
+              ...currentLesson,
+              blocks: responseAny.blocks,
+              blocksStatus: 'ready',
+            },
+            blocksGenerating: false,
+          });
+        }
+        return responseAny.blocks;
+      }
+
+      // Fallback - clear generating state
+      set({ blocksGenerating: false });
       return response.blocks ?? null;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate blocks';
@@ -190,6 +279,8 @@ export const useLessonStore = create<LessonState>((set, get) => ({
     try {
       const response = await lessonsApi.generateBlockContent(courseId, sectionId, lessonId, blockId);
       const { currentLesson } = get();
+
+      // Check if content was returned immediately (sync generation)
       if (currentLesson && currentLesson.id === lessonId && response.content) {
         const updatedBlocks = currentLesson.blocks?.map((b) =>
           b.id === blockId
@@ -200,7 +291,46 @@ export const useLessonStore = create<LessonState>((set, get) => ({
           currentLesson: { ...currentLesson, blocks: updatedBlocks },
           blockContentGenerating: null,
         });
+        return response.content;
       }
+
+      // Check if task was queued (async generation via queue)
+      // When queued, response contains { status: "generating", message: "..." }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const responseAny = response as any;
+      if (responseAny.status === 'generating') {
+        // Task was queued - mark block as generating and keep blockContentGenerating set
+        // The polling effect in useLesson will handle fetching updates
+        if (currentLesson && currentLesson.id === lessonId) {
+          const updatedBlocks = currentLesson.blocks?.map((b) =>
+            b.id === blockId ? { ...b, contentStatus: 'generating' as ContentStatus } : b
+          );
+          set({
+            currentLesson: { ...currentLesson, blocks: updatedBlocks },
+            // Keep blockContentGenerating set to trigger polling
+          });
+        }
+        return null;
+      }
+
+      // Content already ready (was cached or previously generated)
+      if (responseAny.status === 'ready' && responseAny.content) {
+        if (currentLesson && currentLesson.id === lessonId) {
+          const updatedBlocks = currentLesson.blocks?.map((b) =>
+            b.id === blockId
+              ? { ...b, content: responseAny.content, contentStatus: 'ready' as ContentStatus }
+              : b
+          );
+          set({
+            currentLesson: { ...currentLesson, blocks: updatedBlocks },
+            blockContentGenerating: null,
+          });
+        }
+        return responseAny.content;
+      }
+
+      // Fallback - clear generating state
+      set({ blockContentGenerating: null });
       return response.content ?? null;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate content';
