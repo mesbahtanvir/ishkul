@@ -4,7 +4,7 @@
  * Tests the lesson state management for the 3-stage block-based content system
  */
 
-import { act, waitFor } from '@testing-library/react-native';
+import { act } from '@testing-library/react-native';
 import { useLessonStore } from '../lessonStore';
 import { lessonsApi } from '../../services/api';
 import { Block, Lesson, BlockContent, ContentStatus } from '../../types/app';

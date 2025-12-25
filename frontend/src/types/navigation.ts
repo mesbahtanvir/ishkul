@@ -9,8 +9,6 @@ export type RootStackParamList = {
   Home: undefined;
   // Course generation screen - shows progress while outline is being generated
   CourseGenerating: { courseId: string };
-  // Main course view - redirects to CourseOutline
-  Course: { courseId: string };
   Progress: undefined;
   Settings: undefined;
   SettingsTab: undefined;
@@ -19,8 +17,12 @@ export type RootStackParamList = {
   SubscriptionSuccess: { session_id?: string } | undefined;
   ManageSubscription: undefined;
   // ============================================
-  // Lesson Screens (3-Stage Generation)
+  // Course & Lesson Screens (3-Stage Generation)
   // ============================================
+  // Course outline view - shows sections and lessons
+  CourseOutline: {
+    courseId: string;
+  };
   // Lesson content view - shows blocks and handles progression
   Lesson: {
     courseId: string;
@@ -43,18 +45,5 @@ export type RootStackParamList = {
     block: Block;
     blockIndex: number;
     totalBlocks: number;
-  };
-  // Course outline view - shows sections and lessons
-  CourseOutline: {
-    courseId: string;
-  };
-  // Lesson complete summary screen
-  // Note: nextLesson is computed from store, not passed as param (objects can't serialize to URLs)
-  LessonComplete: {
-    courseId: string;
-    lessonId: string;
-    sectionId: string;
-    score: number;
-    timeSpent: number;
   };
 };

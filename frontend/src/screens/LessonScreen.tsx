@@ -72,7 +72,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
           });
         } else {
           // Course complete - go to course overview
-          navigation.navigate('Course', { courseId });
+          navigation.navigate('CourseOutline', { courseId });
         }
       });
     }

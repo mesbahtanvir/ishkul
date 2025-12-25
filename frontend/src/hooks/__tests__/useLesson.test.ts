@@ -13,7 +13,7 @@ import { useLesson } from '../useLesson';
 import { useLessonStore } from '../../state/lessonStore';
 import { useCoursesStore } from '../../state/coursesStore';
 import { lessonsApi } from '../../services/api';
-import { Block, Lesson, ContentStatus, Course, CourseOutline } from '../../types/app';
+import { Block, Lesson, ContentStatus, Course } from '../../types/app';
 
 // Mock the API
 jest.mock('../../services/api', () => ({
