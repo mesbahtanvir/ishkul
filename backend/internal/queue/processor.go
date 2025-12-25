@@ -96,20 +96,23 @@ func (p *Processor) Start() {
 	}
 	p.running = true
 	p.stopChan = make(chan struct{})
+	stopChan := p.stopChan // Capture the channel before releasing the lock
+
+	// Add to WaitGroup while holding the lock to prevent races with Stop()
+	numWorkers := p.config.MaxConcurrent
+	p.wg.Add(numWorkers + 1) // workers + recovery worker
 	p.mu.Unlock()
 
-	// Start worker goroutines
-	for i := 0; i < p.config.MaxConcurrent; i++ {
-		p.wg.Add(1)
-		go p.worker(i)
+	// Start worker goroutines with the captured channel
+	for i := 0; i < numWorkers; i++ {
+		go p.worker(i, stopChan)
 	}
 
-	// Start recovery goroutine
-	p.wg.Add(1)
-	go p.recoveryWorker()
+	// Start recovery goroutine with the captured channel
+	go p.recoveryWorker(stopChan)
 
 	p.logInfo(context.Background(), "processor_started",
-		slog.Int("workers", p.config.MaxConcurrent),
+		slog.Int("workers", numWorkers),
 	)
 }
 
@@ -121,9 +124,10 @@ func (p *Processor) Stop() {
 		return
 	}
 	p.running = false
-	close(p.stopChan)
+	stopChan := p.stopChan // Capture before closing to avoid race
 	p.mu.Unlock()
 
+	close(stopChan)
 	p.wg.Wait()
 	p.logInfo(context.Background(), "processor_stopped")
 }
@@ -136,7 +140,7 @@ func (p *Processor) IsRunning() bool {
 }
 
 // worker is a goroutine that processes tasks
-func (p *Processor) worker(id int) {
+func (p *Processor) worker(id int, stopChan <-chan struct{}) {
 	defer p.wg.Done()
 
 	ticker := time.NewTicker(p.config.PollInterval)
@@ -144,7 +148,7 @@ func (p *Processor) worker(id int) {
 
 	for {
 		select {
-		case <-p.stopChan:
+		case <-stopChan:
 			return
 		case <-ticker.C:
 			p.processNextTask(id)
@@ -399,7 +403,7 @@ func (p *Processor) processBlockContentTask(ctx context.Context, task *models.Ge
 }
 
 // recoveryWorker periodically checks for and recovers stale tasks
-func (p *Processor) recoveryWorker() {
+func (p *Processor) recoveryWorker(stopChan <-chan struct{}) {
 	defer p.wg.Done()
 
 	ticker := time.NewTicker(p.config.RecoveryInterval)
@@ -407,7 +411,7 @@ func (p *Processor) recoveryWorker() {
 
 	for {
 		select {
-		case <-p.stopChan:
+		case <-stopChan:
 			return
 		case <-ticker.C:
 			ctx := context.Background()
