@@ -254,6 +254,7 @@ For detailed information, see:
 - **[docs/DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md)** - Environment setup, .env files, OAuth
 - **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** - CI/CD, Vercel, Cloud Run, Firebase rules
 - **[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** - Cloud Run management, scaling, monitoring
+- **[docs/GRAFANA_CLOUD_SETUP.md](docs/GRAFANA_CLOUD_SETUP.md)** - Metrics & observability with Grafana Cloud (free tier)
 - **[docs/PREVIEW_DEPLOYMENTS.md](docs/PREVIEW_DEPLOYMENTS.md)** - Backend preview environments on PRs
 - **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues, debug commands
 - **[docs/ROADMAP.md](docs/ROADMAP.md)** - Future features, enhancements, timeline

@@ -10,6 +10,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/metrics"
 )
 
 // GeneratorFuncs contains the function callbacks for content generation.
@@ -175,10 +176,15 @@ func (p *Processor) processNextTask(workerID int) {
 		return
 	}
 
-	p.logInfo(ctx, "processing_task",
+	taskStart := time.Now()
+
+	p.logInfo(ctx, "queue_processing_task",
 		slog.Int("worker_id", workerID),
 		slog.String("task_id", task.ID),
-		slog.String("type", string(task.Type)),
+		slog.String("task_type", string(task.Type)),
+		slog.String("course_id", task.CourseID),
+		slog.String("user_id", task.UserID),
+		slog.Int("priority", task.Priority),
 	)
 
 	// Process based on task type
@@ -194,7 +200,21 @@ func (p *Processor) processNextTask(workerID int) {
 		processErr = fmt.Errorf("unknown task type: %s", task.Type)
 	}
 
+	taskDuration := time.Since(taskStart)
+
+	// Record task duration metric
+	m := metrics.GetCollector()
+	m.Histogram(metrics.MetricQueueTaskDuration).Observe(taskDuration.Milliseconds())
+
 	if processErr != nil {
+		p.logError(ctx, "queue_task_processing_failed",
+			slog.Int("worker_id", workerID),
+			slog.String("task_id", task.ID),
+			slog.String("task_type", string(task.Type)),
+			slog.String("error", processErr.Error()),
+			slog.Int64("duration_ms", taskDuration.Milliseconds()),
+		)
+
 		// Check if it's a token limit error
 		if isTokenLimitError(processErr) {
 			_ = p.taskManager.PauseTaskForTokenLimit(ctx, task.ID)
@@ -204,21 +224,47 @@ func (p *Processor) processNextTask(workerID int) {
 		return
 	}
 
+	p.logInfo(ctx, "queue_task_processing_success",
+		slog.Int("worker_id", workerID),
+		slog.String("task_id", task.ID),
+		slog.String("task_type", string(task.Type)),
+		slog.Int64("duration_ms", taskDuration.Milliseconds()),
+	)
+
 	// Mark task as completed
 	_ = p.taskManager.CompleteTask(ctx, task.ID)
 }
 
 // processOutlineTask processes an outline generation task
 func (p *Processor) processOutlineTask(ctx context.Context, task *models.GenerationTask) error {
+	genStart := time.Now()
+
+	p.logDebug(ctx, "llm_generation_start",
+		slog.String("task_id", task.ID),
+		slog.String("task_type", string(models.TaskTypeOutline)),
+		slog.String("course_id", task.CourseID),
+		slog.String("user_tier", task.UserTier),
+	)
+
 	if p.generators == nil || p.generators.CheckCanGenerate == nil {
 		return fmt.Errorf("generator functions not configured")
 	}
 
 	// Check token limits first
-	canGenerate, _, _, _, _, limitReached, err := p.generators.CheckCanGenerate(ctx, task.UserID, task.UserTier)
+	canGenerate, dailyUsed, dailyLimit, weeklyUsed, weeklyLimit, limitReached, err := p.generators.CheckCanGenerate(ctx, task.UserID, task.UserTier)
 	if err != nil {
 		return fmt.Errorf("check token limit: %w", err)
 	}
+
+	p.logDebug(ctx, "llm_token_check",
+		slog.String("task_id", task.ID),
+		slog.Bool("can_generate", canGenerate),
+		slog.Int64("daily_used", dailyUsed),
+		slog.Int64("daily_limit", dailyLimit),
+		slog.Int64("weekly_used", weeklyUsed),
+		slog.Int64("weekly_limit", weeklyLimit),
+	)
+
 	if !canGenerate {
 		return &tokenLimitError{limitType: limitReached}
 	}
@@ -244,10 +290,28 @@ func (p *Processor) processOutlineTask(ctx context.Context, task *models.Generat
 	}
 
 	// Generate outline
+	llmStart := time.Now()
 	outline, tokensUsed, err := p.generators.GenerateCourseOutline(ctx, course.Title, task.UserTier)
+	llmDuration := time.Since(llmStart)
+
 	if err != nil {
+		p.logError(ctx, "llm_generation_failed",
+			slog.String("task_id", task.ID),
+			slog.String("task_type", string(models.TaskTypeOutline)),
+			slog.String("course_id", task.CourseID),
+			slog.String("error", err.Error()),
+			slog.Int64("llm_duration_ms", llmDuration.Milliseconds()),
+		)
 		return fmt.Errorf("generate outline: %w", err)
 	}
+
+	p.logInfo(ctx, "llm_generation_success",
+		slog.String("task_id", task.ID),
+		slog.String("task_type", string(models.TaskTypeOutline)),
+		slog.String("course_id", task.CourseID),
+		slog.Int64("tokens_used", tokensUsed),
+		slog.Int64("llm_duration_ms", llmDuration.Milliseconds()),
+	)
 
 	// Record token usage
 	if tokensUsed > 0 && p.generators.IncrementTokenUsage != nil {
@@ -265,9 +329,16 @@ func (p *Processor) processOutlineTask(ctx context.Context, task *models.Generat
 		return fmt.Errorf("save outline: %w", err)
 	}
 
-	p.logInfo(ctx, "outline_generated",
+	// Record metrics
+	m := metrics.GetCollector()
+	m.Counter(metrics.MetricGenerationOutlineSuccess).Inc()
+
+	p.logInfo(ctx, "queue_outline_generated",
+		slog.String("task_id", task.ID),
 		slog.String("course_id", task.CourseID),
 		slog.Int64("tokens_used", tokensUsed),
+		slog.Int("total_lessons", countLessons(outline)),
+		slog.Int64("total_duration_ms", time.Since(genStart).Milliseconds()),
 	)
 
 	return nil
@@ -275,15 +346,35 @@ func (p *Processor) processOutlineTask(ctx context.Context, task *models.Generat
 
 // processBlockSkeletonTask processes a block skeleton generation task
 func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.GenerationTask) error {
+	genStart := time.Now()
+
+	p.logDebug(ctx, "llm_generation_start",
+		slog.String("task_id", task.ID),
+		slog.String("task_type", string(models.TaskTypeBlockSkeleton)),
+		slog.String("course_id", task.CourseID),
+		slog.String("lesson_id", task.LessonID),
+		slog.String("user_tier", task.UserTier),
+	)
+
 	if p.generators == nil || p.generators.CheckCanGenerate == nil {
 		return fmt.Errorf("generator functions not configured")
 	}
 
 	// Check token limits first
-	canGenerate, _, _, _, _, limitReached, err := p.generators.CheckCanGenerate(ctx, task.UserID, task.UserTier)
+	canGenerate, dailyUsed, dailyLimit, weeklyUsed, weeklyLimit, limitReached, err := p.generators.CheckCanGenerate(ctx, task.UserID, task.UserTier)
 	if err != nil {
 		return fmt.Errorf("check token limit: %w", err)
 	}
+
+	p.logDebug(ctx, "llm_token_check",
+		slog.String("task_id", task.ID),
+		slog.Bool("can_generate", canGenerate),
+		slog.Int64("daily_used", dailyUsed),
+		slog.Int64("daily_limit", dailyLimit),
+		slog.Int64("weekly_used", weeklyUsed),
+		slog.Int64("weekly_limit", weeklyLimit),
+	)
+
 	if !canGenerate {
 		return &tokenLimitError{limitType: limitReached}
 	}
@@ -309,10 +400,31 @@ func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.G
 	}
 
 	// Generate block skeletons
+	llmStart := time.Now()
 	blocks, tokensUsed, err := p.generators.GenerateBlockSkeletons(ctx, &course, task.SectionID, task.LessonID, task.UserTier)
+	llmDuration := time.Since(llmStart)
+
 	if err != nil {
+		p.logError(ctx, "llm_generation_failed",
+			slog.String("task_id", task.ID),
+			slog.String("task_type", string(models.TaskTypeBlockSkeleton)),
+			slog.String("course_id", task.CourseID),
+			slog.String("lesson_id", task.LessonID),
+			slog.String("error", err.Error()),
+			slog.Int64("llm_duration_ms", llmDuration.Milliseconds()),
+		)
 		return fmt.Errorf("generate block skeletons: %w", err)
 	}
+
+	p.logInfo(ctx, "llm_generation_success",
+		slog.String("task_id", task.ID),
+		slog.String("task_type", string(models.TaskTypeBlockSkeleton)),
+		slog.String("course_id", task.CourseID),
+		slog.String("lesson_id", task.LessonID),
+		slog.Int("block_count", len(blocks)),
+		slog.Int64("tokens_used", tokensUsed),
+		slog.Int64("llm_duration_ms", llmDuration.Milliseconds()),
+	)
 
 	// Record token usage
 	if tokensUsed > 0 && p.generators.IncrementTokenUsage != nil {
@@ -328,11 +440,17 @@ func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.G
 		return fmt.Errorf("update lesson blocks: %w", err)
 	}
 
-	p.logInfo(ctx, "block_skeletons_generated",
+	// Record metrics
+	m := metrics.GetCollector()
+	m.Counter(metrics.MetricGenerationSkeletonSuccess).Inc()
+
+	p.logInfo(ctx, "queue_block_skeletons_generated",
+		slog.String("task_id", task.ID),
 		slog.String("course_id", task.CourseID),
 		slog.String("lesson_id", task.LessonID),
 		slog.Int("block_count", len(blocks)),
 		slog.Int64("tokens_used", tokensUsed),
+		slog.Int64("total_duration_ms", time.Since(genStart).Milliseconds()),
 	)
 
 	return nil
@@ -340,15 +458,36 @@ func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.G
 
 // processBlockContentTask processes a block content generation task
 func (p *Processor) processBlockContentTask(ctx context.Context, task *models.GenerationTask) error {
+	genStart := time.Now()
+
+	p.logDebug(ctx, "llm_generation_start",
+		slog.String("task_id", task.ID),
+		slog.String("task_type", string(models.TaskTypeBlockContent)),
+		slog.String("course_id", task.CourseID),
+		slog.String("lesson_id", task.LessonID),
+		slog.String("block_id", task.BlockID),
+		slog.String("user_tier", task.UserTier),
+	)
+
 	if p.generators == nil || p.generators.CheckCanGenerate == nil {
 		return fmt.Errorf("generator functions not configured")
 	}
 
 	// Check token limits first
-	canGenerate, _, _, _, _, limitReached, err := p.generators.CheckCanGenerate(ctx, task.UserID, task.UserTier)
+	canGenerate, dailyUsed, dailyLimit, weeklyUsed, weeklyLimit, limitReached, err := p.generators.CheckCanGenerate(ctx, task.UserID, task.UserTier)
 	if err != nil {
 		return fmt.Errorf("check token limit: %w", err)
 	}
+
+	p.logDebug(ctx, "llm_token_check",
+		slog.String("task_id", task.ID),
+		slog.Bool("can_generate", canGenerate),
+		slog.Int64("daily_used", dailyUsed),
+		slog.Int64("daily_limit", dailyLimit),
+		slog.Int64("weekly_used", weeklyUsed),
+		slog.Int64("weekly_limit", weeklyLimit),
+	)
+
 	if !canGenerate {
 		return &tokenLimitError{limitType: limitReached}
 	}
@@ -374,10 +513,30 @@ func (p *Processor) processBlockContentTask(ctx context.Context, task *models.Ge
 	}
 
 	// Generate block content
+	llmStart := time.Now()
 	content, tokensUsed, err := p.generators.GenerateBlockContent(ctx, &course, task.SectionID, task.LessonID, task.BlockID, task.UserTier)
+	llmDuration := time.Since(llmStart)
+
 	if err != nil {
+		p.logError(ctx, "llm_generation_failed",
+			slog.String("task_id", task.ID),
+			slog.String("task_type", string(models.TaskTypeBlockContent)),
+			slog.String("course_id", task.CourseID),
+			slog.String("block_id", task.BlockID),
+			slog.String("error", err.Error()),
+			slog.Int64("llm_duration_ms", llmDuration.Milliseconds()),
+		)
 		return fmt.Errorf("generate block content: %w", err)
 	}
+
+	p.logInfo(ctx, "llm_generation_success",
+		slog.String("task_id", task.ID),
+		slog.String("task_type", string(models.TaskTypeBlockContent)),
+		slog.String("course_id", task.CourseID),
+		slog.String("block_id", task.BlockID),
+		slog.Int64("tokens_used", tokensUsed),
+		slog.Int64("llm_duration_ms", llmDuration.Milliseconds()),
+	)
 
 	// Record token usage
 	if tokensUsed > 0 && p.generators.IncrementTokenUsage != nil {
@@ -393,10 +552,16 @@ func (p *Processor) processBlockContentTask(ctx context.Context, task *models.Ge
 		return fmt.Errorf("update block content: %w", err)
 	}
 
-	p.logInfo(ctx, "block_content_generated",
+	// Record metrics
+	m := metrics.GetCollector()
+	m.Counter(metrics.MetricGenerationContentSuccess).Inc()
+
+	p.logInfo(ctx, "queue_block_content_generated",
+		slog.String("task_id", task.ID),
 		slog.String("course_id", task.CourseID),
 		slog.String("block_id", task.BlockID),
 		slog.Int64("tokens_used", tokensUsed),
+		slog.Int64("total_duration_ms", time.Since(genStart).Milliseconds()),
 	)
 
 	return nil
@@ -456,6 +621,13 @@ func countLessons(outline *models.CourseOutline) int {
 	return count
 }
 
+// logDebug logs a debug message
+func (p *Processor) logDebug(ctx context.Context, msg string, attrs ...slog.Attr) {
+	if p.logger != nil {
+		logger.Debug(p.logger, ctx, msg, attrs...)
+	}
+}
+
 // logInfo logs an info message
 func (p *Processor) logInfo(ctx context.Context, msg string, attrs ...slog.Attr) {
 	if p.logger != nil {
@@ -467,5 +639,12 @@ func (p *Processor) logInfo(ctx context.Context, msg string, attrs ...slog.Attr)
 func (p *Processor) logWarn(ctx context.Context, msg string, attrs ...slog.Attr) {
 	if p.logger != nil {
 		logger.Warn(p.logger, ctx, msg, attrs...)
+	}
+}
+
+// logError logs an error message
+func (p *Processor) logError(ctx context.Context, msg string, attrs ...slog.Attr) {
+	if p.logger != nil {
+		logger.Error(p.logger, ctx, msg, attrs...)
 	}
 }

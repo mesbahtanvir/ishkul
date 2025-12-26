@@ -17,6 +17,7 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/pkg/crypto"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/metrics"
 )
 
 func main() {
@@ -38,6 +39,10 @@ func main() {
 
 	// Initialize structured logger
 	appLogger := logger.New()
+
+	// Initialize metrics collector with logger
+	metricsCollector := metrics.GetCollector()
+	metricsCollector.SetLogger(appLogger)
 
 	ctx := context.Background()
 
@@ -150,6 +155,10 @@ func main() {
 
 	// Health check endpoint (no auth required)
 	mux.HandleFunc("/health", handlers.HealthCheck)
+
+	// Metrics endpoints (no auth required, useful for debugging and monitoring)
+	mux.HandleFunc("/metrics", handlers.GetMetrics)                      // JSON format
+	mux.HandleFunc("/metrics/prometheus", handlers.GetPrometheusMetrics) // Prometheus text format for Grafana Cloud
 
 	// Development-only endpoint (no auth required, only available in development)
 	mux.HandleFunc("/dev/test-token", handlers.DevGetTestToken)
