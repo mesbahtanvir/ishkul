@@ -13,6 +13,20 @@ We've implemented a Prometheus-compatible metrics endpoint at `/metrics/promethe
 **Setup time**: ~30 minutes
 **Maintenance**: Zero (fully managed)
 
+## Quick Test First
+
+Before setting up Grafana, verify the metrics endpoint is working:
+
+```bash
+# Test staging backend metrics endpoint
+curl https://ishkul-backend-staging-930454644160.northamerica-northeast2.run.app/metrics/prometheus
+```
+
+You should see Prometheus-formatted metrics. If you get a 404 or error, make sure the latest code is deployed to staging.
+
+**✅ Seeing metrics?** Continue with Grafana Cloud setup below.
+**❌ Not working?** Deploy to staging first: `git push origin main`
+
 ## Step 1: Sign Up for Grafana Cloud (5 minutes)
 
 1. Go to [grafana.com/products/cloud](https://grafana.com/products/cloud/)
@@ -32,7 +46,13 @@ We've implemented a Prometheus-compatible metrics endpoint at `/metrics/promethe
 
 ## Step 2: Configure Prometheus Data Source (10 minutes)
 
-### 2.1 Get Grafana Cloud Credentials
+### 2.1 Get Your Staging URL
+
+**Staging Backend**: `https://ishkul-backend-staging-930454644160.northamerica-northeast2.run.app`
+
+This is the URL we'll configure Grafana Cloud to scrape metrics from.
+
+### 2.2 Get Grafana Cloud Credentials
 
 1. In Grafana Cloud dashboard, go to **Connections** → **Add new connection**
 2. Search for "Prometheus" and select **Hosted Prometheus**
@@ -41,7 +61,7 @@ We've implemented a Prometheus-compatible metrics endpoint at `/metrics/promethe
    - **Username / Instance ID**: `123456`
    - **Password / API Key**: Click "Generate now" → Copy the key
 
-### 2.2 Configure Grafana Agent on Cloud Run
+### 2.3 Configure Grafana Agent on Cloud Run
 
 We'll use **Grafana Cloud Agent** to scrape metrics from Cloud Run. Since Cloud Run is serverless, we need to configure **remote scraping** using the agent.
 
@@ -52,17 +72,23 @@ We'll use **Grafana Cloud Agent** to scrape metrics from Cloud Run. Since Cloud 
 3. Choose **Linux** → Copy the installation command
 4. We'll adapt this for Cloud Run by adding a sidecar container
 
-**For now, we'll use a simpler approach - direct scraping via Grafana Cloud synthetic monitoring**:
+**Recommended: Direct scraping via Grafana Cloud synthetic monitoring**:
 
 1. In Grafana Cloud dashboard, go to **Synthetic Monitoring** → **Checks**
 2. Click "Add new check" → **HTTP**
 3. Configure:
-   - **Job name**: `ishkul-backend-metrics`
-   - **Target**: `https://ishkul-backend-XXXX.run.app/metrics/prometheus` (your Cloud Run URL)
+   - **Job name**: `ishkul-backend-metrics-staging`
+   - **Target**: `https://ishkul-backend-staging-930454644160.northamerica-northeast2.run.app/metrics/prometheus`
    - **Frequency**: 60s
    - **Timeout**: 10s
    - **Probes**: Select "US East (N. Virginia)" (closest to Toronto)
 4. Click "Add check"
+
+This will scrape your metrics every 60 seconds and make them available in Grafana.
+
+**For Production**: Repeat the same steps with production URL when ready:
+- Job name: `ishkul-backend-metrics-production`
+- Target: `https://ishkul-backend-XXXXX.run.app/metrics/prometheus` (production URL)
 
 **Option B: Push Metrics via Prometheus Remote Write (Advanced)**
 
@@ -89,8 +115,11 @@ If you want real-time metrics (not 60s delay), you can push metrics directly:
 5. You should see data points (might take 1-2 minutes for first scrape)
 
 **Troubleshooting**:
-- No data? Check Cloud Run logs: `gcloud run services logs read ishkul-backend --limit=50`
-- 404 error? Verify endpoint is accessible: `curl https://YOUR-CLOUD-RUN-URL/metrics/prometheus`
+- No data? Check Cloud Run logs: `gcloud run services logs read ishkul-backend-staging --limit=50`
+- 404 error? Verify endpoint is accessible:
+  ```bash
+  curl https://ishkul-backend-staging-930454644160.northamerica-northeast2.run.app/metrics/prometheus
+  ```
 - Auth error? Cloud Run is public, so no auth needed for metrics endpoint
 
 ## Step 4: Create Dashboards (10 minutes)
@@ -337,7 +366,7 @@ Trigger course generation from the frontend to generate metrics.
 
 ### 2. Check Prometheus Endpoint
 ```bash
-curl https://YOUR-CLOUD-RUN-URL/metrics/prometheus
+curl https://ishkul-backend-staging-930454644160.northamerica-northeast2.run.app/metrics/prometheus
 ```
 
 You should see output like:
@@ -392,18 +421,20 @@ To monitor usage:
 
 1. **Check scrape is working**:
    - Grafana → Configuration → Data Sources → Prometheus → "Explore"
-   - Run query: `up{job="ishkul-backend-metrics"}`
+   - Run query: `up{job="ishkul-backend-metrics-staging"}`
    - Should return `1` (up) or `0` (down)
 
 2. **Check Cloud Run logs**:
    ```bash
-   gcloud run services logs read ishkul-backend --limit=50 | grep metrics
+   gcloud run services logs read ishkul-backend-staging --limit=50 | grep metrics
    ```
 
 3. **Test endpoint manually**:
    ```bash
-   curl -v https://YOUR-CLOUD-RUN-URL/metrics/prometheus
+   curl -v https://ishkul-backend-staging-930454644160.northamerica-northeast2.run.app/metrics/prometheus
    ```
+
+   You should get a `200 OK` response with Prometheus-formatted metrics.
 
 ### High cardinality warning
 
