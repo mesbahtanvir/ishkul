@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 )
 
@@ -316,12 +318,28 @@ func UpdateLessonBlocks(ctx context.Context, courseID, sectionID, lessonID strin
 		return fmt.Errorf("failed to parse course: %w", err)
 	}
 
-	// Find and update the lesson
+	// Find and update the lesson (capture old status for logging)
 	found := false
+	var oldStatus string
 	for i := range course.Outline.Sections {
 		if course.Outline.Sections[i].ID == sectionID {
 			for j := range course.Outline.Sections[i].Lessons {
 				if course.Outline.Sections[i].Lessons[j].ID == lessonID {
+					// Capture old status before updating
+					oldStatus = course.Outline.Sections[i].Lessons[j].BlocksStatus
+
+					// Log blocksStatus transition
+					if appLogger != nil {
+						logger.Info(appLogger, ctx, "blocks_status_update",
+							slog.String("course_id", courseID),
+							slog.String("section_id", sectionID),
+							slog.String("lesson_id", lessonID),
+							slog.String("old_status", oldStatus),
+							slog.String("new_status", blocksStatus),
+							slog.Int("blocks_count", len(blocks)),
+						)
+					}
+
 					course.Outline.Sections[i].Lessons[j].Blocks = blocks
 					course.Outline.Sections[i].Lessons[j].BlocksStatus = blocksStatus
 					found = true
@@ -336,11 +354,33 @@ func UpdateLessonBlocks(ctx context.Context, courseID, sectionID, lessonID strin
 		return fmt.Errorf("lesson not found: sectionID=%s, lessonID=%s", sectionID, lessonID)
 	}
 
+	// Log write operation
+	if appLogger != nil {
+		firebase.LogWriteStart(ctx, appLogger, "update", "courses/"+courseID,
+			slog.String("field", "outline.blocksStatus"),
+			slog.String("lesson_id", lessonID),
+			slog.String("status_transition", oldStatus+" -> "+blocksStatus),
+		)
+	}
+
 	// Update the document
 	_, err = courseRef.Update(ctx, []firestore.Update{
 		{Path: "outline", Value: course.Outline},
 		{Path: "updatedAt", Value: time.Now().UnixMilli()},
 	})
+
+	// Log write result
+	if appLogger != nil {
+		if err != nil {
+			logger.Error(appLogger, ctx, "blocks_status_update_failed",
+				slog.String("course_id", courseID),
+				slog.String("lesson_id", lessonID),
+				slog.String("attempted_status", blocksStatus),
+				slog.String("error", err.Error()),
+			)
+		}
+		firebase.LogWrite(ctx, appLogger, "update", "courses/"+courseID, err)
+	}
 
 	return err
 }

@@ -77,6 +77,10 @@ func fetchCourses(ctx context.Context, query firestore.Query) ([]models.Course, 
 
 		var course models.Course
 		if err := doc.DataTo(&course); err != nil {
+			// Log parse error instead of silently skipping
+			if appLogger != nil {
+				firebase.LogDataToError(ctx, appLogger, "courses", doc.Ref.ID, err)
+			}
 			continue // Skip malformed documents
 		}
 
@@ -113,11 +117,19 @@ func getCourse(w http.ResponseWriter, r *http.Request, courseID string) {
 		return
 	}
 
-	// Update last accessed time (non-critical, ignore error)
+	// Update last accessed time (non-critical, log error if it occurs)
 	now := time.Now().UnixMilli()
-	_, _ = Collection(rc.FS, "courses").Doc(courseID).Update(rc.Ctx, []firestore.Update{
+	if appLogger != nil {
+		firebase.LogWriteStart(rc.Ctx, appLogger, "update", "courses/"+courseID,
+			slog.String("field", "lastAccessedAt"),
+		)
+	}
+	_, err := Collection(rc.FS, "courses").Doc(courseID).Update(rc.Ctx, []firestore.Update{
 		{Path: "lastAccessedAt", Value: now},
 	})
+	if appLogger != nil {
+		firebase.LogWrite(rc.Ctx, appLogger, "update", "courses/"+courseID, err)
+	}
 	course.LastAccessedAt = now
 
 	NormalizeCourse(course)
@@ -167,7 +179,16 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 	// Create the course
 	course := buildNewCourse(rc.UserID, req)
 
-	if _, err := Collection(rc.FS, "courses").Doc(course.ID).Set(rc.Ctx, course); err != nil {
+	if appLogger != nil {
+		firebase.LogWriteStart(rc.Ctx, appLogger, "set", "courses/"+course.ID,
+			slog.String("title", req.Title),
+		)
+	}
+	_, err := Collection(rc.FS, "courses").Doc(course.ID).Set(rc.Ctx, course)
+	if appLogger != nil {
+		firebase.LogWrite(rc.Ctx, appLogger, "set", "courses/"+course.ID, err)
+	}
+	if err != nil {
 		SendError(w, http.StatusInternalServerError, "CREATE_ERROR", "Error creating course")
 		return
 	}
@@ -270,12 +291,20 @@ func handleOutlineGenerationError(ctx context.Context, fs *firestore.Client, cou
 			slog.String("path_id", courseID),
 			slog.String("error", err.Error()),
 		)
+		firebase.LogWriteStart(ctx, appLogger, "update", "courses/"+courseID,
+			slog.String("field", "outlineStatus"),
+			slog.String("value", string(models.OutlineStatusFailed)),
+		)
 	}
 
-	_, _ = Collection(fs, "courses").Doc(courseID).Update(ctx, []firestore.Update{
+	_, updateErr := Collection(fs, "courses").Doc(courseID).Update(ctx, []firestore.Update{
 		{Path: "outlineStatus", Value: models.OutlineStatusFailed},
 		{Path: "updatedAt", Value: time.Now().UnixMilli()},
 	})
+
+	if appLogger != nil {
+		firebase.LogWrite(ctx, appLogger, "update", "courses/"+courseID, updateErr)
+	}
 }
 
 // saveGeneratedOutline saves the outline and triggers pregeneration.

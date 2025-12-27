@@ -3,7 +3,9 @@ package firebase
 import (
 	"context"
 	"log"
+	"log/slog"
 	"os"
+	"time"
 
 	"cloud.google.com/go/firestore"
 )
@@ -61,8 +63,12 @@ func CloseFirestore() error {
 // DeleteCollectionWithPrefix deletes all documents in collections with the current prefix
 // Used for cleanup in preview environments
 func DeleteCollectionWithPrefix(ctx context.Context) error {
+	logger := slog.Default()
+
 	if collectionPrefix == "" {
-		log.Println("No collection prefix set, skipping cleanup")
+		logger.InfoContext(ctx, "bulk_delete_skipped",
+			slog.String("reason", "no_collection_prefix"),
+		)
 		return nil
 	}
 
@@ -73,13 +79,19 @@ func DeleteCollectionWithPrefix(ctx context.Context) error {
 	// Delete documents from prefixed collections using BulkWriter
 	collections := []string{"users", "courses"}
 	for _, col := range collections {
+		start := time.Now()
 		prefixedCol := collectionPrefix + col
-		log.Printf("Cleaning up collection: %s", prefixedCol)
+
+		logger.InfoContext(ctx, "bulk_delete_start",
+			slog.String("operation", "delete"),
+			slog.String("collection", prefixedCol),
+		)
 
 		// Use BulkWriter for efficient bulk deletes (replaces deprecated Batch API)
 		bulkWriter := firestoreClient.BulkWriter(ctx)
 		iter := firestoreClient.Collection(prefixedCol).Documents(ctx)
 		totalDeleted := 0
+		totalErrors := 0
 
 		for {
 			doc, err := iter.Next()
@@ -88,7 +100,11 @@ func DeleteCollectionWithPrefix(ctx context.Context) error {
 			}
 			_, err = bulkWriter.Delete(doc.Ref)
 			if err != nil {
-				log.Printf("Error queuing delete for %s: %v", doc.Ref.Path, err)
+				logger.WarnContext(ctx, "bulk_delete_doc_failed",
+					slog.String("doc_path", doc.Ref.Path),
+					slog.String("error", err.Error()),
+				)
+				totalErrors++
 				continue
 			}
 			totalDeleted++
@@ -97,9 +113,17 @@ func DeleteCollectionWithPrefix(ctx context.Context) error {
 		// Flush and close the bulk writer
 		bulkWriter.End()
 
-		log.Printf("Deleted %d documents from %s", totalDeleted, prefixedCol)
+		logger.InfoContext(ctx, "bulk_delete_complete",
+			slog.String("operation", "delete"),
+			slog.String("collection", prefixedCol),
+			slog.Int("success_count", totalDeleted),
+			slog.Int("error_count", totalErrors),
+			slog.Int64("duration_ms", time.Since(start).Milliseconds()),
+		)
 	}
 
-	log.Printf("Cleanup completed for prefix: %s", collectionPrefix)
+	logger.InfoContext(ctx, "bulk_delete_all_complete",
+		slog.String("prefix", collectionPrefix),
+	)
 	return nil
 }

@@ -339,6 +339,10 @@ func calculateDerivedContext(ctx context.Context, fs *firestore.Client, userID s
 
 		var path models.Course
 		if err := doc.DataTo(&path); err != nil {
+			// Log parse error instead of silently skipping
+			if appLogger != nil {
+				firebase.LogDataToError(ctx, appLogger, "learning_paths", doc.Ref.ID, err)
+			}
 			continue
 		}
 

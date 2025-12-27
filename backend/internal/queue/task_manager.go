@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -435,6 +436,14 @@ func (tm *TaskManager) GetNextTask(ctx context.Context) (*models.GenerationTask,
 	}
 
 	// Query for pending/queued tasks ordered by priority
+	// Log query structure before execution (helps diagnose index issues)
+	tm.logDebug(ctx, "queue_query_start",
+		slog.String("collection", "queue_tasks"),
+		slog.String("filter_status_in", "pending,queued"),
+		slog.String("order_by", "priority ASC, createdAt ASC"),
+		slog.Int("limit", 10),
+	)
+
 	query := tm.Collection().
 		Where("status", "in", []string{models.GenerationStatusPending, models.GenerationStatusQueued}).
 		OrderBy("priority", firestore.Asc).
@@ -453,10 +462,27 @@ func (tm *TaskManager) GetNextTask(ctx context.Context) (*models.GenerationTask,
 			break
 		}
 		if err != nil {
+			// Check if this is an index-related error
+			errorMsg := err.Error()
+			isIndexError := strings.Contains(errorMsg, "index") || strings.Contains(errorMsg, "composite")
+
 			tm.logError(ctx, "queue_poll_failed",
-				slog.String("error", err.Error()),
+				slog.String("error", errorMsg),
+				slog.Bool("likely_index_missing", isIndexError),
+				slog.String("collection", "queue_tasks"),
+				slog.String("query_hint", "status IN [pending,queued] ORDER BY priority,createdAt"),
 				slog.Int64("duration_ms", time.Since(start).Milliseconds()),
 			)
+
+			// If index error, provide actionable fix suggestion
+			if isIndexError {
+				tm.logWarn(ctx, "firestore_index_required",
+					slog.String("collection", "queue_tasks"),
+					slog.String("required_fields", "status, priority, createdAt"),
+					slog.String("fix", "Add composite index in firebase/firestore.indexes.json and run 'firebase deploy --only firestore:indexes'"),
+				)
+			}
+
 			return nil, err
 		}
 
@@ -545,6 +571,11 @@ func (tm *TaskManager) RecoverStaleTasks(ctx context.Context) (int, error) {
 
 		var task models.GenerationTask
 		if err := doc.DataTo(&task); err != nil {
+			// Log parse error instead of silently skipping
+			tm.logDebug(ctx, "queue_recovery_parse_error",
+				slog.String("doc_id", doc.Ref.ID),
+				slog.String("error", err.Error()),
+			)
 			continue
 		}
 
@@ -614,6 +645,12 @@ func (tm *TaskManager) GetTasksByUser(ctx context.Context, userID string) ([]*mo
 
 		var task models.GenerationTask
 		if err := doc.DataTo(&task); err != nil {
+			// Log parse error instead of silently skipping
+			tm.logDebug(ctx, "queue_get_tasks_parse_error",
+				slog.String("doc_id", doc.Ref.ID),
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
 			continue
 		}
 		tasks = append(tasks, &task)
@@ -648,6 +685,12 @@ func (tm *TaskManager) GetTasksByCourse(ctx context.Context, courseID string) ([
 
 		var task models.GenerationTask
 		if err := doc.DataTo(&task); err != nil {
+			// Log parse error instead of silently skipping
+			tm.logDebug(ctx, "queue_get_tasks_parse_error",
+				slog.String("doc_id", doc.Ref.ID),
+				slog.String("course_id", courseID),
+				slog.String("error", err.Error()),
+			)
 			continue
 		}
 		tasks = append(tasks, &task)

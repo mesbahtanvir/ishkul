@@ -875,10 +875,22 @@ func updateLessonBlocksStatus(ctx context.Context, fs *firestore.Client, course 
 		}
 	}
 
-	_, _ = Collection(fs, "courses").Doc(course.ID).Update(ctx, []firestore.Update{
+	if appLogger != nil {
+		firebase.LogWriteStart(ctx, appLogger, "update", "courses/"+course.ID,
+			slog.String("field", "outline.blocksStatus"),
+			slog.String("lesson_id", lessonID),
+			slog.String("status", status),
+		)
+	}
+
+	_, err := Collection(fs, "courses").Doc(course.ID).Update(ctx, []firestore.Update{
 		{Path: "outline", Value: course.Outline},
 		{Path: "updatedAt", Value: time.Now().UnixMilli()},
 	})
+
+	if appLogger != nil {
+		firebase.LogWrite(ctx, appLogger, "update", "courses/"+course.ID, err)
+	}
 }
 
 func updateBlockContentStatus(ctx context.Context, fs *firestore.Client, course *models.Course, lessonID, blockID, status, errorMsg string) {
@@ -898,10 +910,23 @@ func updateBlockContentStatus(ctx context.Context, fs *firestore.Client, course 
 		}
 	}
 
-	_, _ = Collection(fs, "courses").Doc(course.ID).Update(ctx, []firestore.Update{
+	if appLogger != nil {
+		firebase.LogWriteStart(ctx, appLogger, "update", "courses/"+course.ID,
+			slog.String("field", "outline.contentStatus"),
+			slog.String("lesson_id", lessonID),
+			slog.String("block_id", blockID),
+			slog.String("status", status),
+		)
+	}
+
+	_, err := Collection(fs, "courses").Doc(course.ID).Update(ctx, []firestore.Update{
 		{Path: "outline", Value: course.Outline},
 		{Path: "updatedAt", Value: time.Now().UnixMilli()},
 	})
+
+	if appLogger != nil {
+		firebase.LogWrite(ctx, appLogger, "update", "courses/"+course.ID, err)
+	}
 }
 
 func saveLessonBlocks(ctx context.Context, fs *firestore.Client, course *models.Course, lessonID string, blocks []models.Block) error {
@@ -989,10 +1014,23 @@ func updateCourseProgress(ctx context.Context, fs *firestore.Client, course *mod
 		progress = (completedCount * 100) / totalCount
 	}
 
-	_, _ = Collection(fs, "courses").Doc(course.ID).Update(ctx, []firestore.Update{
+	if appLogger != nil {
+		firebase.LogWriteStart(ctx, appLogger, "update", "courses/"+course.ID,
+			slog.String("field", "progress"),
+			slog.Int("lessons_completed", completedCount),
+			slog.Int("total_lessons", totalCount),
+			slog.Int("progress_percent", progress),
+		)
+	}
+
+	_, err := Collection(fs, "courses").Doc(course.ID).Update(ctx, []firestore.Update{
 		{Path: "lessonsCompleted", Value: completedCount},
 		{Path: "totalLessons", Value: totalCount},
 		{Path: "progress", Value: progress},
 		{Path: "updatedAt", Value: time.Now().UnixMilli()},
 	})
+
+	if appLogger != nil {
+		firebase.LogWrite(ctx, appLogger, "update", "courses/"+course.ID, err)
+	}
 }
