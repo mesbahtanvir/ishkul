@@ -222,6 +222,7 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
           <FlashcardBlockRenderer
             content={content}
             onComplete={onComplete}
+            isActive={isActive}
           />
         );
       case 'summary':

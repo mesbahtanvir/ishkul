@@ -9,6 +9,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
 import { Button } from '../Button';
+import { MarkdownContent } from '../MarkdownContent';
 
 interface SummaryBlockRendererProps {
   content: BlockContent;
@@ -42,9 +43,9 @@ export const SummaryBlockRenderer: React.FC<SummaryBlockRendererProps> = ({
               <Text style={[styles.keyPointBullet, { color: colors.primary }]}>
                 •
               </Text>
-              <Text style={[styles.keyPointText, { color: colors.text.primary }]}>
-                {point}
-              </Text>
+              <View style={styles.keyPointContent}>
+                <MarkdownContent content={point} />
+              </View>
             </View>
           ))}
         </View>
@@ -56,9 +57,7 @@ export const SummaryBlockRenderer: React.FC<SummaryBlockRendererProps> = ({
           <Text style={[styles.nextStepsTitle, { color: colors.success }]}>
             ➡️ Coming Up Next
           </Text>
-          <Text style={[styles.nextStepText, { color: colors.text.primary }]}>
-            {summaryContent.nextUp}
-          </Text>
+          <MarkdownContent content={summaryContent.nextUp} />
         </View>
       )}
 
@@ -69,7 +68,7 @@ export const SummaryBlockRenderer: React.FC<SummaryBlockRendererProps> = ({
             title="Continue →"
             onPress={onComplete}
             variant="primary"
-            size="large"
+            size="medium"
           />
         </View>
       )}
@@ -106,6 +105,9 @@ const styles = StyleSheet.create({
   },
   keyPointText: {
     ...Typography.body.medium,
+    flex: 1,
+  },
+  keyPointContent: {
     flex: 1,
   },
   nextStepsContainer: {

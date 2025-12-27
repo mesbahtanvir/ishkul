@@ -62,7 +62,7 @@ export const CodeBlockRenderer: React.FC<CodeBlockRendererProps> = ({
             title="Continue →"
             onPress={onComplete}
             variant="primary"
-            size="large"
+            size="medium"
           />
         </View>
       )}

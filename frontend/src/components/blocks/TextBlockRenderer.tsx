@@ -32,7 +32,7 @@ export const TextBlockRenderer: React.FC<TextBlockRendererProps> = ({
             title="Continue →"
             onPress={onComplete}
             variant="primary"
-            size="large"
+            size="medium"
           />
         </View>
       )}

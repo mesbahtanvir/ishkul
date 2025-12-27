@@ -121,13 +121,12 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
 
   /**
    * Handle block completion and auto-advance
+   * Must await completion before advancing to ensure isLessonComplete is accurate
    */
-  const handleBlockComplete = useCallback(() => {
-    onBlockComplete?.();
-    // Auto-advance to next block after a brief delay
-    setTimeout(() => {
-      onContinue?.();
-    }, 300);
+  const handleBlockComplete = useCallback(async () => {
+    await onBlockComplete?.();
+    // Auto-advance to next block after completion
+    onContinue?.();
   }, [onBlockComplete, onContinue]);
 
   /**

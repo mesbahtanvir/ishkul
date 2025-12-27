@@ -13,11 +13,13 @@ import { Button } from '../Button';
 interface FlashcardBlockRendererProps {
   content: BlockContent;
   onComplete?: () => void;
+  isActive?: boolean;
 }
 
 export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
   content,
   onComplete,
+  isActive = false,
 }) => {
   const { colors } = useTheme();
   const flashcardContent = content.flashcard;
@@ -74,11 +76,13 @@ export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
         </View>
       </TouchableOpacity>
 
-      {/* Continue Button */}
-      {isFlipped && (
+      {/* Continue Button - only show when active and flipped */}
+      {isActive && isFlipped && onComplete && (
         <Button
-          title="Continue"
+          title="Continue →"
           onPress={handleContinue}
+          variant="primary"
+          size="medium"
         />
       )}
     </View>

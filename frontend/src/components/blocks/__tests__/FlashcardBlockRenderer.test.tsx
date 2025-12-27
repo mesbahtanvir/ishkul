@@ -153,10 +153,10 @@ describe('FlashcardBlockRenderer', () => {
 
     it('should NOT show Continue button initially', () => {
       const { queryByText } = render(
-        <FlashcardBlockRenderer content={validContent} />
+        <FlashcardBlockRenderer content={validContent} isActive={true} />
       );
 
-      expect(queryByText('Continue')).toBeNull();
+      expect(queryByText('Continue →')).toBeNull();
     });
   });
 
@@ -177,16 +177,16 @@ describe('FlashcardBlockRenderer', () => {
       expect(getByText('Answer')).toBeTruthy();
     });
 
-    it('should show Continue button after flip', () => {
+    it('should show Continue button after flip when isActive', () => {
       const { getByText } = render(
-        <FlashcardBlockRenderer content={validContent} />
+        <FlashcardBlockRenderer content={validContent} isActive={true} onComplete={() => {}} />
       );
 
       // Flip the card
       fireEvent.press(getByText('What is React?'));
 
       // Continue button should appear
-      expect(getByText('Continue')).toBeTruthy();
+      expect(getByText('Continue →')).toBeTruthy();
     });
 
     it('should flip back to question when tapped again', () => {
@@ -225,7 +225,7 @@ describe('FlashcardBlockRenderer', () => {
       const onCompleteMock = jest.fn();
 
       const { getByText, getByTestId } = render(
-        <FlashcardBlockRenderer content={validContent} onComplete={onCompleteMock} />
+        <FlashcardBlockRenderer content={validContent} onComplete={onCompleteMock} isActive={true} />
       );
 
       // Flip the card and press Continue
@@ -235,18 +235,16 @@ describe('FlashcardBlockRenderer', () => {
       expect(onCompleteMock).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle missing onComplete callback gracefully', () => {
-      const { getByText, getByTestId } = render(
-        <FlashcardBlockRenderer content={validContent} />
+    it('should not show button when not active', () => {
+      const { getByText, queryByTestId } = render(
+        <FlashcardBlockRenderer content={validContent} isActive={false} />
       );
 
       // Flip the card
       fireEvent.press(getByText('What is React?'));
 
-      // Should not throw when pressing Continue without onComplete prop
-      expect(() => {
-        fireEvent.press(getByTestId('continue-button'));
-      }).not.toThrow();
+      // Button should not be visible when not active
+      expect(queryByTestId('continue-button')).toBeNull();
     });
   });
 
@@ -273,7 +271,7 @@ describe('FlashcardBlockRenderer', () => {
       const onCompleteMock = jest.fn();
 
       const { getByText, getByTestId } = render(
-        <FlashcardBlockRenderer content={validContent} onComplete={onCompleteMock} />
+        <FlashcardBlockRenderer content={validContent} onComplete={onCompleteMock} isActive={true} />
       );
 
       // Initial state
@@ -284,7 +282,7 @@ describe('FlashcardBlockRenderer', () => {
       expect(getByText('Answer')).toBeTruthy();
 
       // Continue button should be visible
-      expect(getByText('Continue')).toBeTruthy();
+      expect(getByText('Continue →')).toBeTruthy();
 
       // Complete
       fireEvent.press(getByTestId('continue-button'));

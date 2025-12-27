@@ -24,6 +24,7 @@ export const QuestionBlockRenderer: React.FC<QuestionBlockRendererProps> = ({
   content,
   onAnswer,
   onComplete,
+  isActive = false,
 }) => {
   const { colors } = useTheme();
   // Extract the question from content.question.question (QuestionContent -> Question)
@@ -219,13 +220,17 @@ export const QuestionBlockRenderer: React.FC<QuestionBlockRendererProps> = ({
 
       {renderFeedback()}
 
-      <Button
-        title={isSubmitted ? 'Continue →' : 'Check Answer'}
-        onPress={handleSubmit}
-        disabled={!canSubmit()}
-        variant="primary"
-        style={styles.submitButton}
-      />
+      {/* Button only shows when block is active */}
+      {isActive && (
+        <Button
+          title={isSubmitted ? 'Continue →' : 'Check Answer'}
+          onPress={handleSubmit}
+          disabled={!canSubmit()}
+          variant="primary"
+          size="medium"
+          style={styles.submitButton}
+        />
+      )}
     </View>
   );
 };
