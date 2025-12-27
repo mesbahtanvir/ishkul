@@ -22,7 +22,7 @@ export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
   isActive = false,
 }) => {
   const { colors } = useTheme();
-  const flashcardContent = content.flashcard;
+  const flashcardContent = content?.flashcard;
 
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -34,13 +34,36 @@ export const FlashcardBlockRenderer: React.FC<FlashcardBlockRendererProps> = ({
     onComplete?.();
   };
 
-  // Handle missing flashcard content
+  // Handle missing flashcard content - log for debugging
   if (!flashcardContent) {
+    // Log for debugging data issues
+    if (__DEV__) {
+      console.warn('FlashcardBlockRenderer: Missing flashcard content', {
+        contentKeys: content ? Object.keys(content) : 'null',
+        contentType: typeof content,
+      });
+    }
     return (
       <View style={styles.container}>
         <View style={[styles.card, { backgroundColor: colors.background.secondary, borderColor: colors.border }]}>
           <Text style={[styles.cardText, { color: colors.text.secondary }]}>
             No flashcard content available
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Handle empty flashcard content (front/back are both empty)
+  if (!flashcardContent.front && !flashcardContent.back) {
+    if (__DEV__) {
+      console.warn('FlashcardBlockRenderer: Flashcard has empty front and back');
+    }
+    return (
+      <View style={styles.container}>
+        <View style={[styles.card, { backgroundColor: colors.background.secondary, borderColor: colors.border }]}>
+          <Text style={[styles.cardText, { color: colors.text.secondary }]}>
+            Flashcard content is empty
           </Text>
         </View>
       </View>

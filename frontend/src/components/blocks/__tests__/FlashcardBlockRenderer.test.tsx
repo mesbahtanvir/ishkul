@@ -124,6 +124,55 @@ describe('FlashcardBlockRenderer', () => {
 
       expect(getByText('No flashcard content available')).toBeTruthy();
     });
+
+    it('should handle empty front and back properties', () => {
+      const emptyFlashcardContent: BlockContent = {
+        flashcard: {
+          front: '',
+          back: '',
+        },
+      };
+
+      const { getByText } = render(
+        <FlashcardBlockRenderer content={emptyFlashcardContent} />
+      );
+
+      expect(getByText('Flashcard content is empty')).toBeTruthy();
+    });
+
+    it('should show content when only front is provided', () => {
+      const frontOnlyContent: BlockContent = {
+        flashcard: {
+          front: 'Question only',
+          back: '',
+        },
+      };
+
+      const { getByText } = render(
+        <FlashcardBlockRenderer content={frontOnlyContent} />
+      );
+
+      expect(getByText('Question only')).toBeTruthy();
+    });
+
+    it('should show content when only back is provided', () => {
+      const backOnlyContent: BlockContent = {
+        flashcard: {
+          front: '',
+          back: 'Answer only',
+        },
+      };
+
+      const { getByText } = render(
+        <FlashcardBlockRenderer content={backOnlyContent} />
+      );
+
+      // Flip to see the back
+      const card = getByText('Question');
+      fireEvent.press(card);
+
+      expect(getByText('Answer only')).toBeTruthy();
+    });
   });
 
   describe('Initial Rendering', () => {

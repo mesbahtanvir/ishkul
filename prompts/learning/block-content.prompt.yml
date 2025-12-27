@@ -87,7 +87,7 @@ messages:
       {
         "front": "Term or question",
         "back": "Definition or answer",
-        "hints": ["Memory aid or mnemonic"]
+        "hint": "Memory aid or mnemonic (optional)"
       }
 
       ### summary
@@ -102,7 +102,7 @@ messages:
           "Key takeaway 2",
           "Key takeaway 3"
         ],
-        "nextSteps": "What to explore next (optional)"
+        "nextUp": "What to explore next (optional)"
       }
 
       ## Personalization
