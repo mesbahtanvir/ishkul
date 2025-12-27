@@ -30,8 +30,12 @@ func NewTaskManager(logger *slog.Logger) *TaskManager {
 	if instanceID == "" {
 		// Generate a unique local instance ID using timestamp + random bytes
 		randomBytes := make([]byte, 4)
-		rand.Read(randomBytes)
-		instanceID = fmt.Sprintf("local-%d-%s", time.Now().UnixNano(), hex.EncodeToString(randomBytes))
+		if _, err := rand.Read(randomBytes); err != nil {
+			// Extremely unlikely to fail, but handle it
+			instanceID = fmt.Sprintf("local-%d", time.Now().UnixNano())
+		} else {
+			instanceID = fmt.Sprintf("local-%d-%s", time.Now().UnixNano(), hex.EncodeToString(randomBytes))
+		}
 	}
 
 	return &TaskManager{
