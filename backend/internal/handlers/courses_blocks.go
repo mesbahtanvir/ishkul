@@ -11,7 +11,6 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
-	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 )
 
@@ -38,48 +37,42 @@ func ValidateBlocksStatusTransition(ctx context.Context, appLogger *slog.Logger,
 
 	allowed, exists := validTransitions[from]
 	if !exists {
-		if appLogger != nil {
-			logger.Warn(appLogger, ctx, "blocks_status_transition_unknown_source",
-				slog.String("course_id", courseID),
-				slog.String("lesson_id", lessonID),
-				slog.String("from", from),
-				slog.String("to", to),
-			)
-		}
+		logWarn(ctx, "blocks_status_transition_unknown_source",
+			slog.String("course_id", courseID),
+			slog.String("lesson_id", lessonID),
+			slog.String("from", from),
+			slog.String("to", to),
+		)
 		return false
 	}
 
 	for _, valid := range allowed {
 		if to == valid {
-			if appLogger != nil {
-				logger.Debug(appLogger, ctx, "blocks_status_transition_valid",
-					slog.String("lesson_id", lessonID),
-					slog.String("from", from),
-					slog.String("to", to),
-				)
-			}
+			logDebug(ctx, "blocks_status_transition_valid",
+				slog.String("lesson_id", lessonID),
+				slog.String("from", from),
+				slog.String("to", to),
+			)
 			return true
 		}
 	}
 
 	// Invalid transition
-	if appLogger != nil {
-		allowedStr := ""
-		if len(allowed) > 0 {
-			allowedStr = allowed[0]
-			for i := 1; i < len(allowed); i++ {
-				allowedStr += "," + allowed[i]
-			}
+	allowedStr := ""
+	if len(allowed) > 0 {
+		allowedStr = allowed[0]
+		for i := 1; i < len(allowed); i++ {
+			allowedStr += "," + allowed[i]
 		}
-
-		logger.Warn(appLogger, ctx, "blocks_status_transition_invalid",
-			slog.String("course_id", courseID),
-			slog.String("lesson_id", lessonID),
-			slog.String("from", from),
-			slog.String("to", to),
-			slog.String("allowed_transitions", allowedStr),
-		)
 	}
+
+	logWarn(ctx, "blocks_status_transition_invalid",
+		slog.String("course_id", courseID),
+		slog.String("lesson_id", lessonID),
+		slog.String("from", from),
+		slog.String("to", to),
+		slog.String("allowed_transitions", allowedStr),
+	)
 
 	return false
 }
@@ -400,17 +393,15 @@ func UpdateLessonBlocks(ctx context.Context, courseID, sectionID, lessonID strin
 					// Validate and log blocksStatus transition
 					isValidTransition := ValidateBlocksStatusTransition(ctx, appLogger, courseID, lessonID, oldStatus, blocksStatus)
 
-					if appLogger != nil {
-						logger.Info(appLogger, ctx, "blocks_status_update",
-							slog.String("course_id", courseID),
-							slog.String("section_id", sectionID),
-							slog.String("lesson_id", lessonID),
-							slog.String("old_status", oldStatus),
-							slog.String("new_status", blocksStatus),
-							slog.Bool("valid_transition", isValidTransition),
-							slog.Int("blocks_count", len(blocks)),
-						)
-					}
+					logInfo(ctx, "blocks_status_update",
+						slog.String("course_id", courseID),
+						slog.String("section_id", sectionID),
+						slog.String("lesson_id", lessonID),
+						slog.String("old_status", oldStatus),
+						slog.String("new_status", blocksStatus),
+						slog.Bool("valid_transition", isValidTransition),
+						slog.Int("blocks_count", len(blocks)),
+					)
 
 					course.Outline.Sections[i].Lessons[j].Blocks = blocks
 					course.Outline.Sections[i].Lessons[j].BlocksStatus = blocksStatus
@@ -427,13 +418,11 @@ func UpdateLessonBlocks(ctx context.Context, courseID, sectionID, lessonID strin
 	}
 
 	// Log write operation
-	if appLogger != nil {
-		firebase.LogWriteStart(ctx, appLogger, "update", "courses/"+courseID,
-			slog.String("field", "outline.blocksStatus"),
-			slog.String("lesson_id", lessonID),
-			slog.String("status_transition", oldStatus+" -> "+blocksStatus),
-		)
-	}
+	firebase.LogWriteStart(ctx, appLogger, "update", "courses/"+courseID,
+		slog.String("field", "outline.blocksStatus"),
+		slog.String("lesson_id", lessonID),
+		slog.String("status_transition", oldStatus+" -> "+blocksStatus),
+	)
 
 	// Update the document
 	_, err = courseRef.Update(ctx, []firestore.Update{
@@ -442,17 +431,15 @@ func UpdateLessonBlocks(ctx context.Context, courseID, sectionID, lessonID strin
 	})
 
 	// Log write result
-	if appLogger != nil {
-		if err != nil {
-			logger.Error(appLogger, ctx, "blocks_status_update_failed",
-				slog.String("course_id", courseID),
-				slog.String("lesson_id", lessonID),
-				slog.String("attempted_status", blocksStatus),
-				slog.String("error", err.Error()),
-			)
-		}
-		firebase.LogWrite(ctx, appLogger, "update", "courses/"+courseID, err)
+	if err != nil {
+		logError(ctx, "blocks_status_update_failed",
+			slog.String("course_id", courseID),
+			slog.String("lesson_id", lessonID),
+			slog.String("attempted_status", blocksStatus),
+			slog.String("error", err.Error()),
+		)
 	}
+	firebase.LogWrite(ctx, appLogger, "update", "courses/"+courseID, err)
 
 	return err
 }

@@ -251,17 +251,31 @@ All `.prompt.yml` files are in `prompts/` for easy backend loading AND GitHub Mo
 
 For detailed information, see:
 
+### Setup & Development
 - **[docs/DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md)** - Environment setup, .env files, OAuth
-- **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** - CI/CD, Vercel, Cloud Run, Firebase rules
+- **[docs/BACKEND_DEPLOYMENT.md](docs/BACKEND_DEPLOYMENT.md)** - Complete backend deployment guide
+- **[docs/BACKEND_QUICK_REFERENCE.md](docs/BACKEND_QUICK_REFERENCE.md)** - Quick lookup for backend commands
+- **[docs/BACKEND_DOCKER.md](docs/BACKEND_DOCKER.md)** - Docker Compose local development
+
+### Infrastructure & Deployment
 - **[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** - Cloud Run management, scaling, monitoring
-- **[docs/GRAFANA_CLOUD_SETUP.md](docs/GRAFANA_CLOUD_SETUP.md)** - Metrics & observability with Grafana Cloud (free tier)
+- **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** - CI/CD, Vercel, Cloud Run, Firebase rules
 - **[docs/PREVIEW_DEPLOYMENTS.md](docs/PREVIEW_DEPLOYMENTS.md)** - Backend preview environments on PRs
-- **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues, debug commands
-- **[docs/ROADMAP.md](docs/ROADMAP.md)** - Future features, enhancements, timeline
-- **[docs/PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Detailed architecture
 - **[docs/ENV_SYNC_GUIDE.md](docs/ENV_SYNC_GUIDE.md)** - Dynamic environment variable syncing
-- **[docs/ANALYTICS.md](docs/ANALYTICS.md)** - Analytics strategy, events, funnels (WIP)
+
+### Monitoring & Observability
+- **[docs/GRAFANA_CLOUD_SETUP.md](docs/GRAFANA_CLOUD_SETUP.md)** - Metrics with Grafana Cloud (free tier)
+- **[docs/LOGGING.md](docs/LOGGING.md)** - Logging implementation guide
+
+### Testing
 - **[docs/TESTING.md](docs/TESTING.md)** - E2E testing guide (k6, Playwright, Maestro, Newman)
+- **[docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md)** - Manual API testing instructions
+
+### Other
+- **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues, debug commands
+- **[docs/ROADMAP.md](docs/ROADMAP.md)** - Future features, enhancements
+- **[docs/PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Detailed architecture
+- **[docs/ANALYTICS.md](docs/ANALYTICS.md)** - Analytics strategy (WIP)
 - **[frontend/DESIGN_SYSTEM.md](frontend/DESIGN_SYSTEM.md)** - UI/UX design tokens
 
 ## 🚀 Quick Deploy

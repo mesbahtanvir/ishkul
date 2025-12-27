@@ -13,7 +13,6 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
-	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 )
 
 // GetContext returns the user's learning context
@@ -107,9 +106,7 @@ func UpdateContext(w http.ResponseWriter, r *http.Request) {
 	// Call LLM to parse and merge context
 	response, err := parseContextWithLLM(llmCtx, req.PreviousContext, req.NewInput)
 	if err != nil {
-		if appLogger != nil {
-			logger.ErrorWithErr(appLogger, ctx, "context_parse_failed", err)
-		}
+		logErrorWithErr(ctx, "context_parse_failed", err)
 		http.Error(w, "Failed to parse context: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -296,12 +293,10 @@ func parseContextWithLLM(ctx context.Context, previousContext models.ParsedConte
 	}
 
 	if err := llm.ParseJSONResponse(response.Choices[0].Message.Content, &llmResponse); err != nil {
-		if appLogger != nil {
-			logger.Warn(appLogger, ctx, "context_parse_json_failed",
-				slog.String("error", err.Error()),
-				slog.String("response", response.Choices[0].Message.Content),
-			)
-		}
+		logWarn(ctx, "context_parse_json_failed",
+			slog.String("error", err.Error()),
+			slog.String("response", response.Choices[0].Message.Content),
+		)
 		return nil, err
 	}
 
@@ -340,9 +335,7 @@ func calculateDerivedContext(ctx context.Context, fs *firestore.Client, userID s
 		var path models.Course
 		if err := doc.DataTo(&path); err != nil {
 			// Log parse error instead of silently skipping
-			if appLogger != nil {
-				firebase.LogDataToError(ctx, appLogger, "learning_paths", doc.Ref.ID, err)
-			}
+			firebase.LogDataToError(ctx, appLogger, "learning_paths", doc.Ref.ID, err)
 			continue
 		}
 

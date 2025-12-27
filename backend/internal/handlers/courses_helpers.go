@@ -11,7 +11,6 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
-	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 )
 
 // =============================================================================
@@ -88,11 +87,9 @@ func SendJSON(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		// Log error but can't send response since headers are already sent
-		if appLogger != nil {
-			logger.Error(appLogger, context.Background(), "json_encode_error",
-				slog.String("error", err.Error()),
-			)
-		}
+		logError(context.Background(), "json_encode_error",
+			slog.String("error", err.Error()),
+		)
 	}
 }
 
@@ -185,12 +182,10 @@ func ParsePathSegments(urlPath, prefix string) []string {
 
 // LogRequest logs the incoming request if logger is available.
 func LogRequest(ctx context.Context, r *http.Request) {
-	if appLogger != nil {
-		logger.Info(appLogger, ctx, "courses_request",
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-		)
-	}
+	logInfo(ctx, "courses_request",
+		slog.String("method", r.Method),
+		slog.String("path", r.URL.Path),
+	)
 }
 
 // =============================================================================

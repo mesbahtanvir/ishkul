@@ -6,9 +6,12 @@ import {
   LessonProgress,
   BlockResult,
   ContentStatus,
-  LessonPosition,
 } from '../types/app';
 import { lessonsApi } from '../services/api';
+import { calculateLessonScore, isLessonCompleted } from '../utils/lessonHelpers';
+
+// Re-export helpers for backwards compatibility
+export { getNextLessonPosition } from '../utils/lessonHelpers';
 
 /**
  * State for a single block being viewed/interacted with
@@ -81,25 +84,6 @@ interface LessonState {
   isLessonComplete: () => boolean;
   getLessonScore: () => number;
 }
-
-/**
- * Calculate lesson score from block results
- */
-const calculateScore = (blocks: Block[]): number => {
-  const scoredBlocks = blocks.filter(
-    (b) => b.type === 'question' || b.type === 'task'
-  );
-  if (scoredBlocks.length === 0) return 100;
-
-  const completedScored = scoredBlocks.filter(
-    (b) => b.contentStatus === 'ready' && b.content
-  );
-  if (completedScored.length === 0) return 0;
-
-  // For now, return percentage of completed scored blocks
-  // In future, could weight by individual scores
-  return Math.round((completedScored.length / scoredBlocks.length) * 100);
-};
 
 export const useLessonStore = create<LessonState>((set, get) => ({
   // Initial state
@@ -187,8 +171,6 @@ export const useLessonStore = create<LessonState>((set, get) => ({
         // Clear blocksGenerating if blocks are now ready
         blocksGenerating:
           lesson.blocksStatus === 'generating' ? get().blocksGenerating : false,
-        // Preserve local progress (don't overwrite with server progress during active session)
-        // localProgress: lesson.progress ?? null,
       });
 
       return lesson;
@@ -514,58 +496,12 @@ export const useLessonStore = create<LessonState>((set, get) => ({
 
   isLessonComplete: () => {
     const { currentLesson, localProgress } = get();
-    // Require at least 1 block to be considered complete (fixes 0 >= 0 bug)
-    if (!currentLesson?.blocks || currentLesson.blocks.length === 0) return false;
-    const totalBlocks = currentLesson.blocks.length;
-    const completedBlocks = localProgress?.completedBlocks?.length ?? 0;
-    return completedBlocks >= totalBlocks;
+    return isLessonCompleted(currentLesson?.blocks, localProgress?.completedBlocks);
   },
 
   getLessonScore: () => {
     const { currentLesson } = get();
     if (!currentLesson?.blocks) return 0;
-    return calculateScore(currentLesson.blocks);
+    return calculateLessonScore(currentLesson.blocks);
   },
 }));
-
-/**
- * Helper: Get the next lesson position in the course
- */
-export const getNextLessonPosition = (
-  sections: { id: string; lessons: { id: string }[] }[],
-  currentSectionId: string,
-  currentLessonId: string
-): LessonPosition | null => {
-  const sectionIndex = sections.findIndex((s) => s.id === currentSectionId);
-  if (sectionIndex === -1) return null;
-
-  const section = sections[sectionIndex];
-  const lessonIndex = section.lessons.findIndex((l) => l.id === currentLessonId);
-  if (lessonIndex === -1) return null;
-
-  // Check for next lesson in same section
-  if (lessonIndex < section.lessons.length - 1) {
-    return {
-      sectionId: currentSectionId,
-      lessonId: section.lessons[lessonIndex + 1].id,
-      sectionIndex,
-      lessonIndex: lessonIndex + 1,
-    };
-  }
-
-  // Check for first lesson in next section
-  if (sectionIndex < sections.length - 1) {
-    const nextSection = sections[sectionIndex + 1];
-    if (nextSection.lessons.length > 0) {
-      return {
-        sectionId: nextSection.id,
-        lessonId: nextSection.lessons[0].id,
-        sectionIndex: sectionIndex + 1,
-        lessonIndex: 0,
-      };
-    }
-  }
-
-  // Course complete
-  return null;
-};

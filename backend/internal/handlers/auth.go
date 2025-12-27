@@ -1,24 +1,15 @@
 package handlers
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
-	"os"
-	"regexp"
 	"strings"
-	"time"
-	"unicode"
 
 	firebaseauth "firebase.google.com/go/v4/auth"
 	"github.com/mesbahtanvir/ishkul/backend/internal/auth"
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
-	"google.golang.org/api/idtoken"
 )
 
 // LoginRequest represents the login request body
@@ -72,101 +63,6 @@ const (
 	ErrCodePathDeleted   = "PATH_DELETED"
 )
 
-// Password requirements
-const (
-	MinPasswordLength = 12
-	MaxPasswordLength = 128
-)
-
-// emailRegex is a simple regex for basic email format validation
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-
-// PasswordValidationResult contains the result of password validation
-type PasswordValidationResult struct {
-	Valid    bool
-	Message  string
-	Feedback []string
-}
-
-// validatePassword checks if a password meets security requirements:
-// - Minimum 12 characters
-// - Maximum 128 characters
-// - At least one uppercase letter
-// - At least one lowercase letter
-// - At least one digit
-// - At least one special character
-func validatePassword(password string) PasswordValidationResult {
-	var feedback []string
-
-	// Check length
-	if len(password) < MinPasswordLength {
-		feedback = append(feedback, fmt.Sprintf("at least %d characters", MinPasswordLength))
-	}
-	if len(password) > MaxPasswordLength {
-		return PasswordValidationResult{
-			Valid:   false,
-			Message: fmt.Sprintf("Password must be at most %d characters", MaxPasswordLength),
-		}
-	}
-
-	var hasUpper, hasLower, hasDigit, hasSpecial bool
-	for _, char := range password {
-		switch {
-		case unicode.IsUpper(char):
-			hasUpper = true
-		case unicode.IsLower(char):
-			hasLower = true
-		case unicode.IsDigit(char):
-			hasDigit = true
-		case unicode.IsPunct(char) || unicode.IsSymbol(char):
-			hasSpecial = true
-		}
-	}
-
-	if !hasUpper {
-		feedback = append(feedback, "one uppercase letter")
-	}
-	if !hasLower {
-		feedback = append(feedback, "one lowercase letter")
-	}
-	if !hasDigit {
-		feedback = append(feedback, "one number")
-	}
-	if !hasSpecial {
-		feedback = append(feedback, "one special character (!@#$%^&*)")
-	}
-
-	if len(feedback) > 0 {
-		return PasswordValidationResult{
-			Valid:    false,
-			Message:  "Password must contain: " + strings.Join(feedback, ", "),
-			Feedback: feedback,
-		}
-	}
-
-	return PasswordValidationResult{Valid: true}
-}
-
-// validateEmail checks if an email address has a valid format
-func validateEmail(email string) bool {
-	if len(email) > 254 {
-		return false
-	}
-	return emailRegex.MatchString(email)
-}
-
-// sendErrorResponse sends a structured JSON error response
-func sendErrorResponse(w http.ResponseWriter, statusCode int, code string, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	// Error is intentionally not handled - we're already in an error path
-	// and can't do much if encoding fails after headers are written
-	_ = json.NewEncoder(w).Encode(ErrorResponse{
-		Code:    code,
-		Message: message,
-	})
-}
-
 // RefreshRequest represents the refresh token request body
 type RefreshRequest struct {
 	RefreshToken string `json:"refreshToken"`
@@ -179,26 +75,9 @@ type RefreshResponse struct {
 	ExpiresIn    int64  `json:"expiresIn"`
 }
 
-// getGoogleClientIDs returns the valid Google OAuth client IDs
-func getGoogleClientIDs() []string {
-	clientIDs := []string{}
-
-	// Web client ID
-	if webClientID := os.Getenv("GOOGLE_WEB_CLIENT_ID"); webClientID != "" {
-		clientIDs = append(clientIDs, webClientID)
-	}
-
-	// iOS client ID
-	if iosClientID := os.Getenv("GOOGLE_IOS_CLIENT_ID"); iosClientID != "" {
-		clientIDs = append(clientIDs, iosClientID)
-	}
-
-	// Android client ID
-	if androidClientID := os.Getenv("GOOGLE_ANDROID_CLIENT_ID"); androidClientID != "" {
-		clientIDs = append(clientIDs, androidClientID)
-	}
-
-	return clientIDs
+// LogoutRequest represents the logout request body
+type LogoutRequest struct {
+	RefreshToken string `json:"refreshToken"`
 }
 
 // Login handles user authentication via Google ID token or email/password
@@ -389,149 +268,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// FirebaseAuthResponse represents the response from Firebase Auth REST API
-type FirebaseAuthResponse struct {
-	IDToken      string `json:"idToken"`
-	Email        string `json:"email"`
-	RefreshToken string `json:"refreshToken"`
-	ExpiresIn    string `json:"expiresIn"`
-	LocalID      string `json:"localId"`
-	Registered   bool   `json:"registered"`
-}
-
-// FirebaseAuthError represents an error from Firebase Auth REST API
-type FirebaseAuthError struct {
-	Error struct {
-		Code    int    `json:"code"`
-		Message string `json:"message"`
-	} `json:"error"`
-}
-
-// signInWithEmailPassword verifies email/password via Firebase Auth REST API
-func signInWithEmailPassword(ctx context.Context, email, password string) (*firebaseauth.UserRecord, error) {
-	apiKey := os.Getenv("FIREBASE_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("FIREBASE_API_KEY not configured")
-	}
-
-	// Use Firebase Auth REST API to verify credentials
-	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=%s", apiKey)
-
-	payload := map[string]interface{}{
-		"email":             email,
-		"password":          password,
-		"returnSecureToken": true,
-	}
-
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		var authErr FirebaseAuthError
-		if err := json.Unmarshal(body, &authErr); err == nil {
-			return nil, fmt.Errorf("%s", authErr.Error.Message)
-		}
-		return nil, fmt.Errorf("authentication failed")
-	}
-
-	var authResp FirebaseAuthResponse
-	if err := json.Unmarshal(body, &authResp); err != nil {
-		return nil, err
-	}
-
-	// Get the full user record from Firebase Admin SDK
-	authClient := firebase.GetAuth()
-	if authClient == nil {
-		return nil, fmt.Errorf("auth service not available")
-	}
-
-	return authClient.GetUser(ctx, authResp.LocalID)
-}
-
-// verifyGoogleIDToken verifies a Google ID token and returns its payload
-func verifyGoogleIDToken(ctx context.Context, idToken string) (*idtoken.Payload, error) {
-	clientIDs := getGoogleClientIDs()
-
-	// SECURITY: Require at least one client ID to be configured
-	// This prevents token acceptance without proper audience validation
-	if len(clientIDs) == 0 {
-		return nil, fmt.Errorf("no Google client IDs configured: authentication is not available")
-	}
-
-	// Try to verify against each client ID
-	for _, clientID := range clientIDs {
-		payload, err := idtoken.Validate(ctx, idToken, clientID)
-		if err == nil {
-			return payload, nil
-		}
-	}
-
-	return nil, fmt.Errorf("invalid audience: token does not match any configured client ID")
-}
-
-// getOrCreateUser gets an existing user or creates a new one
-func getOrCreateUser(ctx context.Context, userID, email, displayName, photoURL string) (*models.User, error) {
-	fs := firebase.GetFirestore()
-	if fs == nil {
-		return nil, fmt.Errorf("firestore client not available")
-	}
-
-	docRef := Collection(fs, "users").Doc(userID)
-	doc, err := docRef.Get(ctx)
-
-	now := time.Now()
-	var user models.User
-
-	if err != nil || !doc.Exists() {
-		// Create new user
-		user = models.User{
-			ID:          userID,
-			Email:       email,
-			DisplayName: displayName,
-			PhotoURL:    photoURL,
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		}
-	} else {
-		// Update existing user
-		if err := doc.DataTo(&user); err != nil {
-			return nil, err
-		}
-		// Update fields that might have changed
-		user.Email = email
-		user.DisplayName = displayName
-		user.PhotoURL = photoURL
-		user.UpdatedAt = now
-	}
-
-	// Save user
-	if _, err := docRef.Set(ctx, user); err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
 // Refresh handles token refresh
 func Refresh(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -591,11 +327,6 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, http.StatusInternalServerError, ErrCodeInternalError, "Unable to refresh session. Please sign in again.")
 		return
 	}
-}
-
-// LogoutRequest represents the logout request body
-type LogoutRequest struct {
-	RefreshToken string `json:"refreshToken"`
 }
 
 // Logout handles user logout by blacklisting the refresh token and clearing cookies

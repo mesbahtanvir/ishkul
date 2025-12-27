@@ -11,7 +11,6 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/pkg/cache"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/deepseek"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/llm"
-	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/openai"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/prompts"
 )
@@ -70,9 +69,9 @@ func InitializeLLM(promptsDir string) error {
 			priority = 1 // OpenAI is primary by default
 		}
 		llmRouter.RegisterProvider(llm.ProviderOpenAI, openaiClient, priority)
-		logInfo("openai_provider_registered", slog.Int("priority", priority))
+		logInfo(context.Background(), "openai_provider_registered", slog.Int("priority", priority))
 	} else {
-		logWarn("openai_provider_unavailable", slog.String("error", openaiErr.Error()))
+		logWarn(context.Background(), "openai_provider_unavailable", slog.String("error", openaiErr.Error()))
 	}
 
 	// Initialize DeepSeek provider
@@ -83,9 +82,9 @@ func InitializeLLM(promptsDir string) error {
 			priority = 1 // DeepSeek is primary when explicitly configured
 		}
 		llmRouter.RegisterProvider(llm.ProviderDeepSeek, deepseekClient, priority)
-		logInfo("deepseek_provider_registered", slog.Int("priority", priority))
+		logInfo(context.Background(), "deepseek_provider_registered", slog.Int("priority", priority))
 	} else {
-		logWarn("deepseek_provider_unavailable", slog.String("error", deepseekErr.Error()))
+		logWarn(context.Background(), "deepseek_provider_unavailable", slog.String("error", deepseekErr.Error()))
 	}
 
 	// Ensure at least one provider is available
@@ -95,22 +94,22 @@ func InitializeLLM(promptsDir string) error {
 
 	// Initialize prompt loader
 	promptLoader = prompts.NewLoader(promptsDir)
-	logInfo("prompt_loader_initialized", slog.String("prompts_dir", promptsDir))
+	logInfo(context.Background(), "prompt_loader_initialized", slog.String("prompts_dir", promptsDir))
 
 	// Initialize prompt renderer
 	promptRenderer = prompts.NewRenderer()
-	logInfo("prompt_renderer_initialized")
+	logInfo(context.Background(), "prompt_renderer_initialized")
 
 	// Initialize block cache for pre-generation
 	blockCache = cache.NewBlockCache(BlockCacheTTL)
 	blockCache.StartCleanup(CacheCleanupInterval)
-	logInfo("block_cache_initialized",
+	logInfo(context.Background(), "block_cache_initialized",
 		slog.Duration("ttl", BlockCacheTTL),
 		slog.Duration("cleanup_interval", CacheCleanupInterval),
 	)
 
 	// Note: Pre-generation service removed - replaced by queue system
-	logInfo("llm_initialization_complete")
+	logInfo(context.Background(), "llm_initialization_complete")
 
 	// Log initialization summary
 	log.Printf("LLM initialized: strategy=%s, healthy=%d, total=%d",
@@ -119,20 +118,6 @@ func InitializeLLM(promptsDir string) error {
 		llmRouter.GetProviderCount())
 
 	return nil
-}
-
-// logInfo is a helper to log info messages if logger is available
-func logInfo(msg string, attrs ...slog.Attr) {
-	if appLogger != nil {
-		logger.Info(appLogger, context.Background(), msg, attrs...)
-	}
-}
-
-// logWarn is a helper to log warning messages if logger is available
-func logWarn(msg string, attrs ...slog.Attr) {
-	if appLogger != nil {
-		logger.Warn(appLogger, context.Background(), msg, attrs...)
-	}
 }
 
 // GetLLMRouter returns the LLM router for making LLM calls

@@ -18,45 +18,11 @@ import { useResponsive } from '../hooks/useResponsive';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types/navigation';
-import { Section, Lesson, LessonStatus, getCourseTitle } from '../types/app';
+import { Section, Lesson, getCourseTitle } from '../types/app';
+import { getLessonStatusIcon, getLessonStatusColor } from '../utils/lessonStatusHelpers';
 import { coursesApi } from '../services/api';
 
 type CourseOutlineScreenProps = NativeStackScreenProps<RootStackParamList, 'CourseOutline'>;
-
-/**
- * Get status icon for lesson
- */
-const getLessonStatusIcon = (status: LessonStatus): string => {
-  switch (status) {
-    case 'completed':
-      return '✅';
-    case 'in_progress':
-      return '📖';
-    case 'locked':
-      return '🔒';
-    default:
-      return '⭕';
-  }
-};
-
-/**
- * Get status color for lesson
- */
-const getLessonStatusColor = (
-  status: LessonStatus,
-  colors: ReturnType<typeof useTheme>['colors']
-): string => {
-  switch (status) {
-    case 'completed':
-      return colors.success;
-    case 'in_progress':
-      return colors.primary;
-    case 'locked':
-      return colors.text.secondary;
-    default:
-      return colors.text.primary;
-  }
-};
 
 /**
  * Section component

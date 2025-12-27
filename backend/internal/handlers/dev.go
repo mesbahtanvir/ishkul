@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/mesbahtanvir/ishkul/backend/internal/auth"
-	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
 )
 
 // DevGetTestToken returns a test JWT token for development/testing
@@ -30,17 +29,13 @@ func DevGetTestToken(w http.ResponseWriter, r *http.Request) {
 
 	tokenPair, err := auth.GenerateTokenPair(testUID, testEmail)
 	if err != nil {
-		if appLogger != nil {
-			logger.Error(appLogger, r.Context(), "dev_token_generation_failed")
-		}
+		logError(r.Context(), "dev_token_generation_failed")
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
 	}
 
 	// Log the token generation
-	if appLogger != nil {
-		logger.Info(appLogger, r.Context(), "dev_test_token_generated")
-	}
+	logInfo(r.Context(), "dev_test_token_generated")
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
@@ -51,8 +46,6 @@ func DevGetTestToken(w http.ResponseWriter, r *http.Request) {
 		"email":        testEmail,
 		"warning":      "This is a development-only endpoint and should never be used in production",
 	}); err != nil {
-		if appLogger != nil {
-			logger.Error(appLogger, r.Context(), "dev_token_encode_failed")
-		}
+		logError(r.Context(), "dev_token_encode_failed")
 	}
 }
