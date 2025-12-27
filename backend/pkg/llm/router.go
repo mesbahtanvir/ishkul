@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/mesbahtanvir/ishkul/backend/pkg/metrics"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/openai"
 )
 
@@ -279,6 +280,23 @@ func (r *LLMRouter) callProvider(ctx context.Context, entry *ProviderEntry, req 
 
 	// Update health stats with circuit breaker logic
 	r.recordResult(entry, err, latency)
+
+	// Record metrics
+	m := metrics.GetCollector()
+	m.Counter(metrics.MetricLLMCallsTotal).Inc()
+	m.Histogram(metrics.MetricLLMLatency).Observe(latency)
+
+	if err != nil {
+		m.Counter(metrics.MetricLLMCallsError).Inc()
+	} else {
+		m.Counter(metrics.MetricLLMCallsSuccess).Inc()
+		if resp.Usage.PromptTokens > 0 {
+			m.Counter(metrics.MetricLLMTokensInput).Add(int64(resp.Usage.PromptTokens))
+		}
+		if resp.Usage.CompletionTokens > 0 {
+			m.Counter(metrics.MetricLLMTokensOutput).Add(int64(resp.Usage.CompletionTokens))
+		}
+	}
 
 	return resp, err
 }

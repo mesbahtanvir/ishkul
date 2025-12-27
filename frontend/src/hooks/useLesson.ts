@@ -3,6 +3,9 @@ import { useLessonStore } from '../state/lessonStore';
 import { useCoursesStore } from '../state/coursesStore';
 import { Block, BlockResult, LessonPosition } from '../types/app';
 
+// Polling interval for checking content generation status (2 seconds)
+const CONTENT_POLL_INTERVAL = 2000;
+
 interface UseLessonOptions {
   courseId: string;
   lessonId: string;
@@ -76,6 +79,7 @@ export function useLesson({
     localProgress,
     setCurrentLesson,
     fetchLesson,
+    refreshLesson,
     clearLesson,
     generateBlocks,
     generateBlockContent,
@@ -127,6 +131,35 @@ export function useLesson({
     }
   }, [autoGenerate, currentLesson, blocksGenerating, courseId, sectionId, lessonId, generateBlocks]);
 
+  // Poll for block skeleton updates when blocks are being generated
+  // This handles async queue processing where blocks are generated in the background
+  useEffect(() => {
+    // Check if blocks are being generated (via queue or direct async)
+    const isBlocksGenerating =
+      currentLesson?.blocksStatus === 'generating' || blocksGenerating;
+
+    if (!isBlocksGenerating) {
+      return;
+    }
+
+    // Set up polling interval
+    const pollInterval = setInterval(() => {
+      // Refresh the lesson to get updated blocks from Firestore (preserves state)
+      refreshLesson(courseId, lessonId, sectionId);
+    }, CONTENT_POLL_INTERVAL);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [
+    courseId,
+    lessonId,
+    sectionId,
+    currentLesson?.blocksStatus,
+    blocksGenerating,
+    refreshLesson,
+  ]);
+
   // Get current block
   const currentBlock = getCurrentBlock();
   const totalBlocks = currentLesson?.blocks?.length ?? 0;
@@ -157,6 +190,37 @@ export function useLesson({
       generateBlockContent(courseId, sectionId, lessonId, currentBlock.id);
     }
   }, [autoGenerate, currentBlock, blockContentGenerating, courseId, sectionId, lessonId, generateBlockContent]);
+
+  // Poll for content updates when blocks are being generated via the queue
+  // This handles async queue processing where content is generated in the background
+  useEffect(() => {
+    // Check if any blocks are in 'generating' status
+    const hasGeneratingBlocks = currentLesson?.blocks?.some(
+      (b) => b.contentStatus === 'generating'
+    );
+
+    // Also poll if we're waiting for block content (blockContentGenerating is set)
+    if (!hasGeneratingBlocks && !blockContentGenerating) {
+      return;
+    }
+
+    // Set up polling interval
+    const pollInterval = setInterval(() => {
+      // Refresh the lesson to get updated block content from Firestore (preserves state)
+      refreshLesson(courseId, lessonId, sectionId);
+    }, CONTENT_POLL_INTERVAL);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [
+    courseId,
+    lessonId,
+    sectionId,
+    currentLesson?.blocks,
+    blockContentGenerating,
+    refreshLesson,
+  ]);
 
   // Start interacting with a block
   const startBlock = useCallback(
@@ -215,6 +279,10 @@ export function useLesson({
     return nextPosition;
   }, [courseId, sectionId, lessonId, updateLessonStatus, getNextLesson, setCoursePosition]);
 
+  // Check if blocks are being generated (either from store action or from lesson status)
+  const isBlocksGeneratingStatus =
+    blocksGenerating || currentLesson?.blocksStatus === 'generating';
+
   return {
     // Lesson state
     lesson: currentLesson,
@@ -224,7 +292,7 @@ export function useLesson({
 
     // Loading states
     isLoading: lessonLoading,
-    isGeneratingBlocks: blocksGenerating,
+    isGeneratingBlocks: isBlocksGeneratingStatus,
     isGeneratingContent: blockContentGenerating,
     isCompleting: completing,
 
