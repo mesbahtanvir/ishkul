@@ -864,10 +864,12 @@ func generateContentForBlock(ctx context.Context, course *models.Course, section
 }
 
 func updateLessonBlocksStatus(ctx context.Context, fs *firestore.Client, course *models.Course, lessonID, status, errorMsg string) {
-	// Find lesson indices
+	// Find lesson indices and capture old status for validation
+	var oldStatus string
 	for si, section := range course.Outline.Sections {
 		for li, lesson := range section.Lessons {
 			if lesson.ID == lessonID {
+				oldStatus = lesson.BlocksStatus
 				course.Outline.Sections[si].Lessons[li].BlocksStatus = status
 				course.Outline.Sections[si].Lessons[li].BlocksError = errorMsg
 				break
@@ -875,11 +877,16 @@ func updateLessonBlocksStatus(ctx context.Context, fs *firestore.Client, course 
 		}
 	}
 
+	// Validate the status transition
+	isValidTransition := ValidateBlocksStatusTransition(ctx, appLogger, course.ID, lessonID, oldStatus, status)
+
 	if appLogger != nil {
 		firebase.LogWriteStart(ctx, appLogger, "update", "courses/"+course.ID,
 			slog.String("field", "outline.blocksStatus"),
 			slog.String("lesson_id", lessonID),
-			slog.String("status", status),
+			slog.String("old_status", oldStatus),
+			slog.String("new_status", status),
+			slog.Bool("valid_transition", isValidTransition),
 		)
 	}
 
@@ -930,16 +937,32 @@ func updateBlockContentStatus(ctx context.Context, fs *firestore.Client, course 
 }
 
 func saveLessonBlocks(ctx context.Context, fs *firestore.Client, course *models.Course, lessonID string, blocks []models.Block) error {
-	// Find and update lesson
+	// Find and update lesson, capturing old status for validation
+	var oldStatus string
 	for si, section := range course.Outline.Sections {
 		for li, lesson := range section.Lessons {
 			if lesson.ID == lessonID {
+				oldStatus = lesson.BlocksStatus
 				course.Outline.Sections[si].Lessons[li].Blocks = blocks
 				course.Outline.Sections[si].Lessons[li].BlocksStatus = models.ContentStatusReady
 				course.Outline.Sections[si].Lessons[li].BlocksError = ""
 				break
 			}
 		}
+	}
+
+	// Validate the status transition (generating -> complete/ready)
+	isValidTransition := ValidateBlocksStatusTransition(ctx, appLogger, course.ID, lessonID, oldStatus, models.ContentStatusReady)
+
+	if appLogger != nil {
+		logger.Info(appLogger, ctx, "save_lesson_blocks",
+			slog.String("course_id", course.ID),
+			slog.String("lesson_id", lessonID),
+			slog.String("old_status", oldStatus),
+			slog.String("new_status", models.ContentStatusReady),
+			slog.Bool("valid_transition", isValidTransition),
+			slog.Int("blocks_count", len(blocks)),
+		)
 	}
 
 	_, err := Collection(fs, "courses").Doc(course.ID).Update(ctx, []firestore.Update{

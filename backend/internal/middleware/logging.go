@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/logger"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/metrics"
 )
 
 // LoggingMiddleware adds structured logging with request tracing to HTTP handlers
@@ -41,6 +42,14 @@ func LoggingMiddleware(appLogger *slog.Logger) func(http.Handler) http.Handler {
 
 			// Calculate duration
 			duration := time.Since(start)
+
+			// Record metrics
+			m := metrics.GetCollector()
+			m.Counter(metrics.MetricHandlerRequestsTotal).Inc()
+			m.Histogram(metrics.MetricHandlerDuration).Observe(duration.Milliseconds())
+			if wrapped.statusCode >= 400 {
+				m.Counter(metrics.MetricHandlerRequestsErrors).Inc()
+			}
 
 			// Log response details
 			logger.Info(appLogger, ctx, "request_completed",

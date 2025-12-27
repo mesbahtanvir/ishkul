@@ -385,6 +385,23 @@ const (
 	MetricGenerationOutlineSuccess  = "generation.outline.success"
 	MetricGenerationSkeletonSuccess = "generation.skeleton.success"
 	MetricGenerationContentSuccess  = "generation.content.success"
+
+	// Handler metrics
+	MetricHandlerRequestsTotal  = "handler.requests.total"
+	MetricHandlerRequestsErrors = "handler.requests.errors"
+	MetricHandlerDuration       = "handler.duration_ms"
+
+	// Firestore operation metrics
+	MetricFirestoreQueryTotal    = "firestore.query.total"
+	MetricFirestoreQueryErrors   = "firestore.query.errors"
+	MetricFirestoreQueryDuration = "firestore.query.duration_ms"
+	MetricFirestoreQueryDocs     = "firestore.query.docs_scanned"
+	MetricFirestoreWriteTotal    = "firestore.write.total"
+	MetricFirestoreWriteErrors   = "firestore.write.errors"
+	MetricFirestoreWriteDuration = "firestore.write.duration_ms"
+	MetricFirestoreTxTotal       = "firestore.transaction.total"
+	MetricFirestoreTxErrors      = "firestore.transaction.errors"
+	MetricFirestoreTxDuration    = "firestore.transaction.duration_ms"
 )
 
 // Timer is a helper for measuring durations

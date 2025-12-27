@@ -24,15 +24,16 @@ import (
 func ValidateBlocksStatusTransition(ctx context.Context, appLogger *slog.Logger, courseID, lessonID, from, to string) bool {
 	// Valid transitions:
 	// pending -> generating
-	// generating -> complete | error
+	// generating -> complete | ready | error
 	// error -> generating (retry)
-	// complete -> (no further transitions)
+	// complete/ready -> (no further transitions)
 
 	validTransitions := map[string][]string{
 		"pending":    {"generating"},
-		"generating": {"complete", "error"},
+		"generating": {"complete", "ready", "error"},
 		"error":      {"generating"}, // Allow retry
 		"complete":   {},             // No further transitions
+		"ready":      {},             // No further transitions (alias for complete)
 	}
 
 	allowed, exists := validTransitions[from]
@@ -396,7 +397,9 @@ func UpdateLessonBlocks(ctx context.Context, courseID, sectionID, lessonID strin
 					// Capture old status before updating
 					oldStatus = course.Outline.Sections[i].Lessons[j].BlocksStatus
 
-					// Log blocksStatus transition
+					// Validate and log blocksStatus transition
+					isValidTransition := ValidateBlocksStatusTransition(ctx, appLogger, courseID, lessonID, oldStatus, blocksStatus)
+
 					if appLogger != nil {
 						logger.Info(appLogger, ctx, "blocks_status_update",
 							slog.String("course_id", courseID),
@@ -404,6 +407,7 @@ func UpdateLessonBlocks(ctx context.Context, courseID, sectionID, lessonID strin
 							slog.String("lesson_id", lessonID),
 							slog.String("old_status", oldStatus),
 							slog.String("new_status", blocksStatus),
+							slog.Bool("valid_transition", isValidTransition),
 							slog.Int("blocks_count", len(blocks)),
 						)
 					}

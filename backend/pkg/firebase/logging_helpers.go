@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
+	"github.com/mesbahtanvir/ishkul/backend/pkg/metrics"
 	"google.golang.org/api/iterator"
 )
 
@@ -20,10 +21,18 @@ func LogQueryStart(ctx context.Context, logger *slog.Logger, collectionName stri
 	logger.DebugContext(ctx, "firestore_query_start", logAttrs...)
 }
 
-// LogQueryResult logs query execution results with timing
+// LogQueryResult logs query execution results with timing and records metrics
 // Uses error classification to provide actionable suggestions
 func LogQueryResult(ctx context.Context, logger *slog.Logger, collectionName string, docsReturned int, duration time.Duration, err error) {
+	// Record metrics
+	m := metrics.GetCollector()
+	m.Counter(metrics.MetricFirestoreQueryTotal).Inc()
+	m.Histogram(metrics.MetricFirestoreQueryDuration).Observe(duration.Milliseconds())
+	m.Histogram(metrics.MetricFirestoreQueryDocs).Observe(int64(docsReturned))
+
 	if err != nil {
+		m.Counter(metrics.MetricFirestoreQueryErrors).Inc()
+
 		errorType := ClassifyFirestoreError(err)
 		isCritical := IsCriticalError(errorType)
 
@@ -54,9 +63,15 @@ func LogQueryResult(ctx context.Context, logger *slog.Logger, collectionName str
 	}
 }
 
-// LogWrite logs Firestore write operations (Set, Update, Delete)
+// LogWrite logs Firestore write operations (Set, Update, Delete) and records metrics
 func LogWrite(ctx context.Context, logger *slog.Logger, operation string, docPath string, err error) {
+	// Record metrics
+	m := metrics.GetCollector()
+	m.Counter(metrics.MetricFirestoreWriteTotal).Inc()
+
 	if err != nil {
+		m.Counter(metrics.MetricFirestoreWriteErrors).Inc()
+
 		logger.ErrorContext(ctx, "firestore_write_failed",
 			slog.String("operation", operation),
 			slog.String("doc_path", docPath),
@@ -90,9 +105,16 @@ func LogTransactionStart(ctx context.Context, logger *slog.Logger, transactionNa
 	logger.DebugContext(ctx, "firestore_transaction_start", logAttrs...)
 }
 
-// LogTransactionEnd logs the completion of a Firestore transaction
+// LogTransactionEnd logs the completion of a Firestore transaction and records metrics
 func LogTransactionEnd(ctx context.Context, logger *slog.Logger, transactionName string, duration time.Duration, err error) {
+	// Record metrics
+	m := metrics.GetCollector()
+	m.Counter(metrics.MetricFirestoreTxTotal).Inc()
+	m.Histogram(metrics.MetricFirestoreTxDuration).Observe(duration.Milliseconds())
+
 	if err != nil {
+		m.Counter(metrics.MetricFirestoreTxErrors).Inc()
+
 		errorType := ClassifyFirestoreError(err)
 		isCritical := IsCriticalError(errorType)
 
