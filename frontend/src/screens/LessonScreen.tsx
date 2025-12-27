@@ -20,7 +20,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LearningLayout } from '../components/LearningLayout';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { ProgressBar } from '../components/ProgressBar';
 import { ScrollableLessonBlocks } from '../components/blocks';
 import { useLesson } from '../hooks/useLesson';
 import { useTheme } from '../hooks/useTheme';
@@ -85,9 +84,6 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
     sectionIndex: 0, // Will be determined by sidebar
     lessonIndex: 0,
   } : undefined;
-
-  // Progress percentage (moved before conditional returns to comply with Rules of Hooks)
-  const progress = totalBlocks > 0 ? (completedBlocksCount / totalBlocks) * 100 : 0;
 
   // Get completed block IDs from local progress (moved before conditional returns)
   const { localProgress } = useLessonStore();
@@ -246,8 +242,6 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ navigation, route })
               </Text>
             </View>
           </View>
-          {/* Progress bar */}
-          <ProgressBar progress={progress} height={4} />
         </View>
 
         {/* Scrollable Lesson Blocks */}
