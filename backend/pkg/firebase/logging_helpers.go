@@ -21,24 +21,27 @@ func LogQueryStart(ctx context.Context, logger *slog.Logger, collectionName stri
 }
 
 // LogQueryResult logs query execution results with timing
-// If error contains "index" or "composite", flags it as likely index issue
+// Uses error classification to provide actionable suggestions
 func LogQueryResult(ctx context.Context, logger *slog.Logger, collectionName string, docsReturned int, duration time.Duration, err error) {
 	if err != nil {
-		errorMsg := err.Error()
-		isIndexError := containsAny(errorMsg, "index", "composite")
+		errorType := ClassifyFirestoreError(err)
+		isCritical := IsCriticalError(errorType)
 
 		logger.ErrorContext(ctx, "firestore_query_failed",
 			slog.String("operation", "query"),
 			slog.String("collection", collectionName),
-			slog.String("error", errorMsg),
-			slog.Bool("likely_index_missing", isIndexError),
+			slog.String("error", err.Error()),
+			slog.String("error_type", string(errorType)),
+			slog.Bool("critical", isCritical),
 			slog.Int64("duration_ms", duration.Milliseconds()),
 		)
 
-		if isIndexError {
-			logger.WarnContext(ctx, "firestore_index_required",
+		// Provide actionable fix suggestions for common errors
+		if errorType != ErrorTypeUnknown {
+			logger.WarnContext(ctx, "firestore_error_suggestion",
 				slog.String("collection", collectionName),
-				slog.String("fix", "Add composite index in firebase/firestore.indexes.json and run 'firebase deploy --only firestore:indexes'"),
+				slog.String("error_type", string(errorType)),
+				slog.String("suggested_fix", SuggestFix(errorType, collectionName)),
 			)
 		}
 	} else {
@@ -90,15 +93,26 @@ func LogTransactionStart(ctx context.Context, logger *slog.Logger, transactionNa
 // LogTransactionEnd logs the completion of a Firestore transaction
 func LogTransactionEnd(ctx context.Context, logger *slog.Logger, transactionName string, duration time.Duration, err error) {
 	if err != nil {
-		isContention := containsAny(err.Error(), "contention", "aborted")
+		errorType := ClassifyFirestoreError(err)
+		isCritical := IsCriticalError(errorType)
 
 		logger.WarnContext(ctx, "firestore_transaction_failed",
 			slog.String("operation", "transaction"),
 			slog.String("transaction_name", transactionName),
 			slog.String("error", err.Error()),
-			slog.Bool("contention", isContention),
+			slog.String("error_type", string(errorType)),
+			slog.Bool("critical", isCritical),
 			slog.Int64("duration_ms", duration.Milliseconds()),
 		)
+
+		// Provide fix suggestion for non-unknown errors
+		if errorType != ErrorTypeUnknown {
+			logger.WarnContext(ctx, "firestore_error_suggestion",
+				slog.String("transaction_name", transactionName),
+				slog.String("error_type", string(errorType)),
+				slog.String("suggested_fix", SuggestFix(errorType, "")),
+			)
+		}
 	} else {
 		logger.InfoContext(ctx, "firestore_transaction_success",
 			slog.String("operation", "transaction"),

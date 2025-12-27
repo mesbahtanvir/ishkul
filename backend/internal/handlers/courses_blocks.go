@@ -16,6 +16,74 @@ import (
 )
 
 // =============================================================================
+// blocksStatus Transition Validation
+// =============================================================================
+
+// ValidateBlocksStatusTransition logs and validates blocksStatus state transitions
+// Returns true if the transition is valid
+func ValidateBlocksStatusTransition(ctx context.Context, appLogger *slog.Logger, courseID, lessonID, from, to string) bool {
+	// Valid transitions:
+	// pending -> generating
+	// generating -> complete | error
+	// error -> generating (retry)
+	// complete -> (no further transitions)
+
+	validTransitions := map[string][]string{
+		"pending":    {"generating"},
+		"generating": {"complete", "error"},
+		"error":      {"generating"}, // Allow retry
+		"complete":   {},             // No further transitions
+	}
+
+	allowed, exists := validTransitions[from]
+	if !exists {
+		if appLogger != nil {
+			logger.Warn(appLogger, ctx, "blocks_status_transition_unknown_source",
+				slog.String("course_id", courseID),
+				slog.String("lesson_id", lessonID),
+				slog.String("from", from),
+				slog.String("to", to),
+			)
+		}
+		return false
+	}
+
+	for _, valid := range allowed {
+		if to == valid {
+			if appLogger != nil {
+				logger.Debug(appLogger, ctx, "blocks_status_transition_valid",
+					slog.String("lesson_id", lessonID),
+					slog.String("from", from),
+					slog.String("to", to),
+				)
+			}
+			return true
+		}
+	}
+
+	// Invalid transition
+	if appLogger != nil {
+		allowedStr := ""
+		if len(allowed) > 0 {
+			allowedStr = allowed[0]
+			for i := 1; i < len(allowed); i++ {
+				allowedStr += "," + allowed[i]
+			}
+		}
+
+		logger.Warn(appLogger, ctx, "blocks_status_transition_invalid",
+			slog.String("course_id", courseID),
+			slog.String("lesson_id", lessonID),
+			slog.String("from", from),
+			slog.String("to", to),
+			slog.String("allowed_transitions", allowedStr),
+		)
+	}
+
+	return false
+}
+
+// =============================================================================
 // Block Skeleton Generation (Stage 2)
 // =============================================================================
 

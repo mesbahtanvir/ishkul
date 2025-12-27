@@ -236,37 +236,85 @@ func (tm *TaskManager) ClaimTask(ctx context.Context, taskID string) (*models.Ge
 	taskRef := tm.Collection().Doc(taskID)
 	var task models.GenerationTask
 
+	// Log transaction start
+	tm.logDebug(ctx, "task_claim_transaction_start",
+		slog.String("task_id", taskID),
+		slog.String("instance_id", tm.instanceID),
+	)
+
 	err := tm.fs.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		// Step 1: Get task
 		doc, err := tx.Get(taskRef)
 		if err != nil {
+			tm.logDebug(ctx, "task_claim_tx_get_failed",
+				slog.String("task_id", taskID),
+				slog.String("error", err.Error()),
+			)
 			return err
 		}
 
+		// Step 2: Parse task
 		if err := doc.DataTo(&task); err != nil {
+			tm.logWarn(ctx, "task_claim_tx_parse_failed",
+				slog.String("task_id", taskID),
+				slog.String("error", err.Error()),
+			)
 			return err
 		}
 
+		// Step 3: Check if claimable
 		if !task.CanBeClaimed() {
+			logAttrs := []slog.Attr{
+				slog.String("task_id", taskID),
+				slog.String("status", string(task.Status)),
+			}
+			if task.Claim != nil {
+				logAttrs = append(logAttrs,
+					slog.String("claimed_by", task.Claim.ClaimedBy),
+					slog.Time("claimed_at", task.Claim.ClaimedAt),
+				)
+			}
+			tm.logDebug(ctx, "task_claim_tx_not_claimable", logAttrs...)
 			return fmt.Errorf("task cannot be claimed: status=%s", task.Status)
 		}
 
+		// Step 4: Update claim
 		claim := models.NewGenerationClaim(tm.instanceID)
 		task.SetClaim(claim)
+
+		tm.logDebug(ctx, "task_claim_tx_updating",
+			slog.String("task_id", taskID),
+			slog.String("instance_id", tm.instanceID),
+		)
 
 		return tx.Set(taskRef, task)
 	})
 
 	claimDuration := time.Since(start).Milliseconds()
 
+	// Check for transaction errors
 	if err != nil {
-		tm.logWarn(ctx, "queue_claim_failed",
+		// Check if contention error
+		errorMsg := err.Error()
+		isContention := strings.Contains(errorMsg, "contention") ||
+			strings.Contains(errorMsg, "aborted")
+
+		tm.logWarn(ctx, "task_claim_transaction_failed",
 			slog.String("task_id", taskID),
 			slog.String("instance_id", tm.instanceID),
-			slog.String("error", err.Error()),
+			slog.String("error", errorMsg),
+			slog.Bool("contention", isContention),
 			slog.Int64("duration_ms", claimDuration),
 		)
 		return nil, err
 	}
+
+	// Log successful transaction
+	tm.logDebug(ctx, "task_claim_transaction_success",
+		slog.String("task_id", taskID),
+		slog.String("instance_id", tm.instanceID),
+		slog.Int64("duration_ms", claimDuration),
+	)
 
 	// Record metrics
 	m := metrics.GetCollector()
