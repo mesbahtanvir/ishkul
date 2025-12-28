@@ -37,23 +37,30 @@ func TestGeneratorFuncsCallbacks(t *testing.T) {
 	t.Run("CheckCanGenerate callback", func(t *testing.T) {
 		called := false
 		gf := &GeneratorFuncs{
-			CheckCanGenerate: func(ctx context.Context, userID, tier string) (bool, int64, int64, int64, int64, string, error) {
+			CheckCanGenerate: func(ctx context.Context, userID, tier string) (*models.GenerationPermission, error) {
 				called = true
 				assert.Equal(t, "user-123", userID)
 				assert.Equal(t, "pro", tier)
-				return true, 1000, 100000, 5000, 1000000, "", nil
+				return &models.GenerationPermission{
+					Allowed:      true,
+					DailyUsed:    1000,
+					DailyLimit:   100000,
+					WeeklyUsed:   5000,
+					WeeklyLimit:  1000000,
+					LimitReached: "",
+				}, nil
 			},
 		}
 
-		canGen, daily, dailyLimit, weekly, weeklyLimit, limitReached, err := gf.CheckCanGenerate(context.Background(), "user-123", "pro")
+		permission, err := gf.CheckCanGenerate(context.Background(), "user-123", "pro")
 
 		assert.True(t, called)
-		assert.True(t, canGen)
-		assert.Equal(t, int64(1000), daily)
-		assert.Equal(t, int64(100000), dailyLimit)
-		assert.Equal(t, int64(5000), weekly)
-		assert.Equal(t, int64(1000000), weeklyLimit)
-		assert.Empty(t, limitReached)
+		assert.True(t, permission.Allowed)
+		assert.Equal(t, int64(1000), permission.DailyUsed)
+		assert.Equal(t, int64(100000), permission.DailyLimit)
+		assert.Equal(t, int64(5000), permission.WeeklyUsed)
+		assert.Equal(t, int64(1000000), permission.WeeklyLimit)
+		assert.Empty(t, permission.LimitReached)
 		assert.NoError(t, err)
 	})
 
@@ -192,27 +199,35 @@ func TestGeneratorFuncsCallbacks(t *testing.T) {
 func TestGeneratorFuncsErrors(t *testing.T) {
 	t.Run("CheckCanGenerate returns error", func(t *testing.T) {
 		gf := &GeneratorFuncs{
-			CheckCanGenerate: func(ctx context.Context, userID, tier string) (bool, int64, int64, int64, int64, string, error) {
-				return false, 0, 0, 0, 0, "", errors.New("database error")
+			CheckCanGenerate: func(ctx context.Context, userID, tier string) (*models.GenerationPermission, error) {
+				return nil, errors.New("database error")
 			},
 		}
 
-		_, _, _, _, _, _, err := gf.CheckCanGenerate(context.Background(), "user-1", "free")
+		permission, err := gf.CheckCanGenerate(context.Background(), "user-1", "free")
 		assert.Error(t, err)
+		assert.Nil(t, permission)
 		assert.Contains(t, err.Error(), "database error")
 	})
 
 	t.Run("CheckCanGenerate returns token limit", func(t *testing.T) {
 		gf := &GeneratorFuncs{
-			CheckCanGenerate: func(ctx context.Context, userID, tier string) (bool, int64, int64, int64, int64, string, error) {
-				return false, 100000, 100000, 500000, 1000000, "daily", nil
+			CheckCanGenerate: func(ctx context.Context, userID, tier string) (*models.GenerationPermission, error) {
+				return &models.GenerationPermission{
+					Allowed:      false,
+					DailyUsed:    100000,
+					DailyLimit:   100000,
+					WeeklyUsed:   500000,
+					WeeklyLimit:  1000000,
+					LimitReached: "daily",
+				}, nil
 			},
 		}
 
-		canGen, _, _, _, _, limitReached, err := gf.CheckCanGenerate(context.Background(), "user-1", "free")
+		permission, err := gf.CheckCanGenerate(context.Background(), "user-1", "free")
 		assert.NoError(t, err)
-		assert.False(t, canGen)
-		assert.Equal(t, "daily", limitReached)
+		assert.False(t, permission.Allowed)
+		assert.Equal(t, "daily", permission.LimitReached)
 	})
 
 	t.Run("GenerateBlockSkeletons returns error", func(t *testing.T) {

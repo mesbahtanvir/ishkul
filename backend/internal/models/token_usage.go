@@ -48,6 +48,22 @@ type TokenLimitStatus struct {
 	WeeklyResetAt *time.Time  `json:"weeklyResetAt,omitempty"`
 }
 
+// GenerationPermission contains the result of a token limit check.
+// Used by queue processors to determine if content generation is permitted.
+type GenerationPermission struct {
+	Allowed      bool   // Whether generation is permitted
+	DailyUsed    int64  // Tokens used today
+	DailyLimit   int64  // Daily token limit for user's tier
+	WeeklyUsed   int64  // Tokens used this week
+	WeeklyLimit  int64  // Weekly token limit for user's tier
+	LimitReached string // Which limit was reached: "daily", "weekly", or "" if none
+}
+
+// IsAllowed returns true if generation is permitted.
+func (p *GenerationPermission) IsAllowed() bool {
+	return p.Allowed
+}
+
 // NewTokenUsage creates a new TokenUsage for a period
 func NewTokenUsage(period string) *TokenUsage {
 	return &TokenUsage{

@@ -98,40 +98,50 @@ func IncrementTokenUsage(ctx context.Context, userID string, tier string, inputT
 	return dailyTotal, canContinue, nil
 }
 
-// CheckCanGenerate checks if a user can generate content based on their daily and weekly token limits
-// Returns: canGenerate, dailyTokensUsed, dailyLimit, weeklyTokensUsed, weeklyLimit, limitReached ("daily", "weekly", or ""), error
-func CheckCanGenerate(ctx context.Context, userID string, tier string) (bool, int64, int64, int64, int64, string, error) {
+// CheckCanGenerate checks if a user can generate content based on their daily and weekly token limits.
+// Returns a GenerationPermission struct containing the permission status and usage details.
+func CheckCanGenerate(ctx context.Context, userID, tier string) (*models.GenerationPermission, error) {
 	fs := firebase.GetFirestore()
 	if fs == nil {
-		return false, 0, 0, 0, 0, "", fmt.Errorf("database not available")
+		return nil, fmt.Errorf("database not available")
 	}
 
-	// Get daily usage
-	dailyUsage, err := getTokenUsage(ctx, fs, userID, models.GetTodayPeriod())
-	if err != nil {
-		dailyUsage = models.NewTokenUsage(models.GetTodayPeriod())
-	}
-
-	// Get weekly usage
-	weeklyUsage, err := getTokenUsage(ctx, fs, userID, models.GetCurrentWeekPeriod())
-	if err != nil {
-		weeklyUsage = models.NewTokenUsage(models.GetCurrentWeekPeriod())
-	}
+	dailyUsage := getTokenUsageOrDefault(ctx, fs, userID, models.GetTodayPeriod())
+	weeklyUsage := getTokenUsageOrDefault(ctx, fs, userID, models.GetCurrentWeekPeriod())
 
 	dailyLimit := models.GetDailyTokenLimit(tier)
 	weeklyLimit := models.GetWeeklyTokenLimit(tier)
 
-	// Check which limit is reached (if any)
-	limitReached := ""
-	if dailyUsage.TotalTokens >= dailyLimit {
-		limitReached = "daily"
-	} else if weeklyUsage.TotalTokens >= weeklyLimit {
-		limitReached = "weekly"
+	limitReached := determineLimitReached(dailyUsage.TotalTokens, dailyLimit, weeklyUsage.TotalTokens, weeklyLimit)
+
+	return &models.GenerationPermission{
+		Allowed:      limitReached == "",
+		DailyUsed:    dailyUsage.TotalTokens,
+		DailyLimit:   dailyLimit,
+		WeeklyUsed:   weeklyUsage.TotalTokens,
+		WeeklyLimit:  weeklyLimit,
+		LimitReached: limitReached,
+	}, nil
+}
+
+// getTokenUsageOrDefault retrieves token usage, returning a default if not found.
+func getTokenUsageOrDefault(ctx context.Context, fs *firestore.Client, userID, period string) *models.TokenUsage {
+	usage, err := getTokenUsage(ctx, fs, userID, period)
+	if err != nil {
+		return models.NewTokenUsage(period)
 	}
+	return usage
+}
 
-	canGenerate := limitReached == ""
-
-	return canGenerate, dailyUsage.TotalTokens, dailyLimit, weeklyUsage.TotalTokens, weeklyLimit, limitReached, nil
+// determineLimitReached checks which limit (if any) has been reached.
+func determineLimitReached(dailyUsed, dailyLimit, weeklyUsed, weeklyLimit int64) string {
+	if dailyUsed >= dailyLimit {
+		return "daily"
+	}
+	if weeklyUsed >= weeklyLimit {
+		return "weekly"
+	}
+	return ""
 }
 
 // GetUserTierAndLimits is a helper to get user tier and check limits in one call

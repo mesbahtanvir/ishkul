@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"time"
@@ -109,13 +108,11 @@ func InitializeLLM(promptsDir string) error {
 	)
 
 	// Note: Pre-generation service removed - replaced by queue system
-	logInfo(context.Background(), "llm_initialization_complete")
-
-	// Log initialization summary
-	log.Printf("LLM initialized: strategy=%s, healthy=%d, total=%d",
-		llmRouter.GetStrategy(),
-		llmRouter.GetHealthyProviderCount(),
-		llmRouter.GetProviderCount())
+	logInfo(context.Background(), "llm_initialization_complete",
+		slog.String("strategy", string(llmRouter.GetStrategy())),
+		slog.Int("healthy_providers", llmRouter.GetHealthyProviderCount()),
+		slog.Int("total_providers", llmRouter.GetProviderCount()),
+	)
 
 	return nil
 }

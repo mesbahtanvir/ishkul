@@ -16,8 +16,8 @@ import (
 // These are injected to avoid import cycles between queue and handlers.
 type GeneratorFuncs struct {
 	// CheckCanGenerate checks if a user can generate content based on their token limits.
-	// Returns: canGenerate, dailyUsed, dailyLimit, weeklyUsed, weeklyLimit, limitReached, error
-	CheckCanGenerate func(ctx context.Context, userID, tier string) (bool, int64, int64, int64, int64, string, error)
+	// Returns a GenerationPermission struct with permission status and usage details.
+	CheckCanGenerate func(ctx context.Context, userID, tier string) (*models.GenerationPermission, error)
 
 	// IncrementTokenUsage increments the token usage for a user.
 	// Returns: newDailyTotal, canContinue, error
