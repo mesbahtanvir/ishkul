@@ -23,6 +23,16 @@ jest.mock('../../hooks/useTheme', () => ({
   }),
 }));
 
+const mockUseCoursesSubscription = jest.fn(() => ({
+  isSubscribed: true,
+  connectionError: null,
+  isLoading: false,
+}));
+
+jest.mock('../../hooks/useCoursesSubscription', () => ({
+  useCoursesSubscription: () => mockUseCoursesSubscription(),
+}));
+
 const mockStoreState = {
   courses: [],
   setCourses: jest.fn(),
@@ -139,17 +149,23 @@ describe('HomeScreen', () => {
   });
 
   it('should return LoadingScreen when loading', () => {
-    const { useCoursesStore } = require('../../state/coursesStore');
-    const loadingState = {
-      ...mockStoreState,
-      loading: true,
-    };
-    useCoursesStore.mockReturnValue(loadingState);
-    useCoursesStore.getState.mockReturnValue(loadingState);
+    // Mock the subscription hook to return loading state
+    mockUseCoursesSubscription.mockReturnValue({
+      isSubscribed: false,
+      connectionError: null,
+      isLoading: true,
+    });
 
     // LoadingScreen is mocked to return null, so toJSON returns null
     const { toJSON } = render(<HomeScreen />);
     expect(toJSON()).toBeNull();
+
+    // Reset mock for other tests
+    mockUseCoursesSubscription.mockReturnValue({
+      isSubscribed: true,
+      connectionError: null,
+      isLoading: false,
+    });
   });
 
   it('should display FAB on active tab', () => {
