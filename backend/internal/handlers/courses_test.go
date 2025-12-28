@@ -37,17 +37,6 @@ func createCourseRequest(method, path string, body *bytes.Buffer, userID, email 
 // =============================================================================
 
 func TestCoursesHandler_Routing(t *testing.T) {
-	t.Run("root path GET routes to list", func(t *testing.T) {
-		req := createCourseRequest(http.MethodGet, "/api/courses", nil, "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		// Will fail at DB level but validates routing
-		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
-		assert.NotEqual(t, http.StatusNotFound, rr.Code)
-	})
-
 	t.Run("root path POST routes to create", func(t *testing.T) {
 		body := `{"goal": "Learn Go"}`
 		req := createCourseRequest(http.MethodPost, "/api/courses", bytes.NewBufferString(body), "user123", "test@example.com")
@@ -60,7 +49,7 @@ func TestCoursesHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("root path rejects unsupported methods", func(t *testing.T) {
-		methods := []string{http.MethodPut, http.MethodDelete, http.MethodPatch}
+		methods := []string{http.MethodGet, http.MethodPut, http.MethodDelete, http.MethodPatch}
 
 		for _, method := range methods {
 			t.Run(method, func(t *testing.T) {
@@ -74,13 +63,13 @@ func TestCoursesHandler_Routing(t *testing.T) {
 		}
 	})
 
-	t.Run("path with ID GET routes to get", func(t *testing.T) {
+	t.Run("path with ID GET is rejected (use Firebase subscriptions)", func(t *testing.T) {
 		req := createCourseRequest(http.MethodGet, "/api/courses/path-123", nil, "user123", "test@example.com")
 		rr := httptest.NewRecorder()
 
 		CoursesHandler(rr, req)
 
-		assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
+		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
 	t.Run("path with ID PATCH routes to update", func(t *testing.T) {
@@ -260,31 +249,7 @@ func TestCoursesHandler_Routing(t *testing.T) {
 	})
 }
 
-// =============================================================================
-// listCourses Tests
-// =============================================================================
-
-func TestListCourses(t *testing.T) {
-	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createCourseRequest(http.MethodGet, "/api/courses", nil, "", "")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Unauthorized")
-	})
-
-	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createCourseRequest(http.MethodGet, "/api/courses", nil, "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Database not available")
-	})
-}
+// Note: listCourses tests removed - GET /api/courses removed in favor of Firebase subscriptions
 
 // =============================================================================
 // createCourse Tests
@@ -334,30 +299,7 @@ func TestCreateCourse(t *testing.T) {
 	})
 }
 
-// =============================================================================
-// getCourse Tests
-// =============================================================================
-
-func TestGetCourse(t *testing.T) {
-	t.Run("rejects unauthenticated request", func(t *testing.T) {
-		req := createCourseRequest(http.MethodGet, "/api/courses/path-123", nil, "", "")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	})
-
-	t.Run("returns error when database not available", func(t *testing.T) {
-		req := createCourseRequest(http.MethodGet, "/api/courses/path-123", nil, "user123", "test@example.com")
-		rr := httptest.NewRecorder()
-
-		CoursesHandler(rr, req)
-
-		// Will fail at DB level
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	})
-}
+// Note: getCourse tests removed - GET /api/courses/{id} removed in favor of Firebase subscriptions
 
 // =============================================================================
 // updateCourse Tests
