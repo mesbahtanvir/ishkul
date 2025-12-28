@@ -26,6 +26,18 @@ jest.mock('../../services/api', () => ({
   },
 }));
 
+// Mock Firebase subscription hook
+const mockUseCourseSubscription = jest.fn();
+jest.mock('../useCourseSubscription', () => ({
+  useCourseSubscription: (...args: unknown[]) => mockUseCourseSubscription(...args),
+}));
+
+// Mock Firebase authentication check
+const mockIsFirebaseAuthenticated = jest.fn();
+jest.mock('../../services/firebase', () => ({
+  isFirebaseAuthenticated: () => mockIsFirebaseAuthenticated(),
+}));
+
 // Helper to create mock blocks
 const createMockBlock = (overrides: Partial<Block> = {}): Block => ({
   id: `block-${Math.random().toString(36).substr(2, 9)}`,
@@ -116,6 +128,14 @@ describe('useLesson', () => {
       useLessonStore.getState().clearLesson();
       useCoursesStore.getState().clearCourses();
     });
+
+    // Default mock for Firebase subscription (disabled by default for existing tests)
+    mockUseCourseSubscription.mockReturnValue({
+      isSubscribed: false,
+      connectionError: null,
+      hasGeneratingContent: false,
+    });
+    mockIsFirebaseAuthenticated.mockReturnValue(false);
   });
 
   describe('initialization', () => {
@@ -698,6 +718,163 @@ describe('useLesson', () => {
       await waitFor(() => {
         expect(result.current.error).toBe('Network error');
       });
+    });
+  });
+
+  describe('Firebase subscription integration', () => {
+    beforeEach(() => {
+      // Set up a basic lesson for subscription tests
+      const lessonWithBlocks = createMockLesson({
+        id: 'lesson-1',
+        blocksStatus: 'ready',
+        blocks: [createMockBlock({ id: 'b1' })],
+      });
+
+      (lessonsApi.getLesson as jest.Mock).mockResolvedValue({
+        lesson: lessonWithBlocks,
+      });
+    });
+
+    it('should call useCourseSubscription with courseId', async () => {
+      renderHook(() => useLesson(defaultOptions));
+
+      expect(mockUseCourseSubscription).toHaveBeenCalledWith(
+        'course-1',
+        expect.objectContaining({
+          enabled: true,
+        })
+      );
+    });
+
+    it('should expose isUsingRealtimeUpdates when subscription is active', async () => {
+      mockUseCourseSubscription.mockReturnValue({
+        isSubscribed: true,
+        connectionError: null,
+        hasGeneratingContent: true,
+      });
+
+      const { result } = renderHook(() =>
+        useLesson({ ...defaultOptions, autoGenerate: false })
+      );
+
+      await waitFor(() => {
+        expect(result.current.lesson).not.toBeNull();
+      });
+
+      expect(result.current.isUsingRealtimeUpdates).toBe(true);
+    });
+
+    it('should expose subscriptionError when connection fails', async () => {
+      mockUseCourseSubscription.mockReturnValue({
+        isSubscribed: false,
+        connectionError: 'Connection lost. Retrying...',
+        hasGeneratingContent: false,
+      });
+
+      const { result } = renderHook(() =>
+        useLesson({ ...defaultOptions, autoGenerate: false })
+      );
+
+      await waitFor(() => {
+        expect(result.current.lesson).not.toBeNull();
+      });
+
+      expect(result.current.subscriptionError).toBe('Connection lost. Retrying...');
+    });
+
+    it('should not use realtime updates when subscription is inactive', async () => {
+      mockUseCourseSubscription.mockReturnValue({
+        isSubscribed: false,
+        connectionError: null,
+        hasGeneratingContent: false,
+      });
+
+      const { result } = renderHook(() =>
+        useLesson({ ...defaultOptions, autoGenerate: false })
+      );
+
+      await waitFor(() => {
+        expect(result.current.lesson).not.toBeNull();
+      });
+
+      expect(result.current.isUsingRealtimeUpdates).toBe(false);
+    });
+
+    it('should pass onError callback to useCourseSubscription', async () => {
+      renderHook(() => useLesson(defaultOptions));
+
+      // Verify onError was passed in options
+      expect(mockUseCourseSubscription).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          onError: expect.any(Function),
+        })
+      );
+    });
+
+    it('should handle transition from polling to subscription', async () => {
+      // Start without subscription
+      mockUseCourseSubscription.mockReturnValue({
+        isSubscribed: false,
+        connectionError: null,
+        hasGeneratingContent: false,
+      });
+      mockIsFirebaseAuthenticated.mockReturnValue(false);
+
+      const { result, rerender } = renderHook(() =>
+        useLesson({ ...defaultOptions, autoGenerate: false })
+      );
+
+      await waitFor(() => {
+        expect(result.current.lesson).not.toBeNull();
+      });
+
+      expect(result.current.isUsingRealtimeUpdates).toBe(false);
+
+      // Enable subscription
+      mockUseCourseSubscription.mockReturnValue({
+        isSubscribed: true,
+        connectionError: null,
+        hasGeneratingContent: true,
+      });
+      mockIsFirebaseAuthenticated.mockReturnValue(true);
+
+      rerender();
+
+      expect(result.current.isUsingRealtimeUpdates).toBe(true);
+    });
+
+    it('should handle transition from subscription to polling on error', async () => {
+      // Start with subscription
+      mockUseCourseSubscription.mockReturnValue({
+        isSubscribed: true,
+        connectionError: null,
+        hasGeneratingContent: true,
+      });
+      mockIsFirebaseAuthenticated.mockReturnValue(true);
+
+      const { result, rerender } = renderHook(() =>
+        useLesson({ ...defaultOptions, autoGenerate: false })
+      );
+
+      await waitFor(() => {
+        expect(result.current.lesson).not.toBeNull();
+      });
+
+      expect(result.current.isUsingRealtimeUpdates).toBe(true);
+      expect(result.current.subscriptionError).toBeNull();
+
+      // Subscription fails
+      mockUseCourseSubscription.mockReturnValue({
+        isSubscribed: false,
+        connectionError: 'Permission denied',
+        hasGeneratingContent: false,
+      });
+
+      rerender();
+
+      expect(result.current.isUsingRealtimeUpdates).toBe(false);
+      expect(result.current.subscriptionError).toBe('Permission denied');
     });
   });
 });
