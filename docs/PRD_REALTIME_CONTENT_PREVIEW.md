@@ -1,8 +1,9 @@
 # PRD: Real-time Content Preview via Firebase Subscriptions
 
-**Document Version**: 1.0
-**Status**: Draft - Awaiting Approval
+**Document Version**: 1.1
+**Status**: Approved - Ready for Implementation
 **Created**: 2025-12-27
+**Updated**: 2025-12-28
 **Author**: Claude (Technical Analysis)
 
 ---
@@ -258,7 +259,24 @@ func generateFirebaseCustomToken(uid string) (string, error) {
 }
 ```
 
-### 4.5 Subscription Hook Design
+### 4.5 Progressive Block Rendering Strategy
+
+**Key Design Decision**: Blocks are displayed **one by one as they become ready**, not waiting for all blocks to complete. This provides immediate value to users during the generation process.
+
+```
+Timeline Example:
+─────────────────────────────────────────────────────────────►
+│ Block 1 ready │ Block 2 ready │ Block 3 ready │ Block 4 ready │
+│ → Show Block 1│ → Show Block 2│ → Show Block 3│ → Show Block 4│
+                                                  └── Subscription ends
+```
+
+**Subscription Lifecycle**:
+1. Subscribe when user enters a lesson with any blocks in `pending` or `generating` status
+2. Each Firestore update triggers immediate UI update showing newly ready blocks
+3. Unsubscribe only when ALL blocks have `contentStatus === 'ready'` or `'error'`
+
+### 4.6 Subscription Hook Design
 
 ```typescript
 // frontend/src/hooks/useCourseSubscription.ts
@@ -266,37 +284,66 @@ func generateFirebaseCustomToken(uid string) (string, error) {
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
-export function useCourseSubscription(
-  courseId: string,
-  enabled: boolean = true  // Only subscribe during generation
-) {
+export function useCourseSubscription(courseId: string) {
   const updateCourseInStore = useCoursesStore((s) => s.updateCourse);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
+  // Determine if subscription should be active based on block status
+  const shouldSubscribe = useCallback((course: Course | null) => {
+    if (!course?.outline?.sections) return false;
+
+    // Check all blocks across all lessons
+    for (const section of course.outline.sections) {
+      for (const lesson of section.lessons || []) {
+        // Subscribe if any blocks are still generating
+        const hasGeneratingBlocks = lesson.blocks?.some(
+          (b) => b.contentStatus === 'pending' || b.contentStatus === 'generating'
+        );
+        if (hasGeneratingBlocks) return true;
+
+        // Also subscribe if block skeletons are generating
+        if (lesson.blocksStatus === 'pending' || lesson.blocksStatus === 'generating') {
+          return true;
+        }
+      }
+    }
+    return false;
+  }, []);
 
   useEffect(() => {
-    if (!enabled || !courseId) return;
+    if (!courseId) return;
 
     const courseRef = doc(db, 'courses', courseId);
 
     const unsubscribe = onSnapshot(
       courseRef,
       (snapshot) => {
+        setConnectionError(null);
         if (snapshot.exists()) {
           const data = snapshot.data() as Course;
           updateCourseInStore(courseId, data);
+
+          // Auto-unsubscribe when all content is ready
+          if (!shouldSubscribe(data)) {
+            unsubscribe();
+          }
         }
       },
       (error) => {
         console.error('Course subscription error:', error);
-        // Fall back to polling on error
+        setConnectionError('Connection lost. Retrying...');
+        // Show notification to user
       }
     );
 
     return () => unsubscribe();
-  }, [courseId, enabled, updateCourseInStore]);
+  }, [courseId, updateCourseInStore, shouldSubscribe]);
+
+  return { connectionError };
 }
 ```
 
-### 4.6 Modified Lesson Hook
+### 4.7 Modified Lesson Hook
 
 ```typescript
 // frontend/src/hooks/useLesson.ts (MODIFIED)
@@ -309,14 +356,34 @@ useEffect(() => {
   return () => clearInterval(pollInterval);
 }, [...]);
 
-// AFTER: Firebase subscription (only during generation)
-const isGenerating = currentLesson?.blocksStatus === 'generating' ||
-                     currentLesson?.blocks?.some(b => b.contentStatus === 'generating');
+// AFTER: Firebase subscription with progressive rendering
+const { connectionError } = useCourseSubscription(courseId);
 
-useCourseSubscription(courseId, isGenerating);
+// Show connection error notification if Firebase fails
+useEffect(() => {
+  if (connectionError) {
+    showNotification({
+      type: 'warning',
+      message: connectionError,
+      duration: 5000,
+    });
+  }
+}, [connectionError]);
 
+// Blocks are automatically updated in store via subscription
+// UI re-renders immediately when each block becomes ready
 // No more polling interval needed during generation
 ```
+
+### 4.8 UI Updates for Progressive Rendering
+
+The current UI already supports showing blocks progressively. Each block card shows:
+- **Pending**: "Generate Content" button or skeleton loader
+- **Generating**: Spinner with "Creating personalized content..."
+- **Ready**: Full block content displayed
+- **Error**: Error message with retry button
+
+With Firebase subscriptions, blocks transition from `generating` → `ready` in real-time, and the UI updates immediately to show the content.
 
 ---
 
@@ -459,23 +526,73 @@ useCourseSubscription(courseId, isGenerating);
 
 ---
 
-## 10. Open Questions
+## 10. Design Decisions (Resolved)
 
-1. **Should we subscribe to the entire course document or just specific fields?**
-   - Full document is simpler but more data transferred
-   - Field-specific is more efficient but more complex
+The following questions have been resolved with stakeholder input:
 
-2. **How long should subscriptions remain active after content is ready?**
-   - Immediate unsubscribe saves resources
-   - Brief delay ensures user sees final state
+### 10.1 Document Subscription Scope ✅
 
-3. **Should we show real-time progress (e.g., "3 of 5 blocks generated")?**
-   - Better UX but requires intermediate Firestore writes
-   - Could use generation_queue collection for progress
+**Decision**: Subscribe to the **entire course document**.
 
-4. **What's the fallback strategy for Firebase outages?**
-   - Silent fallback to polling?
-   - Show user notification?
+**Rationale**:
+- Simpler implementation with single subscription
+- Course documents are moderately sized (~50-100KB max)
+- All block updates come through one listener
+- No need for complex field-specific subscriptions
+
+### 10.2 Subscription Lifecycle ✅
+
+**Decision**: Subscription remains active **until ALL blocks in the current lesson are ready**.
+
+**Rationale**:
+- Content generates progressively (block by block)
+- Each block becomes ready at different times
+- Subscription auto-terminates when:
+  - All blocks have `contentStatus === 'ready'` OR `'error'`
+  - User navigates away from the lesson
+
+```
+Example Timeline:
+Block 1: pending → generating → ready ✓
+Block 2: pending → generating → ready ✓
+Block 3: pending → generating → ready ✓
+Block 4: pending → generating → ready ✓
+→ All ready, unsubscribe automatically
+```
+
+### 10.3 Progressive Block Rendering ✅
+
+**Decision**: Show blocks **one by one as they become ready** instead of waiting for all blocks.
+
+**Implementation**:
+- Each Firestore update triggers immediate UI re-render
+- Ready blocks are displayed immediately
+- Generating blocks show spinner/skeleton
+- Pending blocks show placeholder
+- Users can start reading Block 1 while Block 5 is still generating
+
+**User Experience**:
+```
+┌─────────────────────────────────────┐
+│ Block 1: [Full Content Displayed]   │ ← Ready, user can read
+├─────────────────────────────────────┤
+│ Block 2: [Full Content Displayed]   │ ← Ready, user can read
+├─────────────────────────────────────┤
+│ Block 3: 🔄 Creating content...     │ ← Generating
+├─────────────────────────────────────┤
+│ Block 4: ⏳ Waiting...              │ ← Pending
+└─────────────────────────────────────┘
+```
+
+### 10.4 Fallback Strategy ✅
+
+**Decision**: Show **user notification** when Firebase connection fails.
+
+**Implementation**:
+- Display toast/banner: "Connection lost. Retrying..."
+- Firebase SDK handles automatic reconnection
+- If reconnection fails after 30 seconds, offer manual retry button
+- No silent fallback to polling (would require maintaining dual code paths)
 
 ---
 
@@ -521,16 +638,26 @@ import { getAuth, signInWithCustomToken } from 'firebase/auth';
 
 ---
 
-## 12. Decision Request
+## 12. Approval & Next Steps
 
-Please review this PRD and provide feedback on:
+### Approval Status ✅
 
-1. **Approval to proceed** with the proposed solution
-2. **Phase prioritization** - should we do all 4 phases or start smaller?
-3. **Open questions** - guidance on the items in Section 10
-4. **Timeline constraints** - any hard deadlines to consider?
+| Item | Status |
+|------|--------|
+| Proceed with proposed solution | **Approved** |
+| All design decisions resolved | **Approved** |
+| Implementation approach | **Approved** |
+
+### Implementation Order
+
+1. **Phase 1**: Firebase SDK foundation & auth token sync
+2. **Phase 2**: Subscription infrastructure with progressive rendering
+3. **Phase 3**: Integration with existing screens
+4. **Phase 4**: Polish, testing, and cleanup
 
 ---
 
-**Document Status**: Ready for Review
-**Next Step**: Await approval before implementation
+**Document Status**: Approved - Ready for Implementation
+**Approved By**: Product Owner
+**Approval Date**: 2025-12-28
+**Next Step**: Begin Phase 1 implementation
