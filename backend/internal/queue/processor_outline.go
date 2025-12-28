@@ -11,7 +11,7 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/pkg/metrics"
 )
 
-// processOutlineTask processes an outline generation task
+// processOutlineTask processes an outline generation task.
 func (p *Processor) processOutlineTask(ctx context.Context, task *models.GenerationTask) error {
 	genStart := time.Now()
 
@@ -22,50 +22,19 @@ func (p *Processor) processOutlineTask(ctx context.Context, task *models.Generat
 		slog.String("user_tier", task.UserTier),
 	)
 
-	if p.generators == nil || p.generators.CheckCanGenerate == nil {
-		return fmt.Errorf("generator functions not configured")
+	if err := p.verifyTokenLimits(ctx, task); err != nil {
+		return err
 	}
 
-	// Check token limits first
-	canGenerate, dailyUsed, dailyLimit, weeklyUsed, weeklyLimit, limitReached, err := p.generators.CheckCanGenerate(ctx, task.UserID, task.UserTier)
+	course, err := p.fetchCourse(ctx, task.CourseID)
 	if err != nil {
-		return fmt.Errorf("check token limit: %w", err)
-	}
-
-	p.logDebug(ctx, "llm_token_check",
-		slog.String("task_id", task.ID),
-		slog.Bool("can_generate", canGenerate),
-		slog.Int64("daily_used", dailyUsed),
-		slog.Int64("daily_limit", dailyLimit),
-		slog.Int64("weekly_used", weeklyUsed),
-		slog.Int64("weekly_limit", weeklyLimit),
-	)
-
-	if !canGenerate {
-		return &tokenLimitError{limitType: limitReached}
-	}
-
-	// Get course to get the title
-	fs := p.taskManager.fs
-	if fs == nil {
-		return fmt.Errorf("firestore not available")
-	}
-
-	courseDoc, err := fs.Collection("courses").Doc(task.CourseID).Get(ctx)
-	if err != nil {
-		return fmt.Errorf("get course: %w", err)
-	}
-
-	var course models.Course
-	if err := courseDoc.DataTo(&course); err != nil {
-		return fmt.Errorf("parse course: %w", err)
+		return err
 	}
 
 	if p.generators.GenerateCourseOutline == nil {
 		return fmt.Errorf("outline generator not configured")
 	}
 
-	// Generate outline
 	llmStart := time.Now()
 	outline, tokensUsed, err := p.generators.GenerateCourseOutline(ctx, course.Title, task.UserTier)
 	llmDuration := time.Since(llmStart)
@@ -89,12 +58,10 @@ func (p *Processor) processOutlineTask(ctx context.Context, task *models.Generat
 		slog.Int64("llm_duration_ms", llmDuration.Milliseconds()),
 	)
 
-	// Record token usage
-	if tokensUsed > 0 && p.generators.IncrementTokenUsage != nil {
-		_, _, _ = p.generators.IncrementTokenUsage(ctx, task.UserID, task.UserTier, tokensUsed, 0)
-	}
+	p.recordTokenUsage(ctx, task, tokensUsed)
 
 	// Save outline to course
+	fs := p.taskManager.fs
 	_, err = fs.Collection("courses").Doc(task.CourseID).Update(ctx, []firestore.Update{
 		{Path: "outline", Value: outline},
 		{Path: "outlineStatus", Value: models.OutlineStatusReady},

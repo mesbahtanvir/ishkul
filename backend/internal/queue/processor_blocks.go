@@ -10,7 +10,62 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/pkg/metrics"
 )
 
-// processBlockSkeletonTask processes a block skeleton generation task
+// verifyTokenLimits checks if the user can generate content and logs the check.
+// Returns an error if generation is not permitted.
+func (p *Processor) verifyTokenLimits(ctx context.Context, task *models.GenerationTask) error {
+	if p.generators == nil || p.generators.CheckCanGenerate == nil {
+		return fmt.Errorf("generator functions not configured")
+	}
+
+	permission, err := p.generators.CheckCanGenerate(ctx, task.UserID, task.UserTier)
+	if err != nil {
+		return fmt.Errorf("check token limit: %w", err)
+	}
+
+	p.logDebug(ctx, "llm_token_check",
+		slog.String("task_id", task.ID),
+		slog.Bool("can_generate", permission.Allowed),
+		slog.Int64("daily_used", permission.DailyUsed),
+		slog.Int64("daily_limit", permission.DailyLimit),
+		slog.Int64("weekly_used", permission.WeeklyUsed),
+		slog.Int64("weekly_limit", permission.WeeklyLimit),
+	)
+
+	if !permission.Allowed {
+		return &tokenLimitError{limitType: permission.LimitReached}
+	}
+
+	return nil
+}
+
+// fetchCourse retrieves a course from Firestore.
+func (p *Processor) fetchCourse(ctx context.Context, courseID string) (*models.Course, error) {
+	fs := p.taskManager.fs
+	if fs == nil {
+		return nil, fmt.Errorf("firestore not available")
+	}
+
+	courseDoc, err := fs.Collection("courses").Doc(courseID).Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get course: %w", err)
+	}
+
+	var course models.Course
+	if err := courseDoc.DataTo(&course); err != nil {
+		return nil, fmt.Errorf("parse course: %w", err)
+	}
+
+	return &course, nil
+}
+
+// recordTokenUsage records the token usage for a generation task.
+func (p *Processor) recordTokenUsage(ctx context.Context, task *models.GenerationTask, tokensUsed int64) {
+	if tokensUsed > 0 && p.generators.IncrementTokenUsage != nil {
+		_, _, _ = p.generators.IncrementTokenUsage(ctx, task.UserID, task.UserTier, tokensUsed, 0)
+	}
+}
+
+// processBlockSkeletonTask processes a block skeleton generation task.
 func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.GenerationTask) error {
 	genStart := time.Now()
 
@@ -22,52 +77,21 @@ func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.G
 		slog.String("user_tier", task.UserTier),
 	)
 
-	if p.generators == nil || p.generators.CheckCanGenerate == nil {
-		return fmt.Errorf("generator functions not configured")
+	if err := p.verifyTokenLimits(ctx, task); err != nil {
+		return err
 	}
 
-	// Check token limits first
-	canGenerate, dailyUsed, dailyLimit, weeklyUsed, weeklyLimit, limitReached, err := p.generators.CheckCanGenerate(ctx, task.UserID, task.UserTier)
+	course, err := p.fetchCourse(ctx, task.CourseID)
 	if err != nil {
-		return fmt.Errorf("check token limit: %w", err)
-	}
-
-	p.logDebug(ctx, "llm_token_check",
-		slog.String("task_id", task.ID),
-		slog.Bool("can_generate", canGenerate),
-		slog.Int64("daily_used", dailyUsed),
-		slog.Int64("daily_limit", dailyLimit),
-		slog.Int64("weekly_used", weeklyUsed),
-		slog.Int64("weekly_limit", weeklyLimit),
-	)
-
-	if !canGenerate {
-		return &tokenLimitError{limitType: limitReached}
-	}
-
-	// Get course from Firestore
-	fs := p.taskManager.fs
-	if fs == nil {
-		return fmt.Errorf("firestore not available")
-	}
-
-	courseDoc, err := fs.Collection("courses").Doc(task.CourseID).Get(ctx)
-	if err != nil {
-		return fmt.Errorf("get course: %w", err)
-	}
-
-	var course models.Course
-	if err := courseDoc.DataTo(&course); err != nil {
-		return fmt.Errorf("parse course: %w", err)
+		return err
 	}
 
 	if p.generators.GenerateBlockSkeletons == nil {
 		return fmt.Errorf("block skeleton generator not configured")
 	}
 
-	// Generate block skeletons
 	llmStart := time.Now()
-	blocks, tokensUsed, err := p.generators.GenerateBlockSkeletons(ctx, &course, task.SectionID, task.LessonID, task.UserTier)
+	blocks, tokensUsed, err := p.generators.GenerateBlockSkeletons(ctx, course, task.SectionID, task.LessonID, task.UserTier)
 	llmDuration := time.Since(llmStart)
 
 	if err != nil {
@@ -92,12 +116,8 @@ func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.G
 		slog.Int64("llm_duration_ms", llmDuration.Milliseconds()),
 	)
 
-	// Record token usage
-	if tokensUsed > 0 && p.generators.IncrementTokenUsage != nil {
-		_, _, _ = p.generators.IncrementTokenUsage(ctx, task.UserID, task.UserTier, tokensUsed, 0)
-	}
+	p.recordTokenUsage(ctx, task, tokensUsed)
 
-	// Save blocks to the lesson
 	if p.generators.UpdateLessonBlocks == nil {
 		return fmt.Errorf("update lesson blocks function not configured")
 	}
@@ -106,9 +126,7 @@ func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.G
 		return fmt.Errorf("update lesson blocks: %w", err)
 	}
 
-	// Record metrics
-	m := metrics.GetCollector()
-	m.Counter(metrics.MetricGenerationSkeletonSuccess).Inc()
+	metrics.GetCollector().Counter(metrics.MetricGenerationSkeletonSuccess).Inc()
 
 	p.logInfo(ctx, "queue_block_skeletons_generated",
 		slog.String("task_id", task.ID),
@@ -122,7 +140,7 @@ func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.G
 	return nil
 }
 
-// processBlockContentTask processes a block content generation task
+// processBlockContentTask processes a block content generation task.
 func (p *Processor) processBlockContentTask(ctx context.Context, task *models.GenerationTask) error {
 	genStart := time.Now()
 
@@ -135,52 +153,21 @@ func (p *Processor) processBlockContentTask(ctx context.Context, task *models.Ge
 		slog.String("user_tier", task.UserTier),
 	)
 
-	if p.generators == nil || p.generators.CheckCanGenerate == nil {
-		return fmt.Errorf("generator functions not configured")
+	if err := p.verifyTokenLimits(ctx, task); err != nil {
+		return err
 	}
 
-	// Check token limits first
-	canGenerate, dailyUsed, dailyLimit, weeklyUsed, weeklyLimit, limitReached, err := p.generators.CheckCanGenerate(ctx, task.UserID, task.UserTier)
+	course, err := p.fetchCourse(ctx, task.CourseID)
 	if err != nil {
-		return fmt.Errorf("check token limit: %w", err)
-	}
-
-	p.logDebug(ctx, "llm_token_check",
-		slog.String("task_id", task.ID),
-		slog.Bool("can_generate", canGenerate),
-		slog.Int64("daily_used", dailyUsed),
-		slog.Int64("daily_limit", dailyLimit),
-		slog.Int64("weekly_used", weeklyUsed),
-		slog.Int64("weekly_limit", weeklyLimit),
-	)
-
-	if !canGenerate {
-		return &tokenLimitError{limitType: limitReached}
-	}
-
-	// Get course from Firestore
-	fs := p.taskManager.fs
-	if fs == nil {
-		return fmt.Errorf("firestore not available")
-	}
-
-	courseDoc, err := fs.Collection("courses").Doc(task.CourseID).Get(ctx)
-	if err != nil {
-		return fmt.Errorf("get course: %w", err)
-	}
-
-	var course models.Course
-	if err := courseDoc.DataTo(&course); err != nil {
-		return fmt.Errorf("parse course: %w", err)
+		return err
 	}
 
 	if p.generators.GenerateBlockContent == nil {
 		return fmt.Errorf("block content generator not configured")
 	}
 
-	// Generate block content
 	llmStart := time.Now()
-	content, tokensUsed, err := p.generators.GenerateBlockContent(ctx, &course, task.SectionID, task.LessonID, task.BlockID, task.UserTier)
+	content, tokensUsed, err := p.generators.GenerateBlockContent(ctx, course, task.SectionID, task.LessonID, task.BlockID, task.UserTier)
 	llmDuration := time.Since(llmStart)
 
 	if err != nil {
@@ -204,12 +191,8 @@ func (p *Processor) processBlockContentTask(ctx context.Context, task *models.Ge
 		slog.Int64("llm_duration_ms", llmDuration.Milliseconds()),
 	)
 
-	// Record token usage
-	if tokensUsed > 0 && p.generators.IncrementTokenUsage != nil {
-		_, _, _ = p.generators.IncrementTokenUsage(ctx, task.UserID, task.UserTier, tokensUsed, 0)
-	}
+	p.recordTokenUsage(ctx, task, tokensUsed)
 
-	// Save content to the block
 	if p.generators.UpdateBlockContent == nil {
 		return fmt.Errorf("update block content function not configured")
 	}
@@ -218,9 +201,7 @@ func (p *Processor) processBlockContentTask(ctx context.Context, task *models.Ge
 		return fmt.Errorf("update block content: %w", err)
 	}
 
-	// Record metrics
-	m := metrics.GetCollector()
-	m.Counter(metrics.MetricGenerationContentSuccess).Inc()
+	metrics.GetCollector().Counter(metrics.MetricGenerationContentSuccess).Inc()
 
 	p.logInfo(ctx, "queue_block_content_generated",
 		slog.String("task_id", task.ID),
