@@ -13,6 +13,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { ProgressBar } from '../components/ProgressBar';
 import { useCoursesStore } from '../state/coursesStore';
+import { useCourseSubscription } from '../hooks/useCourseSubscription';
 import { useTheme } from '../hooks/useTheme';
 import { useResponsive } from '../hooks/useResponsive';
 import { Typography } from '../theme/typography';
@@ -20,7 +21,6 @@ import { Spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types/navigation';
 import { Section, Lesson, getCourseTitle } from '../types/app';
 import { getLessonStatusIcon, getLessonStatusColor } from '../utils/lessonStatusHelpers';
-import { coursesApi } from '../services/api';
 
 type CourseOutlineScreenProps = NativeStackScreenProps<RootStackParamList, 'CourseOutline'>;
 
@@ -131,44 +131,32 @@ export const CourseOutlineScreen: React.FC<CourseOutlineScreenProps> = ({
   const { courseId } = route.params;
   const { colors } = useTheme();
   const { responsive } = useResponsive();
-  const { activeCourse, setActiveCourse } = useCoursesStore();
+  const { activeCourse } = useCoursesStore();
 
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
-  // Load course if not already loaded
+  // Subscribe to course via Firebase - this is the only data source
+  useCourseSubscription(courseId, {
+    enabled: true,
+    onError: (err) => {
+      console.error('Firebase subscription error in CourseOutlineScreen:', err.message);
+      setError(err.message);
+    },
+  });
+
+  // Determine if we're still loading (waiting for subscription data)
+  const isLoading = !activeCourse || activeCourse.id !== courseId;
+
+  // Expand first section by default when course loads
   useEffect(() => {
-    const loadCourse = async () => {
-      if (activeCourse?.id === courseId && activeCourse.outline) {
-        // Expand first section by default
-        if (activeCourse.outline.sections && activeCourse.outline.sections.length > 0) {
-          setExpandedSections(new Set([activeCourse.outline.sections[0].id]));
-        }
-        return;
+    const sections = activeCourse?.outline?.sections;
+    if (activeCourse?.id === courseId && sections && sections.length > 0) {
+      if (expandedSections.size === 0) {
+        setExpandedSections(new Set([sections[0].id]));
       }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const course = await coursesApi.getCourse(courseId);
-        if (course) {
-          setActiveCourse(course);
-          // Expand first section by default
-          if (course.outline?.sections && course.outline.sections.length > 0) {
-            setExpandedSections(new Set([course.outline.sections[0].id]));
-          }
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load course');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCourse();
-  }, [courseId, activeCourse, setActiveCourse]);
+    }
+  }, [activeCourse, courseId, expandedSections.size]);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) => {
@@ -211,7 +199,7 @@ export const CourseOutlineScreen: React.FC<CourseOutlineScreenProps> = ({
   };
 
   // Loading state
-  if (loading) {
+  if (isLoading && !error) {
     return (
       <Container scrollable>
         <View style={styles.centerContainer}>

@@ -10,7 +10,7 @@ import { useUserStore } from '../state/userStore';
 import { useCoursesStore } from '../state/coursesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { checkAuthState, initializeAuth } from '../services/auth';
-import { userApi, coursesApi } from '../services/api';
+import { userApi } from '../services/api';
 import { tokenStorage } from '../services/api/tokenStorage';
 
 // Types
@@ -325,16 +325,13 @@ export const AppNavigator: React.FC = () => {
 
         if (validatedUser) {
           setUser(validatedUser);
-          // Clear cache when user logs in to ensure fresh data from backend
+          // Clear cache when user logs in to ensure fresh data from Firebase subscription
           useCoursesStore.getState().clearAllCache();
           try {
-            // Fetch user document and learning courses in parallel
-            const [userDoc, courses] = await Promise.all([
-              userApi.getUserDocument(),
-              coursesApi.getCourses(),
-            ]);
+            // Fetch user document - courses will be loaded via Firebase subscription
+            const userDoc = await userApi.getUserDocument();
             setUserDocument(userDoc);
-            setCourses(courses);
+            // Courses are now loaded via Firebase real-time subscription in HomeScreen
           } catch (error) {
             // Log detailed error information for debugging
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -342,8 +339,8 @@ export const AppNavigator: React.FC = () => {
               message: errorMessage,
               error,
             });
-            // User will see the app with cached/empty data
-            // A sync error will be shown in the UI once we implement a sync status indicator
+            // User will see the app with empty data
+            // Firebase subscription will populate courses when HomeScreen mounts
           }
         } else {
           // Only clear user if tokens don't exist

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { Course, OutlineStatuses } from '../types/app';
-import { coursesApi } from '../services/api';
 import { useCoursesStore } from '../state/coursesStore';
 import { useCourseSubscription } from '../hooks/useCourseSubscription';
 
@@ -33,31 +32,21 @@ const PROGRESS_MESSAGES = [
 
 export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) => {
   const { courseId } = route.params;
-  const [path, setPath] = useState<Course | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [messageIndex, setMessageIndex] = useState(0);
-  const { updateCourse, activeCourse } = useCoursesStore();
+  const { activeCourse } = useCoursesStore();
 
-  // Detect if outline is still generating
-  const isOutlineGenerating =
-    path?.outlineStatus !== OutlineStatuses.READY &&
-    path?.outlineStatus !== OutlineStatuses.FAILED;
+  // Get course from store (updated by Firebase subscription)
+  const path: Course | null = activeCourse?.id === courseId ? activeCourse : null;
 
-  // Use Firebase subscription for real-time updates (replaces polling when active)
-  const { isSubscribed } = useCourseSubscription(courseId, {
-    enabled: isOutlineGenerating,
+  // Use Firebase subscription for real-time updates - always enabled
+  useCourseSubscription(courseId, {
+    enabled: true,
     onError: (err) => {
-      console.warn('Firebase subscription error in CourseGeneratingScreen:', err.message);
-      // Polling will automatically take over as fallback
+      console.error('Firebase subscription error in CourseGeneratingScreen:', err.message);
+      setError(err.message);
     },
   });
-
-  // Sync activeCourse from store to local state (when subscription updates the store)
-  useEffect(() => {
-    if (activeCourse?.id === courseId && activeCourse !== path) {
-      setPath(activeCourse);
-    }
-  }, [activeCourse, courseId, path]);
 
   // Animation values
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -121,61 +110,6 @@ export const CourseGeneratingScreen: React.FC<Props> = ({ route, navigation }) =
 
     return () => clearInterval(interval);
   }, [path?.outlineStatus, fadeAnim]);
-
-  // Poll for path status
-  const pollPath = useCallback(async () => {
-    try {
-      const fetchedPath = await coursesApi.getCourse(courseId);
-      if (fetchedPath) {
-        setPath(fetchedPath);
-        updateCourse(courseId, fetchedPath);
-
-        // If outline is ready or failed, stop polling
-        if (fetchedPath.outlineStatus === OutlineStatuses.READY ||
-            fetchedPath.outlineStatus === OutlineStatuses.FAILED) {
-          return true; // Stop polling
-        }
-      }
-      return false; // Continue polling
-    } catch (err) {
-      console.error('Error polling path:', err);
-      setError('Failed to load course. Please try again.');
-      return true; // Stop polling on error
-    }
-  }, [courseId, updateCourse]);
-
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    let mounted = true;
-
-    const startPolling = async () => {
-      // Initial fetch (always do this to get initial state)
-      const shouldStop = await pollPath();
-      if (shouldStop || !mounted) return;
-
-      // Only poll if Firebase subscription is NOT active
-      // When subscription is active, updates come through the store automatically
-      if (isSubscribed) {
-        return;
-      }
-
-      // Poll every 2 seconds as fallback
-      intervalId = setInterval(async () => {
-        if (!mounted) return;
-        const shouldStop = await pollPath();
-        if (shouldStop) {
-          clearInterval(intervalId);
-        }
-      }, 2000);
-    };
-
-    startPolling();
-
-    return () => {
-      mounted = false;
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [pollPath, isSubscribed]);
 
   // Auto-navigate to first lesson when course is ready (frictionless flow)
   useEffect(() => {

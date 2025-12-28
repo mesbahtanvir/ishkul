@@ -27,6 +27,7 @@ export {
 
 export {
   subscribeToCourse,
+  subscribeToUserCourses,
   hasPendingContent,
   isLessonContentReady,
   type SubscriptionError,
