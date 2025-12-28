@@ -2,13 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
-	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
 )
 
 // Note: GET endpoints (listCourses, getCourse) removed.
