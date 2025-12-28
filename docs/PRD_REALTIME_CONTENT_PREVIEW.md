@@ -1,7 +1,7 @@
 # PRD: Real-time Content Preview via Firebase Subscriptions
 
-**Document Version**: 1.1
-**Status**: Approved - Ready for Implementation
+**Document Version**: 1.2
+**Status**: ✅ Implemented
 **Created**: 2025-12-27
 **Updated**: 2025-12-28
 **Author**: Claude (Technical Analysis)
@@ -638,7 +638,7 @@ import { getAuth, signInWithCustomToken } from 'firebase/auth';
 
 ---
 
-## 12. Approval & Next Steps
+## 12. Approval & Implementation Status
 
 ### Approval Status ✅
 
@@ -648,16 +648,38 @@ import { getAuth, signInWithCustomToken } from 'firebase/auth';
 | All design decisions resolved | **Approved** |
 | Implementation approach | **Approved** |
 
-### Implementation Order
+### Implementation Status ✅
 
-1. **Phase 1**: Firebase SDK foundation & auth token sync
-2. **Phase 2**: Subscription infrastructure with progressive rendering
-3. **Phase 3**: Integration with existing screens
-4. **Phase 4**: Polish, testing, and cleanup
+| Phase | Status | Notes |
+|-------|--------|-------|
+| **Phase 1**: Firebase SDK foundation | ✅ Complete | Firebase SDK added, custom token generation in backend |
+| **Phase 2**: Subscription infrastructure | ✅ Complete | `useCourseSubscription`, `useFirebaseAuth` hooks created |
+| **Phase 3**: Integration | ✅ Complete | `useLesson` and `CourseViewScreen` use subscriptions with polling fallback |
+| **Phase 4**: Polish & testing | ✅ Complete | Unit tests added for all new code |
+
+### Files Created
+
+| File | Purpose |
+|------|---------|
+| `frontend/src/services/firebase/index.ts` | Firebase app initialization |
+| `frontend/src/services/firebase/auth.ts` | Firebase auth with custom tokens |
+| `frontend/src/services/firebase/subscriptions.ts` | Firestore subscription helpers |
+| `frontend/src/hooks/useFirebaseAuth.ts` | Firebase auth lifecycle hook |
+| `frontend/src/hooks/useCourseSubscription.ts` | Course document subscription hook |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `backend/internal/handlers/auth.go` | Added Firebase custom token generation |
+| `frontend/src/services/api/auth.ts` | Handle Firebase token in login response |
+| `frontend/src/services/api/tokenStorage.ts` | Store Firebase token |
+| `frontend/src/hooks/useLesson.ts` | Integrated subscription with polling fallback |
+| `frontend/src/screens/CourseViewScreen.tsx` | Integrated subscription for outline generation |
 
 ---
 
-**Document Status**: Approved - Ready for Implementation
+**Document Status**: ✅ Implemented
 **Approved By**: Product Owner
 **Approval Date**: 2025-12-28
-**Next Step**: Begin Phase 1 implementation
+**Implementation Date**: 2025-12-28

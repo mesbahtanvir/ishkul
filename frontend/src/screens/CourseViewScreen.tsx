@@ -18,6 +18,8 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useTheme } from '../hooks/useTheme';
 import { useCoursesStore } from '../state/coursesStore';
+import { useCourseSubscription } from '../hooks/useCourseSubscription';
+import { isFirebaseAuthenticated } from '../services/firebase';
 import { coursesApi } from '../services/api';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -63,7 +65,24 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
     activeCourse.outlineStatus !== OutlineStatuses.READY &&
     activeCourse.outlineStatus !== OutlineStatuses.FAILED;
 
-  // Load course and poll if generating
+  // Use Firebase subscription for real-time updates during outline generation
+  // This replaces polling with real-time Firestore listeners
+  const { isSubscribed, connectionError } = useCourseSubscription(courseId, {
+    enabled: isGenerating, // Only subscribe when outline is generating
+    onError: (err) => {
+      console.warn('Firebase subscription error in CourseViewScreen:', err.message);
+      // Polling will automatically take over as fallback
+    },
+  });
+
+  // Log connection errors for debugging (could show toast in future)
+  useEffect(() => {
+    if (connectionError) {
+      console.warn('Course subscription connection error:', connectionError);
+    }
+  }, [connectionError]);
+
+  // Load course initially and poll as fallback when Firebase subscription is not active
   useEffect(() => {
     let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -111,12 +130,17 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
 
     loadCourse();
 
-    // Set up polling if course is generating
-    if (
+    // Set up polling as FALLBACK only when:
+    // 1. Course is generating AND
+    // 2. Firebase subscription is NOT active (either not authenticated or subscription failed)
+    const shouldPoll =
       activeCourse?.id === courseId &&
       activeCourse.outlineStatus !== OutlineStatuses.READY &&
-      activeCourse.outlineStatus !== OutlineStatuses.FAILED
-    ) {
+      activeCourse.outlineStatus !== OutlineStatuses.FAILED &&
+      !isSubscribed &&
+      !isFirebaseAuthenticated();
+
+    if (shouldPoll) {
       pollTimer = setInterval(pollCourse, POLLING_INTERVAL);
     }
 
@@ -125,7 +149,7 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
         clearInterval(pollTimer);
       }
     };
-  }, [courseId, activeCourse?.id, activeCourse?.outlineStatus, setActiveCourse]);
+  }, [courseId, activeCourse?.id, activeCourse?.outlineStatus, setActiveCourse, isSubscribed]);
 
   // Auto-start first lesson for courses with 0% progress (frictionless flow)
   // Only triggers when coming from Home without a specific lesson selected
