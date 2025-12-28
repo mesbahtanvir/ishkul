@@ -238,17 +238,28 @@ func (trl *TieredRateLimiter) Limit(next http.Handler) http.Handler {
 			return
 		}
 
+		// Calculate reset time (1 second window for token replenishment)
+		resetTime := time.Now().Add(time.Second).Unix()
+
+		// Set rate limit headers for all responses (helps clients monitor usage)
+		w.Header().Set("X-RateLimit-Limit", strconv.FormatFloat(cfg.RPS, 'f', 0, 64))
+		w.Header().Set("X-RateLimit-Tier", tier.String())
+		w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(resetTime, 10))
+
 		if !limiter.Allow() {
 			w.Header().Set("Retry-After", "1")
-			w.Header().Set("X-RateLimit-Limit", strconv.FormatFloat(cfg.RPS, 'f', 0, 64))
 			w.Header().Set("X-RateLimit-Remaining", "0")
-			w.Header().Set("X-RateLimit-Tier", tier.String())
 			http.Error(w, "Too many requests. Please slow down.", http.StatusTooManyRequests)
 			return
 		}
 
-		// Add tier info header
-		w.Header().Set("X-RateLimit-Tier", tier.String())
+		// Approximate remaining tokens (tokens replenish continuously)
+		remaining := int(limiter.Tokens())
+		if remaining < 0 {
+			remaining = 0
+		}
+		w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(remaining))
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -272,14 +283,27 @@ func (trl *TieredRateLimiter) LimitForTier(tier EndpointTier) func(http.Handler)
 				return
 			}
 
+			// Calculate reset time (1 second window for token replenishment)
+			resetTime := time.Now().Add(time.Second).Unix()
+
+			// Set rate limit headers for all responses
+			w.Header().Set("X-RateLimit-Limit", strconv.FormatFloat(cfg.RPS, 'f', 0, 64))
+			w.Header().Set("X-RateLimit-Tier", tier.String())
+			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(resetTime, 10))
+
 			if !limiter.Allow() {
 				w.Header().Set("Retry-After", "1")
-				w.Header().Set("X-RateLimit-Limit", strconv.FormatFloat(cfg.RPS, 'f', 0, 64))
 				w.Header().Set("X-RateLimit-Remaining", "0")
-				w.Header().Set("X-RateLimit-Tier", tier.String())
 				http.Error(w, "Too many requests. Please slow down.", http.StatusTooManyRequests)
 				return
 			}
+
+			// Approximate remaining tokens
+			remaining := int(limiter.Tokens())
+			if remaining < 0 {
+				remaining = 0
+			}
+			w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(remaining))
 
 			next.ServeHTTP(w, r)
 		})
