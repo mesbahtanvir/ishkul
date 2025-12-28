@@ -839,7 +839,7 @@ describe('useLesson', () => {
       });
       mockIsFirebaseAuthenticated.mockReturnValue(true);
 
-      rerender();
+      rerender(undefined);
 
       expect(result.current.isUsingRealtimeUpdates).toBe(true);
     });
@@ -871,7 +871,7 @@ describe('useLesson', () => {
         hasGeneratingContent: false,
       });
 
-      rerender();
+      rerender(undefined);
 
       expect(result.current.isUsingRealtimeUpdates).toBe(false);
       expect(result.current.subscriptionError).toBe('Permission denied');

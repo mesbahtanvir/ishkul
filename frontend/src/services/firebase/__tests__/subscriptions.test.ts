@@ -2,21 +2,83 @@
  * Tests for Firestore subscription helpers
  */
 
-import { Course, Lesson, Section } from '../../../types/app';
+import { Course, CourseOutline, Lesson, Section, Block } from '../../../types/app';
 
 // Mock Firestore
 const mockUnsubscribe = jest.fn();
-const mockOnSnapshot = jest.fn(() => mockUnsubscribe);
+type OnSnapshotFn = (ref: unknown, onNext: unknown, onError?: unknown) => () => void;
+const mockOnSnapshot = jest.fn<ReturnType<OnSnapshotFn>, Parameters<OnSnapshotFn>>(
+  () => mockUnsubscribe
+);
 const mockDoc = jest.fn();
 
 jest.mock('firebase/firestore', () => ({
-  doc: (...args: unknown[]) => mockDoc(...args),
-  onSnapshot: (...args: unknown[]) => mockOnSnapshot(...args),
+  doc: (db: unknown, ...path: string[]) => mockDoc(db, ...path),
+  onSnapshot: (ref: unknown, onNext: unknown, onError?: unknown) => mockOnSnapshot(ref, onNext, onError),
 }));
 
 jest.mock('../index', () => ({
   getFirestoreClient: jest.fn(() => ({})),
 }));
+
+// Helper to create a complete mock CourseOutline
+const createMockOutline = (sections: Section[] = []): CourseOutline => ({
+  title: 'Test Course',
+  description: 'Test description',
+  emoji: '📚',
+  estimatedMinutes: 60,
+  difficulty: 'beginner',
+  category: 'test',
+  prerequisites: [],
+  learningOutcomes: ['Learn testing'],
+  sections,
+  generatedAt: Date.now(),
+});
+
+// Helper to create a complete mock Section
+const createMockSection = (
+  id: string,
+  title: string,
+  lessons: Lesson[] = []
+): Section => ({
+  id,
+  title,
+  description: 'Section description',
+  estimatedMinutes: 30,
+  learningOutcomes: ['Outcome 1'],
+  lessons,
+  status: 'pending',
+});
+
+// Helper to create a complete mock Lesson
+const createMockLesson = (
+  id: string,
+  title: string,
+  blocksStatus: 'pending' | 'generating' | 'ready' | 'error' = 'ready',
+  blocks?: Block[]
+): Lesson => ({
+  id,
+  title,
+  description: 'Lesson description',
+  estimatedMinutes: 10,
+  blocksStatus,
+  status: 'pending',
+  blocks,
+});
+
+// Helper to create a complete mock Block
+const createMockBlock = (
+  id: string,
+  type: 'text' | 'question' = 'text',
+  contentStatus: 'pending' | 'generating' | 'ready' | 'error' = 'ready'
+): Block => ({
+  id,
+  type,
+  title: `Block ${id}`,
+  purpose: 'Learn content',
+  order: 0,
+  contentStatus,
+});
 
 describe('Firestore subscriptions', () => {
   beforeEach(() => {
@@ -42,7 +104,7 @@ describe('Firestore subscriptions', () => {
 
       const mockCourseData: Partial<Course> = {
         title: 'Test Course',
-        outline: { sections: [] },
+        outline: createMockOutline(),
       };
 
       const mockSnapshot = {
@@ -52,8 +114,8 @@ describe('Firestore subscriptions', () => {
       };
 
       // Capture the snapshot callback
-      mockOnSnapshot.mockImplementation((ref, onNext) => {
-        onNext(mockSnapshot);
+      mockOnSnapshot.mockImplementation((_ref: unknown, onNext: unknown) => {
+        (onNext as (snapshot: typeof mockSnapshot) => void)(mockSnapshot);
         return mockUnsubscribe;
       });
 
@@ -75,8 +137,8 @@ describe('Firestore subscriptions', () => {
         id: 'course-123',
       };
 
-      mockOnSnapshot.mockImplementation((ref, onNext) => {
-        onNext(mockSnapshot);
+      mockOnSnapshot.mockImplementation((_ref: unknown, onNext: unknown) => {
+        (onNext as (snapshot: typeof mockSnapshot) => void)(mockSnapshot);
         return mockUnsubscribe;
       });
 
@@ -94,8 +156,8 @@ describe('Firestore subscriptions', () => {
         message: 'Permission denied',
       };
 
-      mockOnSnapshot.mockImplementation((ref, onNext, onError) => {
-        onError(mockError);
+      mockOnSnapshot.mockImplementation((_ref: unknown, _onNext: unknown, onError?: unknown) => {
+        (onError as (error: typeof mockError) => void)(mockError);
         return mockUnsubscribe;
       });
 
@@ -119,8 +181,8 @@ describe('Firestore subscriptions', () => {
         message: 'Document not found',
       };
 
-      mockOnSnapshot.mockImplementation((ref, onNext, onError) => {
-        onError(mockError);
+      mockOnSnapshot.mockImplementation((_ref: unknown, _onNext: unknown, onError?: unknown) => {
+        (onError as (error: typeof mockError) => void)(mockError);
         return mockUnsubscribe;
       });
 
@@ -143,8 +205,8 @@ describe('Firestore subscriptions', () => {
         message: 'Service unavailable',
       };
 
-      mockOnSnapshot.mockImplementation((ref, onNext, onError) => {
-        onError(mockError);
+      mockOnSnapshot.mockImplementation((_ref: unknown, _onNext: unknown, onError?: unknown) => {
+        (onError as (error: typeof mockError) => void)(mockError);
         return mockUnsubscribe;
       });
 
@@ -167,8 +229,8 @@ describe('Firestore subscriptions', () => {
         message: 'Something went wrong',
       };
 
-      mockOnSnapshot.mockImplementation((ref, onNext, onError) => {
-        onError(mockError);
+      mockOnSnapshot.mockImplementation((_ref: unknown, _onNext: unknown, onError?: unknown) => {
+        (onError as (error: typeof mockError) => void)(mockError);
         return mockUnsubscribe;
       });
 
@@ -210,7 +272,7 @@ describe('Firestore subscriptions', () => {
       const course: Partial<Course> = {
         id: 'course-1',
         outlineStatus: 'generating',
-        outline: { sections: [] },
+        outline: createMockOutline(),
       };
       expect(hasPendingContent(course as Course)).toBe(true);
     });
@@ -220,17 +282,11 @@ describe('Firestore subscriptions', () => {
       const course: Partial<Course> = {
         id: 'course-1',
         outlineStatus: 'ready',
-        outline: {
-          sections: [
-            {
-              id: 'section-1',
-              title: 'Section 1',
-              lessons: [
-                { id: 'lesson-1', title: 'Lesson 1', blocksStatus: 'pending' } as Lesson,
-              ],
-            } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1', [
+            createMockLesson('lesson-1', 'Lesson 1', 'pending'),
+          ]),
+        ]),
       };
       expect(hasPendingContent(course as Course)).toBe(true);
     });
@@ -240,17 +296,11 @@ describe('Firestore subscriptions', () => {
       const course: Partial<Course> = {
         id: 'course-1',
         outlineStatus: 'ready',
-        outline: {
-          sections: [
-            {
-              id: 'section-1',
-              title: 'Section 1',
-              lessons: [
-                { id: 'lesson-1', title: 'Lesson 1', blocksStatus: 'generating' } as Lesson,
-              ],
-            } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1', [
+            createMockLesson('lesson-1', 'Lesson 1', 'generating'),
+          ]),
+        ]),
       };
       expect(hasPendingContent(course as Course)).toBe(true);
     });
@@ -260,24 +310,13 @@ describe('Firestore subscriptions', () => {
       const course: Partial<Course> = {
         id: 'course-1',
         outlineStatus: 'ready',
-        outline: {
-          sections: [
-            {
-              id: 'section-1',
-              title: 'Section 1',
-              lessons: [
-                {
-                  id: 'lesson-1',
-                  title: 'Lesson 1',
-                  blocksStatus: 'ready',
-                  blocks: [
-                    { id: 'block-1', type: 'text', contentStatus: 'pending' },
-                  ],
-                } as Lesson,
-              ],
-            } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1', [
+            createMockLesson('lesson-1', 'Lesson 1', 'ready', [
+              createMockBlock('block-1', 'text', 'pending'),
+            ]),
+          ]),
+        ]),
       };
       expect(hasPendingContent(course as Course)).toBe(true);
     });
@@ -287,24 +326,13 @@ describe('Firestore subscriptions', () => {
       const course: Partial<Course> = {
         id: 'course-1',
         outlineStatus: 'ready',
-        outline: {
-          sections: [
-            {
-              id: 'section-1',
-              title: 'Section 1',
-              lessons: [
-                {
-                  id: 'lesson-1',
-                  title: 'Lesson 1',
-                  blocksStatus: 'ready',
-                  blocks: [
-                    { id: 'block-1', type: 'text', contentStatus: 'generating' },
-                  ],
-                } as Lesson,
-              ],
-            } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1', [
+            createMockLesson('lesson-1', 'Lesson 1', 'ready', [
+              createMockBlock('block-1', 'text', 'generating'),
+            ]),
+          ]),
+        ]),
       };
       expect(hasPendingContent(course as Course)).toBe(true);
     });
@@ -314,25 +342,14 @@ describe('Firestore subscriptions', () => {
       const course: Partial<Course> = {
         id: 'course-1',
         outlineStatus: 'ready',
-        outline: {
-          sections: [
-            {
-              id: 'section-1',
-              title: 'Section 1',
-              lessons: [
-                {
-                  id: 'lesson-1',
-                  title: 'Lesson 1',
-                  blocksStatus: 'ready',
-                  blocks: [
-                    { id: 'block-1', type: 'text', contentStatus: 'ready' },
-                    { id: 'block-2', type: 'quiz', contentStatus: 'ready' },
-                  ],
-                } as Lesson,
-              ],
-            } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1', [
+            createMockLesson('lesson-1', 'Lesson 1', 'ready', [
+              createMockBlock('block-1', 'text', 'ready'),
+              createMockBlock('block-2', 'question', 'ready'),
+            ]),
+          ]),
+        ]),
       };
       expect(hasPendingContent(course as Course)).toBe(false);
     });
@@ -354,11 +371,9 @@ describe('Firestore subscriptions', () => {
       const { isLessonContentReady } = require('../subscriptions');
       const course: Partial<Course> = {
         id: 'course-1',
-        outline: {
-          sections: [
-            { id: 'section-1', title: 'Section 1', lessons: [] } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1'),
+        ]),
       };
       expect(isLessonContentReady(course as Course, 'section-2', 'lesson-1')).toBe(false);
     });
@@ -367,15 +382,11 @@ describe('Firestore subscriptions', () => {
       const { isLessonContentReady } = require('../subscriptions');
       const course: Partial<Course> = {
         id: 'course-1',
-        outline: {
-          sections: [
-            {
-              id: 'section-1',
-              title: 'Section 1',
-              lessons: [{ id: 'lesson-1', title: 'Lesson 1' } as Lesson],
-            } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1', [
+            createMockLesson('lesson-1', 'Lesson 1'),
+          ]),
+        ]),
       };
       expect(isLessonContentReady(course as Course, 'section-1', 'lesson-2')).toBe(false);
     });
@@ -384,17 +395,11 @@ describe('Firestore subscriptions', () => {
       const { isLessonContentReady } = require('../subscriptions');
       const course: Partial<Course> = {
         id: 'course-1',
-        outline: {
-          sections: [
-            {
-              id: 'section-1',
-              title: 'Section 1',
-              lessons: [
-                { id: 'lesson-1', title: 'Lesson 1', blocksStatus: 'generating' } as Lesson,
-              ],
-            } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1', [
+            createMockLesson('lesson-1', 'Lesson 1', 'generating'),
+          ]),
+        ]),
       };
       expect(isLessonContentReady(course as Course, 'section-1', 'lesson-1')).toBe(false);
     });
@@ -403,25 +408,14 @@ describe('Firestore subscriptions', () => {
       const { isLessonContentReady } = require('../subscriptions');
       const course: Partial<Course> = {
         id: 'course-1',
-        outline: {
-          sections: [
-            {
-              id: 'section-1',
-              title: 'Section 1',
-              lessons: [
-                {
-                  id: 'lesson-1',
-                  title: 'Lesson 1',
-                  blocksStatus: 'ready',
-                  blocks: [
-                    { id: 'block-1', type: 'text', contentStatus: 'ready' },
-                    { id: 'block-2', type: 'quiz', contentStatus: 'generating' },
-                  ],
-                } as Lesson,
-              ],
-            } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1', [
+            createMockLesson('lesson-1', 'Lesson 1', 'ready', [
+              createMockBlock('block-1', 'text', 'ready'),
+              createMockBlock('block-2', 'question', 'generating'),
+            ]),
+          ]),
+        ]),
       };
       expect(isLessonContentReady(course as Course, 'section-1', 'lesson-1')).toBe(false);
     });
@@ -430,25 +424,14 @@ describe('Firestore subscriptions', () => {
       const { isLessonContentReady } = require('../subscriptions');
       const course: Partial<Course> = {
         id: 'course-1',
-        outline: {
-          sections: [
-            {
-              id: 'section-1',
-              title: 'Section 1',
-              lessons: [
-                {
-                  id: 'lesson-1',
-                  title: 'Lesson 1',
-                  blocksStatus: 'ready',
-                  blocks: [
-                    { id: 'block-1', type: 'text', contentStatus: 'ready' },
-                    { id: 'block-2', type: 'quiz', contentStatus: 'ready' },
-                  ],
-                } as Lesson,
-              ],
-            } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1', [
+            createMockLesson('lesson-1', 'Lesson 1', 'ready', [
+              createMockBlock('block-1', 'text', 'ready'),
+              createMockBlock('block-2', 'question', 'ready'),
+            ]),
+          ]),
+        ]),
       };
       expect(isLessonContentReady(course as Course, 'section-1', 'lesson-1')).toBe(true);
     });
@@ -457,25 +440,14 @@ describe('Firestore subscriptions', () => {
       const { isLessonContentReady } = require('../subscriptions');
       const course: Partial<Course> = {
         id: 'course-1',
-        outline: {
-          sections: [
-            {
-              id: 'section-1',
-              title: 'Section 1',
-              lessons: [
-                {
-                  id: 'lesson-1',
-                  title: 'Lesson 1',
-                  blocksStatus: 'ready',
-                  blocks: [
-                    { id: 'block-1', type: 'text', contentStatus: 'ready' },
-                    { id: 'block-2', type: 'quiz', contentStatus: 'error' },
-                  ],
-                } as Lesson,
-              ],
-            } as Section,
-          ],
-        },
+        outline: createMockOutline([
+          createMockSection('section-1', 'Section 1', [
+            createMockLesson('lesson-1', 'Lesson 1', 'ready', [
+              createMockBlock('block-1', 'text', 'ready'),
+              createMockBlock('block-2', 'question', 'error'),
+            ]),
+          ]),
+        ]),
       };
       expect(isLessonContentReady(course as Course, 'section-1', 'lesson-1')).toBe(true);
     });

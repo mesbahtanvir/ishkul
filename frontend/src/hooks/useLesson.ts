@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useLessonStore } from '../state/lessonStore';
 import { useCoursesStore } from '../state/coursesStore';
 import { useCourseSubscription } from './useCourseSubscription';
-import { isFirebaseAuthenticated } from '../services/firebase';
 import { Block, BlockResult, LessonPosition } from '../types/app';
 
 // Polling interval for checking content generation status (2 seconds)
@@ -147,9 +146,6 @@ export function useLesson({
       // Polling will automatically take over as fallback
     },
   });
-
-  // Check if we should use polling (fallback when subscription not available)
-  const shouldUseFallbackPolling = !isSubscribed && !isFirebaseAuthenticated();
 
   // Poll for block skeleton updates when blocks are being generated
   // This is a FALLBACK for when Firebase subscription is not available

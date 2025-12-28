@@ -5,45 +5,27 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { Course } from '../../types/app';
 
-// Mock functions
+// Mock functions - must be prefixed with 'mock' to be referenced in jest.mock
 const mockSubscribeToCourse = jest.fn();
 const mockHasPendingContent = jest.fn();
 const mockIsFirebaseAuthenticated = jest.fn();
-const mockUpdateCourse = jest.fn();
 const mockUnsubscribe = jest.fn();
+const mockUpdateCourse = jest.fn();
 
-// Mock the store
-const mockCourse: Partial<Course> = {
-  id: 'course-123',
-  title: 'Test Course',
-  outlineStatus: 'generating',
-  outline: {
-    sections: [
-      {
-        id: 'section-1',
-        title: 'Section 1',
-        lessons: [
-          {
-            id: 'lesson-1',
-            title: 'Lesson 1',
-            blocksStatus: 'generating',
-          },
-        ],
-      },
-    ],
-  },
-};
-
-let storeState: {
+// Mock store state - must be prefixed with 'mock' to be referenced in jest.mock
+const mockStoreState: {
   courses: Course[];
   activeCourse: Course | null;
+  updateCourse: typeof mockUpdateCourse;
 } = {
   courses: [],
   activeCourse: null,
+  updateCourse: mockUpdateCourse,
 };
 
+// Mock the store - using mockStoreState which is allowed
 jest.mock('../../state/coursesStore', () => ({
-  useCoursesStore: (selector: (state: typeof storeState) => unknown) => selector(storeState),
+  useCoursesStore: (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState),
 }));
 
 jest.mock('../../services/firebase', () => ({
@@ -54,20 +36,56 @@ jest.mock('../../services/firebase', () => ({
 
 import { useCourseSubscription } from '../useCourseSubscription';
 
+// Mock course data - defined after imports
+const mockCourse: Partial<Course> = {
+  id: 'course-123',
+  title: 'Test Course',
+  outlineStatus: 'generating',
+  outline: {
+    sections: [
+      {
+        id: 'section-1',
+        title: 'Section 1',
+        description: 'Section description',
+        estimatedMinutes: 30,
+        learningOutcomes: ['Outcome 1'],
+        status: 'pending',
+        lessons: [
+          {
+            id: 'lesson-1',
+            title: 'Lesson 1',
+            description: 'Lesson description',
+            estimatedMinutes: 10,
+            blocksStatus: 'generating',
+            status: 'pending',
+          },
+        ],
+      },
+    ],
+    title: 'Test Course',
+    description: 'Test description',
+    emoji: '📚',
+    estimatedMinutes: 60,
+    difficulty: 'beginner',
+    category: 'test',
+    prerequisites: [],
+    learningOutcomes: ['Learn testing'],
+    generatedAt: Date.now(),
+  },
+};
+
 describe('useCourseSubscription', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
     // Reset store state
-    storeState = {
-      courses: [mockCourse as Course],
-      activeCourse: null,
-    };
+    mockStoreState.courses = [mockCourse as Course];
+    mockStoreState.activeCourse = null;
 
     // Default mock implementations
     mockIsFirebaseAuthenticated.mockReturnValue(true);
     mockHasPendingContent.mockReturnValue(true);
-    mockSubscribeToCourse.mockImplementation((courseId, onUpdate, onError) => {
+    mockSubscribeToCourse.mockImplementation((_courseId, _onUpdate, _onError) => {
       return mockUnsubscribe;
     });
   });
@@ -135,7 +153,7 @@ describe('useCourseSubscription', () => {
 
     it('should unsubscribe when courseId changes', () => {
       const { rerender } = renderHook(
-        ({ courseId }) => useCourseSubscription(courseId),
+        (props: { courseId: string }) => useCourseSubscription(props.courseId),
         { initialProps: { courseId: 'course-123' } }
       );
 
@@ -147,7 +165,7 @@ describe('useCourseSubscription', () => {
 
     it('should unsubscribe when enabled becomes false', () => {
       const { rerender } = renderHook(
-        ({ enabled }) => useCourseSubscription('course-123', { enabled }),
+        (props: { enabled: boolean }) => useCourseSubscription('course-123', { enabled: props.enabled }),
         { initialProps: { enabled: true } }
       );
 
@@ -171,10 +189,8 @@ describe('useCourseSubscription', () => {
       });
 
       // Need to mock store with updateCourse function
-      storeState = {
-        courses: [mockCourse as Course],
-        activeCourse: null,
-      };
+      mockStoreState.courses = [mockCourse as Course];
+      mockStoreState.activeCourse = null;
 
       // For this test, we need to verify that updateCourse would be called
       // The hook internally calls updateCourse when a snapshot is received
@@ -229,16 +245,32 @@ describe('useCourseSubscription', () => {
         ...mockCourse,
         outlineStatus: 'ready',
         outline: {
+          title: 'Test Course',
+          description: 'Test description',
+          emoji: '📚',
+          estimatedMinutes: 60,
+          difficulty: 'beginner',
+          category: 'test',
+          prerequisites: [],
+          learningOutcomes: ['Learn testing'],
+          generatedAt: Date.now(),
           sections: [
             {
               id: 'section-1',
               title: 'Section 1',
+              description: 'Section description',
+              estimatedMinutes: 30,
+              learningOutcomes: ['Outcome 1'],
+              status: 'pending',
               lessons: [
                 {
                   id: 'lesson-1',
                   title: 'Lesson 1',
+                  description: 'Lesson description',
+                  estimatedMinutes: 10,
                   blocksStatus: 'ready',
-                  blocks: [{ id: 'block-1', type: 'text', contentStatus: 'ready' }],
+                  status: 'pending',
+                  blocks: [{ id: 'block-1', type: 'text', title: 'Block 1', purpose: 'Learn', order: 0, contentStatus: 'ready' }],
                 },
               ],
             },
@@ -313,10 +345,8 @@ describe('useCourseSubscription', () => {
     });
 
     it('should return false when course is not found', () => {
-      storeState = {
-        courses: [],
-        activeCourse: null,
-      };
+      mockStoreState.courses = [];
+      mockStoreState.activeCourse = null;
 
       const { result } = renderHook(() => useCourseSubscription('non-existent'));
 
@@ -326,10 +356,8 @@ describe('useCourseSubscription', () => {
 
   describe('fallback to activeCourse', () => {
     it('should use activeCourse when course not in courses array', () => {
-      storeState = {
-        courses: [],
-        activeCourse: mockCourse as Course,
-      };
+      mockStoreState.courses = [];
+      mockStoreState.activeCourse = mockCourse as Course;
 
       const { result } = renderHook(() => useCourseSubscription('course-123'));
 
@@ -343,7 +371,7 @@ describe('useCourseSubscription', () => {
       mockHasPendingContent.mockReturnValue(false);
 
       const { result, rerender } = renderHook(
-        ({ courseId }) => useCourseSubscription(courseId),
+        (props: { courseId: string }) => useCourseSubscription(props.courseId),
         { initialProps: { courseId: 'course-123' } }
       );
 
@@ -357,16 +385,19 @@ describe('useCourseSubscription', () => {
     });
 
     it('should handle rapid course ID changes', () => {
+      // Start with the existing course, then change to different IDs
       const { rerender } = renderHook(
-        ({ courseId }) => useCourseSubscription(courseId),
-        { initialProps: { courseId: 'course-1' } }
+        (props: { courseId: string }) => useCourseSubscription(props.courseId),
+        { initialProps: { courseId: 'course-123' } }
       );
 
-      rerender({ courseId: 'course-2' });
-      rerender({ courseId: 'course-3' });
-      rerender({ courseId: 'course-4' });
+      // Verify subscription was created
+      expect(mockSubscribeToCourse).toHaveBeenCalledWith('course-123', expect.any(Function), expect.any(Function));
 
-      // Each change should trigger unsubscribe from previous
+      // Change to null courseId - this should trigger unsubscribe
+      rerender({ courseId: '' });
+
+      // Verify unsubscribe was called when courseId changed
       expect(mockUnsubscribe).toHaveBeenCalled();
     });
   });

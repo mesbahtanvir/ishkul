@@ -2,7 +2,7 @@
  * Tests for useFirebaseAuth hook
  */
 
-import { renderHook, act, waitFor } from '@testing-library/react-native';
+import { renderHook, act } from '@testing-library/react-native';
 
 const mockUser = {
   uid: 'firebase-user-id',
