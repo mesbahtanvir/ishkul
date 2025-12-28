@@ -1,19 +1,34 @@
 /**
- * Firebase Service
+ * Firebase Service - Re-exports
  *
- * NOTE: This file is kept for backward compatibility.
- * The app no longer uses Firebase SDK directly - all operations
- * go through the backend API.
+ * This file re-exports Firebase functionality from the new modular structure.
  *
- * Firebase is only used for:
- * - None (all functionality moved to backend)
+ * Firebase SDK is now used for:
+ * - Real-time Firestore subscriptions during content generation
+ * - Firebase Auth (synced with backend custom tokens)
  *
- * The backend handles:
- * - User authentication (via Google ID token validation)
- * - Firestore database operations
- * - File storage
+ * Write operations still go through the backend API.
  */
 
-// This file intentionally exports nothing
-// All Firebase operations are now handled by the backend
-export {};
+// Re-export from new modular structure
+export {
+  initializeFirebase,
+  getFirestoreClient,
+  getFirebaseAuth,
+} from './firebase/index';
+
+export {
+  signInWithFirebaseToken,
+  signOutFromFirebase,
+  getCurrentFirebaseUser,
+  isFirebaseAuthenticated,
+  onFirebaseAuthStateChanged,
+} from './firebase/auth';
+
+export {
+  subscribeToCourse,
+  hasPendingContent,
+  isLessonContentReady,
+  type SubscriptionError,
+  type SubscriptionErrorType,
+} from './firebase/subscriptions';

@@ -3,16 +3,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ACCESS_TOKEN_KEY = 'ishkul_access_token';
 const REFRESH_TOKEN_KEY = 'ishkul_refresh_token';
+const FIREBASE_TOKEN_KEY = 'ishkul_firebase_token';
 
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
+  firebaseToken?: string; // Firebase custom token for real-time subscriptions
   expiresIn: number;
 }
 
 class TokenStorage {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
+  private firebaseToken: string | null = null;
   private expiresAt: number | null = null;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
@@ -43,12 +46,14 @@ class TokenStorage {
         // Web: use localStorage
         this.accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
         this.refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+        this.firebaseToken = localStorage.getItem(FIREBASE_TOKEN_KEY);
         const expiresAtStr = localStorage.getItem(`${ACCESS_TOKEN_KEY}_expires`);
         this.expiresAt = expiresAtStr ? parseInt(expiresAtStr, 10) : null;
       } else {
         // Mobile: use AsyncStorage
         this.accessToken = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
         this.refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+        this.firebaseToken = await AsyncStorage.getItem(FIREBASE_TOKEN_KEY);
         const expiresAtStr = await AsyncStorage.getItem(`${ACCESS_TOKEN_KEY}_expires`);
         this.expiresAt = expiresAtStr ? parseInt(expiresAtStr, 10) : null;
       }
@@ -69,6 +74,7 @@ class TokenStorage {
   async saveTokens(tokens: TokenPair): Promise<void> {
     this.accessToken = tokens.accessToken;
     this.refreshToken = tokens.refreshToken;
+    this.firebaseToken = tokens.firebaseToken || null;
     this.expiresAt = Date.now() + tokens.expiresIn * 1000;
 
     try {
@@ -76,10 +82,16 @@ class TokenStorage {
         localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
         localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
         localStorage.setItem(`${ACCESS_TOKEN_KEY}_expires`, this.expiresAt.toString());
+        if (tokens.firebaseToken) {
+          localStorage.setItem(FIREBASE_TOKEN_KEY, tokens.firebaseToken);
+        }
       } else {
         await AsyncStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
         await AsyncStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
         await AsyncStorage.setItem(`${ACCESS_TOKEN_KEY}_expires`, this.expiresAt.toString());
+        if (tokens.firebaseToken) {
+          await AsyncStorage.setItem(FIREBASE_TOKEN_KEY, tokens.firebaseToken);
+        }
       }
     } catch (error) {
       console.error('Error saving tokens:', error);
@@ -90,16 +102,19 @@ class TokenStorage {
   async clearTokens(): Promise<void> {
     this.accessToken = null;
     this.refreshToken = null;
+    this.firebaseToken = null;
     this.expiresAt = null;
 
     try {
       if (Platform.OS === 'web') {
         localStorage.removeItem(ACCESS_TOKEN_KEY);
         localStorage.removeItem(REFRESH_TOKEN_KEY);
+        localStorage.removeItem(FIREBASE_TOKEN_KEY);
         localStorage.removeItem(`${ACCESS_TOKEN_KEY}_expires`);
       } else {
         await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
         await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+        await AsyncStorage.removeItem(FIREBASE_TOKEN_KEY);
         await AsyncStorage.removeItem(`${ACCESS_TOKEN_KEY}_expires`);
       }
     } catch (error) {
@@ -115,6 +130,10 @@ class TokenStorage {
 
   getRefreshToken(): string | null {
     return this.refreshToken;
+  }
+
+  getFirebaseToken(): string | null {
+    return this.firebaseToken;
   }
 
   isAccessTokenExpired(): boolean {

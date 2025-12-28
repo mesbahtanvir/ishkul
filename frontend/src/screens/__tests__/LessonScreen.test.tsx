@@ -10,6 +10,26 @@
  * Note: The LessonScreen uses ScrollableLessonBlocks which handles
  * block navigation internally.
  */
+
+// Mock Firebase BEFORE any imports that might use it
+jest.mock('../../services/firebase', () => ({
+  subscribeToCourse: jest.fn(() => jest.fn()),
+  hasPendingContent: jest.fn(() => false),
+  isFirebaseAuthenticated: jest.fn(() => false),
+  signInWithFirebaseToken: jest.fn(),
+  signOutFromFirebase: jest.fn(),
+  onFirebaseAuthStateChanged: jest.fn(() => jest.fn()),
+  getFirestoreClient: jest.fn(),
+}));
+
+jest.mock('../../services/firebase/index', () => ({
+  initializeFirebase: jest.fn(),
+  getFirebaseApp: jest.fn(),
+  getFirestoreClient: jest.fn(),
+  getFirebaseAuth: jest.fn(),
+  isFirebaseInitialized: jest.fn(() => false),
+}));
+
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
