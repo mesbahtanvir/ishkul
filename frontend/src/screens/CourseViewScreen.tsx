@@ -19,7 +19,6 @@ import { Button } from '../components/Button';
 import { useTheme } from '../hooks/useTheme';
 import { useCoursesStore } from '../state/coursesStore';
 import { useCourseSubscription } from '../hooks/useCourseSubscription';
-import { isFirebaseAuthenticated } from '../services/firebase';
 import { coursesApi } from '../services/api';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
@@ -132,13 +131,14 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
 
     // Set up polling as FALLBACK only when:
     // 1. Course is generating AND
-    // 2. Firebase subscription is NOT active (either not authenticated or subscription failed)
+    // 2. Firebase subscription is NOT active (subscription failed or not authenticated)
+    // Note: We only check !isSubscribed, not !isFirebaseAuthenticated(), because
+    // we need polling to kick in when auth succeeds but subscription fails
     const shouldPoll =
       activeCourse?.id === courseId &&
       activeCourse.outlineStatus !== OutlineStatuses.READY &&
       activeCourse.outlineStatus !== OutlineStatuses.FAILED &&
-      !isSubscribed &&
-      !isFirebaseAuthenticated();
+      !isSubscribed;
 
     if (shouldPoll) {
       pollTimer = setInterval(pollCourse, POLLING_INTERVAL);
