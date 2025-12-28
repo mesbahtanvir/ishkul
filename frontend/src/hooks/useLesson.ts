@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useLessonStore } from '../state/lessonStore';
 import { useCoursesStore } from '../state/coursesStore';
+import { useCourseSubscription } from './useCourseSubscription';
+import { isFirebaseAuthenticated } from '../services/firebase';
 import { Block, BlockResult, LessonPosition } from '../types/app';
 
 // Polling interval for checking content generation status (2 seconds)
+// Used as fallback when Firebase subscription is not available
 const CONTENT_POLL_INTERVAL = 2000;
 
 interface UseLessonOptions {
@@ -29,6 +32,10 @@ interface UseLessonReturn {
 
   // Error state
   error: string | null;
+
+  // Real-time subscription state
+  isUsingRealtimeUpdates: boolean; // True when Firebase subscription is active
+  subscriptionError: string | null; // Connection error from Firebase subscription
 
   // Progress
   completedBlocksCount: number;
@@ -131,9 +138,27 @@ export function useLesson({
     }
   }, [autoGenerate, currentLesson, blocksGenerating, courseId, sectionId, lessonId, generateBlocks]);
 
+  // Use Firebase subscription for real-time updates when authenticated
+  // This replaces polling with real-time Firestore listeners
+  const { connectionError, isSubscribed } = useCourseSubscription(courseId, {
+    enabled: true, // Always try to subscribe, will gracefully fail if not authenticated
+    onError: (error) => {
+      console.warn('Firebase subscription error:', error.message);
+      // Polling will automatically take over as fallback
+    },
+  });
+
+  // Check if we should use polling (fallback when subscription not available)
+  const shouldUseFallbackPolling = !isSubscribed && !isFirebaseAuthenticated();
+
   // Poll for block skeleton updates when blocks are being generated
-  // This handles async queue processing where blocks are generated in the background
+  // This is a FALLBACK for when Firebase subscription is not available
   useEffect(() => {
+    // Skip polling if Firebase subscription is active
+    if (isSubscribed) {
+      return;
+    }
+
     // Check if blocks are being generated (via queue or direct async)
     const isBlocksGenerating =
       currentLesson?.blocksStatus === 'generating' || blocksGenerating;
@@ -142,7 +167,7 @@ export function useLesson({
       return;
     }
 
-    // Set up polling interval
+    // Set up polling interval (fallback when subscription unavailable)
     const pollInterval = setInterval(() => {
       // Refresh the lesson to get updated blocks from Firestore (preserves state)
       refreshLesson(courseId, lessonId, sectionId);
@@ -158,6 +183,7 @@ export function useLesson({
     currentLesson?.blocksStatus,
     blocksGenerating,
     refreshLesson,
+    isSubscribed,
   ]);
 
   // Get current block
@@ -192,8 +218,13 @@ export function useLesson({
   }, [autoGenerate, currentBlock, blockContentGenerating, courseId, sectionId, lessonId, generateBlockContent]);
 
   // Poll for content updates when blocks are being generated via the queue
-  // This handles async queue processing where content is generated in the background
+  // This is a FALLBACK for when Firebase subscription is not available
   useEffect(() => {
+    // Skip polling if Firebase subscription is active
+    if (isSubscribed) {
+      return;
+    }
+
     // Check if any blocks are in 'generating' status
     const hasGeneratingBlocks = currentLesson?.blocks?.some(
       (b) => b.contentStatus === 'generating'
@@ -204,7 +235,7 @@ export function useLesson({
       return;
     }
 
-    // Set up polling interval
+    // Set up polling interval (fallback when subscription unavailable)
     const pollInterval = setInterval(() => {
       // Refresh the lesson to get updated block content from Firestore (preserves state)
       refreshLesson(courseId, lessonId, sectionId);
@@ -220,6 +251,7 @@ export function useLesson({
     currentLesson?.blocks,
     blockContentGenerating,
     refreshLesson,
+    isSubscribed,
   ]);
 
   // Start interacting with a block
@@ -298,6 +330,10 @@ export function useLesson({
 
     // Error state
     error,
+
+    // Real-time subscription state
+    isUsingRealtimeUpdates: isSubscribed,
+    subscriptionError: connectionError,
 
     // Progress
     completedBlocksCount,

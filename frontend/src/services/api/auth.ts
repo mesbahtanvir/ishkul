@@ -5,6 +5,7 @@ import { User } from '../../types/app';
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
+  firebaseToken: string; // Firebase custom token for real-time subscriptions
   expiresIn: number;
   user: {
     id: string;
@@ -33,10 +34,11 @@ export const authApi = {
       { skipAuth: true }
     );
 
-    // Save tokens
+    // Save tokens (including Firebase token for real-time subscriptions)
     await tokenStorage.saveTokens({
       accessToken: response.accessToken,
       refreshToken: response.refreshToken,
+      firebaseToken: response.firebaseToken,
       expiresIn: response.expiresIn,
     });
 
@@ -61,10 +63,11 @@ export const authApi = {
       { skipAuth: true }
     );
 
-    // Save tokens
+    // Save tokens (including Firebase token for real-time subscriptions)
     await tokenStorage.saveTokens({
       accessToken: response.accessToken,
       refreshToken: response.refreshToken,
+      firebaseToken: response.firebaseToken,
       expiresIn: response.expiresIn,
     });
 
@@ -89,10 +92,11 @@ export const authApi = {
       { skipAuth: true }
     );
 
-    // Save tokens
+    // Save tokens (including Firebase token for real-time subscriptions)
     await tokenStorage.saveTokens({
       accessToken: response.accessToken,
       refreshToken: response.refreshToken,
+      firebaseToken: response.firebaseToken,
       expiresIn: response.expiresIn,
     });
 
@@ -193,5 +197,13 @@ export const authApi = {
    */
   getAccessToken(): string | null {
     return tokenStorage.getAccessToken();
+  },
+
+  /**
+   * Get Firebase custom token (for real-time subscriptions)
+   * This token is used to authenticate with Firebase client SDK
+   */
+  getFirebaseToken(): string | null {
+    return tokenStorage.getFirebaseToken();
   },
 };

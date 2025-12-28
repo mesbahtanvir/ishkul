@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -28,10 +29,11 @@ type RegisterRequest struct {
 
 // LoginResponse represents the login response
 type LoginResponse struct {
-	AccessToken  string       `json:"accessToken"`
-	RefreshToken string       `json:"refreshToken"`
-	ExpiresIn    int64        `json:"expiresIn"`
-	User         *models.User `json:"user"`
+	AccessToken   string       `json:"accessToken"`
+	RefreshToken  string       `json:"refreshToken"`
+	FirebaseToken string       `json:"firebaseToken"` // Custom token for Firebase client SDK
+	ExpiresIn     int64        `json:"expiresIn"`
+	User          *models.User `json:"user"`
 }
 
 // ErrorResponse represents a structured error response
@@ -151,6 +153,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate Firebase custom token for real-time subscriptions
+	firebaseToken, err := generateFirebaseCustomToken(ctx, userID)
+	if err != nil {
+		// Log error but don't fail login - Firebase subscriptions are optional
+		// The frontend will fall back to polling if no token is available
+		firebaseToken = ""
+	}
+
 	// Set HttpOnly cookies for web clients
 	// These cookies provide XSS protection by being inaccessible to JavaScript
 	middleware.SetAccessTokenCookie(w, tokenPair.AccessToken, auth.AccessTokenExpiry)
@@ -158,10 +168,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	// Send JSON response (for mobile clients and backwards compatibility)
 	response := LoginResponse{
-		AccessToken:  tokenPair.AccessToken,
-		RefreshToken: tokenPair.RefreshToken,
-		ExpiresIn:    tokenPair.ExpiresIn,
-		User:         user,
+		AccessToken:   tokenPair.AccessToken,
+		RefreshToken:  tokenPair.RefreshToken,
+		FirebaseToken: firebaseToken,
+		ExpiresIn:     tokenPair.ExpiresIn,
+		User:          user,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -248,16 +259,24 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate Firebase custom token for real-time subscriptions
+	firebaseToken, err := generateFirebaseCustomToken(ctx, firebaseUser.UID)
+	if err != nil {
+		// Log error but don't fail registration - Firebase subscriptions are optional
+		firebaseToken = ""
+	}
+
 	// Set HttpOnly cookies for web clients
 	middleware.SetAccessTokenCookie(w, tokenPair.AccessToken, auth.AccessTokenExpiry)
 	middleware.SetRefreshTokenCookie(w, tokenPair.RefreshToken, auth.RefreshTokenExpiry)
 
 	// Send JSON response
 	response := LoginResponse{
-		AccessToken:  tokenPair.AccessToken,
-		RefreshToken: tokenPair.RefreshToken,
-		ExpiresIn:    tokenPair.ExpiresIn,
-		User:         user,
+		AccessToken:   tokenPair.AccessToken,
+		RefreshToken:  tokenPair.RefreshToken,
+		FirebaseToken: firebaseToken,
+		ExpiresIn:     tokenPair.ExpiresIn,
+		User:          user,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -377,4 +396,23 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
+}
+
+// generateFirebaseCustomToken creates a Firebase custom token for the given user ID.
+// This token allows the frontend to authenticate with Firebase client SDK
+// for real-time Firestore subscriptions.
+func generateFirebaseCustomToken(ctx context.Context, userID string) (string, error) {
+	authClient := firebase.GetAuth()
+	if authClient == nil {
+		return "", nil // Return empty token if Firebase Auth is not available
+	}
+
+	// Create custom token with no additional claims
+	// The token will be valid for 1 hour (Firebase default)
+	token, err := authClient.CustomToken(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
