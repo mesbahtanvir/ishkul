@@ -94,7 +94,8 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
           emoji: getEmojiForGoal(trimmedGoal),
         };
 
-        await coursesApi.createCourse(firstPathData);
+        // createCourse returns the created course with its ID
+        const createdPath = await coursesApi.createCourse(firstPathData);
 
         const userDoc = await userApi.getUserDocument();
         setUserDocument(userDoc);
@@ -102,29 +103,22 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
         // Track onboarding complete for first-time users
         await completeOnboarding(trimmedGoal);
 
-        // Fetch the created path from the user document
-        const fetchedPaths = await coursesApi.getCourses();
-        if (fetchedPaths.length > 0) {
-          const createdPath = fetchedPaths[0];
-          addCourse(createdPath);
+        // Add the created course to store
+        addCourse(createdPath);
 
-          // Track learning path created
-          await trackCourseCreated({
-            path_id: createdPath.id,
-            goal: trimmedGoal,
-            is_first_path: true,
-          });
+        // Track learning path created
+        await trackCourseCreated({
+          path_id: createdPath.id,
+          goal: trimmedGoal,
+          is_first_path: true,
+        });
 
-          // Navigate to Main first, then to CourseView
-          navigation.replace('Main');
-          // Use setTimeout to ensure Main is mounted before navigating
-          setTimeout(() => {
-            navigation.navigate('CourseView', { courseId: createdPath.id });
-          }, 100);
-        } else {
-          // Fallback: just navigate to Main
-          navigation.replace('Main');
-        }
+        // Navigate to Main first, then to CourseView
+        navigation.replace('Main');
+        // Use setTimeout to ensure Main is mounted before navigating
+        setTimeout(() => {
+          navigation.navigate('CourseView', { courseId: createdPath.id });
+        }, 100);
       }
     } catch (error) {
       console.error('Error saving:', error);

@@ -7,12 +7,18 @@
 
 import {
   doc,
+  collection,
+  query,
+  where,
+  orderBy,
   onSnapshot,
   DocumentSnapshot,
+  QuerySnapshot,
   FirestoreError,
   Unsubscribe,
 } from 'firebase/firestore';
 import { getFirestoreClient } from './index';
+import { getCurrentFirebaseUser } from './auth';
 import { Course } from '../../types/app';
 
 /**
@@ -186,4 +192,90 @@ export function isLessonContentReady(
   return lesson.blocks?.every(
     (block) => block.contentStatus === 'ready' || block.contentStatus === 'error'
   ) ?? false;
+}
+
+/**
+ * Callback type for courses list subscription
+ */
+export type CoursesUpdateCallback = (courses: Course[]) => void;
+
+/**
+ * Subscribe to all courses for the current user
+ *
+ * @param onUpdate - Callback when the courses list updates
+ * @param onError - Callback when an error occurs
+ * @param statusFilter - Optional status filter ('active', 'completed', 'archived')
+ * @returns Unsubscribe function
+ *
+ * @example
+ * const unsubscribe = subscribeToUserCourses(
+ *   (courses) => setCourses(courses),
+ *   (error) => showNotification(error.message)
+ * );
+ *
+ * // Later, to unsubscribe:
+ * unsubscribe();
+ */
+export function subscribeToUserCourses(
+  onUpdate: CoursesUpdateCallback,
+  onError?: ErrorCallback,
+  statusFilter?: 'active' | 'completed' | 'archived'
+): Unsubscribe {
+  const db = getFirestoreClient();
+  const user = getCurrentFirebaseUser();
+
+  if (!user) {
+    // No user authenticated - return no-op unsubscribe
+    if (onError) {
+      onError({
+        type: 'permission-denied',
+        message: 'User not authenticated with Firebase',
+      });
+    }
+    return () => {};
+  }
+
+  // Build query based on status filter
+  const coursesRef = collection(db, 'courses');
+  let coursesQuery = query(
+    coursesRef,
+    where('userId', '==', user.uid),
+    orderBy('lastAccessedAt', 'desc')
+  );
+
+  // Note: Firestore doesn't support != queries directly with orderBy on different field
+  // So we filter out deleted courses client-side
+
+  if (statusFilter) {
+    coursesQuery = query(
+      coursesRef,
+      where('userId', '==', user.uid),
+      where('status', '==', statusFilter),
+      orderBy('lastAccessedAt', 'desc')
+    );
+  }
+
+  return onSnapshot(
+    coursesQuery,
+    (snapshot: QuerySnapshot) => {
+      const courses: Course[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data() as Course;
+        // Filter out deleted courses
+        if (data.status !== 'deleted') {
+          courses.push({
+            ...data,
+            id: doc.id,
+          });
+        }
+      });
+      onUpdate(courses);
+    },
+    (error: FirestoreError) => {
+      console.error('Courses subscription error:', error);
+      if (onError) {
+        onError(mapFirestoreError(error));
+      }
+    }
+  );
 }

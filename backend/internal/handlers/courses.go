@@ -50,13 +50,13 @@ func SetAppLogger(log *slog.Logger) {
 // CoursesHandler handles all /api/courses routes.
 //
 // Routes:
-//   - GET    /api/courses              -> list courses
 //   - POST   /api/courses              -> create course
-//   - GET    /api/courses/{id}         -> get course
 //   - PATCH  /api/courses/{id}         -> update course
 //   - DELETE /api/courses/{id}         -> delete course
 //   - POST   /api/courses/{id}/archive   -> archive course
 //   - POST   /api/courses/{id}/unarchive -> unarchive course
+//
+// Note: GET endpoints (list/get) removed - clients use Firebase real-time subscriptions instead.
 //
 // Section/Lesson routes (3-stage generation):
 //   - GET    /api/courses/{id}/sections/{sectionId}/lessons                              -> list section lessons
@@ -101,10 +101,9 @@ func CoursesHandler(w http.ResponseWriter, r *http.Request) {
 // =============================================================================
 
 // routeRootPath handles /api/courses (collection operations).
+// Note: GET removed - clients use Firebase real-time subscriptions instead.
 func routeRootPath(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodGet:
-		listCourses(w, r)
 	case http.MethodPost:
 		createCourse(w, r)
 	default:
@@ -113,10 +112,9 @@ func routeRootPath(w http.ResponseWriter, r *http.Request) {
 }
 
 // routeSingleCourse handles /api/courses/{id} (resource operations).
+// Note: GET removed - clients use Firebase real-time subscriptions instead.
 func routeSingleCourse(w http.ResponseWriter, r *http.Request, courseID string) {
 	switch r.Method {
-	case http.MethodGet:
-		getCourse(w, r, courseID)
 	case http.MethodPatch, http.MethodPut:
 		updateCourse(w, r, courseID)
 	case http.MethodDelete:

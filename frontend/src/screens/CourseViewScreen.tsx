@@ -8,6 +8,7 @@
  *   - Lesson content (when a lesson is selected)
  *
  * This eliminates page transitions within a course for seamless learning.
+ * All course data comes from Firebase real-time subscriptions.
  */
 
 import React, { useEffect, useCallback, useState } from 'react';
@@ -19,8 +20,6 @@ import { Button } from '../components/Button';
 import { useTheme } from '../hooks/useTheme';
 import { useCoursesStore } from '../state/coursesStore';
 import { useCourseSubscription } from '../hooks/useCourseSubscription';
-import { isFirebaseAuthenticated } from '../services/firebase';
-import { coursesApi } from '../services/api';
 import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types/navigation';
@@ -34,16 +33,13 @@ import { GeneratingContent, CourseOverview, LessonContent } from './CourseView';
 
 type CourseViewScreenProps = NativeStackScreenProps<RootStackParamList, 'CourseView'>;
 
-// Polling interval for generating state (2 seconds)
-const POLLING_INTERVAL = 2000;
-
 /**
  * Main CourseViewScreen component
  */
 export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, route }) => {
   const { courseId, lessonId: initialLessonId, sectionId: initialSectionId } = route.params;
   const { colors } = useTheme();
-  const { activeCourse, setActiveCourse } = useCoursesStore();
+  const { activeCourse } = useCoursesStore();
 
   // Track active lesson within this screen (SPA-like behavior)
   const [activeLesson, setActiveLesson] = useState<{
@@ -56,7 +52,6 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
       : null
   );
 
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Detect if course is in generating state
@@ -65,91 +60,22 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
     activeCourse.outlineStatus !== OutlineStatuses.READY &&
     activeCourse.outlineStatus !== OutlineStatuses.FAILED;
 
-  // Use Firebase subscription for real-time updates during outline generation
-  // This replaces polling with real-time Firestore listeners
-  const { isSubscribed, connectionError } = useCourseSubscription(courseId, {
-    enabled: isGenerating, // Only subscribe when outline is generating
+  // Use Firebase subscription for real-time course data
+  // Always enabled - this is the only source of course data
+  const { connectionError } = useCourseSubscription(courseId, {
+    enabled: true, // Always subscribe for real-time data
     onError: (err) => {
-      console.warn('Firebase subscription error in CourseViewScreen:', err.message);
-      // Polling will automatically take over as fallback
+      console.error('Firebase subscription error in CourseViewScreen:', err.message);
+      setError(err.message);
     },
   });
 
-  // Log connection errors for debugging (could show toast in future)
+  // Log connection errors for debugging
   useEffect(() => {
     if (connectionError) {
       console.warn('Course subscription connection error:', connectionError);
     }
   }, [connectionError]);
-
-  // Load course initially and poll as fallback when Firebase subscription is not active
-  useEffect(() => {
-    let pollTimer: ReturnType<typeof setInterval> | null = null;
-
-    const loadCourse = async () => {
-      // Skip initial loading if we already have this course loaded
-      if (activeCourse?.id === courseId && activeCourse.outline) {
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const course = await coursesApi.getCourse(courseId);
-        if (course) {
-          setActiveCourse(course);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load course');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const pollCourse = async () => {
-      try {
-        const course = await coursesApi.getCourse(courseId);
-        if (course) {
-          setActiveCourse(course);
-          // Stop polling when ready or failed
-          if (
-            course.outlineStatus === OutlineStatuses.READY ||
-            course.outlineStatus === OutlineStatuses.FAILED
-          ) {
-            if (pollTimer) {
-              clearInterval(pollTimer);
-              pollTimer = null;
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Error polling course:', err);
-      }
-    };
-
-    loadCourse();
-
-    // Set up polling as FALLBACK only when:
-    // 1. Course is generating AND
-    // 2. Firebase subscription is NOT active (either not authenticated or subscription failed)
-    const shouldPoll =
-      activeCourse?.id === courseId &&
-      activeCourse.outlineStatus !== OutlineStatuses.READY &&
-      activeCourse.outlineStatus !== OutlineStatuses.FAILED &&
-      !isSubscribed &&
-      !isFirebaseAuthenticated();
-
-    if (shouldPoll) {
-      pollTimer = setInterval(pollCourse, POLLING_INTERVAL);
-    }
-
-    return () => {
-      if (pollTimer) {
-        clearInterval(pollTimer);
-      }
-    };
-  }, [courseId, activeCourse?.id, activeCourse?.outlineStatus, setActiveCourse, isSubscribed]);
 
   // Auto-start first lesson for courses with 0% progress (frictionless flow)
   // Only triggers when coming from Home without a specific lesson selected
@@ -238,8 +164,9 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
       }
     : undefined;
 
-  // Loading state
-  if (loading) {
+  // Loading state - show while waiting for Firebase subscription to provide data
+  const isLoading = !activeCourse || activeCourse.id !== courseId;
+  if (isLoading && !error) {
     return (
       <LearningLayout courseId={courseId} currentPosition={currentPosition} title="Loading...">
         <View style={styles.centerContainer}>

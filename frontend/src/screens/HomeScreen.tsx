@@ -1,6 +1,6 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Alert, Platform, TouchableOpacity } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Container } from '../components/Container';
@@ -10,6 +10,7 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { SegmentedControl, SegmentOption } from '../components/SegmentedControl';
 
 import { useCoursesStore } from '../state/coursesStore';
+import { useCoursesSubscription } from '../hooks/useCoursesSubscription';
 import { coursesApi } from '../services/api';
 
 import { useTheme } from '../hooks/useTheme';
@@ -62,14 +63,24 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const {
     courses,
-    setCourses,
     setActiveCourse,
     deleteCourse,
     archiveCourse,
     restoreCourse,
-    loading,
   } = useCoursesStore();
   const { colors } = useTheme();
+
+  // Subscribe to courses via Firebase - this is the only data source
+  const { isLoading } = useCoursesSubscription({
+    onError: (err) => {
+      console.error('Firebase courses subscription error:', err.message);
+      if (Platform.OS === 'web') {
+        window.alert('Failed to sync courses. Please try again.');
+      } else {
+        Alert.alert('Sync Error', 'Failed to sync courses. Please try again.');
+      }
+    },
+  });
 
   // Tab state
   const [selectedTab, setSelectedTab] = useState<TabValue>('active');
@@ -110,36 +121,6 @@ export const HomeScreen: React.FC = () => {
     { value: 'completed', label: 'Completed', count: pathCounts.completed },
     { value: 'archived', label: 'Archived', count: pathCounts.archived },
   ];
-
-  // Refresh learning courses when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      const refreshPaths = async () => {
-        try {
-          // Check if cache is still valid before fetching
-          const { listCache, isCacheValid } = useCoursesStore.getState();
-          if (isCacheValid(listCache)) {
-            // Cache is still valid, skip API call
-            return;
-          }
-          // Cache expired or doesn't exist, fetch from API
-          const fetchedPaths = await coursesApi.getCourses();
-          setCourses(fetchedPaths);
-        } catch (error) {
-          // Log detailed error and notify user
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error('Error refreshing learning courses:', { message: errorMessage, error });
-          // Show alert to user about sync failure
-          if (Platform.OS === 'web') {
-            window.alert('Failed to sync tracks. Please try again.');
-          } else {
-            Alert.alert('Sync Error', 'Failed to sync tracks. Please try again.');
-          }
-        }
-      };
-      refreshPaths();
-    }, [setCourses])
-  );
 
   const handleCreatePath = () => {
     navigation.navigate('GoalSelection', { isCreatingNewCourse: true });
@@ -235,7 +216,7 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingScreen />;
   }
 

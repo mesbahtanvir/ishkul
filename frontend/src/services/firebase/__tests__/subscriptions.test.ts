@@ -21,6 +21,10 @@ jest.mock('../index', () => ({
   getFirestoreClient: jest.fn(() => ({})),
 }));
 
+jest.mock('../auth', () => ({
+  getCurrentFirebaseUser: jest.fn(() => ({ uid: 'test-user-123' })),
+}));
+
 // Helper to create a complete mock CourseOutline
 const createMockOutline = (sections: Section[] = []): CourseOutline => ({
   title: 'Test Course',

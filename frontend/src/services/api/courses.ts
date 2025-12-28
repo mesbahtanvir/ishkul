@@ -1,9 +1,12 @@
 /**
  * Courses API module
  *
- * Handles all course-related API operations including:
- * - CRUD operations for courses
+ * Handles course-related API operations including:
+ * - Create, update, delete courses
  * - Course status management (archive/unarchive)
+ *
+ * Note: GET operations (list/get) are removed.
+ * Course data is now fetched via Firebase real-time subscriptions.
  */
 
 import { Course } from '../../types/app';
@@ -12,10 +15,6 @@ import { apiClient } from './client';
 // =============================================================================
 // Response Types
 // =============================================================================
-
-interface CoursesListResponse {
-  courses: Course[];
-}
 
 interface CourseResponse {
   course: Course;
@@ -29,22 +28,6 @@ export const coursesApi = {
   // ---------------------------------------------------------------------------
   // Course CRUD Operations
   // ---------------------------------------------------------------------------
-
-  /**
-   * Get all courses for the current user
-   */
-  async getCourses(): Promise<Course[]> {
-    const response = await apiClient.get<CoursesListResponse>('/courses');
-    return response.courses || [];
-  },
-
-  /**
-   * Get a specific course by ID
-   */
-  async getCourse(courseId: string): Promise<Course | null> {
-    const response = await apiClient.get<CourseResponse>(`/courses/${courseId}`);
-    return response.course || null;
-  },
 
   /**
    * Create a new course
