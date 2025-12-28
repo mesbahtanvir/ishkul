@@ -63,12 +63,12 @@ type ErrorResponse struct {
 
 // ErrorDetail contains detailed error information.
 type ErrorDetail struct {
-	Code       string            `json:"code"`
-	Message    string            `json:"message"`
-	Details    map[string]string `json:"details,omitempty"`
-	RequestID  string            `json:"requestId,omitempty"`
-	Timestamp  string            `json:"timestamp,omitempty"`
-	DocURL     string            `json:"documentation,omitempty"`
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	Details   map[string]string `json:"details,omitempty"`
+	RequestID string            `json:"requestId,omitempty"`
+	Timestamp string            `json:"timestamp,omitempty"`
+	DocURL    string            `json:"documentation,omitempty"`
 }
 
 // ValidationError represents a field-level validation error.
