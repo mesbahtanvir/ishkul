@@ -1,0 +1,32 @@
+name: 'Setup k6'
+description: 'Install k6 load testing tool with caching'
+
+inputs:
+  version:
+    description: 'k6 version to install (default: latest)'
+    required: false
+    default: 'latest'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Cache k6 binary
+      uses: actions/cache@v4
+      id: k6-cache
+      with:
+        path: /usr/bin/k6
+        key: ${{ runner.os }}-k6-${{ inputs.version }}
+
+    - name: Install k6
+      if: steps.k6-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        sudo gpg -k
+        sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+        echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+        sudo apt-get update
+        sudo apt-get install -y k6
+
+    - name: Verify k6 installation
+      shell: bash
+      run: k6 version

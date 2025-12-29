@@ -16,15 +16,16 @@ on:
           - staging
           - preview
 
-  # Run on PRs to main (against preview deployments)
-  pull_request:
-    branches: [main, master]
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
-      - 'e2e/**'
-      - '.maestro/**'
-      - 'tests/**'
+  # PR E2E tests disabled to reduce resource usage
+  # To re-enable, uncomment the pull_request trigger below:
+  # pull_request:
+  #   branches: [main, master]
+  #   paths:
+  #     - 'frontend/**'
+  #     - 'backend/**'
+  #     - 'e2e/**'
+  #     - '.maestro/**'
+  #     - 'tests/**'
 
 env:
   STAGING_API_URL: https://ishkul-backend-staging-1086267507068.northamerica-northeast1.run.app
@@ -37,20 +38,16 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'pull_request' ||
       (github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success')
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Newman
+        uses: ./.github/actions/setup-newman
         with:
-          node-version: '20'
-
-      - name: Install Newman
-        run: npm install -g newman newman-reporter-htmlextra
+          with-reporters: 'true'
 
       - name: Get Test Auth Token
         id: auth
@@ -105,7 +102,6 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'pull_request' ||
       (github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success')
 
     steps:
@@ -183,13 +179,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install k6
-        run: |
-          sudo gpg -k
-          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install k6
+      - name: Setup k6
+        uses: ./.github/actions/setup-k6
 
       - name: Run k6 Smoke Test
         run: |
