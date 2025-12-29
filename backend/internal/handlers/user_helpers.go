@@ -94,8 +94,3 @@ func requireMethod(w http.ResponseWriter, r *http.Request, method string) bool {
 func requirePOST(w http.ResponseWriter, r *http.Request) bool {
 	return requireMethod(w, r, http.MethodPost)
 }
-
-// requireGET is a convenience wrapper for requireMethod with GET.
-func requireGET(w http.ResponseWriter, r *http.Request) bool {
-	return requireMethod(w, r, http.MethodGet)
-}
