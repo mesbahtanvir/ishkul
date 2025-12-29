@@ -1,13 +1,17 @@
 name: Deploy Backend
 
 # Backend deployment workflow
-# - Push to main: always deploys to staging
+# - Push to main (with backend changes): deploys to staging
 # - Tag v*: deploys to production
 # - Manual dispatch: choose environment
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'backend/**'
+      - 'Dockerfile'
+      - '.github/workflows/deploy-backend.yml'
     tags:
       - 'v*'
   workflow_dispatch:
@@ -20,22 +24,54 @@ on:
         options:
           - staging
           - production
+      skip_ci_check:
+        description: 'Skip CI status check (emergency deployments only)'
+        required: false
+        default: false
+        type: boolean
+
+# Cancel in-progress deployments for the same environment
+concurrency:
+  group: deploy-backend-${{ github.ref }}
+  cancel-in-progress: false  # Don't cancel deployments mid-flight
 
 permissions:
   contents: write
+  actions: read  # Required to check CI status
 
 env:
   GCP_REGION: northamerica-northeast2
   IMAGE_NAME: ishkul-backend
 
 jobs:
+  # Check CI status before deploying (skip for tags or manual skip)
+  check-ci:
+    name: Verify CI Passed
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' &&
+      !startsWith(github.ref, 'refs/tags/') &&
+      github.event.inputs.skip_ci_check != 'true'
+    steps:
+      - name: Wait for CI to complete
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: 'CI Status'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+          allowed-conclusions: success,skipped
+
   setup:
     name: Setup
     runs-on: ubuntu-latest
+    needs: [check-ci]
+    if: always() && (needs.check-ci.result == 'success' || needs.check-ci.result == 'skipped')
     outputs:
       environment: ${{ steps.set-env.outputs.environment }}
       service_name: ${{ steps.set-env.outputs.service_name }}
       image_tag: ${{ steps.set-env.outputs.image_tag }}
+      previous_revision: ${{ steps.set-env.outputs.previous_revision }}
     steps:
       - name: Determine environment
         id: set-env
@@ -98,6 +134,27 @@ jobs:
 
       - name: Configure Docker
         run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+      - name: Get current revision for rollback
+        id: current-revision
+        run: |
+          SERVICE="${{ needs.setup.outputs.service_name }}"
+          # Get current serving revision (if service exists)
+          CURRENT_REVISION=$(gcloud run revisions list \
+            --service=${SERVICE} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --filter="status.conditions.type=Active AND status.conditions.status=True" \
+            --format="value(metadata.name)" \
+            --limit=1 2>/dev/null || echo "")
+
+          if [ -n "$CURRENT_REVISION" ]; then
+            echo "previous_revision=${CURRENT_REVISION}" >> $GITHUB_OUTPUT
+            echo "Current revision: ${CURRENT_REVISION}"
+          else
+            echo "previous_revision=" >> $GITHUB_OUTPUT
+            echo "No previous revision found (new service)"
+          fi
 
       - name: Build Docker image
         run: |
@@ -196,14 +253,72 @@ jobs:
           echo "service_url=${SERVICE_URL}" >> $GITHUB_OUTPUT
 
       - name: Verify deployment
+        id: health-check
         run: |
+          SERVICE_URL="${{ steps.deploy.outputs.service_url }}"
+          MAX_RETRIES=5
+          RETRY_DELAY=10
+
+          echo "Waiting for service to be ready..."
           sleep 5
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ steps.deploy.outputs.service_url }}/health" || echo "000")
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Health check attempt $i of $MAX_RETRIES..."
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${SERVICE_URL}/health" || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Health check passed!"
+              echo "health_status=success" >> $GITHUB_OUTPUT
+              exit 0
+            else
+              echo "Health check returned: $HTTP_CODE"
+              if [ $i -lt $MAX_RETRIES ]; then
+                echo "Retrying in ${RETRY_DELAY}s..."
+                sleep $RETRY_DELAY
+              fi
+            fi
+          done
+
+          echo "❌ Health check failed after $MAX_RETRIES attempts"
+          echo "health_status=failed" >> $GITHUB_OUTPUT
+          exit 1
+
+      - name: Rollback on failure
+        if: failure() && steps.current-revision.outputs.previous_revision != ''
+        run: |
+          SERVICE="${{ needs.setup.outputs.service_name }}"
+          PREVIOUS_REVISION="${{ steps.current-revision.outputs.previous_revision }}"
+
+          echo "⚠️ Deployment failed! Rolling back to ${PREVIOUS_REVISION}..."
+
+          gcloud run services update-traffic ${SERVICE} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --to-revisions=${PREVIOUS_REVISION}=100
+
+          echo "✅ Rollback complete. Traffic routed to ${PREVIOUS_REVISION}"
+
+          # Verify rollback
+          SERVICE_URL=$(gcloud run services describe ${SERVICE} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --format='value(status.url)')
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${SERVICE_URL}/health" || echo "000")
           if [ "$HTTP_CODE" = "200" ]; then
-            echo "Health check passed!"
+            echo "✅ Rollback verified - service is healthy"
           else
-            echo "Health check returned: $HTTP_CODE (may need warm-up)"
+            echo "⚠️ Rollback completed but health check returned: $HTTP_CODE"
           fi
+
+          echo "## ⚠️ Deployment Rolled Back" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The deployment failed health checks and was automatically rolled back." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Rolled back to** | ${PREVIOUS_REVISION} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Failed image** | ${{ needs.setup.outputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Deployment summary
         run: |

@@ -1,0 +1,38 @@
+name: 'Setup Newman'
+description: 'Install Newman API testing tool with caching'
+
+inputs:
+  with-reporters:
+    description: 'Install additional reporters (htmlextra)'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Cache npm global packages
+      uses: actions/cache@v4
+      id: newman-cache
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-newman-${{ inputs.with-reporters }}
+        restore-keys: |
+          ${{ runner.os }}-newman-
+
+    - name: Install Newman
+      shell: bash
+      run: |
+        if [ "${{ inputs.with-reporters }}" = "true" ]; then
+          npm install -g newman newman-reporter-htmlextra
+        else
+          npm install -g newman
+        fi
+
+    - name: Verify Newman installation
+      shell: bash
+      run: newman --version

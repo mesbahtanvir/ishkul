@@ -3,8 +3,18 @@ name: CI
 on:
   push:
     branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+      - '.github/actions/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+      - '.github/actions/**'
 
 # Cancel previous CI runs for the same ref (branch/PR)
 # For PRs: cancel in-progress when new commits are pushed
@@ -14,9 +24,34 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # Determine which jobs need to run based on changed files
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+
   frontend:
     name: Frontend CI
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
 
     steps:
       - name: Checkout code
@@ -71,6 +106,8 @@ jobs:
   backend:
     name: Backend CI (Go)
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
 
     steps:
       - name: Checkout code
@@ -128,8 +165,9 @@ jobs:
   backend-docker:
     name: Backend Docker Build (Validation Only)
     runs-on: ubuntu-latest
-    # Only run on PRs to validate Docker build without deploying
-    if: github.event_name == 'pull_request'
+    needs: changes
+    # Only run on PRs to validate Docker build without deploying, and only if backend changed
+    if: github.event_name == 'pull_request' && needs.changes.outputs.backend == 'true'
 
     steps:
       - name: Checkout code
@@ -177,3 +215,104 @@ jobs:
 
           # Kill the background process (it will exit anyway due to missing credentials)
           kill $CONTAINER_PID 2>/dev/null || true
+
+  # Security scanning job
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: changes
+    # Run security scan if either frontend or backend changed
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner (filesystem)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+        continue-on-error: true  # Don't block CI, but report issues
+
+      - name: Run Trivy (SARIF output for GitHub Security)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Summary job that always runs to report status
+  ci-status:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [changes, frontend, backend, backend-docker, security]
+    if: always()
+
+    steps:
+      - name: Check CI Status
+        run: |
+          echo "## CI Status Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check if jobs were skipped or failed
+          FRONTEND="${{ needs.frontend.result }}"
+          BACKEND="${{ needs.backend.result }}"
+          DOCKER="${{ needs.backend-docker.result }}"
+          SECURITY="${{ needs.security.result }}"
+
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$FRONTEND" == "success" ]; then
+            echo "| Frontend | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "$FRONTEND" == "skipped" ]; then
+            echo "| Frontend | ⏭️ Skipped (no changes) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Frontend | ❌ $FRONTEND |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "$BACKEND" == "success" ]; then
+            echo "| Backend | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "$BACKEND" == "skipped" ]; then
+            echo "| Backend | ⏭️ Skipped (no changes) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Backend | ❌ $BACKEND |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "$DOCKER" == "success" ]; then
+            echo "| Docker Build | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "$DOCKER" == "skipped" ]; then
+            echo "| Docker Build | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Docker Build | ❌ $DOCKER |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "$SECURITY" == "success" ]; then
+            echo "| Security Scan | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "$SECURITY" == "skipped" ]; then
+            echo "| Security Scan | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Security Scan | ⚠️ $SECURITY |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Fail if any required job failed
+          if [ "$FRONTEND" == "failure" ] || [ "$BACKEND" == "failure" ]; then
+            echo ""
+            echo "❌ CI failed - required jobs did not pass"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ CI completed successfully"
