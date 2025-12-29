@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/mesbahtanvir/ishkul/backend/internal/api"
 	"github.com/mesbahtanvir/ishkul/backend/internal/middleware"
 	"github.com/mesbahtanvir/ishkul/backend/internal/models"
 	"github.com/mesbahtanvir/ishkul/backend/pkg/firebase"
@@ -30,19 +29,19 @@ import (
 func getUserFromContext(w http.ResponseWriter, ctx context.Context, userID string) *models.User {
 	fs := firebase.GetFirestore()
 	if fs == nil {
-		api.WriteError(w, http.StatusInternalServerError, "Database not available")
+		http.Error(w, "Database not available", http.StatusInternalServerError)
 		return nil
 	}
 
 	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
 	if err != nil {
-		api.WriteError(w, http.StatusNotFound, "User not found")
+		http.Error(w, "User not found", http.StatusNotFound)
 		return nil
 	}
 
 	var user models.User
 	if err := userDoc.DataTo(&user); err != nil {
-		api.WriteError(w, http.StatusInternalServerError, "Error reading user data")
+		http.Error(w, "Error reading user data", http.StatusInternalServerError)
 		return nil
 	}
 
@@ -63,7 +62,7 @@ func getAuthenticatedUser(w http.ResponseWriter, r *http.Request) (context.Conte
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
 	if userID == "" {
-		api.WriteError(w, http.StatusUnauthorized, "Unauthorized")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return ctx, "", nil
 	}
 
@@ -85,7 +84,7 @@ func getAuthenticatedUser(w http.ResponseWriter, r *http.Request) (context.Conte
 //	}
 func requireMethod(w http.ResponseWriter, r *http.Request, method string) bool {
 	if r.Method != method {
-		api.WriteError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return false
 	}
 	return true

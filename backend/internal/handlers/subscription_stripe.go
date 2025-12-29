@@ -289,15 +289,18 @@ func CancelSubscription(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update user's subscription status in Firestore
-	_, err = Collection(fs, "users").Doc(userID).Update(ctx, []firestore.Update{
-		{Path: "subscriptionStatus", Value: models.SubscriptionStatusCanceled},
-		{Path: "updatedAt", Value: time.Now()},
-	})
-	if err != nil {
-		logWarn(ctx, "failed_to_update_subscription_status",
-			slog.String("user_id", userID),
-			slog.String("error", err.Error()),
-		)
+	fs := firebase.GetFirestore()
+	if fs != nil {
+		_, err = Collection(fs, "users").Doc(userID).Update(ctx, []firestore.Update{
+			{Path: "subscriptionStatus", Value: models.SubscriptionStatusCanceled},
+			{Path: "updatedAt", Value: time.Now()},
+		})
+		if err != nil {
+			logWarn(ctx, "failed_to_update_subscription_status",
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
+		}
 	}
 
 	logInfo(ctx, "subscription_canceled_by_user",
@@ -325,7 +328,7 @@ func CreatePortalSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _, user := getAuthenticatedUser(w, r)
+	ctx, userID, user := getAuthenticatedUser(w, r)
 	if user == nil {
 		return
 	}
