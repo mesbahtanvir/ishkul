@@ -280,3 +280,98 @@ func (c *Course) FindNextIncompleteLesson() (*Lesson, *Section, int, int) {
 
 	return nil, nil, -1, -1
 }
+
+// =============================================================================
+// Entity Finding Helpers (Clean Code: DRY principle)
+// =============================================================================
+
+// FindSection returns a section by ID, or nil if not found.
+func (c *Course) FindSection(sectionID string) *Section {
+	if c.Outline == nil {
+		return nil
+	}
+
+	for i := range c.Outline.Sections {
+		if c.Outline.Sections[i].ID == sectionID {
+			return &c.Outline.Sections[i]
+		}
+	}
+	return nil
+}
+
+// FindLessonInSection returns the section and lesson for given IDs.
+// Returns nil for both if either is not found.
+func (c *Course) FindLessonInSection(sectionID, lessonID string) (*Section, *Lesson) {
+	section := c.FindSection(sectionID)
+	if section == nil {
+		return nil, nil
+	}
+
+	for j := range section.Lessons {
+		if section.Lessons[j].ID == lessonID {
+			return section, &section.Lessons[j]
+		}
+	}
+	return section, nil
+}
+
+// FindBlock returns the section, lesson, and block for given IDs.
+// Returns nil for any entity not found.
+func (c *Course) FindBlock(sectionID, lessonID, blockID string) (*Section, *Lesson, *Block) {
+	section, lesson := c.FindLessonInSection(sectionID, lessonID)
+	if lesson == nil {
+		return section, nil, nil
+	}
+
+	for k := range lesson.Blocks {
+		if lesson.Blocks[k].ID == blockID {
+			return section, lesson, &lesson.Blocks[k]
+		}
+	}
+	return section, lesson, nil
+}
+
+// FindLessonIndices returns the section and lesson indices for given IDs.
+// Returns -1, -1 if not found.
+func (c *Course) FindLessonIndices(sectionID, lessonID string) (sectionIdx, lessonIdx int) {
+	if c.Outline == nil {
+		return -1, -1
+	}
+
+	for i := range c.Outline.Sections {
+		if c.Outline.Sections[i].ID == sectionID {
+			for j := range c.Outline.Sections[i].Lessons {
+				if c.Outline.Sections[i].Lessons[j].ID == lessonID {
+					return i, j
+				}
+			}
+			return i, -1
+		}
+	}
+	return -1, -1
+}
+
+// FindBlockIndices returns the section, lesson, and block indices for given IDs.
+// Returns -1 for any index not found.
+func (c *Course) FindBlockIndices(sectionID, lessonID, blockID string) (sectionIdx, lessonIdx, blockIdx int) {
+	if c.Outline == nil {
+		return -1, -1, -1
+	}
+
+	for i := range c.Outline.Sections {
+		if c.Outline.Sections[i].ID == sectionID {
+			for j := range c.Outline.Sections[i].Lessons {
+				if c.Outline.Sections[i].Lessons[j].ID == lessonID {
+					for k := range c.Outline.Sections[i].Lessons[j].Blocks {
+						if c.Outline.Sections[i].Lessons[j].Blocks[k].ID == blockID {
+							return i, j, k
+						}
+					}
+					return i, j, -1
+				}
+			}
+			return i, -1, -1
+		}
+	}
+	return -1, -1, -1
+}
