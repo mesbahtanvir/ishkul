@@ -224,6 +224,9 @@ jobs:
     needs: changes
     # Run security scan if either frontend or backend changed
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true'
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
@@ -249,7 +252,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
