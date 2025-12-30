@@ -2,7 +2,8 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
 import { User } from '../types/app';
-import { authApi } from './api';
+import { authApi, tokenStorage } from './api';
+import { signInWithFirebaseToken, signOutFromFirebase } from './firebase';
 
 // Required for Expo web browser
 WebBrowser.maybeCompleteAuthSession();
@@ -78,6 +79,25 @@ export const useGoogleAuth = () => {
 };
 
 /**
+ * Helper function to sign into Firebase with custom token after backend authentication
+ * This enables real-time Firestore subscriptions
+ */
+const signIntoFirebase = async (): Promise<void> => {
+  try {
+    const firebaseToken = tokenStorage.getFirebaseToken();
+    if (firebaseToken) {
+      await signInWithFirebaseToken(firebaseToken);
+      console.log('[Auth] Successfully signed into Firebase for real-time subscriptions');
+    } else {
+      console.warn('[Auth] No Firebase token available - real-time subscriptions may not work');
+    }
+  } catch (error) {
+    // Log error but don't fail the login - Firebase subscriptions are optional
+    console.error('[Auth] Failed to sign into Firebase:', error);
+  }
+};
+
+/**
  * Sign in with Google ID token
  * This sends the Google ID token to our backend which validates it
  * and returns session tokens
@@ -85,6 +105,10 @@ export const useGoogleAuth = () => {
 export const signInWithGoogleIdToken = async (idToken: string): Promise<User> => {
   try {
     const { user } = await authApi.loginWithGoogle(idToken);
+
+    // Sign into Firebase for real-time subscriptions
+    await signIntoFirebase();
+
     return user;
   } catch (error) {
     console.error('Error signing in with Google:', error);
@@ -98,6 +122,10 @@ export const signInWithGoogleIdToken = async (idToken: string): Promise<User> =>
 export const signInWithEmail = async (email: string, password: string): Promise<User> => {
   try {
     const { user } = await authApi.loginWithEmail(email, password);
+
+    // Sign into Firebase for real-time subscriptions
+    await signIntoFirebase();
+
     return user;
   } catch (error) {
     console.error('Error signing in with email:', error);
@@ -111,6 +139,10 @@ export const signInWithEmail = async (email: string, password: string): Promise<
 export const registerWithEmail = async (email: string, password: string, displayName: string): Promise<User> => {
   try {
     const { user } = await authApi.register(email, password, displayName);
+
+    // Sign into Firebase for real-time subscriptions
+    await signIntoFirebase();
+
     return user;
   } catch (error) {
     console.error('Error registering:', error);
@@ -123,7 +155,11 @@ export const registerWithEmail = async (email: string, password: string, display
  */
 export const signOut = async (): Promise<void> => {
   try {
+    // Sign out from backend (clears tokens)
     await authApi.logout();
+
+    // Sign out from Firebase
+    await signOutFromFirebase();
   } catch (error) {
     console.error('Error signing out:', error);
     throw error;
