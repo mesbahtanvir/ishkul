@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -157,8 +158,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	firebaseToken, err := generateFirebaseCustomToken(ctx, userID)
 	if err != nil {
 		// Log error but don't fail login - Firebase subscriptions are optional
-		// The frontend will fall back to polling if no token is available
+		log.Printf("[Auth] Warning: Failed to generate Firebase custom token for user %s: %v", userID, err)
 		firebaseToken = ""
+	} else if firebaseToken == "" {
+		log.Printf("[Auth] Warning: Firebase custom token is empty for user %s (Firebase Auth may not be initialized)", userID)
+	} else {
+		log.Printf("[Auth] Successfully generated Firebase custom token for user %s (length: %d)", userID, len(firebaseToken))
 	}
 
 	// Set HttpOnly cookies for web clients
@@ -263,7 +268,12 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	firebaseToken, err := generateFirebaseCustomToken(ctx, firebaseUser.UID)
 	if err != nil {
 		// Log error but don't fail registration - Firebase subscriptions are optional
+		log.Printf("[Auth] Warning: Failed to generate Firebase custom token for user %s: %v", firebaseUser.UID, err)
 		firebaseToken = ""
+	} else if firebaseToken == "" {
+		log.Printf("[Auth] Warning: Firebase custom token is empty for user %s (Firebase Auth may not be initialized)", firebaseUser.UID)
+	} else {
+		log.Printf("[Auth] Successfully generated Firebase custom token for user %s (length: %d)", firebaseUser.UID, len(firebaseToken))
 	}
 
 	// Set HttpOnly cookies for web clients
