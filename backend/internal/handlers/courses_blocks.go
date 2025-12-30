@@ -89,22 +89,8 @@ func GenerateBlockSkeletons(ctx context.Context, course *models.Course, sectionI
 		return nil, 0, fmt.Errorf("LLM not initialized")
 	}
 
-	// Find the section and lesson
-	var section *models.Section
-	var lesson *models.Lesson
-	for i := range course.Outline.Sections {
-		if course.Outline.Sections[i].ID == sectionID {
-			section = &course.Outline.Sections[i]
-			for j := range section.Lessons {
-				if section.Lessons[j].ID == lessonID {
-					lesson = &section.Lessons[j]
-					break
-				}
-			}
-			break
-		}
-	}
-
+	// Find the section and lesson using helper method
+	section, lesson := course.FindLessonInSection(sectionID, lessonID)
 	if section == nil || lesson == nil {
 		return nil, 0, fmt.Errorf("section or lesson not found: sectionID=%s, lessonID=%s", sectionID, lessonID)
 	}
@@ -214,29 +200,8 @@ func GenerateBlockContent(ctx context.Context, course *models.Course, sectionID,
 		return nil, 0, fmt.Errorf("LLM not initialized")
 	}
 
-	// Find the section, lesson, and block
-	var section *models.Section
-	var lesson *models.Lesson
-	var block *models.Block
-	for i := range course.Outline.Sections {
-		if course.Outline.Sections[i].ID == sectionID {
-			section = &course.Outline.Sections[i]
-			for j := range section.Lessons {
-				if section.Lessons[j].ID == lessonID {
-					lesson = &section.Lessons[j]
-					for k := range lesson.Blocks {
-						if lesson.Blocks[k].ID == blockID {
-							block = &lesson.Blocks[k]
-							break
-						}
-					}
-					break
-				}
-			}
-			break
-		}
-	}
-
+	// Find the section, lesson, and block using helper method
+	section, lesson, block := course.FindBlock(sectionID, lessonID, blockID)
 	if section == nil || lesson == nil || block == nil {
 		return nil, 0, fmt.Errorf("section, lesson, or block not found: sectionID=%s, lessonID=%s, blockID=%s", sectionID, lessonID, blockID)
 	}
@@ -380,42 +345,31 @@ func UpdateLessonBlocks(ctx context.Context, courseID, sectionID, lessonID strin
 		return fmt.Errorf("failed to parse course: %w", err)
 	}
 
-	// Find and update the lesson (capture old status for logging)
-	found := false
-	var oldStatus string
-	for i := range course.Outline.Sections {
-		if course.Outline.Sections[i].ID == sectionID {
-			for j := range course.Outline.Sections[i].Lessons {
-				if course.Outline.Sections[i].Lessons[j].ID == lessonID {
-					// Capture old status before updating
-					oldStatus = course.Outline.Sections[i].Lessons[j].BlocksStatus
-
-					// Validate and log blocksStatus transition
-					isValidTransition := ValidateBlocksStatusTransition(ctx, appLogger, courseID, lessonID, oldStatus, blocksStatus)
-
-					logInfo(ctx, "blocks_status_update",
-						slog.String("course_id", courseID),
-						slog.String("section_id", sectionID),
-						slog.String("lesson_id", lessonID),
-						slog.String("old_status", oldStatus),
-						slog.String("new_status", blocksStatus),
-						slog.Bool("valid_transition", isValidTransition),
-						slog.Int("blocks_count", len(blocks)),
-					)
-
-					course.Outline.Sections[i].Lessons[j].Blocks = blocks
-					course.Outline.Sections[i].Lessons[j].BlocksStatus = blocksStatus
-					found = true
-					break
-				}
-			}
-			break
-		}
-	}
-
-	if !found {
+	// Find the lesson using helper method
+	sectionIdx, lessonIdx := course.FindLessonIndices(sectionID, lessonID)
+	if sectionIdx == -1 || lessonIdx == -1 {
 		return fmt.Errorf("lesson not found: sectionID=%s, lessonID=%s", sectionID, lessonID)
 	}
+
+	// Capture old status before updating
+	oldStatus := course.Outline.Sections[sectionIdx].Lessons[lessonIdx].BlocksStatus
+
+	// Validate and log blocksStatus transition
+	isValidTransition := ValidateBlocksStatusTransition(ctx, appLogger, courseID, lessonID, oldStatus, blocksStatus)
+
+	logInfo(ctx, "blocks_status_update",
+		slog.String("course_id", courseID),
+		slog.String("section_id", sectionID),
+		slog.String("lesson_id", lessonID),
+		slog.String("old_status", oldStatus),
+		slog.String("new_status", blocksStatus),
+		slog.Bool("valid_transition", isValidTransition),
+		slog.Int("blocks_count", len(blocks)),
+	)
+
+	// Update the lesson
+	course.Outline.Sections[sectionIdx].Lessons[lessonIdx].Blocks = blocks
+	course.Outline.Sections[sectionIdx].Lessons[lessonIdx].BlocksStatus = blocksStatus
 
 	// Log write operation
 	firebase.LogWriteStart(ctx, appLogger, "update", "courses/"+courseID,
@@ -463,30 +417,15 @@ func UpdateBlockContent(ctx context.Context, courseID, sectionID, lessonID, bloc
 		return fmt.Errorf("failed to parse course: %w", err)
 	}
 
-	// Find and update the block
-	found := false
-	for i := range course.Outline.Sections {
-		if course.Outline.Sections[i].ID == sectionID {
-			for j := range course.Outline.Sections[i].Lessons {
-				if course.Outline.Sections[i].Lessons[j].ID == lessonID {
-					for k := range course.Outline.Sections[i].Lessons[j].Blocks {
-						if course.Outline.Sections[i].Lessons[j].Blocks[k].ID == blockID {
-							course.Outline.Sections[i].Lessons[j].Blocks[k].Content = content
-							course.Outline.Sections[i].Lessons[j].Blocks[k].ContentStatus = contentStatus
-							found = true
-							break
-						}
-					}
-					break
-				}
-			}
-			break
-		}
-	}
-
-	if !found {
+	// Find the block using helper method
+	sectionIdx, lessonIdx, blockIdx := course.FindBlockIndices(sectionID, lessonID, blockID)
+	if sectionIdx == -1 || lessonIdx == -1 || blockIdx == -1 {
 		return fmt.Errorf("block not found: sectionID=%s, lessonID=%s, blockID=%s", sectionID, lessonID, blockID)
 	}
+
+	// Update the block content
+	course.Outline.Sections[sectionIdx].Lessons[lessonIdx].Blocks[blockIdx].Content = content
+	course.Outline.Sections[sectionIdx].Lessons[lessonIdx].Blocks[blockIdx].ContentStatus = contentStatus
 
 	// Update the document
 	_, err = courseRef.Update(ctx, []firestore.Update{

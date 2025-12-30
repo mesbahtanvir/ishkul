@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUserStore } from '../state/userStore';
-import { signInWithGoogleIdToken, signInWithEmail, registerWithEmail, useGoogleAuth } from '../services/auth';
+import { signInWithGoogleIdToken, useGoogleAuth } from '../services/auth';
 import { userApi } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from '../theme/typography';
@@ -19,8 +19,15 @@ import { Spacing } from '../theme/spacing';
 import { useResponsive } from '../hooks/useResponsive';
 import { RootStackParamList } from '../types/navigation';
 import { ErrorBanner } from '../components/ErrorBanner';
-import { ApiError, ErrorCodes } from '../services/api';
 import { useScreenTracking, useAnalytics } from '../services/analytics';
+import { useEmailAuth } from '../hooks/useEmailAuth';
+import {
+  validateEmailOnBlur,
+  validatePasswordOnBlur,
+  validateLoginForm,
+  validateRegisterForm,
+  hasFormErrors,
+} from '../utils/validation';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -28,44 +35,36 @@ interface LoginScreenProps {
   navigation: LoginScreenNavigationProp;
 }
 
-type AuthMode = 'login' | 'register';
-
-// Email validation regex
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   useScreenTracking('Login', 'LoginScreen');
-  const { trackSignUp, trackLogin } = useAnalytics();
+  const { trackLogin } = useAnalytics();
   const { setUser, setUserDocument, setLoading } = useUserStore();
   const { request, response, promptAsync, configError } = useGoogleAuth();
   const { responsive, isSmallPhone } = useResponsive();
   const { colors } = useTheme();
 
-  const [authMode, setAuthMode] = useState<AuthMode>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  // Use the email auth hook for login/register logic
+  const {
+    authMode,
+    toggleAuthMode,
+    isSubmitting,
+    errors,
+    setFieldError,
+    setGeneralError,
+    handleAuth,
+  } = useEmailAuth(() => navigation.replace('Main'));
 
-  // Error states
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [nameError, setNameError] = useState<string | null>(null);
+  // Local form state
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [displayName, setDisplayName] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
 
   // Refs for input focus
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
 
-  // Clear errors when switching modes
-  useEffect(() => {
-    setErrorMessage(null);
-    setEmailError(null);
-    setPasswordError(null);
-    setNameError(null);
-  }, [authMode]);
-
+  // Handle Google sign-in response
   useEffect(() => {
     const handleAuthResponse = async () => {
       if (response?.type === 'success') {
@@ -74,21 +73,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           await handleSignInWithIdToken(idToken);
         } else {
           console.error('No ID token in response');
-          setErrorMessage('Unable to complete Google sign-in. Please try again.');
+          setGeneralError('Unable to complete Google sign-in. Please try again.');
         }
       } else if (response?.type === 'error') {
         console.error('Auth error:', response.error);
-        setErrorMessage('Google sign-in failed. Please try again.');
+        setGeneralError('Google sign-in failed. Please try again.');
       }
     };
 
     handleAuthResponse();
-  }, [response]);
+  }, [response, setGeneralError]);
 
   const handleSignInWithIdToken = async (idToken: string) => {
     try {
       setLoading(true);
-      setErrorMessage(null);
+      setGeneralError(null);
       const user = await signInWithGoogleIdToken(idToken);
       setUser(user);
 
@@ -101,11 +100,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       navigation.replace('Main');
     } catch (error) {
       console.error('Sign in error:', error);
-      if (error instanceof ApiError) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage('Unable to sign in. Please try again.');
-      }
+      setGeneralError('Unable to sign in. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -113,151 +108,59 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const handleGoogleSignIn = async () => {
     if (configError) {
-      setErrorMessage(configError);
+      setGeneralError(configError);
       return;
     }
 
-    setErrorMessage(null);
+    setGeneralError(null);
     if (request) {
       await promptAsync();
     }
   };
 
   // Validate email format on blur
-  const validateEmail = () => {
-    if (!email.trim()) {
-      setEmailError(null);
-      return false;
-    }
-    if (!EMAIL_REGEX.test(email.trim())) {
-      setEmailError('Please enter a valid email address');
-      return false;
-    }
-    setEmailError(null);
-    return true;
+  const handleEmailBlur = () => {
+    const result = validateEmailOnBlur(email);
+    setFieldError('email', result.error);
   };
 
   // Validate password on blur
-  const validatePassword = () => {
-    if (!password) {
-      setPasswordError(null);
-      return false;
-    }
-    if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
-      return false;
-    }
-    setPasswordError(null);
-    return true;
+  const handlePasswordBlur = () => {
+    const result = validatePasswordOnBlur(password);
+    setFieldError('password', result.error);
   };
 
   // Validate name on blur (only for register)
-  const validateName = () => {
-    if (authMode !== 'register') return true;
-    if (!displayName.trim()) {
-      setNameError(null);
-      return false;
-    }
-    setNameError(null);
-    return true;
+  const handleNameBlur = () => {
+    // For now, no specific validation on blur for name
   };
 
+  // Handle form submission
   const handleEmailAuth = async () => {
-    // Clear previous errors
-    setErrorMessage(null);
-    setEmailError(null);
-    setPasswordError(null);
-    setNameError(null);
+    // Validate all fields using centralized validation
+    const formErrors =
+      authMode === 'login'
+        ? validateLoginForm({ email, password })
+        : validateRegisterForm({ email, password, displayName });
 
-    // Validate all fields
-    let hasError = false;
-
-    if (!email.trim()) {
-      setEmailError('Email is required');
-      hasError = true;
-    } else if (!EMAIL_REGEX.test(email.trim())) {
-      setEmailError('Please enter a valid email address');
-      hasError = true;
+    // Set field errors
+    setFieldError('email', formErrors.email);
+    setFieldError('password', formErrors.password);
+    if (formErrors.displayName !== undefined) {
+      setFieldError('name', formErrors.displayName);
     }
 
-    if (!password) {
-      setPasswordError('Password is required');
-      hasError = true;
-    } else if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
-      hasError = true;
-    }
-
-    if (authMode === 'register' && !displayName.trim()) {
-      setNameError('Name is required');
-      hasError = true;
-    }
-
-    if (hasError) {
+    // Stop if there are validation errors
+    if (hasFormErrors(formErrors)) {
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      setLoading(true);
-
-      let user;
-      if (authMode === 'login') {
-        user = await signInWithEmail(email.trim(), password);
-        // Track email login
-        await trackLogin({ method: 'email' });
-      } else {
-        user = await registerWithEmail(email.trim(), password, displayName.trim());
-        // Track email signup
-        await trackSignUp({ method: 'email' });
-      }
-
-      setUser(user);
-      const userDoc = await userApi.getUserDocument();
-      setUserDocument(userDoc);
-
-      navigation.replace('Main');
-    } catch (error) {
-      console.error('Email auth error:', error);
-
-      if (error instanceof ApiError) {
-        // Handle specific error codes with field-specific errors
-        switch (error.code) {
-          case ErrorCodes.INVALID_EMAIL:
-            setEmailError(error.message);
-            break;
-          case ErrorCodes.WEAK_PASSWORD:
-            setPasswordError(error.message);
-            break;
-          case ErrorCodes.EMAIL_EXISTS:
-            // Show as banner with suggestion to sign in
-            setErrorMessage(error.message);
-            break;
-          case ErrorCodes.INVALID_CREDENTIALS:
-          case ErrorCodes.TOO_MANY_REQUESTS:
-          case ErrorCodes.NETWORK_ERROR:
-          default:
-            setErrorMessage(error.message);
-            break;
-        }
-      } else if (error instanceof Error) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage('Something went wrong. Please try again.');
-      }
-    } finally {
-      setIsSubmitting(false);
-      setLoading(false);
-    }
-  };
-
-  const toggleAuthMode = () => {
-    setAuthMode(authMode === 'login' ? 'register' : 'login');
-    // Don't clear the email/password - preserve user input
+    // Delegate to auth hook
+    await handleAuth(email, password, displayName);
   };
 
   const dismissError = () => {
-    setErrorMessage(null);
+    setGeneralError(null);
   };
 
   // Responsive values
@@ -291,7 +194,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
           {/* Error Banner */}
           <ErrorBanner
-            message={errorMessage}
+            message={errors.message}
             type="error"
             onDismiss={dismissError}
             showDismiss={true}
@@ -306,7 +209,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                     {
                       backgroundColor: colors.background.secondary,
                       color: colors.text.primary,
-                      borderColor: getInputBorderColor(!!nameError),
+                      borderColor: getInputBorderColor(!!errors.nameError),
                     }
                   ]}
                   placeholder="Full Name"
@@ -314,16 +217,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   value={displayName}
                   onChangeText={(text) => {
                     setDisplayName(text);
-                    if (nameError) setNameError(null);
+                    if (errors.nameError) setFieldError('name', null);
                   }}
-                  onBlur={validateName}
+                  onBlur={handleNameBlur}
                   autoCapitalize="words"
                   autoCorrect={false}
                   returnKeyType="next"
                   onSubmitEditing={() => emailInputRef.current?.focus()}
                 />
-                {nameError && (
-                  <Text style={[styles.fieldError, { color: colors.danger }]}>{nameError}</Text>
+                {errors.nameError && (
+                  <Text style={[styles.fieldError, { color: colors.danger }]}>{errors.nameError}</Text>
                 )}
               </View>
             )}
@@ -336,7 +239,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   {
                     backgroundColor: colors.background.secondary,
                     color: colors.text.primary,
-                    borderColor: getInputBorderColor(!!emailError),
+                    borderColor: getInputBorderColor(!!errors.emailError),
                   }
                 ]}
                 placeholder="Email"
@@ -344,9 +247,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 value={email}
                 onChangeText={(text) => {
                   setEmail(text);
-                  if (emailError) setEmailError(null);
+                  if (errors.emailError) setFieldError('email', null);
                 }}
-                onBlur={validateEmail}
+                onBlur={handleEmailBlur}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -354,8 +257,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 returnKeyType="next"
                 onSubmitEditing={() => passwordInputRef.current?.focus()}
               />
-              {emailError && (
-                <Text style={[styles.fieldError, { color: colors.danger }]}>{emailError}</Text>
+              {errors.emailError && (
+                <Text style={[styles.fieldError, { color: colors.danger }]}>{errors.emailError}</Text>
               )}
             </View>
 
@@ -369,7 +272,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                     {
                       backgroundColor: colors.background.secondary,
                       color: colors.text.primary,
-                      borderColor: getInputBorderColor(!!passwordError),
+                      borderColor: getInputBorderColor(!!errors.passwordError),
                     }
                   ]}
                   placeholder="Password"
@@ -377,9 +280,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
-                    if (passwordError) setPasswordError(null);
+                    if (errors.passwordError) setFieldError('password', null);
                   }}
-                  onBlur={validatePassword}
+                  onBlur={handlePasswordBlur}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoComplete="password"
@@ -396,8 +299,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              {passwordError && (
-                <Text style={[styles.fieldError, { color: colors.danger }]}>{passwordError}</Text>
+              {errors.passwordError && (
+                <Text style={[styles.fieldError, { color: colors.danger }]}>{errors.passwordError}</Text>
               )}
             </View>
 

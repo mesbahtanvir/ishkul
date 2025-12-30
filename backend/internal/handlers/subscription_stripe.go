@@ -14,18 +14,17 @@ import (
 	"github.com/stripe/stripe-go/v81"
 	portalsession "github.com/stripe/stripe-go/v81/billingportal/session"
 	checkoutsession "github.com/stripe/stripe-go/v81/checkout/session"
-	"github.com/stripe/stripe-go/v81/customer"
 	"github.com/stripe/stripe-go/v81/ephemeralkey"
 	"github.com/stripe/stripe-go/v81/subscription"
 )
 
 // CreateCheckoutSession creates a Stripe checkout session for subscription
 func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	if !requirePOST(w, r) {
 		return
 	}
 
+	// Check user ID first (before DB access for proper error ordering in tests)
 	ctx := r.Context()
 	userID := middleware.GetUserID(ctx)
 	if userID == "" {
@@ -33,6 +32,7 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse and validate request body before DB access
 	var req models.CheckoutSessionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -54,79 +54,31 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fs := firebase.GetFirestore()
-	if fs == nil {
-		http.Error(w, "Database not available", http.StatusInternalServerError)
-		return
-	}
-
-	// Get user data
-	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
-	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	var user models.User
-	if err := userDoc.DataTo(&user); err != nil {
-		http.Error(w, "Error reading user data", http.StatusInternalServerError)
+	// Now fetch user from database
+	user := getUserFromContext(w, ctx, userID)
+	if user == nil {
 		return
 	}
 
 	// Check if already Pro
-	if user.IsProUser() {
-		http.Error(w, "User already has an active Pro subscription", http.StatusBadRequest)
+	if err := validateNotProUser(user); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Get or create Stripe customer
-	stripeCustomerID := user.StripeCustomerID
-	if stripeCustomerID == "" {
-		// Validate email before creating Stripe customer
-		if user.Email == "" {
-			logError(ctx, "stripe_customer_creation_failed_no_email",
-				slog.String("user_id", userID),
-			)
-			http.Error(w, "User email is required for subscription", http.StatusBadRequest)
-			return
+	stripeCustomerID, err := getOrCreateStripeCustomer(ctx, user, userID)
+	if err != nil {
+		if custErr, ok := err.(*CustomerError); ok {
+			if custErr.Code == CustomerErrorEmailRequired {
+				http.Error(w, custErr.Message, http.StatusBadRequest)
+			} else {
+				http.Error(w, custErr.Message, http.StatusInternalServerError)
+			}
+		} else {
+			http.Error(w, "Failed to create customer", http.StatusInternalServerError)
 		}
-
-		// Create new Stripe customer
-		params := &stripe.CustomerParams{
-			Email: stripe.String(user.Email),
-			Metadata: map[string]string{
-				"user_id": userID,
-			},
-		}
-		// Only set name if available (it's optional for Stripe)
-		if user.DisplayName != "" {
-			params.Name = stripe.String(user.DisplayName)
-		}
-
-		c, err := customer.New(params)
-		if err != nil {
-			logError(ctx, "stripe_customer_creation_failed",
-				slog.String("user_id", userID),
-				slog.String("email", user.Email),
-				slog.String("error", err.Error()),
-			)
-			// Don't expose internal error details to client
-			http.Error(w, "Failed to create customer. Please try again.", http.StatusInternalServerError)
-			return
-		}
-		stripeCustomerID = c.ID
-
-		// Save customer ID to user
-		_, err = Collection(fs, "users").Doc(userID).Update(ctx, []firestore.Update{
-			{Path: "stripeCustomerId", Value: stripeCustomerID},
-			{Path: "updatedAt", Value: time.Now()},
-		})
-		if err != nil {
-			logWarn(ctx, "failed_to_save_stripe_customer_id",
-				slog.String("user_id", userID),
-				slog.String("error", err.Error()),
-			)
-		}
+		return
 	}
 
 	// Get price ID from environment
@@ -197,77 +149,34 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 
 // GetPaymentSheetParams returns the parameters needed for the native payment sheet
 func GetPaymentSheetParams(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	if !requirePOST(w, r) {
 		return
 	}
 
-	ctx := r.Context()
-	userID := middleware.GetUserID(ctx)
-	if userID == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	fs := firebase.GetFirestore()
-	if fs == nil {
-		http.Error(w, "Database not available", http.StatusInternalServerError)
-		return
-	}
-
-	// Get user data
-	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
-	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	var user models.User
-	if err := userDoc.DataTo(&user); err != nil {
-		http.Error(w, "Error reading user data", http.StatusInternalServerError)
+	ctx, userID, user := getAuthenticatedUser(w, r)
+	if user == nil {
 		return
 	}
 
 	// Check if already Pro
-	if user.IsProUser() {
-		http.Error(w, "User already has an active Pro subscription", http.StatusBadRequest)
+	if err := validateNotProUser(user); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Get or create Stripe customer
-	stripeCustomerID := user.StripeCustomerID
-	if stripeCustomerID == "" {
-		if user.Email == "" {
-			http.Error(w, "User email is required for subscription", http.StatusBadRequest)
-			return
-		}
-
-		params := &stripe.CustomerParams{
-			Email: stripe.String(user.Email),
-			Metadata: map[string]string{
-				"user_id": userID,
-			},
-		}
-		if user.DisplayName != "" {
-			params.Name = stripe.String(user.DisplayName)
-		}
-
-		c, err := customer.New(params)
-		if err != nil {
-			logError(ctx, "stripe_customer_creation_failed",
-				slog.String("user_id", userID),
-				slog.String("error", err.Error()),
-			)
+	stripeCustomerID, err := getOrCreateStripeCustomer(ctx, user, userID)
+	if err != nil {
+		if custErr, ok := err.(*CustomerError); ok {
+			if custErr.Code == CustomerErrorEmailRequired {
+				http.Error(w, custErr.Message, http.StatusBadRequest)
+			} else {
+				http.Error(w, custErr.Message, http.StatusInternalServerError)
+			}
+		} else {
 			http.Error(w, "Failed to create customer", http.StatusInternalServerError)
-			return
 		}
-		stripeCustomerID = c.ID
-
-		// Save customer ID to user
-		_, _ = Collection(fs, "users").Doc(userID).Update(ctx, []firestore.Update{
-			{Path: "stripeCustomerId", Value: stripeCustomerID},
-			{Path: "updatedAt", Value: time.Now()},
-		})
+		return
 	}
 
 	// Create ephemeral key for the customer
@@ -358,39 +267,18 @@ func GetPaymentSheetParams(w http.ResponseWriter, r *http.Request) {
 
 // CancelSubscription cancels the user's subscription at period end
 func CancelSubscription(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	if !requirePOST(w, r) {
 		return
 	}
 
-	ctx := r.Context()
-	userID := middleware.GetUserID(ctx)
-	if userID == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	ctx, userID, user := getAuthenticatedUser(w, r)
+	if user == nil {
 		return
 	}
 
-	fs := firebase.GetFirestore()
-	if fs == nil {
-		http.Error(w, "Database not available", http.StatusInternalServerError)
-		return
-	}
-
-	// Get user data
-	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
-	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	var user models.User
-	if err := userDoc.DataTo(&user); err != nil {
-		http.Error(w, "Error reading user data", http.StatusInternalServerError)
-		return
-	}
-
-	if user.StripeSubscriptionID == "" {
-		http.Error(w, "No active subscription found", http.StatusBadRequest)
+	// Validate user has an active subscription
+	if err := validateHasSubscription(user); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -411,15 +299,18 @@ func CancelSubscription(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update user's subscription status in Firestore
-	_, err = Collection(fs, "users").Doc(userID).Update(ctx, []firestore.Update{
-		{Path: "subscriptionStatus", Value: models.SubscriptionStatusCanceled},
-		{Path: "updatedAt", Value: time.Now()},
-	})
-	if err != nil {
-		logWarn(ctx, "failed_to_update_subscription_status",
-			slog.String("user_id", userID),
-			slog.String("error", err.Error()),
-		)
+	fs := firebase.GetFirestore()
+	if fs != nil {
+		_, err = Collection(fs, "users").Doc(userID).Update(ctx, []firestore.Update{
+			{Path: "subscriptionStatus", Value: models.SubscriptionStatusCanceled},
+			{Path: "updatedAt", Value: time.Now()},
+		})
+		if err != nil {
+			logWarn(ctx, "failed_to_update_subscription_status",
+				slog.String("user_id", userID),
+				slog.String("error", err.Error()),
+			)
+		}
 	}
 
 	logInfo(ctx, "subscription_canceled_by_user",
@@ -443,39 +334,18 @@ func CancelSubscription(w http.ResponseWriter, r *http.Request) {
 
 // CreatePortalSession creates a Stripe customer portal session
 func CreatePortalSession(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	if !requirePOST(w, r) {
 		return
 	}
 
-	ctx := r.Context()
-	userID := middleware.GetUserID(ctx)
-	if userID == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	ctx, userID, user := getAuthenticatedUser(w, r)
+	if user == nil {
 		return
 	}
 
-	fs := firebase.GetFirestore()
-	if fs == nil {
-		http.Error(w, "Database not available", http.StatusInternalServerError)
-		return
-	}
-
-	// Get user data
-	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
-	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	var user models.User
-	if err := userDoc.DataTo(&user); err != nil {
-		http.Error(w, "Error reading user data", http.StatusInternalServerError)
-		return
-	}
-
-	if user.StripeCustomerID == "" {
-		http.Error(w, "No subscription found", http.StatusBadRequest)
+	// Validate user has a Stripe customer
+	if err := validateHasStripeCustomer(user); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -524,8 +394,7 @@ func CreatePortalSession(w http.ResponseWriter, r *http.Request) {
 // This is the industry-standard approach to handle the race condition between
 // Stripe webhooks and user navigation after checkout completion.
 func VerifyCheckoutSession(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	if !requirePOST(w, r) {
 		return
 	}
 
