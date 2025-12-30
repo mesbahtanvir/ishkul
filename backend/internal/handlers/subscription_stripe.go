@@ -24,11 +24,15 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, userID, user := getAuthenticatedUser(w, r)
-	if user == nil {
+	// Check user ID first (before DB access for proper error ordering in tests)
+	ctx := r.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	// Parse and validate request body before DB access
 	var req models.CheckoutSessionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -47,6 +51,12 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 	}
 	if !isValidRedirectURL(req.CancelURL) {
 		http.Error(w, "Invalid cancelUrl: must be HTTPS and from an allowed domain", http.StatusBadRequest)
+		return
+	}
+
+	// Now fetch user from database
+	user := getUserFromContext(w, ctx, userID)
+	if user == nil {
 		return
 	}
 
