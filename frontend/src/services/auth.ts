@@ -83,17 +83,29 @@ export const useGoogleAuth = () => {
  * This enables real-time Firestore subscriptions
  */
 const signIntoFirebase = async (): Promise<void> => {
+  console.log('[Auth] signIntoFirebase called');
   try {
     const firebaseToken = tokenStorage.getFirebaseToken();
+    console.log('[Auth] Firebase token exists:', !!firebaseToken);
+    console.log('[Auth] Firebase token length:', firebaseToken?.length || 0);
+
     if (firebaseToken) {
+      console.log('[Auth] Attempting to sign into Firebase...');
       await signInWithFirebaseToken(firebaseToken);
-      console.log('[Auth] Successfully signed into Firebase for real-time subscriptions');
+      console.log('[Auth] ✅ Successfully signed into Firebase for real-time subscriptions');
     } else {
-      console.warn('[Auth] No Firebase token available - real-time subscriptions may not work');
+      console.warn('[Auth] ⚠️ No Firebase token available - real-time subscriptions may not work');
+      console.warn('[Auth] Token storage state:', tokenStorage);
     }
   } catch (error) {
     // Log error but don't fail the login - Firebase subscriptions are optional
-    console.error('[Auth] Failed to sign into Firebase:', error);
+    console.error('[Auth] ❌ Failed to sign into Firebase:', error);
+    if (error instanceof Error) {
+      console.error('[Auth] Error details:', {
+        message: error.message,
+        stack: error.stack,
+      });
+    }
   }
 };
 
@@ -104,7 +116,10 @@ const signIntoFirebase = async (): Promise<void> => {
  */
 export const signInWithGoogleIdToken = async (idToken: string): Promise<User> => {
   try {
-    const { user } = await authApi.loginWithGoogle(idToken);
+    console.log('[Auth] Logging in with Google...');
+    const { user, tokens } = await authApi.loginWithGoogle(idToken);
+    console.log('[Auth] Backend login successful');
+    console.log('[Auth] Received Firebase token from backend:', !!tokens.firebaseToken);
 
     // Sign into Firebase for real-time subscriptions
     await signIntoFirebase();
