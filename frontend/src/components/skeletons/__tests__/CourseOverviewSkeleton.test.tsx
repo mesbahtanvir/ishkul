@@ -2,19 +2,23 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { CourseOverviewSkeleton } from '../CourseOverviewSkeleton';
 
-// Mock dependencies
+// Mock dependencies - must match Card.test.tsx mocks
 jest.mock('../../../hooks/useTheme', () => ({
   useTheme: () => ({
     colors: {
+      background: {
+        primary: '#FFFFFF',
+        secondary: '#F5F5F5',
+      },
       gray100: '#F5F5F5',
       gray200: '#E0E0E0',
-      surface: '#FFFFFF',
       text: {
         primary: '#1A1A1A',
         secondary: '#6B7280',
       },
       border: '#E5E7EB',
     },
+    isDark: false,
   }),
 }));
 
@@ -22,6 +26,10 @@ jest.mock('../../../utils/animations', () => ({
   useShimmer: () => ({
     interpolate: jest.fn(() => 0.5),
   }),
+}));
+
+jest.mock('../../../theme/elevation', () => ({
+  getElevation: jest.fn(() => ({ shadowOpacity: 0.1 })),
 }));
 
 describe('CourseOverviewSkeleton', () => {
