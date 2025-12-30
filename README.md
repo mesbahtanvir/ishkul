@@ -32,7 +32,7 @@ ishkul/
 - **React Navigation** - Navigation (Tabs + Stack)
 
 ### Backend
-- **Go 1.21+** - High-performance backend
+- **Go 1.24+** - High-performance backend
 - **Firebase Admin SDK** - Server-side Firebase integration
 - **Firestore** - NoSQL database
 - **Firebase Storage** - File storage
@@ -41,7 +41,7 @@ ishkul/
 ## Prerequisites
 
 - Node.js 18+ and npm
-- Go 1.21+
+- Go 1.24+
 - Expo CLI
 - Firebase project with Billing enabled
 - Firebase CLI: `npm install -g firebase-tools`
@@ -125,7 +125,10 @@ ishkul/
 │   ├── go.mod
 │   └── .env.example
 │
-├── DEPLOYMENT.md                # Deployment guide
+├── docs/                        # Documentation
+│   ├── DEPLOY_GUIDE.md         # Deployment guide
+│   ├── DEVELOPMENT_SETUP.md    # Development setup
+│   └── ...                     # Other guides
 └── README.md                    # This file
 ```
 
@@ -218,41 +221,27 @@ npx expo start -c
 
 **Automated Deployment with GitHub Actions**
 
-Every push to `main` automatically deploys the entire application:
+The project uses multiple workflows for different deployment scenarios:
 
-- ✅ **Backend** → Google Cloud Run
-- ✅ **Frontend** → Firebase Hosting
-- ✅ **Database Rules** → Firestore
-- ✅ **Storage Rules** → Firebase Storage
+- ✅ **Backend** → Google Cloud Run (northamerica-northeast1)
+- ✅ **Frontend** → Vercel
+- ✅ **Firebase Rules** → Firestore & Storage rules
 
-**Quick Setup:**
+**Workflows:**
+- `ci.yml` - Runs on every push/PR (lint, test, type-check)
+- `deploy-backend.yml` - Backend deployment on push to main or release tags
+- `deploy-firebase.yml` - Firebase rules deployment
 
+**Production Release:**
 ```bash
-# Run the setup script
-./scripts/setup-github-actions.sh
-
-# Follow prompts and push to main
-git push origin main
-
-# Watch deployment in GitHub Actions tab!
-```
-
-**Manual Deployment (for testing):**
-
-```bash
-# Deploy everything locally
-npm run deploy
-
-# Or deploy individually
-npm run deploy:frontend
-npm run deploy:backend
-npm run deploy:firestore
-npm run deploy:storage
+# Create and push a release tag
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 **Learn More:**
-- [CI/CD Setup Guide](CICD_SETUP.md) - Complete GitHub Actions setup
-- [Deployment Guide](DEPLOY_GUIDE.md) - Manual deployment instructions
+- [CI/CD Setup Guide](docs/CICD_SETUP.md) - Complete GitHub Actions setup
+- [Deployment Guide](docs/DEPLOY_GUIDE.md) - Manual deployment instructions
 - [Workflow Documentation](.github/workflows/README.md) - Workflow details
 
 ## Backend API
@@ -279,16 +268,16 @@ Authorization: Bearer <firebase-id-token>
 ## Deployment
 
 See deployment documentation:
-- **[QUICK_START.md](QUICK_START.md)** - 5-minute quick start guide
-- **[DEPLOY_GUIDE.md](DEPLOY_GUIDE.md)** - Comprehensive deployment guide
-- **[CICD_SETUP.md](CICD_SETUP.md)** - Automated deployment with GitHub Actions
+- **[docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md)** - Comprehensive deployment guide
+- **[docs/BACKEND_DEPLOYMENT.md](docs/BACKEND_DEPLOYMENT.md)** - Backend deployment details
+- **[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** - Cloud Run management & monitoring
 
 **Quick Deploy:**
 
 ### Backend (Cloud Run)
 ```bash
 cd backend
-gcloud run deploy ishkul-backend --source .
+gcloud run deploy ishkul-backend --source . --region northamerica-northeast1
 ```
 
 ### Frontend (Vercel)
@@ -310,35 +299,32 @@ vercel --prod
 
 ## Documentation
 
-Complete documentation for the Ishkul platform:
+Complete documentation is available in the `docs/` directory:
 
 ### Getting Started
-- **[QUICK_START.md](QUICK_START.md)** - 5-minute quick start guide to deploy your app
-- **[README.md](README.md)** - This file - project overview and features
+- **[docs/DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md)** - Full development environment setup
+- **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ### Deployment
-- **[DEPLOY_GUIDE.md](DEPLOY_GUIDE.md)** - Comprehensive deployment guide
-- **[CICD_SETUP.md](CICD_SETUP.md)** - Automated deployment with GitHub Actions
-- **[.github/workflows/deploy.yml](.github/workflows/deploy.yml)** - Automated deployment workflow
+- **[docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md)** - Comprehensive deployment guide
+- **[docs/BACKEND_DEPLOYMENT.md](docs/BACKEND_DEPLOYMENT.md)** - Backend deployment details
+- **[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** - Cloud Run management & scaling
 
-### Firebase Configuration
-- **[firebase/README.md](firebase/README.md)** - Firebase configuration overview
-- **[firebase/SETUP.md](firebase/SETUP.md)** - Firebase setup instructions
-- **[firebase/config.ts](firebase/config.ts)** - Client configuration file
+### Testing
+- **[docs/TESTING.md](docs/TESTING.md)** - Testing guide (k6, Playwright, Maestro, Newman)
+- **[docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md)** - Manual API testing
 
-### Workflows & CI/CD
-- **[.github/workflows/README.md](.github/workflows/README.md)** - GitHub Actions workflow documentation
-- **[.github/workflows/deploy.yml](.github/workflows/deploy.yml)** - Main deployment workflow
-- **[.github/workflows/ci.yml](.github/workflows/ci.yml)** - Continuous integration checks
+### Firebase & Infrastructure
+- **[firebase/README.md](firebase/README.md)** - Firebase configuration
+- **[docs/GITHUB_ENVIRONMENTS_SETUP.md](docs/GITHUB_ENVIRONMENTS_SETUP.md)** - GitHub Environments
 
-### Scripts
-- **[scripts/setup-github-actions.sh](scripts/setup-github-actions.sh)** - Setup GitHub Actions
-- **[scripts/setup-secrets.sh](scripts/setup-secrets.sh)** - Configure Secret Manager
-- **[scripts/configure-firebase.sh](scripts/configure-firebase.sh)** - Firebase config helper
+### CI/CD & Workflows
+- **[.github/workflows/README.md](.github/workflows/README.md)** - GitHub Actions workflows
+- **[docs/ENV_SYNC_GUIDE.md](docs/ENV_SYNC_GUIDE.md)** - Environment variable syncing
 
-### Project Information
-- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Detailed project architecture and overview
-- **[LICENSE](LICENSE)** - MIT License
+### Other
+- **[docs/ROADMAP.md](docs/ROADMAP.md)** - Future features and enhancements
+- **[CLAUDE.md](CLAUDE.md)** - Claude Code development instructions
 
 ## License
 

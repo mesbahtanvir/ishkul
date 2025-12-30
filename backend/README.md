@@ -38,7 +38,7 @@ backend/
 
 ## Prerequisites
 
-- Go 1.21 or higher
+- Go 1.24 or higher
 - Firebase project with Firestore and Storage enabled
 - Firebase service account key
 

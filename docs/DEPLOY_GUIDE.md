@@ -309,13 +309,13 @@ git push origin main  # Triggers GitHub Actions deployment
 ```bash
 # Real-time logs
 gcloud run services logs read ishkul-backend \
-  --region us-central1 \
+  --region northamerica-northeast1 \
   --limit 50 \
   --follow
 
 # Error logs only
 gcloud run services logs read ishkul-backend \
-  --region us-central1 \
+  --region northamerica-northeast1 \
   --filter "severity>=ERROR"
 ```
 
@@ -374,7 +374,7 @@ gcloud services enable \
 ```bash
 # Add your custom domain to allowed origins
 gcloud run services update ishkul-backend \
-  --region us-central1 \
+  --region northamerica-northeast1 \
   --update-env-vars "ALLOWED_ORIGINS=https://yourdomain.com,https://YOUR_PROJECT.web.app"
 ```
 

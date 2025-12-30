@@ -5,7 +5,7 @@ This guide covers environment setup, local development configuration, and initia
 ## Prerequisites
 
 - Node.js 18+ (frontend)
-- Go 1.23+ (backend)
+- Go 1.24+ (backend)
 - Google Cloud SDK (gcloud CLI)
 - Firebase CLI
 - Docker (optional, for local backend testing)
@@ -39,7 +39,7 @@ EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id.apps.googleuserconte
 
 # Backend API URL
 # Local development: http://localhost:8080/api
-# Production: https://ishkul-backend-863006625304.europe-west1.run.app/api
+# Production: https://ishkul-backend-1086267507068.northamerica-northeast1.run.app/api
 EXPO_PUBLIC_API_URL=http://localhost:8080/api
 ```
 

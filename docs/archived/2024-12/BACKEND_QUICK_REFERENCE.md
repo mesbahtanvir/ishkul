@@ -137,7 +137,7 @@ GOOGLE_APPLICATION_CREDENTIALS=/app/serviceAccountKey.json  # Set in docker-comp
 - **Documentation:** See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions
 - **Docker Compose Guide:** See [DOCKER_COMPOSE_GUIDE.md](DOCKER_COMPOSE_GUIDE.md) for all features
 - **Project Readme:** See [../../README.md](../../README.md) for architecture overview
-- **Cloud Run Dashboard:** [Console](https://console.cloud.google.com/run/detail/europe-west1/ishkul-backend)
+- **Cloud Run Dashboard:** [Console](https://console.cloud.google.com/run/detail/northamerica-northeast1/ishkul-backend)
 - **Firebase Console:** [Console](https://console.firebase.google.com/project/ishkul-org)
 
 ---
@@ -161,7 +161,7 @@ docker-compose down
 git push origin main
 
 # Monitor production
-watch -n 5 'gcloud run services logs read ishkul-backend --region=europe-west1 --limit=20'
+watch -n 5 'gcloud run services logs read ishkul-backend --region=northamerica-northeast1 --limit=20'
 
 # List all service account keys
 gcloud iam service-accounts keys list --iam-account=firebase-adminsdk-fbsvc@ishkul-org.iam.gserviceaccount.com

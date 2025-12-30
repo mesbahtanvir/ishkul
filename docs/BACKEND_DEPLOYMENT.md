@@ -55,7 +55,7 @@ gcloud run deploy ishkul-backend --source .
 
 - Docker Desktop installed and running
 - `gcloud` CLI configured with ishkul-org project
-- Go 1.23 (optional, only needed for local testing without Docker)
+- Go 1.24 (optional, only needed for local testing without Docker)
 
 ### Step 1: Generate Service Account Key
 
@@ -191,10 +191,10 @@ git push origin main
 gcloud builds list --limit=5
 
 # Option B: Watch Cloud Run revisions
-gcloud run revisions list --service=ishkul-backend --region=europe-west1 --project=ishkul-org
+gcloud run revisions list --service=ishkul-backend --region=northamerica-northeast1 --project=ishkul-org
 
 # Option C: Check logs
-gcloud run services logs read ishkul-backend --region=europe-west1 --project=ishkul-org --limit=100
+gcloud run services logs read ishkul-backend --region=northamerica-northeast1 --project=ishkul-org --limit=100
 ```
 
 #### Method 2: Manual Deployment
@@ -207,7 +207,7 @@ cd backend
 # Deploy directly to Cloud Run
 gcloud run deploy ishkul-backend \
   --source . \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org
 ```
 
@@ -223,7 +223,7 @@ After deployment, if you need to update environment variables:
 # Or manually
 gcloud run services update ishkul-backend \
   --set-env-vars=FIREBASE_DATABASE_URL=value \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org
 ```
 
@@ -287,7 +287,7 @@ docker build -t test . && docker run test ls -la /app/serviceAccountKey.json
 docker-compose exec backend env | grep -E "FIREBASE|ENVIRONMENT|GOOGLE"
 
 # Production
-gcloud run services describe ishkul-backend --region=europe-west1 --project=ishkul-org
+gcloud run services describe ishkul-backend --region=northamerica-northeast1 --project=ishkul-org
 ```
 
 ---
