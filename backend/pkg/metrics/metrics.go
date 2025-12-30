@@ -173,8 +173,19 @@ func (h *Histogram) Summary() HistogramSummary {
 	copy(vals, h.recentVals[:numRecent])
 	sort.Slice(vals, func(i, j int) bool { return vals[i] < vals[j] })
 
-	p50 := vals[int(float64(numRecent)*0.50)]
-	p90 := vals[int(float64(numRecent)*0.90)]
+	// Calculate percentile indices with bounds checking
+	p50Idx := int(float64(numRecent) * 0.50)
+	if p50Idx >= int(numRecent) {
+		p50Idx = int(numRecent) - 1
+	}
+	p50 := vals[p50Idx]
+
+	p90Idx := int(float64(numRecent) * 0.90)
+	if p90Idx >= int(numRecent) {
+		p90Idx = int(numRecent) - 1
+	}
+	p90 := vals[p90Idx]
+
 	p99Idx := int(float64(numRecent) * 0.99)
 	if p99Idx >= int(numRecent) {
 		p99Idx = int(numRecent) - 1

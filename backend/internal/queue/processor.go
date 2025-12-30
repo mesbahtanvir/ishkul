@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -216,9 +217,19 @@ func (p *Processor) processNextTask(workerID int) {
 
 		// Check if it's a token limit error
 		if isTokenLimitError(processErr) {
-			_ = p.taskManager.PauseTaskForTokenLimit(ctx, task.ID)
+			if err := p.taskManager.PauseTaskForTokenLimit(ctx, task.ID); err != nil {
+				p.logError(ctx, "queue_pause_task_failed",
+					slog.String("task_id", task.ID),
+					slog.String("error", err.Error()),
+				)
+			}
 		} else {
-			_ = p.taskManager.FailTask(ctx, task.ID, processErr.Error())
+			if err := p.taskManager.FailTask(ctx, task.ID, processErr.Error()); err != nil {
+				p.logError(ctx, "queue_fail_task_failed",
+					slog.String("task_id", task.ID),
+					slog.String("error", err.Error()),
+				)
+			}
 		}
 		return
 	}
@@ -231,7 +242,12 @@ func (p *Processor) processNextTask(workerID int) {
 	)
 
 	// Mark task as completed
-	_ = p.taskManager.CompleteTask(ctx, task.ID)
+	if err := p.taskManager.CompleteTask(ctx, task.ID); err != nil {
+		p.logError(ctx, "queue_complete_task_failed",
+			slog.String("task_id", task.ID),
+			slog.String("error", err.Error()),
+		)
+	}
 }
 
 // recoveryWorker periodically checks for and recovers stale tasks
@@ -271,9 +287,10 @@ func (e *tokenLimitError) Error() string {
 }
 
 // isTokenLimitError checks if an error is a token limit error
+// Uses errors.As to properly unwrap wrapped errors
 func isTokenLimitError(err error) bool {
-	_, ok := err.(*tokenLimitError)
-	return ok
+	var tokenErr *tokenLimitError
+	return errors.As(err, &tokenErr)
 }
 
 // countLessons counts total lessons in an outline

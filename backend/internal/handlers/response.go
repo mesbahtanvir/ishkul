@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 )
 
@@ -10,7 +11,16 @@ func JSON(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if data != nil {
-		_ = json.NewEncoder(w).Encode(data)
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			// Log the error - we can't change status code after WriteHeader
+			// but we should be aware of serialization failures
+			if appLogger != nil {
+				appLogger.Error("json_encode_error",
+					slog.String("error", err.Error()),
+					slog.Int("status_code", statusCode),
+				)
+			}
+		}
 	}
 }
 
