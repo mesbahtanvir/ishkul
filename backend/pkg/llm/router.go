@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -73,14 +74,10 @@ func (r *LLMRouter) rebuildOrder() {
 		r.providerOrder = append(r.providerOrder, pt)
 	}
 
-	// Sort by priority (lower = first)
-	for i := 0; i < len(r.providerOrder)-1; i++ {
-		for j := i + 1; j < len(r.providerOrder); j++ {
-			if r.providers[r.providerOrder[j]].Priority < r.providers[r.providerOrder[i]].Priority {
-				r.providerOrder[i], r.providerOrder[j] = r.providerOrder[j], r.providerOrder[i]
-			}
-		}
-	}
+	// Sort by priority (lower = first) using efficient standard library sort
+	slices.SortFunc(r.providerOrder, func(a, b ProviderType) int {
+		return r.providers[a].Priority - r.providers[b].Priority
+	})
 }
 
 // SetStrategy sets the selection strategy
