@@ -204,7 +204,7 @@ git push origin main
 
 ### Cloud Run
 \`\`\`bash
-gcloud run services logs read ishkul-backend --region us-central1
+gcloud run services logs read ishkul-backend --region northamerica-northeast1
 \`\`\`
 
 ### Firebase
@@ -228,8 +228,8 @@ gcloud run services logs read ishkul-backend --region us-central1
 
 **Check:**
 \`\`\`bash
-gcloud run services describe ishkul-backend --region us-central1
-gcloud run services logs read ishkul-backend --region us-central1
+gcloud run services describe ishkul-backend --region northamerica-northeast1
+gcloud run services logs read ishkul-backend --region northamerica-northeast1
 \`\`\`
 
 ### Frontend Build Fails

@@ -8,14 +8,14 @@ This guide covers Cloud Run deployment, monitoring, scaling, and infrastructure 
 
 - **Service Name**: `ishkul-backend`
 - **Region**: `europe-west1`
-- **URL**: `https://ishkul-backend-863006625304.europe-west1.run.app`
+- **URL**: `https://ishkul-backend-1086267507068.northamerica-northeast1.run.app`
 - **Status**: Active ✅
 
 ### View Service Details
 
 ```bash
 gcloud run services describe ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org
 ```
 
@@ -33,7 +33,7 @@ Update specific variable:
 
 ```bash
 gcloud run services update ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org \
   --set-env-vars="KEY=value"
 ```
@@ -42,7 +42,7 @@ Update multiple variables:
 
 ```bash
 gcloud run services update ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org \
   --set-env-vars="KEY1=value1,KEY2=value2,KEY3=value3"
 ```
@@ -51,7 +51,7 @@ gcloud run services update ishkul-backend \
 
 ```bash
 gcloud run services describe ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --format='value(spec.template.spec.containers[0].env[].name)'
 ```
 
@@ -82,7 +82,7 @@ View current scaling:
 
 ```bash
 gcloud run services describe ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --format='value(spec.template.spec.containerConcurrency, spec.template.metadata.annotations.autoscaling)'
 ```
 
@@ -90,7 +90,7 @@ gcloud run services describe ishkul-backend \
 
 ```bash
 gcloud run services update ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --min-instances=0 \
   --max-instances=100 \
   --project=ishkul-org
@@ -102,7 +102,7 @@ View current:
 
 ```bash
 gcloud run services describe ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --format='value(spec.template.spec.containers[0].resources)'
 ```
 
@@ -110,7 +110,7 @@ Update CPU and memory:
 
 ```bash
 gcloud run services update ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --cpu=2 \
   --memory=512Mi \
   --project=ishkul-org
@@ -124,7 +124,7 @@ Real-time logs:
 
 ```bash
 gcloud run services logs read ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --follow
 ```
 
@@ -132,7 +132,7 @@ Last 100 logs:
 
 ```bash
 gcloud run services logs read ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --limit=100
 ```
 
@@ -140,7 +140,7 @@ Filter by severity:
 
 ```bash
 gcloud run services logs read ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --filter="severity=ERROR"
 ```
 
@@ -149,7 +149,7 @@ gcloud run services logs read ishkul-backend \
 View in Cloud Console:
 
 ```
-https://console.cloud.google.com/run/detail/europe-west1/ishkul-backend/metrics
+https://console.cloud.google.com/run/detail/northamerica-northeast1/ishkul-backend/metrics
 ```
 
 Key metrics:
@@ -180,7 +180,7 @@ Cloud Run automatically health checks the service. Ensure your backend responds:
 
 ```bash
 curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
-  https://ishkul-backend-863006625304.europe-west1.run.app/health
+  https://ishkul-backend-1086267507068.northamerica-northeast1.run.app/health
 ```
 
 Expected response:
@@ -193,7 +193,7 @@ Expected response:
 
 ```bash
 gcloud run services update ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --timeout=300 \
   --project=ishkul-org
 ```
@@ -205,7 +205,7 @@ gcloud run services update ishkul-backend \
 ```bash
 gcloud run revisions list \
   --service=ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org
 ```
 
@@ -213,7 +213,7 @@ gcloud run revisions list \
 
 ```bash
 gcloud run revisions describe ishkul-backend-REVISION_ID \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org
 ```
 
@@ -224,7 +224,7 @@ Route 10% to new revision, 90% to current:
 ```bash
 gcloud run services update-traffic ishkul-backend \
   --to-revisions=LATEST=10 \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org
 ```
 
@@ -233,7 +233,7 @@ Route 100% to specific revision:
 ```bash
 gcloud run services update-traffic ishkul-backend \
   --to-revisions=ishkul-backend-REVISION_ID=100 \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org
 ```
 
@@ -247,7 +247,7 @@ Deploy from current directory:
 cd backend
 gcloud run deploy ishkul-backend \
   --source=. \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org \
   --allow-unauthenticated
 ```
@@ -336,7 +336,7 @@ gcloud iam service-accounts add-iam-policy-binding \
    ```bash
    gcloud run services update ishkul-backend \
      --min-instances=0 \
-     --region=europe-west1
+     --region=northamerica-northeast1
    ```
 
 2. **Use lower memory** for non-production services (512Mi or less)
@@ -381,7 +381,7 @@ Redeploy service:
 ```bash
 cd backend && gcloud run deploy ishkul-backend \
   --source=. \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --project=ishkul-org
 ```
 

@@ -201,7 +201,7 @@ gcloud secrets versions list JWT_SECRET --project=ishkul-org
 ### Sync Failed
 ```bash
 # Check Cloud Run service exists
-gcloud run services describe ishkul-backend --region=europe-west1
+gcloud run services describe ishkul-backend --region=northamerica-northeast1
 
 # Check gcloud authentication
 gcloud auth list
@@ -230,7 +230,7 @@ No action needed - the old hardcoded checks were removed automatically.
 ```bash
 # View current Cloud Run env vars
 gcloud run services describe ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --format='value(spec.template.spec.containers[0].env)'
 
 # View secrets in Secret Manager
@@ -238,7 +238,7 @@ gcloud secrets list --project=ishkul-org
 
 # Update manually (if needed)
 gcloud run services update ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --set-env-vars="KEY=value"
 ```
 

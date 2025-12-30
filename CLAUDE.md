@@ -13,7 +13,7 @@ ishkul/
 │   ├── src/services/      # Firebase, auth, LLM services
 │   ├── src/state/         # Zustand stores
 │   └── src/types/         # TypeScript definitions
-├── backend/               # Go 1.23 service (Cloud Run)
+├── backend/               # Go 1.24 service (Cloud Run)
 │   ├── cmd/server/        # Entry point
 │   ├── internal/handlers/ # HTTP endpoints
 │   └── pkg/firebase/      # Firebase Admin SDK
@@ -253,13 +253,12 @@ For detailed information, see:
 
 ### Setup & Development
 - **[docs/DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md)** - Environment setup, .env files, OAuth
-- **[docs/BACKEND_DEPLOYMENT.md](docs/BACKEND_DEPLOYMENT.md)** - Complete backend deployment guide
-- **[docs/BACKEND_QUICK_REFERENCE.md](docs/BACKEND_QUICK_REFERENCE.md)** - Quick lookup for backend commands
-- **[docs/BACKEND_DOCKER.md](docs/BACKEND_DOCKER.md)** - Docker Compose local development
+- **[docs/BACKEND_DEPLOYMENT.md](docs/BACKEND_DEPLOYMENT.md)** - Complete backend deployment guide (includes Docker)
+- **[docs/GITHUB_ENVIRONMENTS_SETUP.md](docs/GITHUB_ENVIRONMENTS_SETUP.md)** - GitHub Environments configuration
 
 ### Infrastructure & Deployment
 - **[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** - Cloud Run management, scaling, monitoring
-- **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** - CI/CD, Vercel, Cloud Run, Firebase rules
+- **[docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md)** - CI/CD, Vercel, Cloud Run, Firebase rules
 - **[docs/PREVIEW_DEPLOYMENTS.md](docs/PREVIEW_DEPLOYMENTS.md)** - Backend preview environments on PRs
 - **[docs/ENV_SYNC_GUIDE.md](docs/ENV_SYNC_GUIDE.md)** - Dynamic environment variable syncing
 
@@ -274,7 +273,6 @@ For detailed information, see:
 ### Other
 - **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues, debug commands
 - **[docs/ROADMAP.md](docs/ROADMAP.md)** - Future features, enhancements
-- **[docs/PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Detailed architecture
 - **[docs/ANALYTICS.md](docs/ANALYTICS.md)** - Analytics strategy (WIP)
 - **[frontend/DESIGN_SYSTEM.md](frontend/DESIGN_SYSTEM.md)** - UI/UX design tokens
 

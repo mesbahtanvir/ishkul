@@ -92,7 +92,7 @@ After adding secrets:
 
 ```bash
 gcloud run services describe ishkul-backend \
-  --region=europe-west1 \
+  --region=northamerica-northeast1 \
   --format='value(spec.template.spec.containers[0].env)'
 ```
 

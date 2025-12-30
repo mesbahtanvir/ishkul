@@ -213,7 +213,7 @@ git push origin main                        # Staging
 # Node.js 20+ (frontend)
 brew install node@20
 
-# Go 1.23+ (backend)
+# Go 1.24+ (backend)
 brew install go
 
 # Google Cloud SDK
@@ -233,7 +233,7 @@ brew install --cask docker
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# Go 1.23+
+# Go 1.24+
 wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz
 echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
@@ -258,7 +258,7 @@ sudo apt-get install docker.io docker-compose
 # Node.js 20+
 winget install OpenJS.NodeJS.LTS
 
-# Go 1.23+
+# Go 1.24+
 winget install GoLang.Go
 
 # Google Cloud SDK
@@ -1758,7 +1758,7 @@ EXPO_PUBLIC_API_URL=https://api.yourdomain.com/api
 - [ ] Create Vercel account
 - [ ] Create OpenAI account
 - [ ] Install Node.js 20+
-- [ ] Install Go 1.23+
+- [ ] Install Go 1.24+
 - [ ] Install Google Cloud SDK
 - [ ] Install Firebase CLI
 

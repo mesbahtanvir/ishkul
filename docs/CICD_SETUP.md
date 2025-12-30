@@ -193,7 +193,7 @@ Set in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
 ```yaml
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: us-central1  # Change if needed
+  REGION: northamerica-northeast1  # Change if needed
 ```
 
 ### Customization
@@ -204,7 +204,7 @@ Edit `.github/workflows/deploy.yml`:
 
 ```yaml
 env:
-  REGION: europe-west1  # Change to your preferred region
+  REGION: northamerica-northeast1  # Change to your preferred region
 ```
 
 #### Add Environment Variables
@@ -240,13 +240,13 @@ on:
 
 ```bash
 # Backend status
-gcloud run services describe ishkul-backend --region us-central1
+gcloud run services describe ishkul-backend --region northamerica-northeast1
 
 # Frontend status
 firebase hosting:channel:list
 
 # View logs
-gcloud run services logs read ishkul-backend --region us-central1 --limit 50
+gcloud run services logs read ishkul-backend --region northamerica-northeast1 --limit 50
 ```
 
 ### Deployment Notifications
