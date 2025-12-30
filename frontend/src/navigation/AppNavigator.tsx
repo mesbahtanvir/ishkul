@@ -9,6 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '../state/userStore';
 import { useCoursesStore } from '../state/coursesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
+
+// Hooks
+import { useResponsive } from '../hooks/useResponsive';
 import { checkAuthState, initializeAuth } from '../services/auth';
 import { userApi } from '../services/api';
 import { tokenStorage } from '../services/api/tokenStorage';
@@ -178,19 +181,22 @@ const SettingsStack = () => {
 
 // Main Tab Navigator
 const MainTabs = () => {
+  const { isSmallPhone } = useResponsive();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#007AFF',
         tabBarInactiveTintColor: '#8E8E93',
+        tabBarShowLabel: !isSmallPhone,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#E5E5EA',
           paddingTop: 8,
-          paddingBottom: 8,
-          height: 60,
+          paddingBottom: isSmallPhone ? 12 : 8,
+          height: isSmallPhone ? 56 : 60,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -202,6 +208,7 @@ const MainTabs = () => {
         name="Learn"
         component={LearnStack}
         options={{
+          tabBarLabel: 'Learn',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="school-outline" size={size} color={color} />
           ),
@@ -211,6 +218,7 @@ const MainTabs = () => {
         name="Progress"
         component={ProgressScreen}
         options={{
+          tabBarLabel: 'Progress',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart-outline" size={size} color={color} />
           ),
@@ -220,6 +228,7 @@ const MainTabs = () => {
         name="Context"
         component={ContextScreen}
         options={{
+          tabBarLabel: 'Context',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="clipboard-outline" size={size} color={color} />
           ),
@@ -379,7 +388,22 @@ export const AppNavigator: React.FC = () => {
   return (
     <>
       <PastDueBanner />
-      <NavigationContainer linking={linking}>
+      <NavigationContainer
+        linking={linking}
+        documentTitle={{
+          enabled: Platform.OS === 'web',
+          formatter: (options, route) => {
+            // Use explicit title if set, otherwise format route name
+            const title = options?.title ?? route?.name;
+            if (!title) {
+              return 'Ishkul';
+            }
+            // Convert CamelCase to readable format (e.g., "GoalSelection" -> "Goal Selection")
+            const formatted = title.replace(/([A-Z])/g, ' $1').trim();
+            return `${formatted} | Ishkul`;
+          },
+        }}
+      >
         <RootNavigator tokensInitialized={tokensInitialized} />
         <UpgradeModal />
       </NavigationContainer>
