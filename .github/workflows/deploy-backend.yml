@@ -61,6 +61,8 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
           allowed-conclusions: success,skipped
+          # Ignore this workflow itself to avoid circular dependency
+          ignore-checks: 'Verify CI Passed,Deploy Backend'
 
   setup:
     name: Setup
