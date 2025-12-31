@@ -11,7 +11,7 @@
  * All course data comes from Firebase real-time subscriptions.
  */
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LearningLayout } from '../components/LearningLayout';
@@ -61,6 +61,23 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
     activeCourse.outlineStatus !== OutlineStatuses.READY &&
     activeCourse.outlineStatus !== OutlineStatuses.FAILED;
 
+  // Determine if this is a new course that should auto-start first lesson
+  // This is used to skip showing CourseOverview and go directly to LessonContent
+  const shouldAutoStart = useMemo(() => {
+    // Don't auto-start if lesson was specified in route params
+    if (initialLessonId) return false;
+    // Don't auto-start if already showing a lesson
+    if (activeLesson) return false;
+    // Don't auto-start if course/outline not ready
+    if (!activeCourse?.outline?.sections?.length) return false;
+    // Check if course has 0% progress (no completed or in-progress lessons)
+    const allLessons = activeCourse.outline.sections.flatMap((s) => s.lessons);
+    const hasProgress = allLessons.some(
+      (l) => l.status === 'completed' || l.status === 'in_progress'
+    );
+    return !hasProgress;
+  }, [activeCourse, activeLesson, initialLessonId]);
+
   // Use Firebase subscription for real-time course data
   // Always enabled - this is the only source of course data
   const { connectionError } = useCourseSubscription(courseId, {
@@ -79,34 +96,22 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
   }, [connectionError]);
 
   // Auto-start first lesson for courses with 0% progress (frictionless flow)
-  // Only triggers when coming from Home without a specific lesson selected
+  // Triggers immediately when shouldAutoStart becomes true to avoid CourseOverview flash
   useEffect(() => {
-    // Skip if already showing a lesson or if lesson was specified in route
-    if (activeLesson || initialLessonId) return;
-    // Skip if course not loaded yet
-    if (!activeCourse?.outline?.sections) return;
+    if (!shouldAutoStart) return;
+    if (!activeCourse?.outline?.sections?.length) return;
 
-    // Check if course has 0% progress (no completed lessons)
-    const allLessons = activeCourse.outline.sections.flatMap((s) => s.lessons);
-    const hasProgress = allLessons.some((l) => l.status === 'completed' || l.status === 'in_progress');
-
-    // Auto-start first lesson only for brand new courses
-    if (!hasProgress) {
-      const firstSection = activeCourse.outline.sections[0];
-      if (firstSection?.lessons?.length > 0) {
-        const firstLesson = firstSection.lessons[0];
-        // Small delay for smooth transition
-        const timer = setTimeout(() => {
-          setActiveLesson({
-            lessonId: firstLesson.id,
-            sectionId: firstSection.id,
-            lesson: firstLesson,
-          });
-        }, 100);
-        return () => clearTimeout(timer);
-      }
+    const firstSection = activeCourse.outline.sections[0];
+    if (firstSection?.lessons?.length > 0) {
+      const firstLesson = firstSection.lessons[0];
+      // Set immediately - no delay to prevent CourseOverview flash
+      setActiveLesson({
+        lessonId: firstLesson.id,
+        sectionId: firstSection.id,
+        lesson: firstLesson,
+      });
     }
-  }, [activeCourse, activeLesson, initialLessonId]);
+  }, [shouldAutoStart, activeCourse]);
 
   // Handle lesson selection from overview or sidebar
   const handleLessonSelect = useCallback((lesson: Lesson, sectionId: string) => {
@@ -222,6 +227,22 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
             <Button title="Go Back" onPress={() => navigation.goBack()} variant="outline" />
           </View>
         </Card>
+      </LearningLayout>
+    );
+  }
+
+  // Transitioning to first lesson - show loading state instead of CourseOverview flash
+  // This happens when outline just became ready and we're about to auto-start
+  if (shouldAutoStart && !activeLesson) {
+    return (
+      <LearningLayout
+        courseId={courseId}
+        currentPosition={currentPosition}
+        title={courseTitle || 'Starting Your Course'}
+        isGenerating={true}
+        courseTitle={courseTitle}
+      >
+        <GeneratingContent courseTitle={courseTitle} />
       </LearningLayout>
     );
   }

@@ -1,19 +1,18 @@
 /**
- * LessonBlockCard - Modern block wrapper with status-based styling
+ * LessonBlockCard - Clean, immersive block wrapper
  *
- * Renders a block with visual states:
- * - completed: subtle success indicator, clean checkmark
- * - active: gradient accent, prominent shadow
- * - upcoming: dimmed, minimal preview
+ * Minimal design focused on content:
+ * - No borders or status badges
+ * - Full-width content
+ * - Subtle visual distinction between states
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Block } from '../../types/app';
 import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
-import { Card } from '../Card';
 import { BlockRenderer } from './BlockRenderer';
 import { BlockStatus } from './ScrollableLessonBlocks';
 
@@ -40,189 +39,72 @@ export const LessonBlockCard: React.FC<LessonBlockCardProps> = ({
   const isInteractive = status === 'active';
   const isLocked = status === 'upcoming';
 
-  // Card styling based on status
-  const getCardStyle = (): ViewStyle => {
-    const baseStyle: ViewStyle = {
-      ...styles.card,
-    };
-
-    switch (status) {
-      case 'completed':
-        return {
-          ...baseStyle,
-          borderColor: colors.success + '40',
-          borderWidth: 1,
-        };
-      case 'active':
-        return {
-          ...baseStyle,
-          borderColor: colors.primary,
-          borderWidth: 2,
-          ...Platform.select({
-            web: {
-              boxShadow: `0 8px 32px ${colors.primary}20, 0 2px 8px rgba(0,0,0,0.08)`,
-            },
-            default: {
-              shadowColor: colors.primary,
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.2,
-              shadowRadius: 24,
-              elevation: 12,
-            },
-          }),
-        };
-      case 'upcoming':
-        return {
-          ...baseStyle,
-          borderColor: colors.border,
-          borderWidth: 1,
-          opacity: 0.6,
-        };
-      default:
-        return baseStyle;
-    }
-  };
-
-  // For upcoming blocks, show a locked preview (shouldn't happen with new summary card)
+  // For upcoming blocks, show a minimal locked preview
   if (isLocked && block.contentStatus === 'ready') {
     return (
-      <Card elevation="sm" padding="md" style={getCardStyle()}>
+      <View style={[styles.blockContainer, styles.lockedContainer]}>
         <View style={styles.lockedContent}>
-          <Text style={styles.lockedIcon}>🔒</Text>
-          <Text style={[styles.lockedTitle, { color: colors.text.secondary }]}>
+          <Text style={[styles.lockedTitle, { color: colors.text.tertiary }]}>
             {block.title ||
-              `${block.type.charAt(0).toUpperCase() + block.type.slice(1)} Block`}
-          </Text>
-          <Text style={[styles.lockedHint, { color: colors.text.tertiary }]}>
-            Complete previous blocks to unlock
+              `${block.type.charAt(0).toUpperCase() + block.type.slice(1)}`}
           </Text>
         </View>
-      </Card>
+      </View>
     );
   }
 
   return (
-    <View style={styles.cardContainer}>
-      {/* Active indicator bar */}
-      {status === 'active' && (
-        <View
-          style={[styles.activeIndicator, { backgroundColor: colors.primary }]}
+    <View
+      style={[
+        styles.blockContainer,
+        status === 'completed' && styles.completedContainer,
+      ]}
+    >
+      {/* Clean block content - no borders, no status badges */}
+      <View style={styles.contentWrapper}>
+        <BlockRenderer
+          block={block}
+          onAnswer={isInteractive ? onAnswer : undefined}
+          onComplete={isInteractive ? onComplete : undefined}
+          onGenerateContent={onGenerateContent}
+          isActive={isInteractive}
+          showHeader={true}
+          isGenerating={isGenerating}
         />
-      )}
+      </View>
 
-      {/* Completed indicator bar */}
+      {/* Subtle completed checkmark - bottom right */}
       {status === 'completed' && (
-        <View
-          style={[
-            styles.completedIndicator,
-            { backgroundColor: colors.success },
-          ]}
-        />
+        <View style={[styles.completedCheck, { backgroundColor: colors.success }]}>
+          <Text style={styles.checkIcon}>✓</Text>
+        </View>
       )}
-
-      <Card
-        elevation={status === 'active' ? 'lg' : 'sm'}
-        padding="lg"
-        style={getCardStyle()}
-      >
-        {/* Status header */}
-        <View style={styles.statusHeader}>
-          {status === 'completed' && (
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: colors.success + '15' },
-              ]}
-            >
-              <View
-                style={[
-                  styles.checkCircle,
-                  { backgroundColor: colors.success },
-                ]}
-              >
-                <Text style={styles.checkIcon}>✓</Text>
-              </View>
-              <Text style={[styles.statusText, { color: colors.success }]}>
-                Completed
-              </Text>
-            </View>
-          )}
-          {status === 'active' && (
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: colors.primary + '15' },
-              ]}
-            >
-              <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />
-              <Text style={[styles.statusText, { color: colors.primary }]}>
-                In Progress
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Block content */}
-        <View style={status === 'completed' ? styles.completedContent : undefined}>
-          <BlockRenderer
-            block={block}
-            onAnswer={isInteractive ? onAnswer : undefined}
-            onComplete={isInteractive ? onComplete : undefined}
-            onGenerateContent={onGenerateContent}
-            isActive={isInteractive}
-            showHeader={true}
-            isGenerating={isGenerating}
-          />
-        </View>
-      </Card>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  cardContainer: {
+  // Clean block container
+  blockContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
     position: 'relative',
   },
-  card: {
-    position: 'relative',
-    overflow: 'hidden',
-    borderRadius: Spacing.borderRadius.xl,
+  completedContainer: {
+    opacity: 0.7,
   },
-  activeIndicator: {
+  contentWrapper: {
+    // Full width content
+  },
+
+  // Subtle completed indicator
+  completedCheck: {
     position: 'absolute',
-    left: 0,
-    top: 16,
-    bottom: 16,
-    width: 4,
-    borderRadius: 2,
-    zIndex: 10,
-  },
-  completedIndicator: {
-    position: 'absolute',
-    left: 0,
-    top: 16,
-    bottom: 16,
-    width: 4,
-    borderRadius: 2,
-    zIndex: 10,
-    opacity: 0.5,
-  },
-  statusHeader: {
-    marginBottom: Spacing.md,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm + 4,
-    paddingVertical: Spacing.xs + 2,
-    borderRadius: Spacing.borderRadius.full,
-    gap: Spacing.xs,
-  },
-  checkCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    bottom: Spacing.md,
+    right: Spacing.lg,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -231,33 +113,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  activeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    ...Typography.label.small,
-    fontWeight: '600',
-  },
-  completedContent: {
-    opacity: 0.85,
+
+  // Locked state
+  lockedContainer: {
+    opacity: 0.4,
   },
   lockedContent: {
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
-  },
-  lockedIcon: {
-    fontSize: 32,
-    marginBottom: Spacing.sm,
-    opacity: 0.4,
+    paddingVertical: Spacing.lg,
   },
   lockedTitle: {
-    ...Typography.body.medium,
-    fontWeight: '600',
-    marginBottom: Spacing.xs,
-  },
-  lockedHint: {
     ...Typography.body.small,
   },
 });

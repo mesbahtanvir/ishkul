@@ -1,25 +1,29 @@
 /**
- * ScrollableLessonBlocks - Scrollable stacked cards lesson view
+ * ScrollableLessonBlocks - Clean, immersive lesson view
  *
- * Renders all lesson blocks in a scrollable list with:
- * - Completed blocks: checkmark badge, slightly faded
- * - Active block: highlighted border/shadow
- * - Upcoming blocks: dimmed/locked preview
- * - Auto-scroll to active block on navigation
+ * Minimal design with:
+ * - Full-width content blocks
+ * - Subtle down arrow for navigation
+ * - Smooth auto-scroll between blocks
+ * - Summary card for upcoming blocks
  */
 
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   ScrollView,
+  Text,
   StyleSheet,
   LayoutChangeEvent,
   Platform,
+  TouchableOpacity,
+  Animated,
 } from 'react-native';
 import { Block } from '../../types/app';
 import { Spacing } from '../../theme/spacing';
 import { LessonBlockCard } from './LessonBlockCard';
 import { UpcomingSummaryCard } from './UpcomingSummaryCard';
+import { useTheme } from '../../hooks/useTheme';
 
 export type BlockStatus = 'completed' | 'active' | 'upcoming';
 
@@ -62,10 +66,34 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
   generatingBlockId,
   onContinue,
 }) => {
+  const { colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
   const blockPositions = useRef<Map<number, number>>(new Map());
   const isUserScrolling = useRef(false);
   const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Animated value for arrow bounce
+  const arrowBounce = useRef(new Animated.Value(0)).current;
+
+  // Start arrow bounce animation
+  useEffect(() => {
+    const bounce = Animated.loop(
+      Animated.sequence([
+        Animated.timing(arrowBounce, {
+          toValue: 6,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(arrowBounce, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    bounce.start();
+    return () => bounce.stop();
+  }, [arrowBounce]);
 
   /**
    * Track block positions for auto-scroll
@@ -154,12 +182,15 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
     return { visibleBlocks: visible, upcomingBlocks: upcoming };
   }, [blocks, currentBlockIndex, completedBlockIds]);
 
+  // Check if there are more blocks after current
+  const hasMoreBlocks = currentBlockIndex < blocks.length - 1 || upcomingBlocks.length > 0;
+
   return (
     <ScrollView
       ref={scrollViewRef}
       style={styles.scrollView}
       contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={true}
+      showsVerticalScrollIndicator={false}
       onScrollBeginDrag={handleScrollBegin}
       onMomentumScrollEnd={handleScrollEnd}
       onScrollEndDrag={handleScrollEnd}
@@ -167,7 +198,7 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
       keyboardShouldPersistTaps="handled"
     >
       {/* Render completed and active blocks */}
-      {visibleBlocks.map(({ block, index }, arrayIndex) => {
+      {visibleBlocks.map(({ block, index }) => {
         const status = getBlockStatus(
           index,
           currentBlockIndex,
@@ -175,7 +206,7 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
           block.id
         );
         const isGenerating = generatingBlockId === block.id;
-        const isLastVisible = arrayIndex === visibleBlocks.length - 1;
+        const isActive = status === 'active';
 
         return (
           <View
@@ -199,16 +230,25 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
                   : undefined
               }
             />
-            {/* Modern connector between blocks */}
-            {(!isLastVisible || upcomingBlocks.length > 0) && (
-              <View style={styles.connector}>
-                <View
+
+            {/* Down arrow for active block - tap to continue */}
+            {isActive && hasMoreBlocks && (
+              <TouchableOpacity
+                style={styles.arrowContainer}
+                onPress={handleBlockComplete}
+                activeOpacity={0.7}
+              >
+                <Animated.View
                   style={[
-                    styles.connectorLine,
-                    status === 'completed' && styles.connectorLineCompleted,
+                    styles.arrowWrapper,
+                    { transform: [{ translateY: arrowBounce }] },
                   ]}
-                />
-              </View>
+                >
+                  <Text style={[styles.arrowIcon, { color: colors.text.tertiary }]}>
+                    ↓
+                  </Text>
+                </Animated.View>
+              </TouchableOpacity>
             )}
           </View>
         );
@@ -216,7 +256,7 @@ export const ScrollableLessonBlocks: React.FC<ScrollableLessonBlocksProps> = ({
 
       {/* Render summary card for upcoming blocks */}
       {upcomingBlocks.length > 0 && (
-        <View style={styles.blockWrapper}>
+        <View style={styles.upcomingWrapper}>
           <UpcomingSummaryCard blocks={upcomingBlocks} />
         </View>
       )}
@@ -232,28 +272,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingTop: Spacing.sm,
-    paddingHorizontal: Platform.OS === 'web' ? 0 : Spacing.sm,
+    paddingTop: Spacing.md,
+    paddingHorizontal: Platform.OS === 'web' ? 0 : 0,
   },
   blockWrapper: {
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
-  connector: {
+  upcomingWrapper: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+  },
+
+  // Down arrow navigation
+  arrowContainer: {
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    marginLeft: 2, // Align with left indicator bar
+    paddingVertical: Spacing.lg,
   },
-  connectorLine: {
-    width: 2,
-    height: 24,
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    borderRadius: 1,
+  arrowWrapper: {
+    padding: Spacing.sm,
   },
-  connectorLineCompleted: {
-    backgroundColor: 'rgba(16, 185, 129, 0.4)',
+  arrowIcon: {
+    fontSize: 24,
+    fontWeight: '300',
   },
+
   bottomPadding: {
-    height: 100, // Extra space at bottom for comfortable scrolling
+    height: 120, // Extra space at bottom for comfortable scrolling
   },
 });
 

@@ -1,13 +1,17 @@
 /**
  * LessonContent - Lesson content display
  * Shown when a lesson is active
+ *
+ * Clean, immersive design with:
+ * - Minimal header with dot progress indicator
+ * - Full-width content area
+ * - Smooth transitions between blocks
  */
 
 import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { ProgressBar } from '../../components/ProgressBar';
 import { ScrollableLessonBlocks } from '../../components/blocks';
 import { useLesson } from '../../hooks/useLesson';
 import { useTheme } from '../../hooks/useTheme';
@@ -67,8 +71,8 @@ export const LessonContent: React.FC<LessonContentProps> = ({
     }
   }, [isLessonComplete, lesson, finishLesson, onLessonComplete]);
 
-  // Progress percentage
-  const progress = totalBlocks > 0 ? (completedBlocksCount / totalBlocks) * 100 : 0;
+  // Progress - used for dot indicator
+  const progressDots = Array.from({ length: totalBlocks }, (_, i) => i < completedBlocksCount);
 
   // Get completed block IDs from local progress
   const { localProgress } = useLessonStore();
@@ -158,22 +162,37 @@ export const LessonContent: React.FC<LessonContentProps> = ({
 
   return (
     <View style={styles.lessonContent}>
-      {/* Compact Lesson Header */}
-      <View style={[styles.compactHeader, { backgroundColor: colors.background.secondary }]}>
+      {/* Clean Minimal Header */}
+      <View style={styles.cleanHeader}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Text style={[styles.backButtonText, { color: colors.primary }]}>←</Text>
+            <Text style={[styles.backArrow, { color: colors.text.secondary }]}>←</Text>
           </TouchableOpacity>
-          <Text style={[styles.compactTitle, { color: colors.text.primary }]} numberOfLines={1}>
+          <Text style={[styles.lessonTitle, { color: colors.text.primary }]} numberOfLines={1}>
             {lesson.title}
           </Text>
-          <View style={styles.headerRight}>
-            <Text style={[styles.blockCounter, { color: colors.text.secondary }]}>
-              {completedBlocksCount}/{totalBlocks}
-            </Text>
-          </View>
         </View>
-        <ProgressBar progress={progress} height={4} />
+        <View style={styles.progressRow}>
+          {/* Dot Progress Indicator */}
+          <View style={styles.dotProgress}>
+            {progressDots.map((isCompleted, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  isCompleted
+                    ? { backgroundColor: colors.primary }
+                    : index === completedBlocksCount
+                    ? { backgroundColor: colors.primary, opacity: 0.4 }
+                    : { backgroundColor: colors.border },
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={[styles.blockCounter, { color: colors.text.tertiary }]}>
+            {completedBlocksCount} of {totalBlocks}
+          </Text>
+        </View>
       </View>
 
       {/* Scrollable Lesson Blocks */}
@@ -308,40 +327,46 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
 
-  // Lesson Header
-  compactHeader: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Spacing.borderRadius.md,
-    marginBottom: Spacing.sm,
+  // Clean Header
+  cleanHeader: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
   },
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   backButton: {
-    paddingRight: Spacing.sm,
-  },
-  backButtonText: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  compactTitle: {
-    ...Typography.body.medium,
-    fontWeight: '600',
-    flex: 1,
     marginRight: Spacing.sm,
+    padding: Spacing.xs,
   },
-  headerRight: {
+  backArrow: {
+    fontSize: 18,
+    fontWeight: '400',
+  },
+  lessonTitle: {
+    ...Typography.heading.h3,
+    flex: 1,
+  },
+  progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    justifyContent: 'space-between',
+  },
+  dotProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   blockCounter: {
     ...Typography.label.small,
-    fontWeight: '600',
   },
 
   // Empty block states
