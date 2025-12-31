@@ -73,9 +73,10 @@ type RefreshRequest struct {
 
 // RefreshResponse represents the refresh response
 type RefreshResponse struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	ExpiresIn    int64  `json:"expiresIn"`
+	AccessToken   string `json:"accessToken"`
+	RefreshToken  string `json:"refreshToken"`
+	FirebaseToken string `json:"firebaseToken"` // Firebase custom token for real-time subscriptions
+	ExpiresIn     int64  `json:"expiresIn"`
 }
 
 // LogoutRequest represents the logout request body
@@ -341,14 +342,37 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract userID from the refresh token for Firebase custom token generation
+	claims, err := auth.ValidateRefreshToken(req.RefreshToken)
+	if err != nil {
+		// This shouldn't happen since we already validated above, but handle gracefully
+		log.Printf("[Auth] Warning: Failed to extract claims from refresh token: %v", err)
+	}
+
+	// Generate Firebase custom token for real-time subscriptions
+	var firebaseToken string
+	if claims != nil {
+		firebaseToken, err = generateFirebaseCustomToken(ctx, claims.UserID)
+		if err != nil {
+			// Log error but don't fail refresh - Firebase subscriptions are optional
+			log.Printf("[Auth] Warning: Failed to generate Firebase custom token for user %s: %v", claims.UserID, err)
+			firebaseToken = ""
+		} else if firebaseToken == "" {
+			log.Printf("[Auth] Warning: Firebase custom token is empty for user %s (Firebase Auth may not be initialized)", claims.UserID)
+		} else {
+			log.Printf("[Auth] Successfully generated Firebase custom token for user %s (length: %d)", claims.UserID, len(firebaseToken))
+		}
+	}
+
 	// Set HttpOnly cookies for web clients
 	middleware.SetAccessTokenCookie(w, tokenPair.AccessToken, auth.AccessTokenExpiry)
 	middleware.SetRefreshTokenCookie(w, tokenPair.RefreshToken, auth.RefreshTokenExpiry)
 
 	response := RefreshResponse{
-		AccessToken:  tokenPair.AccessToken,
-		RefreshToken: tokenPair.RefreshToken,
-		ExpiresIn:    tokenPair.ExpiresIn,
+		AccessToken:   tokenPair.AccessToken,
+		RefreshToken:  tokenPair.RefreshToken,
+		FirebaseToken: firebaseToken,
+		ExpiresIn:     tokenPair.ExpiresIn,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
