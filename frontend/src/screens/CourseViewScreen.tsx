@@ -12,11 +12,12 @@
  */
 
 import React, { useEffect, useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LearningLayout } from '../components/LearningLayout';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { CourseOverviewSkeleton } from '../components/skeletons';
 import { useTheme } from '../hooks/useTheme';
 import { useCoursesStore } from '../state/coursesStore';
 import { useCourseSubscription } from '../hooks/useCourseSubscription';
@@ -164,17 +165,12 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
       }
     : undefined;
 
-  // Loading state - show while waiting for Firebase subscription to provide data
+  // Loading state - show skeleton while waiting for Firebase subscription to provide data
   const isLoading = !activeCourse || activeCourse.id !== courseId;
   if (isLoading && !error) {
     return (
       <LearningLayout courseId={courseId} currentPosition={currentPosition} title="Loading...">
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.text.secondary }]}>
-            Loading course...
-          </Text>
-        </View>
+        <CourseOverviewSkeleton sectionCount={3} />
       </LearningLayout>
     );
   }
@@ -260,19 +256,6 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
 };
 
 const styles = StyleSheet.create({
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.xl,
-  },
-
-  // Loading
-  loadingText: {
-    ...Typography.body.medium,
-    marginTop: Spacing.md,
-  },
-
   // Error
   errorContainer: {
     alignItems: 'center',
