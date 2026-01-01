@@ -27,6 +27,10 @@ export interface LessonContentProps {
   initialLesson?: Lesson;
   onLessonComplete: (nextPosition: LessonPosition | null) => void;
   onBack: () => void;
+  /** When true, outline is still being generated - show placeholder state */
+  isOutlineGenerating?: boolean;
+  /** Course title to display when outline is generating */
+  courseTitle?: string;
 }
 
 export const LessonContent: React.FC<LessonContentProps> = ({
@@ -36,8 +40,43 @@ export const LessonContent: React.FC<LessonContentProps> = ({
   initialLesson,
   onLessonComplete,
   onBack,
+  isOutlineGenerating = false,
+  courseTitle,
 }) => {
   const { colors } = useTheme();
+
+  // If outline is still generating, show a placeholder generating state
+  // This maintains the lesson content layout structure with a generating message
+  if (isOutlineGenerating) {
+    return (
+      <View style={styles.lessonContent}>
+        {/* Clean Minimal Header - placeholder version */}
+        <View style={styles.cleanHeader}>
+          <View style={styles.headerTopRow}>
+            <Text style={[styles.lessonTitle, { color: colors.text.primary }]} numberOfLines={1}>
+              {courseTitle || 'Creating Your Course'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Generating content placeholder */}
+        <View style={styles.generatingOutlineContainer}>
+          <Text style={styles.generatingEmoji}>🧠</Text>
+          <Text style={[styles.generatingTitle, { color: colors.text.primary }]}>
+            Designing Your Learning Path
+          </Text>
+          <Text style={[styles.generatingText, { color: colors.text.secondary }]}>
+            Creating personalized course outline...
+          </Text>
+          <View style={styles.generatingDotsRow}>
+            <View style={[styles.generatingDot, { backgroundColor: colors.primary }]} />
+            <View style={[styles.generatingDot, styles.generatingDotDelay1, { backgroundColor: colors.primary }]} />
+            <View style={[styles.generatingDot, styles.generatingDotDelay2, { backgroundColor: colors.primary }]} />
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   const {
     lesson,
@@ -117,18 +156,57 @@ export const LessonContent: React.FC<LessonContentProps> = ({
     );
   }
 
-  // Generating blocks state
+  // Generating blocks state - show lesson layout with blurred content area
+  // This maintains the SPA feel with sidebar showing real outline while main content is blurred
   if (isGeneratingBlocks) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.generatingEmoji}>🧠</Text>
-        <Text style={[styles.generatingTitle, { color: colors.text.primary }]}>
-          Preparing Your Lesson
-        </Text>
-        <Text style={[styles.generatingText, { color: colors.text.secondary }]}>
-          Creating personalized content blocks...
-        </Text>
-        <ActivityIndicator size="large" color={colors.primary} style={styles.generatingLoader} />
+      <View style={styles.lessonContent}>
+        {/* Clean Minimal Header - shows lesson title */}
+        <View style={styles.cleanHeader}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={onBack} style={styles.backButton}>
+              <Text style={[styles.backArrow, { color: colors.text.secondary }]}>←</Text>
+            </TouchableOpacity>
+            <Text style={[styles.lessonTitle, { color: colors.text.primary }]} numberOfLines={1}>
+              {lesson?.title || 'Loading...'}
+            </Text>
+          </View>
+          {/* Skeleton progress row */}
+          <View style={styles.progressRow}>
+            <View style={styles.dotProgress}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <View
+                  key={i}
+                  style={[styles.dot, { backgroundColor: colors.border }]}
+                />
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Blurred content area with generating message */}
+        <View style={styles.blocksGeneratingContainer}>
+          {/* Skeleton content blocks */}
+          <View style={styles.skeletonBlocks}>
+            <View style={[styles.skeletonBlock, { backgroundColor: colors.border, opacity: 0.6 }]} />
+            <View style={[styles.skeletonBlock, { backgroundColor: colors.border, opacity: 0.4 }]} />
+            <View style={[styles.skeletonBlock, { backgroundColor: colors.border, opacity: 0.2 }]} />
+          </View>
+
+          {/* Blur overlay with generating message */}
+          <View style={styles.blurOverlay}>
+            <View style={[styles.generatingCard, { backgroundColor: colors.background.primary }]}>
+              <Text style={styles.generatingEmoji}>🧠</Text>
+              <Text style={[styles.generatingTitle, { color: colors.text.primary }]}>
+                Preparing Your Lesson
+              </Text>
+              <Text style={[styles.generatingText, { color: colors.text.secondary }]}>
+                Creating personalized content blocks...
+              </Text>
+              <ActivityIndicator size="large" color={colors.primary} style={styles.generatingLoader} />
+            </View>
+          </View>
+        </View>
       </View>
     );
   }
@@ -302,6 +380,67 @@ const styles = StyleSheet.create({
   },
   generatingLoader: {
     marginTop: Spacing.md,
+  },
+
+  // Generating outline state - when course outline is being created
+  generatingOutlineContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  generatingDotsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  generatingDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    opacity: 0.6,
+  },
+  generatingDotDelay1: {
+    opacity: 0.4,
+  },
+  generatingDotDelay2: {
+    opacity: 0.2,
+  },
+
+  // Blocks generating state - blurred content area
+  blocksGeneratingContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  skeletonBlocks: {
+    flex: 1,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  skeletonBlock: {
+    height: 120,
+    borderRadius: Spacing.borderRadius.md,
+  },
+  blurOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  generatingCard: {
+    padding: Spacing.xl,
+    borderRadius: Spacing.borderRadius.lg,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    maxWidth: 320,
   },
 
   // Error
