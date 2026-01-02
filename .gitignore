@@ -30,11 +30,13 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files (deprecated - use firebase.config.ts instead)
+# local env files
 .env
 .env*.local
 frontend/.env
 frontend/.env.local
+frontend/.env.staging
+frontend/.env.production
 backend/.env
 backend/.env.staging
 backend/.env.production

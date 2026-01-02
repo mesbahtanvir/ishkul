@@ -1,14 +1,17 @@
 /**
  * Firebase Configuration
  *
- * This file contains the Firebase configuration for the Ishkul app.
- * These values are safe to commit to version control as they are public-facing
- * identifiers used by the Firebase SDK.
+ * All Firebase configuration values MUST be provided via environment variables.
+ * No hardcoded values - this ensures proper separation between environments.
  *
- * Security is handled by:
- * - Firestore Security Rules
- * - Storage Security Rules
- * - Firebase App Check (recommended for production)
+ * Required environment variables:
+ * - EXPO_PUBLIC_FIREBASE_API_KEY
+ * - EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+ * - EXPO_PUBLIC_FIREBASE_PROJECT_ID
+ * - EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+ * - EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+ * - EXPO_PUBLIC_FIREBASE_APP_ID
+ * - EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID (optional)
  *
  * To get these values:
  * 1. Go to Firebase Console: https://console.firebase.google.com
@@ -18,36 +21,50 @@
  * 5. Select your web app or create one
  * 6. Copy the config values
  *
- * For staging environment, set these environment variables:
- * - EXPO_PUBLIC_FIREBASE_API_KEY
- * - EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
- * - EXPO_PUBLIC_FIREBASE_PROJECT_ID
- * - EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
- * - EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
- * - EXPO_PUBLIC_FIREBASE_APP_ID
- * - EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
+ * Security is handled by:
+ * - Firestore Security Rules
+ * - Storage Security Rules
+ * - Firebase App Check (recommended for production)
  */
 
-// Production Firebase config (default)
-const productionFirebaseConfig = {
-  apiKey: "AIzaSyDC-AtXHpF7jZ1iLIpsvhM6zzGF8WCPHFM",
-  authDomain: "ishkul-org.firebaseapp.com",
-  projectId: "ishkul-org",
-  storageBucket: "ishkul-org.firebasestorage.app",
-  messagingSenderId: "863006625304",
-  appId: "1:863006625304:web:6eb43a45a230bc5bf27d6d",
-  measurementId: "G-RP26X5QB33"
+// Validate required Firebase environment variables
+const requiredFirebaseVars = [
+  'EXPO_PUBLIC_FIREBASE_API_KEY',
+  'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
+  'EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+  'EXPO_PUBLIC_FIREBASE_APP_ID',
+] as const;
+
+const missingVars = requiredFirebaseVars.filter(
+  (varName) => !process.env[varName]
+);
+
+if (missingVars.length > 0) {
+  console.error(
+    `[Firebase Config] Missing required environment variables:\n` +
+    missingVars.map((v) => `  - ${v}`).join('\n') +
+    `\n\nPlease set these in your .env.local file or deployment environment.`
+  );
+}
+
+// Get Firebase config from environment variables (required)
+export const firebaseConfig = {
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
 };
 
-// Get Firebase config from environment variables (for staging) or use production defaults
-export const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || productionFirebaseConfig.apiKey,
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || productionFirebaseConfig.authDomain,
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || productionFirebaseConfig.projectId,
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || productionFirebaseConfig.storageBucket,
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || productionFirebaseConfig.messagingSenderId,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || productionFirebaseConfig.appId,
-  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || productionFirebaseConfig.measurementId
+/**
+ * Check if Firebase is properly configured
+ */
+export const isFirebaseConfigured = (): boolean => {
+  return missingVars.length === 0;
 };
 
 /**

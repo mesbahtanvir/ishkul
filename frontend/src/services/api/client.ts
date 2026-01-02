@@ -1,5 +1,6 @@
 import { apiConfig } from '../../config/firebase.config';
 import { tokenStorage } from './tokenStorage';
+import { signInWithFirebaseToken } from '../firebase/auth';
 
 export class ApiError extends Error {
   status: number;
@@ -66,8 +67,21 @@ class ApiClient {
       await tokenStorage.saveTokens({
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
+        firebaseToken: data.firebaseToken, // Include Firebase token from refresh
         expiresIn: data.expiresIn,
       });
+
+      // Re-authenticate with Firebase after token refresh
+      if (data.firebaseToken) {
+        try {
+          await signInWithFirebaseToken(data.firebaseToken);
+          console.log('[ApiClient] ✅ Re-authenticated with Firebase after token refresh');
+        } catch (firebaseError) {
+          console.error('[ApiClient] ❌ Failed to re-authenticate with Firebase:', firebaseError);
+          // Continue anyway - API calls will still work
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Error refreshing tokens:', error);

@@ -15,6 +15,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { checkAuthState, initializeAuth } from '../services/auth';
 import { userApi } from '../services/api';
 import { tokenStorage } from '../services/api/tokenStorage';
+import { signInWithFirebaseToken } from '../services/firebase/auth';
 
 // Types
 import { RootStackParamList } from '../types/navigation';
@@ -336,6 +337,22 @@ export const AppNavigator: React.FC = () => {
           setUser(validatedUser);
           // Clear cache when user logs in to ensure fresh data from Firebase subscription
           useCoursesStore.getState().clearAllCache();
+
+          // Sign into Firebase for real-time subscriptions
+          // This is critical for app restart/refresh scenarios
+          const firebaseToken = tokenStorage.getFirebaseToken();
+          if (firebaseToken) {
+            try {
+              await signInWithFirebaseToken(firebaseToken);
+              console.log('[AppNavigator] ✅ Signed into Firebase for real-time subscriptions');
+            } catch (firebaseError) {
+              console.error('[AppNavigator] ❌ Failed to sign into Firebase:', firebaseError);
+              // Continue anyway - user can still use the app, just without real-time updates
+            }
+          } else {
+            console.warn('[AppNavigator] ⚠️ No Firebase token available for real-time subscriptions');
+          }
+
           try {
             // Fetch user document - courses will be loaded via Firebase subscription
             const userDoc = await userApi.getUserDocument();
