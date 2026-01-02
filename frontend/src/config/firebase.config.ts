@@ -27,6 +27,15 @@
  * - Firebase App Check (recommended for production)
  */
 
+// Debug: Log environment detection at build time
+if (typeof window !== 'undefined') {
+  console.log('[Firebase Config] Environment check:', {
+    hasApiKey: !!process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+    hasProjectId: !!process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    nodeEnv: process.env.NODE_ENV,
+  });
+}
+
 // Validate required Firebase environment variables
 const requiredFirebaseVars = [
   'EXPO_PUBLIC_FIREBASE_API_KEY',
