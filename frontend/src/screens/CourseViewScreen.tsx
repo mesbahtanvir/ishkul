@@ -30,7 +30,7 @@ import {
   OutlineStatuses,
   getCourseTitle,
 } from '../types/app';
-import { GeneratingContent, CourseOverview, LessonContent } from './CourseView';
+import { LessonContent } from './CourseView';
 
 type CourseViewScreenProps = NativeStackScreenProps<RootStackParamList, 'CourseView'>;
 
@@ -61,21 +61,16 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
     activeCourse.outlineStatus !== OutlineStatuses.READY &&
     activeCourse.outlineStatus !== OutlineStatuses.FAILED;
 
-  // Determine if this is a new course that should auto-start first lesson
-  // This is used to skip showing CourseOverview and go directly to LessonContent
-  const shouldAutoStart = useMemo(() => {
-    // Don't auto-start if lesson was specified in route params
+  // Always auto-select first lesson when outline is ready (SPA philosophy - no CourseOverview)
+  // This ensures we always show the LessonContent layout
+  const shouldAutoSelectFirstLesson = useMemo(() => {
+    // Don't auto-select if lesson was specified in route params
     if (initialLessonId) return false;
-    // Don't auto-start if already showing a lesson
+    // Don't auto-select if already showing a lesson
     if (activeLesson) return false;
-    // Don't auto-start if course/outline not ready
+    // Can only auto-select if outline is ready with sections
     if (!activeCourse?.outline?.sections?.length) return false;
-    // Check if course has 0% progress (no completed or in-progress lessons)
-    const allLessons = activeCourse.outline.sections.flatMap((s) => s.lessons);
-    const hasProgress = allLessons.some(
-      (l) => l.status === 'completed' || l.status === 'in_progress'
-    );
-    return !hasProgress;
+    return true;
   }, [activeCourse, activeLesson, initialLessonId]);
 
   // Use Firebase subscription for real-time course data
@@ -95,45 +90,31 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
     }
   }, [connectionError]);
 
-  // Auto-start first lesson for courses with 0% progress (frictionless flow)
-  // Triggers immediately when shouldAutoStart becomes true to avoid CourseOverview flash
+  // Auto-select first lesson when outline is ready (SPA philosophy - always show LessonContent)
+  // Triggers immediately when outline becomes available
   useEffect(() => {
-    if (!shouldAutoStart) return;
+    if (!shouldAutoSelectFirstLesson) return;
     if (!activeCourse?.outline?.sections?.length) return;
 
     const firstSection = activeCourse.outline.sections[0];
     if (firstSection?.lessons?.length > 0) {
       const firstLesson = firstSection.lessons[0];
-      // Set immediately - no delay to prevent CourseOverview flash
+      // Set immediately - always go to lesson view
       setActiveLesson({
         lessonId: firstLesson.id,
         sectionId: firstSection.id,
         lesson: firstLesson,
       });
     }
-  }, [shouldAutoStart, activeCourse]);
+  }, [shouldAutoSelectFirstLesson, activeCourse]);
 
-  // Handle lesson selection from overview or sidebar
+  // Handle lesson selection from sidebar
   const handleLessonSelect = useCallback((lesson: Lesson, sectionId: string) => {
     if (lesson.status === 'locked') return;
     setActiveLesson({ lessonId: lesson.id, sectionId, lesson });
   }, []);
 
-  // Handle continue button - find next available lesson
-  const handleContinue = useCallback(() => {
-    if (!activeCourse?.outline?.sections) return;
-
-    for (const section of activeCourse.outline.sections) {
-      for (const lesson of section.lessons) {
-        if (lesson.status === 'pending' || lesson.status === 'in_progress') {
-          setActiveLesson({ lessonId: lesson.id, sectionId: section.id, lesson });
-          return;
-        }
-      }
-    }
-  }, [activeCourse]);
-
-  // Handle lesson completion - auto-advance to next lesson
+  // Handle lesson completion - auto-advance to next lesson or navigate back when course complete
   const handleLessonComplete = useCallback(
     (nextPosition: LessonPosition | null) => {
       if (nextPosition) {
@@ -148,17 +129,12 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
           lesson,
         });
       } else {
-        // Course complete - go back to overview
-        setActiveLesson(null);
+        // Course complete - navigate back to home
+        navigation.goBack();
       }
     },
-    [activeCourse]
+    [activeCourse, navigation]
   );
-
-  // Handle back from lesson to overview
-  const handleBackToOverview = useCallback(() => {
-    setActiveLesson(null);
-  }, []);
 
   // Build current position for sidebar highlighting
   const currentPosition: LessonPosition | undefined = activeLesson
@@ -196,10 +172,11 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
     );
   }
 
-  // Get course title for generating state
+  // Get course title for display
   const courseTitle = activeCourse ? getCourseTitle(activeCourse) : undefined;
 
-  // Generating state - show blurred sidebar with motivational content
+  // Generating state - show LessonContent with blurred sidebar (outline generating)
+  // This is the new SPA approach: always show LessonContent layout with appropriate blur states
   if (isGenerating) {
     return (
       <LearningLayout
@@ -209,7 +186,15 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
         isGenerating={true}
         courseTitle={courseTitle}
       >
-        <GeneratingContent courseTitle={courseTitle} />
+        <LessonContent
+          courseId={courseId}
+          lessonId=""
+          sectionId=""
+          isOutlineGenerating={true}
+          courseTitle={courseTitle}
+          onLessonComplete={handleLessonComplete}
+          onBack={() => navigation.goBack()}
+        />
       </LearningLayout>
     );
   }
@@ -231,18 +216,46 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
     );
   }
 
-  // Transitioning to first lesson - show loading state instead of CourseOverview flash
-  // This happens when outline just became ready and we're about to auto-start
-  if (shouldAutoStart && !activeLesson) {
+  // Transitioning to first lesson - show skeleton briefly while auto-select happens
+  if (shouldAutoSelectFirstLesson && !activeLesson) {
     return (
       <LearningLayout
         courseId={courseId}
         currentPosition={currentPosition}
         title={courseTitle || 'Starting Your Course'}
-        isGenerating={true}
+        isGenerating={false}
         courseTitle={courseTitle}
+        onLessonSelect={handleLessonSelect}
       >
-        <GeneratingContent courseTitle={courseTitle} />
+        <CourseOverviewSkeleton sectionCount={3} />
+      </LearningLayout>
+    );
+  }
+
+  // Normal lesson view - always show LessonContent (no CourseOverview)
+  // If no activeLesson at this point, select the first available lesson
+  const effectiveLesson = activeLesson || (() => {
+    const firstSection = activeCourse.outline.sections[0];
+    const firstLesson = firstSection?.lessons?.[0];
+    return firstLesson ? {
+      lessonId: firstLesson.id,
+      sectionId: firstSection.id,
+      lesson: firstLesson,
+    } : null;
+  })();
+
+  if (!effectiveLesson) {
+    return (
+      <LearningLayout courseId={courseId} currentPosition={currentPosition} title="No Lessons">
+        <Card elevation="md" padding="lg">
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorIcon}>📭</Text>
+            <Text style={[styles.errorTitle, { color: colors.text.primary }]}>
+              No lessons available
+            </Text>
+            <Button title="Go Back" onPress={() => navigation.goBack()} variant="outline" />
+          </View>
+        </Card>
       </LearningLayout>
     );
   }
@@ -251,27 +264,19 @@ export const CourseViewScreen: React.FC<CourseViewScreenProps> = ({ navigation, 
     <LearningLayout
       courseId={courseId}
       currentPosition={currentPosition}
-      title={activeLesson ? 'Lesson' : getCourseTitle(activeCourse)}
-      showBackButton={!activeLesson}
-      scrollable={!activeLesson} // Overview is scrollable, lesson manages its own scroll
-      onLessonSelect={handleLessonSelect} // SPA-like navigation from sidebar
+      title="Lesson"
+      showBackButton={false}
+      scrollable={false}
+      onLessonSelect={handleLessonSelect}
     >
-      {activeLesson ? (
-        <LessonContent
-          courseId={courseId}
-          lessonId={activeLesson.lessonId}
-          sectionId={activeLesson.sectionId}
-          initialLesson={activeLesson.lesson}
-          onLessonComplete={handleLessonComplete}
-          onBack={handleBackToOverview}
-        />
-      ) : (
-        <CourseOverview
-          course={activeCourse}
-          onLessonSelect={handleLessonSelect}
-          onContinue={handleContinue}
-        />
-      )}
+      <LessonContent
+        courseId={courseId}
+        lessonId={effectiveLesson.lessonId}
+        sectionId={effectiveLesson.sectionId}
+        initialLesson={effectiveLesson.lesson}
+        onLessonComplete={handleLessonComplete}
+        onBack={() => navigation.goBack()}
+      />
     </LearningLayout>
   );
 };
