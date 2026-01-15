@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
+  "buildCommand": "node scripts/inject-env.js && npm run build",
   "outputDirectory": "dist",
   "devCommand": "npm run web",
   "installCommand": "npm install",
