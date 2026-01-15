@@ -9,7 +9,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build": "expo export --platform web && node scripts/fix-import-meta.js",
+    "build": "expo export --platform web --clear && node scripts/fix-import-meta.js",
     "build:production": "expo export --platform web --clear && node scripts/fix-import-meta.js",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",

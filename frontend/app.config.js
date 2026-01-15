@@ -3,6 +3,13 @@
 
 const baseConfig = require('./app.json');
 
+// Debug: Log env vars when Expo config is loaded
+console.log('[Expo Config] Environment variables check:', {
+  EXPO_PUBLIC_FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY ? 'SET' : 'NOT SET',
+  EXPO_PUBLIC_FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'NOT SET',
+  NODE_ENV: process.env.NODE_ENV,
+});
+
 module.exports = ({ config }) => {
   const isWeb = process.env.EXPO_PLATFORM === 'web' ||
                 process.argv.includes('--platform') && process.argv.includes('web') ||
