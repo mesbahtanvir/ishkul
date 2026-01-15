@@ -11,11 +11,10 @@ interface StripeProviderWrapperProps {
   children: React.ReactNode;
 }
 
-// Stripe publishable key from environment or constants
+// Stripe publishable key from environment - no hardcoded fallback
 const STRIPE_PUBLISHABLE_KEY =
   Constants.expoConfig?.extra?.stripePublishableKey ||
-  process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
-  '';
+  process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
 export const StripeProviderWrapper: React.FC<StripeProviderWrapperProps> = ({ children }) => {
   // If no publishable key, render without provider
