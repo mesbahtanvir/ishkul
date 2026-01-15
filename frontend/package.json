@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
+    "prebuild": "node -e \"console.log('[Build Env Check]', { EXPO_PUBLIC_FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY ? 'SET ('+process.env.EXPO_PUBLIC_FIREBASE_API_KEY.substring(0,10)+'...)' : 'NOT SET', EXPO_PUBLIC_FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'NOT SET', VERCEL_ENV: process.env.VERCEL_ENV || 'NOT SET', VERCEL_GIT_COMMIT_REF: process.env.VERCEL_GIT_COMMIT_REF || 'NOT SET' })\"",
     "dev": "expo start",
     "start": "expo start",
     "android": "expo start --android",
