@@ -127,8 +127,10 @@ function isStagingDomain(): boolean {
 function getApiBaseUrl(): string {
   // 1. Explicit override always wins
   if (process.env.EXPO_PUBLIC_API_URL) {
+    console.log('[API Config] Using explicit EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL);
     return process.env.EXPO_PUBLIC_API_URL;
   }
+  console.log('[API Config] EXPO_PUBLIC_API_URL not set, using domain detection');
 
   // 2. Staging domain detection (staging.ishkul.org)
   if (isStagingDomain()) {
