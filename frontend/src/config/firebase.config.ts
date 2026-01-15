@@ -27,11 +27,13 @@
  * - Firebase App Check (recommended for production)
  */
 
-// Debug: Log environment detection at build time
+// Debug: Log environment detection at runtime
 if (typeof window !== 'undefined') {
+  const apiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
+  const projectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
   console.log('[Firebase Config] Environment check:', {
-    hasApiKey: !!process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-    hasProjectId: !!process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    EXPO_PUBLIC_FIREBASE_API_KEY: apiKey ? `SET (${apiKey.substring(0, 10)}...)` : 'NOT SET',
+    EXPO_PUBLIC_FIREBASE_PROJECT_ID: projectId || 'NOT SET',
     nodeEnv: process.env.NODE_ENV,
   });
 }
