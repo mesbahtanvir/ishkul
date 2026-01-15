@@ -1,100 +1,18 @@
 /**
  * Firebase Configuration
  *
- * All Firebase configuration values MUST be provided via environment variables.
- * No hardcoded values - this ensures proper separation between environments.
+ * Uses runtime domain detection to select the correct Firebase project.
+ * This bypasses Vercel/Expo environment variable bundling issues.
  *
- * Required environment variables:
- * - EXPO_PUBLIC_FIREBASE_API_KEY
- * - EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
- * - EXPO_PUBLIC_FIREBASE_PROJECT_ID
- * - EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
- * - EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
- * - EXPO_PUBLIC_FIREBASE_APP_ID
- * - EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID (optional)
- *
- * To get these values:
- * 1. Go to Firebase Console: https://console.firebase.google.com
- * 2. Select your project
- * 3. Go to Project Settings > General
- * 4. Scroll to "Your apps" section
- * 5. Select your web app or create one
- * 6. Copy the config values
+ * Environments:
+ * - staging.ishkul.org → staging-ishkul-org Firebase project
+ * - ishkul.org / localhost → ishkul-org Firebase project (production)
  *
  * Security is handled by:
  * - Firestore Security Rules
  * - Storage Security Rules
  * - Firebase App Check (recommended for production)
  */
-
-// Debug: Log environment detection at runtime
-if (typeof window !== 'undefined') {
-  const apiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
-  const projectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
-  console.log('[Firebase Config] Environment check:', {
-    EXPO_PUBLIC_FIREBASE_API_KEY: apiKey ? `SET (${apiKey.substring(0, 10)}...)` : 'NOT SET',
-    EXPO_PUBLIC_FIREBASE_PROJECT_ID: projectId || 'NOT SET',
-    nodeEnv: process.env.NODE_ENV,
-  });
-}
-
-// Validate required Firebase environment variables
-const requiredFirebaseVars = [
-  'EXPO_PUBLIC_FIREBASE_API_KEY',
-  'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
-  'EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'EXPO_PUBLIC_FIREBASE_APP_ID',
-] as const;
-
-const missingVars = requiredFirebaseVars.filter(
-  (varName) => !process.env[varName]
-);
-
-if (missingVars.length > 0) {
-  console.error(
-    `[Firebase Config] Missing required environment variables:\n` +
-    missingVars.map((v) => `  - ${v}`).join('\n') +
-    `\n\nPlease set these in your .env.local file or deployment environment.`
-  );
-}
-
-// Get Firebase config from environment variables (required)
-export const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
-  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
-};
-
-/**
- * Check if Firebase is properly configured
- */
-export const isFirebaseConfigured = (): boolean => {
-  return missingVars.length === 0;
-};
-
-/**
- * GCP Project configuration
- * Used to construct Cloud Run URLs for preview environments
- *
- * For staging, set EXPO_PUBLIC_GCP_PROJECT_NUMBER to the staging project number
- */
-const GCP_PROJECT_NUMBER = process.env.EXPO_PUBLIC_GCP_PROJECT_NUMBER || "863006625304";
-const GCP_REGION = "northamerica-northeast2";
-
-/**
- * Backend service names
- */
-const BACKEND_SERVICES = {
-  production: 'ishkul-backend',
-  staging: 'ishkul-backend-staging',
-  preview: (prNumber: string) => `ishkul-backend-pr-${prNumber}`,
-};
 
 /**
  * Get current hostname (works in browser, returns null in SSR/native)
@@ -115,48 +33,156 @@ function isStagingDomain(): boolean {
 }
 
 /**
+ * Check if running on production domain
+ */
+function isProductionDomain(): boolean {
+  const hostname = getHostname();
+  return hostname === 'ishkul.org' || hostname === 'www.ishkul.org';
+}
+
+/**
+ * Staging Firebase Configuration (staging-ishkul-org project)
+ */
+const STAGING_FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyCfHGWYvXDuD-FKLSYzAdH-3WkRRu6_Cw4',
+  authDomain: 'staging-ishkul-org.firebaseapp.com',
+  projectId: 'staging-ishkul-org',
+  storageBucket: 'staging-ishkul-org.firebasestorage.app',
+  messagingSenderId: '930454644160',
+  appId: '1:930454644160:web:c63069e1fe458b05909425',
+  measurementId: 'G-WCQCKLRYGZ',
+};
+
+/**
+ * Production Firebase Configuration (ishkul-org project)
+ * Falls back to env vars for local development
+ */
+const PRODUCTION_FIREBASE_CONFIG = {
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
+};
+
+/**
+ * Get Firebase config based on runtime domain detection
+ */
+function getFirebaseConfig() {
+  const hostname = getHostname();
+
+  // Staging domain -> use staging Firebase project
+  if (isStagingDomain()) {
+    console.log('[Firebase Config] Staging domain detected, using staging-ishkul-org project');
+    return STAGING_FIREBASE_CONFIG;
+  }
+
+  // Production domain or localhost -> use production config (from env vars)
+  console.log(`[Firebase Config] Using production config for hostname: ${hostname || 'unknown'}`);
+  return PRODUCTION_FIREBASE_CONFIG;
+}
+
+// Export the Firebase config (determined at runtime)
+export const firebaseConfig = getFirebaseConfig();
+
+// Debug: Log the selected config
+if (typeof window !== 'undefined') {
+  console.log('[Firebase Config] Selected config:', {
+    projectId: firebaseConfig.projectId,
+    hasApiKey: !!firebaseConfig.apiKey,
+    hostname: getHostname(),
+  });
+}
+
+/**
+ * Check if Firebase is properly configured
+ */
+export const isFirebaseConfigured = (): boolean => {
+  return !!(
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.storageBucket &&
+    firebaseConfig.messagingSenderId &&
+    firebaseConfig.appId
+  );
+};
+
+/**
+ * GCP Project configuration
+ * Used to construct Cloud Run URLs for preview environments
+ */
+const STAGING_GCP_PROJECT_NUMBER = '930454644160';
+const PRODUCTION_GCP_PROJECT_NUMBER = '863006625304';
+const GCP_REGION = 'northamerica-northeast2';
+
+function getGcpProjectNumber(): string {
+  if (isStagingDomain()) {
+    return STAGING_GCP_PROJECT_NUMBER;
+  }
+  return process.env.EXPO_PUBLIC_GCP_PROJECT_NUMBER || PRODUCTION_GCP_PROJECT_NUMBER;
+}
+
+/**
+ * Backend service names
+ */
+const BACKEND_SERVICES = {
+  production: 'ishkul-backend',
+  staging: 'ishkul-backend-staging',
+  preview: (prNumber: string) => `ishkul-backend-pr-${prNumber}`,
+};
+
+/**
  * Get the API base URL based on environment
  *
  * Priority:
  * 1. Explicit EXPO_PUBLIC_API_URL environment variable
- * 2. Staging domain (staging.ishkul.org) → Staging backend
- * 3. Vercel preview with matching backend (auto-constructed URL)
- * 4. Production URL
+ * 2. Staging domain (staging.ishkul.org) -> Staging backend
+ * 3. Production domain (ishkul.org) -> Production backend
+ * 4. Vercel preview with matching backend (auto-constructed URL)
  * 5. Localhost for development
  */
 function getApiBaseUrl(): string {
+  const gcpProjectNumber = getGcpProjectNumber();
+
   // 1. Explicit override always wins
   if (process.env.EXPO_PUBLIC_API_URL) {
     console.log('[API Config] Using explicit EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL);
     return process.env.EXPO_PUBLIC_API_URL;
   }
-  console.log('[API Config] EXPO_PUBLIC_API_URL not set, using domain detection');
 
   // 2. Staging domain detection (staging.ishkul.org)
   if (isStagingDomain()) {
-    const stagingUrl = `https://${BACKEND_SERVICES.staging}-${GCP_PROJECT_NUMBER}.${GCP_REGION}.run.app/api`;
+    const stagingUrl = `https://${BACKEND_SERVICES.staging}-${gcpProjectNumber}.${GCP_REGION}.run.app/api`;
     console.log(`[API Config] Staging domain detected, using: ${stagingUrl}`);
     return stagingUrl;
   }
 
-  // 3. Vercel preview deployment - try to connect to matching backend preview
-  // VERCEL_GIT_PULL_REQUEST_ID is set by Vercel for preview deployments
+  // 3. Production domain detection (ishkul.org)
+  if (isProductionDomain()) {
+    const prodUrl = `https://${BACKEND_SERVICES.production}-${gcpProjectNumber}.${GCP_REGION}.run.app/api`;
+    console.log(`[API Config] Production domain detected, using: ${prodUrl}`);
+    return prodUrl;
+  }
+
+  // 4. Vercel preview deployment - try to connect to matching backend preview
   const prNumber = process.env.VERCEL_GIT_PULL_REQUEST_ID;
   if (prNumber) {
-    // Construct the Cloud Run preview URL
-    // Format: https://{service-name}-{project-number}.{region}.run.app/api
-    const previewUrl = `https://${BACKEND_SERVICES.preview(prNumber)}-${GCP_PROJECT_NUMBER}.${GCP_REGION}.run.app/api`;
+    const previewUrl = `https://${BACKEND_SERVICES.preview(prNumber)}-${gcpProjectNumber}.${GCP_REGION}.run.app/api`;
     console.log(`[API Config] Preview detected (PR #${prNumber}), using: ${previewUrl}`);
     return previewUrl;
   }
 
-  // 4. Production environment (Vercel production deployment)
+  // 5. Vercel production environment
   if (process.env.VERCEL_ENV === 'production') {
-    return `https://${BACKEND_SERVICES.production}-${GCP_PROJECT_NUMBER}.${GCP_REGION}.run.app/api`;
+    return `https://${BACKEND_SERVICES.production}-${gcpProjectNumber}.${GCP_REGION}.run.app/api`;
   }
 
-  // 5. Default to localhost for local development
-  return "http://localhost:8080/api";
+  // 6. Default to localhost for local development
+  console.log('[API Config] Using localhost for development');
+  return 'http://localhost:8080/api';
 }
 
 /**
@@ -170,7 +196,7 @@ export const apiConfig = {
 /**
  * Environment helper
  */
-export const isDevelopment = process.env.NODE_ENV === "development";
+export const isDevelopment = process.env.NODE_ENV === 'development';
 export const isStaging = isStagingDomain();
 export const isPreview = !!process.env.VERCEL_GIT_PULL_REQUEST_ID;
-export const isProduction = process.env.NODE_ENV === "production" && !isStaging && !isPreview;
+export const isProduction = process.env.NODE_ENV === 'production' && !isStaging && !isPreview;
