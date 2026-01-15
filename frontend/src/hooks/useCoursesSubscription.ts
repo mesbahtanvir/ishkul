@@ -10,13 +10,17 @@
  * - Handles errors gracefully
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { useCoursesStore } from '../state/coursesStore';
 import {
   subscribeToUserCourses,
   isFirebaseAuthenticated,
   SubscriptionError,
 } from '../services/firebase';
+
+// Use useLayoutEffect on client, useEffect on server (SSR-safe)
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 interface UseCoursesSubscriptionOptions {
   /** Whether to enable the subscription (default: true) */
@@ -64,6 +68,12 @@ export function useCoursesSubscription(
   // Ref to track unsubscribe function
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
+  // Use ref for onError to avoid re-subscription loops when callback changes
+  const onErrorRef = useRef(onError);
+  useIsomorphicLayoutEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
   useEffect(() => {
     // Don't subscribe if disabled
     if (!enabled) {
@@ -95,8 +105,8 @@ export function useCoursesSubscription(
       (error) => {
         setConnectionError(error.message);
         setIsLoading(false);
-        if (onError) {
-          onError(error);
+        if (onErrorRef.current) {
+          onErrorRef.current(error);
         }
       },
       statusFilter
@@ -112,7 +122,8 @@ export function useCoursesSubscription(
       }
       setIsSubscribed(false);
     };
-  }, [enabled, statusFilter, setCourses, onError]);
+    // Note: onError is accessed via ref to avoid re-subscription loops
+  }, [enabled, statusFilter, setCourses]);
 
   return {
     isSubscribed,
