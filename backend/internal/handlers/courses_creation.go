@@ -46,8 +46,9 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 
 	rc := &RequestContext{Ctx: ctx, UserID: userID, FS: fs, Request: r}
 
-	// Validate course limit
-	if err := validateCourseLimit(w, rc, req); err != nil {
+	// Validate course limit and get user tier
+	userTier, err := validateCourseLimitAndGetTier(w, rc, req)
+	if err != nil {
 		return // Error response already sent
 	}
 
@@ -57,24 +58,37 @@ func createCourse(w http.ResponseWriter, r *http.Request) {
 	firebase.LogWriteStart(rc.Ctx, appLogger, "set", "courses/"+course.ID,
 		slog.String("title", req.Title),
 	)
-	_, err := Collection(rc.FS, "courses").Doc(course.ID).Set(rc.Ctx, course)
+	_, err = Collection(rc.FS, "courses").Doc(course.ID).Set(rc.Ctx, course)
 	firebase.LogWrite(rc.Ctx, appLogger, "set", "courses/"+course.ID, err)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "CREATE_ERROR", "Error creating course")
 		return
 	}
 
-	// Generate course outline in background
-	go generateCourseOutlineAsync(course.ID, req.Title, rc.UserID)
+	// Generate course outline via queue system (reliable) or goroutine (fallback)
+	if taskManager != nil {
+		_, queueErr := taskManager.CreateOutlineTask(rc.Ctx, course.ID, rc.UserID, userTier)
+		if queueErr != nil {
+			logWarn(rc.Ctx, "queue_outline_task_failed",
+				slog.String("course_id", course.ID),
+				slog.String("error", queueErr.Error()),
+			)
+			// Fall back to goroutine if queue fails
+			go generateCourseOutlineAsync(course.ID, req.Title, rc.UserID)
+		}
+	} else {
+		// Fallback if queue not initialized (e.g., local development)
+		go generateCourseOutlineAsync(course.ID, req.Title, rc.UserID)
+	}
 
 	SendCreated(w, map[string]interface{}{
 		"course": course,
 	})
 }
 
-// validateCourseLimit checks if user can create a new course.
-// Returns an error if limit is reached (response already sent).
-func validateCourseLimit(w http.ResponseWriter, rc *RequestContext, req models.CourseCreate) error {
+// validateCourseLimitAndGetTier checks if user can create a new course and returns the user tier.
+// Returns the user tier and an error if limit is reached (response already sent).
+func validateCourseLimitAndGetTier(w http.ResponseWriter, rc *RequestContext, req models.CourseCreate) (string, error) {
 	userTier, limits, err := GetUserTierAndLimits(rc.Ctx, rc.UserID)
 	if err != nil {
 		userTier = models.TierFree
@@ -83,7 +97,7 @@ func validateCourseLimit(w http.ResponseWriter, rc *RequestContext, req models.C
 	existingPaths, err := CountUserActivePaths(rc.Ctx, rc.FS, rc.UserID)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "COUNT_ERROR", "Error checking existing paths")
-		return err
+		return userTier, err
 	}
 
 	maxPaths := models.GetMaxActiveCourses(userTier)
@@ -100,10 +114,10 @@ func validateCourseLimit(w http.ResponseWriter, rc *RequestContext, req models.C
 			"currentTier": userTier,
 			"limits":      limits,
 		})
-		return fmt.Errorf("course limit reached")
+		return userTier, fmt.Errorf("course limit reached")
 	}
 
-	return nil
+	return userTier, nil
 }
 
 // buildNewCourse creates a new Course model with defaults.
