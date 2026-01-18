@@ -63,7 +63,7 @@ jobs:
           wait-interval: 10
           allowed-conclusions: success,skipped
           # Ignore this workflow itself to avoid circular dependency
-          ignore-checks: 'Verify CI Passed,Deploy Backend'
+          ignore-checks: '✅ Verify CI Passed,🚀 Deploy to staging,🚀 Deploy to production,🔧 Determine Environment'
 
   setup:
     name: 🔧 Determine Environment
