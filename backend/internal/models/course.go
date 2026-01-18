@@ -375,3 +375,43 @@ func (c *Course) FindBlockIndices(sectionID, lessonID, blockID string) (sectionI
 	}
 	return -1, -1, -1
 }
+
+// IsLessonUnlocked checks if a lesson at the given position is accessible to the user.
+// A lesson is unlocked if:
+// - It's the first lesson (always accessible)
+// - It's completed or in-progress
+// - Its block generation has started (blocksStatus != pending)
+// This enables progressive unlocking: lessons unlock as the user progresses.
+func (c *Course) IsLessonUnlocked(sectionIdx, lessonIdx int) bool {
+	if c.Outline == nil {
+		return false
+	}
+
+	// Bounds check
+	if sectionIdx < 0 || sectionIdx >= len(c.Outline.Sections) {
+		return false
+	}
+	section := &c.Outline.Sections[sectionIdx]
+	if lessonIdx < 0 || lessonIdx >= len(section.Lessons) {
+		return false
+	}
+
+	lesson := &section.Lessons[lessonIdx]
+
+	// First lesson is always unlocked
+	if sectionIdx == 0 && lessonIdx == 0 {
+		return true
+	}
+
+	// Completed or in-progress = unlocked
+	if lesson.Status == LessonStatusCompleted || lesson.Status == LessonStatusInProgress {
+		return true
+	}
+
+	// Generation started = unlocked (blocksStatus is not pending/empty)
+	if lesson.BlocksStatus != "" && lesson.BlocksStatus != ContentStatusPending {
+		return true
+	}
+
+	return false
+}

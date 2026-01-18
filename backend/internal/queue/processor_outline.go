@@ -11,6 +11,10 @@ import (
 	"github.com/mesbahtanvir/ishkul/backend/pkg/metrics"
 )
 
+// ProgressiveLessonBuffer is the number of lessons to pre-generate when outline completes.
+// This enables progressive generation: only generate current + next lesson, not all at once.
+const ProgressiveLessonBuffer = 2
+
 // processOutlineTask processes an outline generation task.
 func (p *Processor) processOutlineTask(ctx context.Context, task *models.GenerationTask) error {
 	genStart := time.Now()
@@ -90,15 +94,27 @@ func (p *Processor) processOutlineTask(ctx context.Context, task *models.Generat
 	return nil
 }
 
-// queueBlockSkeletonsForOutline queues block skeleton generation tasks for all lessons in the outline.
-// This enables automatic cascade: outline completion → skeleton generation for all lessons.
+// queueBlockSkeletonsForOutline queues block skeleton generation tasks for the first N lessons.
+// This enables progressive generation: only generate a buffer of lessons, not all at once.
+// Additional lessons are queued on-demand when the user accesses earlier lessons.
 func (p *Processor) queueBlockSkeletonsForOutline(ctx context.Context, task *models.GenerationTask, outline *models.CourseOutline) {
 	tm := p.taskManager
 	tasksQueued := 0
 	tasksFailed := 0
+	lessonsProcessed := 0
 
 	for _, section := range outline.Sections {
 		for _, lesson := range section.Lessons {
+			// Stop when buffer is full (progressive generation)
+			if lessonsProcessed >= ProgressiveLessonBuffer {
+				p.logInfo(ctx, "cascade_skeleton_buffer_reached",
+					slog.String("course_id", task.CourseID),
+					slog.Int("buffer_size", ProgressiveLessonBuffer),
+					slog.Int("total_lessons", countLessons(outline)),
+				)
+				goto done
+			}
+
 			_, err := tm.CreateBlockSkeletonTask(ctx, task.CourseID, section.ID, lesson.ID, task.UserID, task.UserTier)
 			if err != nil {
 				p.logError(ctx, "cascade_skeleton_queue_failed",
@@ -111,12 +127,15 @@ func (p *Processor) queueBlockSkeletonsForOutline(ctx context.Context, task *mod
 				continue // Don't fail the whole outline for one lesson
 			}
 			tasksQueued++
+			lessonsProcessed++
 		}
 	}
 
+done:
 	p.logInfo(ctx, "cascade_skeleton_tasks_queued",
 		slog.String("course_id", task.CourseID),
 		slog.Int("tasks_queued", tasksQueued),
 		slog.Int("tasks_failed", tasksFailed),
+		slog.Int("buffer_limit", ProgressiveLessonBuffer),
 	)
 }

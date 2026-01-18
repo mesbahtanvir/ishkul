@@ -170,3 +170,64 @@ func (tm *TaskManager) QueuePregeneration(ctx context.Context, courseID, section
 
 	return nil
 }
+
+// QueueNextLesson queues skeleton generation for the lesson after the given position.
+// This enables progressive generation - content is generated just-in-time as user progresses.
+// Returns true if a task was queued, false if no queueing was needed (already queued or no more lessons).
+func (tm *TaskManager) QueueNextLesson(ctx context.Context, course *models.Course, currentSectionIdx, currentLessonIdx int, userID, userTier string) (bool, error) {
+	if course.Outline == nil {
+		return false, nil
+	}
+
+	// Find next lesson position
+	nextSectionIdx := currentSectionIdx
+	nextLessonIdx := currentLessonIdx + 1
+
+	// Handle section boundary - move to next section if past end of current
+	if nextSectionIdx < len(course.Outline.Sections) &&
+		nextLessonIdx >= len(course.Outline.Sections[nextSectionIdx].Lessons) {
+		nextSectionIdx++
+		nextLessonIdx = 0
+	}
+
+	// Check bounds - no more lessons
+	if nextSectionIdx >= len(course.Outline.Sections) {
+		tm.logDebug(ctx, "progressive_no_more_lessons",
+			slog.String("course_id", course.ID),
+			slog.Int("current_section", currentSectionIdx),
+			slog.Int("current_lesson", currentLessonIdx),
+		)
+		return false, nil
+	}
+
+	nextSection := &course.Outline.Sections[nextSectionIdx]
+	if nextLessonIdx >= len(nextSection.Lessons) {
+		return false, nil
+	}
+	nextLesson := &nextSection.Lessons[nextLessonIdx]
+
+	// Only queue if still pending (idempotent - skip if already queued/generating)
+	if nextLesson.BlocksStatus != "" && nextLesson.BlocksStatus != models.ContentStatusPending {
+		tm.logDebug(ctx, "progressive_already_queued",
+			slog.String("course_id", course.ID),
+			slog.String("lesson_id", nextLesson.ID),
+			slog.String("blocks_status", nextLesson.BlocksStatus),
+		)
+		return false, nil
+	}
+
+	// Queue the next lesson
+	_, err := tm.CreateBlockSkeletonTask(ctx, course.ID, nextSection.ID, nextLesson.ID, userID, userTier)
+	if err != nil {
+		return false, err
+	}
+
+	tm.logInfo(ctx, "progressive_lesson_queued",
+		slog.String("course_id", course.ID),
+		slog.String("from_lesson_idx", slog.IntValue(currentLessonIdx).String()),
+		slog.String("queued_section_id", nextSection.ID),
+		slog.String("queued_lesson_id", nextLesson.ID),
+	)
+
+	return true, nil
+}

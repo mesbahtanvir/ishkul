@@ -20,7 +20,11 @@ import { Typography } from '../theme/typography';
 import { Spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types/navigation';
 import { Section, Lesson, getCourseTitle } from '../types/app';
-import { getLessonStatusIcon, getLessonStatusColor } from '../utils/lessonStatusHelpers';
+import {
+  getLessonStatusIcon,
+  getLessonStatusColor,
+  getEffectiveLessonStatus,
+} from '../utils/lessonStatusHelpers';
 
 type CourseOutlineScreenProps = NativeStackScreenProps<RootStackParamList, 'CourseOutline'>;
 
@@ -72,52 +76,61 @@ const SectionCard: React.FC<SectionCardProps> = ({
       {/* Lessons List */}
       {isExpanded && (
         <View style={styles.lessonsContainer}>
-          {section.lessons.map((lesson, lessonIndex) => (
-            <TouchableOpacity
-              key={lesson.id}
-              style={[
-                styles.lessonRow,
-                { borderTopColor: colors.border },
-                lessonIndex === 0 && styles.firstLessonRow,
-              ]}
-              onPress={() => onLessonPress(lesson)}
-              disabled={lesson.status === 'locked'}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.lessonIcon}>
-                {getLessonStatusIcon(lesson.status)}
-              </Text>
-              <View style={styles.lessonInfo}>
-                <Text
-                  style={[
-                    styles.lessonTitle,
-                    {
-                      color: getLessonStatusColor(lesson.status, colors),
-                      opacity: lesson.status === 'locked' ? 0.5 : 1,
-                    },
-                  ]}
-                >
-                  {lesson.title}
+          {section.lessons.map((lesson, lessonIndex) => {
+            // Derive effective status (may be 'locked' based on generation state)
+            const effectiveStatus = getEffectiveLessonStatus(
+              lesson,
+              lessonIndex,
+              sectionIndex
+            );
+
+            return (
+              <TouchableOpacity
+                key={lesson.id}
+                style={[
+                  styles.lessonRow,
+                  { borderTopColor: colors.border },
+                  lessonIndex === 0 && styles.firstLessonRow,
+                ]}
+                onPress={() => onLessonPress(lesson)}
+                disabled={effectiveStatus === 'locked'}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.lessonIcon}>
+                  {getLessonStatusIcon(effectiveStatus)}
                 </Text>
-                {lesson.description && (
+                <View style={styles.lessonInfo}>
                   <Text
                     style={[
-                      styles.lessonDescription,
-                      { color: colors.text.secondary },
+                      styles.lessonTitle,
+                      {
+                        color: getLessonStatusColor(effectiveStatus, colors),
+                        opacity: effectiveStatus === 'locked' ? 0.5 : 1,
+                      },
                     ]}
-                    numberOfLines={1}
                   >
-                    {lesson.description}
+                    {lesson.title}
+                  </Text>
+                  {lesson.description && (
+                    <Text
+                      style={[
+                        styles.lessonDescription,
+                        { color: colors.text.secondary },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {lesson.description}
+                    </Text>
+                  )}
+                </View>
+                {effectiveStatus !== 'locked' && (
+                  <Text style={[styles.lessonArrow, { color: colors.text.secondary }]}>
+                    →
                   </Text>
                 )}
-              </View>
-              {lesson.status !== 'locked' && (
-                <Text style={[styles.lessonArrow, { color: colors.text.secondary }]}>
-                  →
-                </Text>
-              )}
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
     </Card>

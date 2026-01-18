@@ -168,6 +168,28 @@ func getLesson(w http.ResponseWriter, r *http.Request, courseID, sectionID, less
 		lesson.BlocksStatus = models.ContentStatusGenerating
 	}
 
+	// Progressive generation: queue next lesson when user accesses current one
+	// This maintains a lookahead buffer so content is ready when user advances
+	if tm := GetTaskManager(); tm != nil {
+		sectionIdx, lessonIdx := course.FindLessonIndices(sectionID, lessonID)
+		if sectionIdx >= 0 && lessonIdx >= 0 {
+			userTier := getUserTierForPregeneration(ctx, fs, userID)
+			queued, err := tm.QueueNextLesson(ctx, course, sectionIdx, lessonIdx, userID, userTier)
+			if err != nil {
+				logWarn(ctx, "progressive_queue_failed",
+					slog.String("course_id", courseID),
+					slog.String("lesson_id", lessonID),
+					slog.String("error", err.Error()),
+				)
+			} else if queued {
+				logInfo(ctx, "progressive_next_lesson_queued",
+					slog.String("course_id", courseID),
+					slog.String("from_lesson", lessonID),
+				)
+			}
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"lesson":    lesson,
