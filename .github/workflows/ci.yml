@@ -1,4 +1,5 @@
 name: CI
+run-name: "🔄 CI — ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || github.ref_name }}"
 
 on:
   push:
@@ -26,7 +27,7 @@ concurrency:
 jobs:
   # Determine which jobs need to run based on changed files
   changes:
-    name: Detect Changes
+    name: 🔍 Detect File Changes
     runs-on: ubuntu-latest
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -48,7 +49,7 @@ jobs:
               - '.github/workflows/ci.yml'
 
   frontend:
-    name: Frontend CI
+    name: 🌐 Frontend — TypeScript, Lint, Build, Test
     runs-on: ubuntu-latest
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
@@ -104,7 +105,7 @@ jobs:
           fi
 
   backend:
-    name: Backend CI (Go)
+    name: ⚙️ Backend Go — Format, Vet, Lint, Build, Test
     runs-on: ubuntu-latest
     needs: changes
     if: needs.changes.outputs.backend == 'true'
@@ -163,7 +164,7 @@ jobs:
           retention-days: 7
 
   backend-docker:
-    name: Backend Docker Build (Validation Only)
+    name: 🐳 Backend Docker — Build Validation
     runs-on: ubuntu-latest
     needs: changes
     # Disabled on PRs to reduce resource usage - Docker build validation happens on main
@@ -219,7 +220,7 @@ jobs:
 
   # Security scanning job
   security:
-    name: Security Scan
+    name: 🔒 Security — Trivy Vulnerability Scan
     runs-on: ubuntu-latest
     needs: changes
     # Run security scan if either frontend or backend changed
@@ -259,7 +260,7 @@ jobs:
 
   # Summary job that always runs to report status
   ci-status:
-    name: CI Status
+    name: 📊 CI Status Summary
     runs-on: ubuntu-latest
     needs: [changes, frontend, backend, backend-docker, security]
     if: always()
