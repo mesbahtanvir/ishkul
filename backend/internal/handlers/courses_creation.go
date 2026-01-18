@@ -239,16 +239,6 @@ func initializeLessonPosition(outline *models.CourseOutline) *models.LessonPosit
 	return position
 }
 
-// triggerPostOutlinePregeneration triggers pregeneration after outline is ready.
-// Note: Pregeneration service removed - will be replaced by queue system
-func triggerPostOutlinePregeneration(ctx context.Context, fs *firestore.Client, courseID, userID, title string, outline *models.CourseOutline, currentPosition *models.LessonPosition) {
-	// TODO: Queue system will handle auto-generation of blocks
-	logInfo(ctx, "outline_ready_for_generation",
-		slog.String("path_id", courseID),
-		slog.String("title", title),
-	)
-}
-
 // getUserTierForPregeneration fetches user tier for pregeneration.
 func getUserTierForPregeneration(ctx context.Context, fs *firestore.Client, userID string) string {
 	userDoc, err := Collection(fs, "users").Doc(userID).Get(ctx)
