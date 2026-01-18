@@ -126,6 +126,9 @@ func (p *Processor) processBlockSkeletonTask(ctx context.Context, task *models.G
 		return fmt.Errorf("update lesson blocks: %w", err)
 	}
 
+	// Cascade: Queue block content generation for all blocks in this lesson
+	p.queueBlockContentForLesson(ctx, task, blocks)
+
 	metrics.GetCollector().Counter(metrics.MetricGenerationSkeletonSuccess).Inc()
 
 	p.logInfo(ctx, "queue_block_skeletons_generated",
@@ -212,4 +215,34 @@ func (p *Processor) processBlockContentTask(ctx context.Context, task *models.Ge
 	)
 
 	return nil
+}
+
+// queueBlockContentForLesson queues block content generation tasks for all blocks in a lesson.
+// This enables automatic cascade: skeleton completion → content generation for all blocks.
+func (p *Processor) queueBlockContentForLesson(ctx context.Context, task *models.GenerationTask, blocks []models.Block) {
+	tm := p.taskManager
+	tasksQueued := 0
+	tasksFailed := 0
+
+	for _, block := range blocks {
+		_, err := tm.CreateBlockContentTask(ctx, task.CourseID, task.SectionID, task.LessonID, block.ID, task.UserID, task.UserTier, models.PriorityLow)
+		if err != nil {
+			p.logError(ctx, "cascade_content_queue_failed",
+				slog.String("course_id", task.CourseID),
+				slog.String("lesson_id", task.LessonID),
+				slog.String("block_id", block.ID),
+				slog.String("error", err.Error()),
+			)
+			tasksFailed++
+			continue // Don't fail the whole lesson for one block
+		}
+		tasksQueued++
+	}
+
+	p.logInfo(ctx, "cascade_content_tasks_queued",
+		slog.String("course_id", task.CourseID),
+		slog.String("lesson_id", task.LessonID),
+		slog.Int("tasks_queued", tasksQueued),
+		slog.Int("tasks_failed", tasksFailed),
+	)
 }

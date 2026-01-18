@@ -212,8 +212,9 @@ func saveGeneratedOutline(ctx context.Context, fs *firestore.Client, courseID, u
 		slog.Int("total_lessons", totalLessons),
 	)
 
-	// Trigger pregeneration of first step
-	triggerPostOutlinePregeneration(ctx, fs, courseID, userID, goal, outline, currentPosition)
+	// Note: Cascade generation now handled by queue processor (processor_outline.go)
+	// triggerPostOutlinePregeneration is a legacy stub - cascade triggers automatically
+	// when outline task completes in the queue system.
 
 	return nil
 }

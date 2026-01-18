@@ -72,6 +72,9 @@ func (p *Processor) processOutlineTask(ctx context.Context, task *models.Generat
 		return fmt.Errorf("save outline: %w", err)
 	}
 
+	// Cascade: Queue block skeleton generation for all lessons
+	p.queueBlockSkeletonsForOutline(ctx, task, outline)
+
 	// Record metrics
 	m := metrics.GetCollector()
 	m.Counter(metrics.MetricGenerationOutlineSuccess).Inc()
@@ -85,4 +88,35 @@ func (p *Processor) processOutlineTask(ctx context.Context, task *models.Generat
 	)
 
 	return nil
+}
+
+// queueBlockSkeletonsForOutline queues block skeleton generation tasks for all lessons in the outline.
+// This enables automatic cascade: outline completion → skeleton generation for all lessons.
+func (p *Processor) queueBlockSkeletonsForOutline(ctx context.Context, task *models.GenerationTask, outline *models.CourseOutline) {
+	tm := p.taskManager
+	tasksQueued := 0
+	tasksFailed := 0
+
+	for _, section := range outline.Sections {
+		for _, lesson := range section.Lessons {
+			_, err := tm.CreateBlockSkeletonTask(ctx, task.CourseID, section.ID, lesson.ID, task.UserID, task.UserTier)
+			if err != nil {
+				p.logError(ctx, "cascade_skeleton_queue_failed",
+					slog.String("course_id", task.CourseID),
+					slog.String("section_id", section.ID),
+					slog.String("lesson_id", lesson.ID),
+					slog.String("error", err.Error()),
+				)
+				tasksFailed++
+				continue // Don't fail the whole outline for one lesson
+			}
+			tasksQueued++
+		}
+	}
+
+	p.logInfo(ctx, "cascade_skeleton_tasks_queued",
+		slog.String("course_id", task.CourseID),
+		slog.Int("tasks_queued", tasksQueued),
+		slog.Int("tasks_failed", tasksFailed),
+	)
 }
