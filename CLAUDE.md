@@ -24,8 +24,10 @@ ishkul/
 │   └── postman/          # API functional tests (Newman)
 ├── e2e/                   # Web E2E tests (Playwright)
 ├── .maestro/              # Mobile E2E tests (Maestro)
+├── docs/prd/              # Product Requirements Documents
 ├── .github/
 │   ├── workflows/         # GitHub Actions CI/CD
+│   ├── PULL_REQUEST_TEMPLATE.md  # PR template with PRD checklist
 │   └── copilot-instructions.md  # Repository-wide Copilot instructions
 └── CLAUDE.md              # Claude Code instructions (this file)
 ```
@@ -78,6 +80,41 @@ When implementing a new feature, consider ALL of the following:
 - [ ] **Integration tests** - Test interactions between components/services
 - [ ] **E2E tests** - Add Playwright/Maestro tests for critical user flows
 - [ ] **Infrastructure changes** - Firebase rules, Cloud Run config, environment variables
+
+## 📝 PRD Process
+
+Features and non-trivial bugs require a PRD (Product Requirements Document) before merge.
+
+### When PRD is Required
+- New features
+- Bug fixes affecting users
+- UI/UX changes
+- API changes
+
+### When PRD is NOT Required
+- Typo fixes
+- Dependency updates
+- Documentation only
+- Internal refactoring
+- CI/CD changes
+
+Use `[skip prd]` in PR title for trivial changes.
+
+### Creating a PRD
+1. Check next PRD number in `docs/prd/`
+2. Copy template: `docs/prd/_TEMPLATE.md` (or `_TEMPLATE_BUG.md` for bugs)
+3. Create: `docs/prd/PRD-XXX-short-name.md`
+4. Fill in: Problem, Solution, Acceptance Criteria
+5. Link PRD in your PR
+
+### PRD Workflow
+```
+Issue → Create PRD → Get Approval → Create PR → Link PRD → Verify Criteria → Merge → Mark PRD "Done"
+```
+
+### Location
+- Templates: `docs/prd/_TEMPLATE.md`, `docs/prd/_TEMPLATE_BUG.md`
+- PRDs: `docs/prd/PRD-XXX-name.md`
 
 ## 🧪 MANDATORY: Unit Testing Requirements
 
@@ -355,5 +392,5 @@ For more, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
-**Last Updated**: 2025-12-12 | **Version**: 2.5.0 | **Status**: Production Ready ✅
-*Updated: Added mandatory unit testing requirements for screens/components*
+**Last Updated**: 2026-01-28 | **Version**: 2.6.0 | **Status**: Production Ready ✅
+*Updated: Added PRD-first workflow with templates and PR integration*
